@@ -89,7 +89,7 @@ Internal lifecycle events use stable category types and carry the identity of wh
 | `xstate.timeout.actor` | `actorId`, `sessionId` |
 | `xstate.done.state` | `stateId` |
 | `xstate.after` | `stateId`, `delay` |
-| `xstate.timeout` | `stateId` |
+| `xstate.timeout.state` | `stateId` |
 
 Use `matches` to select one payload of an event type:
 
@@ -106,7 +106,7 @@ on: {
 
 ## One transition per event
 
-Transition arrays are not accepted by the authoring APIs. An event maps to a single transition. Return a target from a transition function to choose among several, and use `matches` to select a payload. Serialized transition arrays are still accepted by `createMachineFromConfig(...)`.
+Transition arrays are not accepted by the authoring APIs. An event maps to a single transition. Return a target from a transition function to choose among several, and use `matches` to select a payload. Serialized transition arrays are still accepted by `machineFromJSON(...)`.
 
 ```ts
 on: {

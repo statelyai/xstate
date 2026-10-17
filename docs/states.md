@@ -42,7 +42,7 @@ See [machine configuration](configuration.md) for every property a state node ac
 | `tags` | `Set<string>` | Tags of all active state nodes. |
 | `nodes` | `StateNode[]` | Active state nodes represented by `value`. |
 | `historyValue` | `object` | Remembered values for [history states](history-states.md). |
-| `timers` | `Record<string, LogicalTimer>` | Pending [delayed](delays.md) and [timeout](timeouts.md) timers. |
+| `timers` | `readonly LogicalTimer[]` | Pending [delayed](delays.md) and [timeout](timeouts.md) timers. |
 | `machine` | `StateMachine` | The machine that produced this snapshot. |
 
 | Method | Returns | Description |

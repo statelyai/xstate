@@ -1,7 +1,7 @@
 import * as fc from 'fast-check';
 import type { SnapshotFrom } from 'xstate';
 import { createMachine, types } from 'xstate';
-import { ModelTestFailure, propertyTest } from '../src/index.ts';
+import { ModelTestFailureError, propertyTest } from '../src/index.ts';
 import {
   PlaywrightOracleError,
   createPlaywrightSut,
@@ -60,7 +60,7 @@ async function catchFailure(run: () => Promise<unknown>) {
   try {
     await run();
   } catch (error) {
-    return error as ModelTestFailure;
+    return error as ModelTestFailureError;
   }
   throw new Error('Expected the campaign to fail');
 }
@@ -88,7 +88,7 @@ describe('page oracles', () => {
         })
       })
     );
-    expect(failure).toBeInstanceOf(ModelTestFailure);
+    expect(failure).toBeInstanceOf(ModelTestFailureError);
     expect(failure.summary).toMatch(/^SUT check failed after \d+ steps$/);
     expect(failure.cause).toBeInstanceOf(PlaywrightOracleError);
     expect((failure.cause as PlaywrightOracleError).messages).toEqual([

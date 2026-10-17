@@ -9,6 +9,12 @@ import {
 } from './actors/subscription.ts';
 import { XSTATE_SPAWN, XSTATE_START, XSTATE_TERMINATE } from './constants.ts';
 import {
+  getBuiltInTimerIdentity,
+  getTimerKey,
+  matchesTimerKey,
+  readTimerKey
+} from './timerKey.ts';
+import {
   getActorIdPrefix,
   parseGeneratedActorId,
   type ActorSystemRuntime,
@@ -39,7 +45,8 @@ import type {
   SpawnExecutableEffect,
   StartExecutableEffect,
   StopExecutableEffect,
-  TerminateExecutableEffect
+  TerminateExecutableEffect,
+  TimerKey
 } from './types.ts';
 
 type TransitionActionRecord = {
@@ -248,7 +255,11 @@ function execRaiseEffect(
   this: RaiseExecutableEffect,
   runtime: EffectRuntime = this.source.system
 ): void | PromiseLike<void> {
-  return runtime.scheduleTimer!(this.source, this.id!, this.delay ?? 0);
+  return runtime.scheduleTimer!(
+    this.source,
+    getTimerKey(this),
+    this.delay ?? 0
+  );
 }
 
 function execSendToEffect(
@@ -257,7 +268,7 @@ function execSendToEffect(
 ): void | PromiseLike<void> {
   assertSendToEvent(this.event);
   if (this.delay !== undefined) {
-    return runtime.scheduleTimer!(this.source, this.id!, this.delay);
+    return runtime.scheduleTimer!(this.source, getTimerKey(this), this.delay);
   }
   return runtime.sendEvent!(this.source, this.target, this.event);
 }
@@ -266,7 +277,7 @@ function execCancelEffect(
   this: CancelExecutableEffect,
   runtime: EffectRuntime = this.source.system
 ): void | PromiseLike<void> {
-  return runtime.cancelTimer!(this.source, this.id);
+  return runtime.cancelTimer!(this.source, readTimerKey(this)!);
 }
 
 function updateLogicalTimers(
@@ -279,12 +290,14 @@ function updateLogicalTimers(
   }
 
   if (effect.type === '@xstate.cancel') {
-    if (!snapshot.timers?.[effect.id]) {
+    const key = readTimerKey(effect)!;
+    if (!snapshot.timers?.some((timer) => matchesTimerKey(timer, key))) {
       return snapshot;
     }
-    const timers = { ...snapshot.timers };
-    delete timers[effect.id];
-    return { ...snapshot, timers };
+    return {
+      ...snapshot,
+      timers: snapshot.timers.filter((timer) => !matchesTimerKey(timer, key))
+    };
   }
 
   if (
@@ -294,26 +307,41 @@ function updateLogicalTimers(
     return snapshot;
   }
 
+  // A delayed raise or send without an `id` is numbered by the actor's
+  // timer sequence. Built-in timers (`after`, `timeout`) have neither; their
+  // event identifies them.
   let nextTimerId = snapshot._nextTimerId ?? 0;
-  const id = effect.id ?? `xstate.timer.auto.${nextTimerId++}`;
-  effect.id = id;
+  if (effect.id === undefined && !getBuiltInTimerIdentity(effect.event)) {
+    effect.seq = nextTimerId++;
+    const args = effect.args as unknown[];
+    args[args.length - 1] = {
+      ...(args[args.length - 1] as object),
+      seq: effect.seq
+    };
+  }
   const target =
     effect.type === '@xstate.raise' || effect.target === actorScope.self
       ? 'self'
       : effect.target;
+  const timer: LogicalTimer = {
+    ...(effect.id !== undefined && { id: effect.id }),
+    ...(effect.seq !== undefined && { seq: effect.seq }),
+    delay: effect.delay,
+    type: effect.type,
+    event: effect.event,
+    target
+  };
+  // Scheduling a timer that is already pending replaces it in place.
+  const key = getTimerKey(timer);
+  const timers = snapshot.timers ?? [];
+  const index = timers.findIndex((pending) => matchesTimerKey(pending, key));
 
   return {
     ...snapshot,
-    timers: {
-      ...snapshot.timers,
-      [id]: {
-        id,
-        delay: effect.delay,
-        type: effect.type,
-        event: effect.event,
-        target
-      }
-    },
+    timers:
+      index === -1
+        ? [...timers, timer]
+        : timers.map((pending, i) => (i === index ? timer : pending)),
     _nextTimerId: nextTimerId
   };
 }
@@ -491,15 +519,18 @@ function resolveTransitionSpawnSource(
 
 /**
  * Internal helper actors (listeners, subscriptions) number their ids from
- * system-level counters under `xstate.`-prefixed names; snapshot-owned
+ * system-level counters under `@xstate.`-prefixed names; snapshot-owned
  * children number from per-snapshot counters. The two spaces only stay
  * collision-free because their prefixes are disjoint, so user sources must
- * not enter the reserved namespace.
+ * not enter the reserved `xstate.` / `@xstate.` namespaces.
  */
 function assertUnreservedPrefix(prefix: string): void {
-  if (isDevelopment && prefix.startsWith('xstate.')) {
+  if (
+    isDevelopment &&
+    (prefix.startsWith('xstate.') || prefix.startsWith('@xstate.'))
+  ) {
     throw new Error(
-      `Child actor ids with the "xstate." prefix are reserved for internal actors; rename the "${prefix}" source or logic id.`
+      `Child actor ids with the "xstate." or "@xstate." prefix are reserved for internal actors; rename the "${prefix}" source or logic id.`
     );
   }
 }
@@ -662,12 +693,12 @@ export function createTransitionEnqueue(
   const localAllocation =
     spawnAllocations.get(actorScope) ?? createSpawnAllocation();
   const props: Partial<EnqueueObject<any, any>> = {
-    cancel: (id: string) => {
+    cancel: (id: string | TimerKey) => {
       pushBuiltInAction(
         actions,
         builtInActions['@xstate.cancel'],
         actorScope,
-        id
+        typeof id === 'string' ? { id } : id
       );
     },
     emit: (emittedEvent) => {
@@ -925,7 +956,7 @@ function getBuiltInActionFields(
       };
     }
     case builtInActions['@xstate.cancel']: {
-      const [, id] = args as Parameters<
+      const [, key] = args as Parameters<
         (typeof builtInActions)['@xstate.cancel']
       >;
       return {
@@ -935,7 +966,7 @@ function getBuiltInActionFields(
         source: (
           args as Parameters<(typeof builtInActions)['@xstate.cancel']>
         )[0].self,
-        id
+        ...key
       };
     }
     case builtInActions['@xstate.stop']: {
@@ -979,7 +1010,7 @@ export function createTimerEffect(
   delay: number
 ): RaiseExecutableEffect | SendToExecutableEffect {
   const source = actorScope.self;
-  const options = { id: timer.id, delay };
+  const options = { id: timer.id, seq: timer.seq, delay };
   if (timer.type === '@xstate.raise') {
     return {
       kind: 'builtin',
@@ -987,6 +1018,7 @@ export function createTimerEffect(
       source,
       event: timer.event,
       id: timer.id,
+      ...(timer.seq !== undefined && { seq: timer.seq }),
       delay,
       params: undefined,
       args: [actorScope, timer.event, options],
@@ -1001,6 +1033,7 @@ export function createTimerEffect(
     target,
     event: timer.event,
     id: timer.id,
+    ...(timer.seq !== undefined && { seq: timer.seq }),
     delay,
     params: undefined,
     args: [actorScope, target, timer.event, options],

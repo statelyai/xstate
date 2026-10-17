@@ -49,7 +49,7 @@ describe('machineVersions', () => {
           context: z.object({ count: z.number() }),
           children: z.record(z.string(), z.unknown()),
           historyValue: z.record(z.string(), z.unknown()),
-          timers: z.record(z.string(), z.unknown()),
+          timers: z.array(z.unknown()),
           _nextActorId: z.number(),
           _nextTimerId: z.number(),
           machine: z.object({
@@ -74,7 +74,7 @@ describe('machineVersions', () => {
       context: { count: 3 },
       children: {},
       historyValue: {},
-      timers: {},
+      timers: [],
       _nextActorId: 0,
       _nextTimerId: 0,
       machine: { id: 'checkout', version: '1' },
@@ -118,7 +118,7 @@ describe('machineVersions', () => {
         context: {};
         children: {};
         historyValue: {};
-        timers: {};
+        timers: [];
         _nextTimerId: number;
       }>()
     } as const;
@@ -147,7 +147,7 @@ describe('machineVersions', () => {
         context: {};
         children: {};
         historyValue: {};
-        timers: {};
+        timers: [];
         _nextTimerId: number;
       }>()
     } as const;
@@ -187,7 +187,7 @@ describe('machineVersions', () => {
         context: {};
         children: {};
         historyValue: {};
-        timers: {};
+        timers: [];
       }>()
     } as const;
     const current = createMachine({
@@ -618,7 +618,7 @@ describe('machineVersions', () => {
     const versions = machineVersions([checkout]);
     const events = [
       { type: 'xstate.done.actor', actorId: 'child' },
-      { type: '@xstate.init' }
+      { type: 'xstate.init' }
     ];
 
     await expect(
@@ -730,7 +730,7 @@ describe('machineVersions', () => {
       }
     );
 
-    expect(compatible).toMatchObject({ historyValue: {}, timers: {} });
+    expect(compatible).toMatchObject({ historyValue: {}, timers: [] });
     expect(
       createActor(checkout, { snapshot: compatible }).start().getSnapshot()
         .context
@@ -926,6 +926,7 @@ describe('machineVersions', () => {
 
     const parsed = await versions.parseSnapshot({
       ...legacyPersisted,
+      version: '1',
       context: { count: 2 }
     });
 
@@ -1004,7 +1005,7 @@ describe('machineVersions', () => {
         context: z.object({ count: z.number() }),
         children: z.object({}),
         historyValue: z.object({}),
-        timers: z.object({}),
+        timers: z.tuple([]),
         _nextActorId: z.number().optional(),
         _nextTimerId: z.number()
       })
@@ -1017,7 +1018,7 @@ describe('machineVersions', () => {
       context: { count: 1 },
       children: {},
       historyValue: {},
-      timers: {},
+      timers: [],
       _nextTimerId: 0
     });
 
@@ -1072,6 +1073,7 @@ describe('machineVersions', () => {
     });
     const persisted = {
       ...createActor(checkout).getPersistedSnapshot(),
+      version: '1',
       machine: { id: 'checkout', version: '2' }
     };
 

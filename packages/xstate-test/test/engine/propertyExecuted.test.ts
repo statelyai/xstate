@@ -1,7 +1,7 @@
 import { createAsyncLogic, createMachine, types } from 'xstate';
 import { propertyTest, replayTest } from '../../src/engine/propertyTest.ts';
 import type { TestFixture } from '../../src/engine/propertyTest.ts';
-import { ModelTestFailure } from '../../src/engine/propertyTest.ts';
+import { ModelTestFailureError } from '../../src/engine/propertyTest.ts';
 import {
   constant,
   integer,
@@ -93,14 +93,14 @@ describe('executed property mode', () => {
           throw new Error('reached success');
         }
       }
-    }).catch((cause) => cause as ModelTestFailure);
+    }).catch((cause) => cause as ModelTestFailureError);
 
-    expect(error).toBeInstanceOf(ModelTestFailure);
-    const kinds = (error as ModelTestFailure).trace.timeline.map(
+    expect(error).toBeInstanceOf(ModelTestFailureError);
+    const kinds = (error as ModelTestFailureError).trace.timeline.map(
       (entry) => entry.kind
     );
     expect(kinds).toContain('actorEvent');
-    const actorEntries = (error as ModelTestFailure).trace.timeline.filter(
+    const actorEntries = (error as ModelTestFailureError).trace.timeline.filter(
       (entry) => entry.kind === 'actorEvent'
     );
     expect(
@@ -128,9 +128,9 @@ describe('executed property mode', () => {
           throw new Error('reached success');
         }
       }
-    }).catch((cause) => cause)) as ModelTestFailure;
+    }).catch((cause) => cause)) as ModelTestFailureError;
 
-    expect(failure).toBeInstanceOf(ModelTestFailure);
+    expect(failure).toBeInstanceOf(ModelTestFailureError);
     const fixture = failure.fixture as TestFixture;
     expect(fixture.mode).toBe('executed');
     expect(fixture.outcomes).toEqual([
@@ -147,7 +147,7 @@ describe('executed property mode', () => {
       }
     }).catch((cause) => cause as Error);
 
-    expect(replayError).toBeInstanceOf(ModelTestFailure);
+    expect(replayError).toBeInstanceOf(ModelTestFailureError);
     expect(realCalls).toBe(0);
   });
 

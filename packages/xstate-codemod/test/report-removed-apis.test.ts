@@ -29,6 +29,18 @@ const g = and(['x', 'y']);`;
     expect(joined).toContain('createAsyncLogic');
   });
 
+  it('reports removed v5 helpers', () => {
+    const input = `import { toObserver, pathToStateValue, SpecialTargets } from 'xstate';
+const o = toObserver(() => {});
+const v = pathToStateValue(['a', 'b']);
+const t = SpecialTargets.Internal;`;
+    const { notes } = applyTransform(reportRemovedApis, input, 'src/c.ts');
+    const joined = notes.join('\n');
+    expect(joined).toContain("'toObserver'");
+    expect(joined).toContain("'pathToStateValue'");
+    expect(joined).toContain("'SpecialTargets'");
+  });
+
   it('respects aliases', () => {
     const input = `import { assign as set } from 'xstate';
 const a = set({ x: 1 });`;

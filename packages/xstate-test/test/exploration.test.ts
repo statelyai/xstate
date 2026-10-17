@@ -1,7 +1,7 @@
 import * as fc from 'fast-check';
 import { createMachine, types } from 'xstate';
 import {
-  ModelTestFailure,
+  ModelTestFailureError,
   fastCheckAdapter,
   propertyTest
 } from '../src/index.ts';
@@ -146,10 +146,10 @@ describe('coverage-guided frontiers', () => {
       maxRuns: 40
     }).then(
       () => undefined,
-      (cause: unknown) => cause as ModelTestFailure
+      (cause: unknown) => cause as ModelTestFailureError
     );
 
-    expect(failure).toBeInstanceOf(ModelTestFailure);
+    expect(failure).toBeInstanceOf(ModelTestFailureError);
     // The prefix that walks the chain is replayed verbatim; shrinking only
     // removes generated commands, leaving the step that reaches `done`.
     const prefix = failure!.trace.prefixEvents;

@@ -16,7 +16,7 @@ import {
 } from '../src/index.ts';
 import {
   createCallbackLogic,
-  createLogic,
+  createStepLogic,
   createObservableLogic,
   createEventObservableLogic,
   createAsyncLogic
@@ -26,9 +26,9 @@ import { waitFor } from '../src/waitFor.ts';
 import type { Mock } from 'vitest';
 import z from 'zod';
 
-describe('logic (createLogic)', () => {
+describe('logic (createStepLogic)', () => {
   it('returns actor termination as an ordered transition effect', () => {
-    const logic = createLogic({
+    const logic = createStepLogic({
       context: undefined,
       run: ({ event }) =>
         event.type === 'finish'
@@ -93,11 +93,11 @@ describe('logic (createLogic)', () => {
     });
   });
 
-  it('returns termination when createLogic completes during initialization', () => {
-    const logic = createLogic({
+  it('returns termination when createStepLogic completes during initialization', () => {
+    const logic = createStepLogic({
       context: undefined,
       run: ({ event }) =>
-        event.type === '@xstate.init'
+        event.type === 'xstate.init'
           ? { status: 'done' as const, output: 42 }
           : undefined
     });
@@ -113,7 +113,7 @@ describe('logic (createLogic)', () => {
   });
 
   it('returns a snapshot and effects from transition', () => {
-    const logic = createLogic({
+    const logic = createStepLogic({
       context: { count: 0 },
       run: ({ context, event }, enq) => {
         if (event.type !== 'inc') {
@@ -146,7 +146,7 @@ describe('logic (createLogic)', () => {
   });
 
   it('tracks enqueued effects in the next snapshot', () => {
-    const logic = createLogic({
+    const logic = createStepLogic({
       context: {},
       run: (_, enq) => {
         enq.effect('subscription', () => {});
@@ -168,7 +168,7 @@ describe('logic (createLogic)', () => {
   });
 
   it('does not track unnamed effects in the next snapshot', () => {
-    const logic = createLogic({
+    const logic = createStepLogic({
       context: {},
       run: (_, enq) => {
         enq.effect(() => {});
@@ -195,7 +195,7 @@ describe('logic (createLogic)', () => {
   it('executes enqueued effects once and cleans them up when stopped', () => {
     let starts = 0;
     let stops = 0;
-    const logic = createLogic({
+    const logic = createStepLogic({
       context: { count: 0 },
       run: ({ context, event }, enq) => {
         enq.effect('subscription', () => {
@@ -837,7 +837,7 @@ describe('promise logic (createAsyncLogic)', () => {
 });
 describe('logic as reducer', () => {
   it('should interpret a reducer-like logic', () => {
-    const transitionLogic = createLogic({
+    const transitionLogic = createStepLogic({
       context: { enabled: 'on' as 'off' | 'on' },
       run: ({ context, event }) => {
         if (event.type === 'toggle') {
@@ -858,7 +858,7 @@ describe('logic as reducer', () => {
     expect(actor.getSnapshot().context.enabled).toBe('off');
   });
   it('should persist reducer-like logic', () => {
-    const logic = createLogic({
+    const logic = createStepLogic({
       context: {
         enabled: 'off' as 'off' | 'on'
       },
@@ -889,10 +889,10 @@ describe('logic as reducer', () => {
   });
   it('should have access to the system', () => {
     expect.assertions(1);
-    const transitionLogic = createLogic({
+    const transitionLogic = createStepLogic({
       context: 0,
       run: ({ event, system }) => {
-        if (event.type === '@xstate.init') {
+        if (event.type === 'xstate.init') {
           return;
         }
         expect(system).toBeDefined();
@@ -905,10 +905,10 @@ describe('logic as reducer', () => {
   });
   it('should have reference to self', () => {
     expect.assertions(1);
-    const transitionLogic = createLogic({
+    const transitionLogic = createStepLogic({
       context: 0,
       run: ({ event, self }) => {
-        if (event.type === '@xstate.init') {
+        if (event.type === 'xstate.init') {
           return;
         }
         expect(self.send).toBeDefined();
@@ -1141,7 +1141,7 @@ describe('machine logic', () => {
         start: {
           invoke: {
             id: 'reducer',
-            src: createLogic({
+            src: createStepLogic({
               context: undefined,
               run: () => undefined
             })
@@ -1359,7 +1359,7 @@ describe('machine logic', () => {
     expect(rehydratedActor.getSnapshot().children.child).toBe(undefined);
   });
   it.skip('should persist a spawned actor with referenced src', () => {
-    const reducer = createLogic({
+    const reducer = createStepLogic({
       context: { count: 42 },
       run: () => undefined
     });
@@ -1498,7 +1498,7 @@ describe('composable actor logic', () => {
         }
       };
     }
-    const transitionLogic = createLogic({
+    const transitionLogic = createStepLogic({
       context: 0,
       run: ({ event }: { event: { type: string; value: number } }) => ({
         context: event.value

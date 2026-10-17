@@ -1,5 +1,5 @@
 import {
-  createLogic,
+  createStepLogic,
   createMachine,
   setup as setupXState
 } from '../../src/index.ts';
@@ -141,10 +141,10 @@ describe('Rivet durable execution PoC', () => {
   it('forwards the host runtime to custom effects', async () => {
     const runtime = { sendEvent: vi.fn() };
     let providedRuntime: unknown;
-    const logic = createLogic({
+    const logic = createStepLogic({
       context: undefined,
       run: ({ event }, enq) => {
-        if (event.type === '@xstate.init') {
+        if (event.type === 'xstate.init') {
           enq.effect((effectRuntime) => {
             providedRuntime = effectRuntime;
           });

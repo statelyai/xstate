@@ -1,5 +1,5 @@
 import { createActor, createMachine, setup } from '../src';
-import { createMachineFromConfig } from '../src/createMachineFromConfig.ts';
+import { machineFromJSON } from '../src/machineFromJSON.ts';
 
 describe('route', () => {
   it('should transition directly to a route if route is an empty transition config', () => {
@@ -157,7 +157,7 @@ describe('route', () => {
   });
 
   it('should throw on a JSON-layer route guard reference that is not implemented', () => {
-    const machine = createMachineFromConfig(
+    const machine = machineFromJSON(
       {
         id: 'flow',
         initial: 'amount',

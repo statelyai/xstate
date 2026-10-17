@@ -109,18 +109,16 @@ transitions remain declared on those initial transitions.
 
 ## Cross-region conditions
 
-Use `checkStateIn(...)` inside a [transition function](guards.md) to read another region.
+Use `self.getSnapshot().matches(...)` inside a [transition function](guards.md) to read another region.
 
 ```ts
-import { checkStateIn } from 'xstate';
-
 play: ({ self }) => {
-  if (checkStateIn(self.getSnapshot(), { volume: 'muted' })) return;
+  if (self.getSnapshot().matches({ volume: 'muted' })) return;
   return { target: 'playing' };
 }
 ```
 
-`checkStateIn(snapshot, value)` accepts a state id (`'#muted'`), a path (`'volume.muted'`), or a state-value object. Keep these checks rare. Regions that constantly inspect each other are usually better modeled as a single region.
+`matches(value)` accepts a path (`'volume.muted'`) or a state-value object. Keep these checks rare. Regions that constantly inspect each other are usually better modeled as a single region.
 
 ## Parallel regions or spawned actors
 
@@ -180,5 +178,5 @@ onDone: ({ event }) => ({ target: 'ready' }) // event.output === { region: outpu
 on: { reset: { target: ['playback.stopped', 'volume.audible'] } }
 
 // cross-region condition
-checkStateIn(self.getSnapshot(), 'volume.muted');
+self.getSnapshot().matches('volume.muted');
 ```

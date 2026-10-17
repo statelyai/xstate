@@ -1,8 +1,12 @@
 import { Effect, Option, Stream } from 'effect';
-import { createEffectActor, fromEffectStream, snapshots } from '@xstate/effect';
+import {
+  createEffectActor,
+  createEffectStreamLogic,
+  snapshots
+} from '@xstate/effect';
 
 // Demo upload progress. Replace with your upload SDK's progress stream.
-const uploadProgress = fromEffectStream(Stream.make(0, 25, 60, 100));
+const uploadProgress = createEffectStreamLogic(Stream.make(0, 25, 60, 100));
 
 const program = Effect.gen(function* () {
   const actor = yield* createEffectActor(uploadProgress);

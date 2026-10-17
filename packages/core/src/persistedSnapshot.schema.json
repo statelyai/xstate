@@ -16,7 +16,7 @@
     "status": { "enum": ["active", "done", "error", "stopped"] },
     "value": { "$ref": "#/$defs/stateValue" },
     "context": {
-      "description": "Application context. Actor refs are replaced by { xstate$type: 'actorRef', id }."
+      "description": "Application context. Actor refs are replaced by { $actor: address }."
     },
     "output": { "description": "Present when status is 'done'." },
     "error": { "description": "Present when status is 'error'." },
@@ -43,8 +43,9 @@
       "additionalProperties": { "$ref": "#/$defs/child" }
     },
     "timers": {
-      "type": "object",
-      "additionalProperties": { "$ref": "#/$defs/timer" }
+      "description": "Pending timers in scheduling order.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/timer" }
     },
     "machine": {
       "description": "Machine identity. Present only when the machine declares a version.",
@@ -55,10 +56,6 @@
         "version": { "type": "string" }
       },
       "additionalProperties": false
-    },
-    "version": {
-      "description": "Mirror of machine.version. Present only when the machine declares a version.",
-      "type": "string"
     }
   },
   "patternProperties": {
@@ -108,10 +105,12 @@
       "dependentRequired": { "incarnation": ["remote"] }
     },
     "timer": {
+      "description": "A pending timer. A delayed raise or send carries its `id`, or its `seq` when scheduled without one. A built-in timer (after, state or invoke timeout) has neither; its event identifies it.",
       "type": "object",
-      "required": ["id", "delay", "type", "event", "target"],
+      "required": ["delay", "type", "event", "target"],
       "properties": {
         "id": { "type": "string" },
+        "seq": { "type": "integer", "minimum": 0 },
         "delay": { "type": "number" },
         "type": { "enum": ["@xstate.raise", "@xstate.sendTo"] },
         "event": {
@@ -125,11 +124,12 @@
             { "type": "string" },
             {
               "type": "object",
-              "required": ["xstate$type", "address"],
+              "required": ["$actor"],
               "properties": {
-                "xstate$type": { "const": "actorRef" },
-                "address": { "type": "string" }
-              }
+                "$actor": { "type": "string" },
+                "incarnation": { "type": "string" }
+              },
+              "additionalProperties": false
             },
             {
               "type": "object",
@@ -139,7 +139,7 @@
             }
           ]
         },
-        "startedAt": {
+        "scheduledAt": {
           "description": "Absolute start (ms), recorded by a wall-clock actor or a successfully scheduled durable timer. Durable adapter clocks must share a time origin across restores.",
           "type": "number"
         }

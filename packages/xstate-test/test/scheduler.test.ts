@@ -1,7 +1,7 @@
 import * as fc from 'fast-check';
 import { createMachine, types } from 'xstate';
 import {
-  ModelTestFailure,
+  ModelTestFailureError,
   fastCheckAdapter,
   getCurrentScheduler,
   propertyTest,
@@ -53,7 +53,7 @@ const racyCounterSut: TestSut<any, any> = {
 
 describe('scheduled property runs', () => {
   it('finds an ordering where the SUT read races the write', async () => {
-    let failure: ModelTestFailure | undefined;
+    let failure: ModelTestFailureError | undefined;
     try {
       await propertyTest(counterMachine, {
         seed: 7,
@@ -65,10 +65,10 @@ describe('scheduled property runs', () => {
         invariant: () => {}
       });
     } catch (error) {
-      failure = error as ModelTestFailure;
+      failure = error as ModelTestFailureError;
     }
 
-    expect(failure).toBeInstanceOf(ModelTestFailure);
+    expect(failure).toBeInstanceOf(ModelTestFailureError);
     const report = (
       failure!.replay?.data as { scheduler: FastCheckSchedulerReport }
     ).scheduler;
@@ -80,7 +80,7 @@ describe('scheduled property runs', () => {
   });
 
   it('reports the schedule of the failing run, not of a later passing one', async () => {
-    let failure: ModelTestFailure | undefined;
+    let failure: ModelTestFailureError | undefined;
     try {
       await propertyTest(counterMachine, {
         seed: 7,
@@ -92,10 +92,10 @@ describe('scheduled property runs', () => {
         invariant: () => {}
       });
     } catch (error) {
-      failure = error as ModelTestFailure;
+      failure = error as ModelTestFailureError;
     }
 
-    expect(failure).toBeInstanceOf(ModelTestFailure);
+    expect(failure).toBeInstanceOf(ModelTestFailureError);
     const report = (
       failure!.replay?.data as { scheduler: FastCheckSchedulerReport }
     ).scheduler;

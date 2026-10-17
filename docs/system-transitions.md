@@ -65,7 +65,7 @@ actor's macrostep. Microsteps are atomic; system snapshots contain no unfinished
 microstep or continuation state. A UI presenting individual completed
 microsteps within a macrostep needs a separate tracing interface.
 
-Snapshot actor references are data: `{ $actor, incarnation }`. Use `$actor`
+Snapshot actor references are data: `{ $actor, incarnation }`, the same shape as `SerializedActorRef`, with a string `incarnation`. Use `$actor`
 as `actorPath`, for example `snapshot.actors[snapshot.root].snapshot.children.worker.$actor`.
 Paths encode IDs; avoid concatenating unescaped IDs. Replacing an actor at the
 same path allocates a fresh incarnation.
@@ -84,7 +84,10 @@ the native child completion/error notification, matching live actor ordering.
 
 `advanceSystemTime(systemLogic, snapshot, { time })` takes an absolute destination
 in milliseconds. Time must be finite and cannot move backwards. Timers record
-`scheduledAt`, `dueAt`, a unique `occurrence`, and an ordering `sequence`.
+`scheduledAt`, `dueAt`, a unique `occurrence`, an ordering `sequence`, and the
+`event` delivered when they fire (`{ type: 'xstate.timer', ...timer }` for a
+logical timer; see [durable timers](durable-execution.md#durable-timers)).
+`snapshot.timers` lists them in scheduling order.
 Actor incarnations prevent old timers reaching replacement actors.
 
 Advancing the example to 4000 fires the first timer at 2000, cancels the 6000
@@ -95,17 +98,16 @@ in that run; equal deadlines use insertion order.
 Select a pending timer in a simulator with its current occurrence:
 
 ```ts
-const selected = Object.values(snapshot.timers).find((timer) => timer.dueAt === 6000)!;
+const selected = snapshot.timers.find((timer) => timer.dueAt === 6000)!;
 const [next] = systemTransition(systemLogic, snapshot, selected.source.$actor, {
   type: 'xstate.timer',
-  id: selected.id,
   occurrence: selected.occurrence
 });
 ```
 
 Selection advances the entire snapshot through that deadline. Earlier events
 can cancel or replace the occurrence; selection never forces it to fire.
-Stale selections and direct external `xstate.after`/`xstate.timeout` injection
+Stale selections and direct external `xstate.after`/`xstate.timeout.state` injection
 throw. Delayed raises/sends, state/invocation timeouts and async-logic timeouts
 share the scheduler. Ordinary events leave matching pending timers intact;
 ordinary sends first drain timers due at the current time.
@@ -115,11 +117,11 @@ ordinary sends first drain timers due at the current time.
 Effects contain data: `id`, `source`, `type`, `kind`, `args`, and optional
 `params`/`event`. They contain no `exec` function. Name callable machine actions
 in `systemLogic.effects` or machine action sources so hosts receive stable
-names. `enq.log` returns `xstate.log`. Emissions return `kind: 'emit'` effects
+names. `enq.log` returns `@xstate.log`. Emissions return `kind: 'emit'` effects
 and also reach system-owned listeners.
 
-The host interprets descriptors. `createLogic`/`createAsyncLogic` produce
-`xstate.logic.effect`, with `params.key` for keyed logic effects. Dispatch
+The host interprets descriptors. `createStepLogic`/`createAsyncLogic` produce
+`@xstate.effect`, with `params.key` for keyed logic effects. Dispatch
 using the source actor's definition and saved input; the host owns the
 external implementation. Its result reenters as a correlated input:
 
@@ -134,8 +136,8 @@ const [resolved] = systemTransition(systemLogic, pendingSnapshot, effect.source.
 Use `xstate.async.reject` with `data: error` for async failure. Omit `event`
 to acknowledge without delivery. Results must match a pending effect's owner
 and incarnation; duplicate, cancelled and stale results throw. Stopping or
-completing actors returns `xstate.system.cancelEffect` commands carrying
-`params.effectId`. Hosts cancel that work. Cleanup uses `xstate.logic.cleanup`.
+completing actors returns `@xstate.cancelEffect` commands carrying
+`params.effectId`. Hosts cancel that work. Cleanup uses `@xstate.cleanup`.
 Acknowledgements without events can retire pending notifications, cleanup and
 cancellation commands after their owner has stopped or been replaced.
 

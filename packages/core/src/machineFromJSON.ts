@@ -12,6 +12,7 @@ import { createMachineFromCompiledConfig } from './createMachine';
 import type { AnyMachineSchemas } from './types.v6';
 import type { ActorLogicValidator } from './validation.types';
 import { parseDelayToMilliseconds } from './delay';
+import { assertUnreservedSourceName } from './utils';
 
 function delayToMs(delay: string | number): number {
   const parsedDelay = parseDelayToMilliseconds(delay);
@@ -562,7 +563,7 @@ function assertMachineJSON(
       return;
     }
     const params = condition.params as Record<string, unknown> | undefined;
-    if (condition.type === 'xstate.not') {
+    if (condition.type === '@xstate.not') {
       if (!params?.guard) {
         throw new Error(`Missing guard at ${path}.params.guard`);
       }
@@ -573,7 +574,7 @@ function assertMachineJSON(
       );
       return;
     }
-    if (condition.type === 'xstate.stateIn') {
+    if (condition.type === '@xstate.stateIn') {
       if (typeof params?.stateId === 'string') {
         stateIdRefs.push({
           stateId: params.stateId,
@@ -755,6 +756,11 @@ function assertMachineJSON(
     }
   }
 
+  for (const kind of ['actions', 'guards', 'delays'] as const) {
+    for (const key of Object.keys(json[kind] ?? {})) {
+      assertUnreservedSourceName(kind, key);
+    }
+  }
   if (json.actions) {
     for (const key of Object.keys(json.actions)) {
       const actions = Array.isArray(json.actions[key])
@@ -790,7 +796,7 @@ function assertMachineJSON(
 }
 
 /** @public */
-export function createMachineFromConfig(
+export function machineFromJSON(
   json: MachineJSON,
   sources: MachineSources = {}
 ): AnyStateMachine {
@@ -817,19 +823,30 @@ export function createMachineFromConfig(
       return (args: any) =>
         !!evaluateResolvable(condition, slot, makeScope(args), path);
     }
-    if (
-      condition.type === 'xstate.not' &&
-      !json.guards?.[condition.type] &&
-      !resolvedSources.guards[condition.type]
-    ) {
-      // Resolved here rather than by the `xstate.not` implementation, so the
-      // inner guard can be a named guard from `guards` or an expression.
+    if (condition.type === '@xstate.not') {
+      // The inner guard can be a named guard from `guards` or an expression.
       const guard = resolveCondition(
         (condition.params as { guard?: ConditionJSON } | undefined)?.guard,
         slot,
         `${path}.params.guard`
       );
       return (args: any) => !guard?.(args);
+    }
+    if (condition.type === '@xstate.stateIn') {
+      return (args: any) => {
+        const params = resolveValue(
+          condition.params,
+          slot,
+          makeScope(args),
+          `${path}.params`
+        ) as { stateId?: unknown } | undefined;
+        const stateId = params?.stateId;
+        // Same check as `snapshot.matches('#id')`.
+        return (
+          typeof stateId === 'string' &&
+          !!args._snapshot?.matches(`#${stateId.replace(/^#/, '')}`)
+        );
+      };
     }
     return (args: any) => {
       const params = resolveValue(
@@ -1273,28 +1290,7 @@ export function createMachineFromConfig(
   const provided = machine.provide({
     actions: resolvedSources.actions,
     actors: resolvedSources.actors,
-    guards: {
-      'xstate.stateIn': (args: any, params: any) => {
-        const stateId = params?.stateId as string;
-        const snapshot = args._snapshot;
-        return (
-          !!stateId &&
-          !!snapshot?.nodes?.some(
-            (node: any) => node.id === stateId.replace(/^#/, '')
-          )
-        );
-      },
-      'xstate.not': (args: any, params: any) => {
-        const inner = params?.guard;
-        const impl = inner && args.guards?.[inner.type];
-        if (!impl)
-          throw new Error(
-            `Guard '${inner?.type}' referenced by 'xstate.not' is not implemented.`
-          );
-        return !impl(args, inner.params);
-      },
-      ...resolvedSources.guards
-    },
+    guards: resolvedSources.guards,
     delays: resolvedSources.delays
   });
   (provided as any)._json = json;

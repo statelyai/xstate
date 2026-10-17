@@ -283,8 +283,8 @@ describe('misc', () => {
 
     // INC is taken once: the second INC fails the guard and is not a step
     expect(paths.map((p) => p.steps.map((s) => s.event.type))).toEqual([
-      ['@xstate.init'],
-      ['@xstate.init', 'INC']
+      ['xstate.init'],
+      ['xstate.init', 'INC']
     ]);
     expect(paths[1].state.context.counter).toBe(1);
   });

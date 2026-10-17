@@ -5,19 +5,19 @@
 
 <script lang="ts">
 import { defineComponent, shallowRef } from 'vue';
-import { createLogic } from 'xstate';
+import { createStepLogic } from 'xstate';
 import { useActorRef, useSelector } from '../src/index.ts';
 
 export default defineComponent({
   setup() {
     const actorRef1 = useActorRef(
-      createLogic({
+      createStepLogic({
         context: 'foo',
         run: () => undefined
       })
     );
     const actorRef2 = useActorRef(
-      createLogic({
+      createStepLogic({
         context: 'bar',
         run: () => undefined
       })

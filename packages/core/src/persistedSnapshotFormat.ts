@@ -40,7 +40,7 @@ export function findNonJsonPath(
       return { path: currentPath, kind: 'Set' };
     }
     if ('sessionId' in current && 'send' in current && 'ref' in current) {
-      // Actor refs persist as `{ xstate$type: 'actorRef', id }`.
+      // Actor refs persist as `{ $actor: address }`.
       return undefined;
     }
     if (ancestors.has(current)) {

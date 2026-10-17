@@ -38,7 +38,7 @@ const checkoutV0 = {
     context: { quantity: number };
     children: Record<string, unknown>;
     historyValue: Record<string, unknown>;
-    timers: Record<string, unknown>;
+    timers: readonly unknown[];
     _nextActorId: number;
     _nextTimerId: number;
     machine: { id: 'checkout'; version: '0' };

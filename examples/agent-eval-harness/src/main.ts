@@ -100,7 +100,7 @@ for (const [index, path] of paths.entries()) {
   );
 
   // Each step holds the snapshot *after* its event; the first step is the
-  // initial snapshot, reached by `@xstate.init`.
+  // initial snapshot, reached by `xstate.init`.
   for (const { state: snapshot } of path.steps) {
     visited.add(String(snapshot.value));
     for (const invariant of invariants) {

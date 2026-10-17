@@ -68,7 +68,7 @@ describe('unhandled events', () => {
       const snapshot = actor.getSnapshot();
       expect(snapshot.status).toBe(status);
 
-      for (const type of ['pay', 'reopen', '@xstate.stop'] as const) {
+      for (const type of ['pay', 'reopen', 'xstate.stop'] as const) {
         const event = { type } as any;
         const result = transition(order, snapshot, event);
         expect(isUnhandled(snapshot, result)).toBe(true);

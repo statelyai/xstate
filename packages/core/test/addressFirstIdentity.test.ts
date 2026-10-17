@@ -3,7 +3,7 @@ import {
   createCallbackLogic,
   createMachine,
   deliverEvent,
-  getEffectDescriptor,
+  describeExecutableEffect,
   initialTransition,
   setup,
   transition,
@@ -220,13 +220,13 @@ describe('effect descriptors', () => {
 
     const [snapshot, initialEffects] = initialTransition(machine);
     const spawnDescriptor = initialEffects
-      .map(getEffectDescriptor)
+      .map(describeExecutableEffect)
       .find((d) => d.type === '@xstate.spawn');
     expect(spawnDescriptor).toEqual({
       kind: 'builtin',
       type: '@xstate.spawn',
-      source: 'order',
-      actor: 'order/worker:0',
+      source: { $actor: 'order' },
+      actor: { $actor: 'order/worker:0' },
       id: 'worker:0',
       src: 'worker',
       input: undefined
@@ -234,13 +234,13 @@ describe('effect descriptors', () => {
 
     const [, effects] = transition(machine, snapshot, { type: 'KICK' });
     const sendDescriptor = effects
-      .map(getEffectDescriptor)
+      .map(describeExecutableEffect)
       .find((d) => d.type === '@xstate.sendTo');
     expect(sendDescriptor).toEqual({
       kind: 'builtin',
       type: '@xstate.sendTo',
-      source: 'order',
-      target: 'order/worker:0',
+      source: { $actor: 'order' },
+      target: { $actor: 'order/worker:0' },
       event: { type: 'PING' },
       id: undefined,
       delay: undefined
@@ -248,7 +248,7 @@ describe('effect descriptors', () => {
 
     // Descriptors are JSON-safe: no live refs, no functions.
     for (const effect of [...initialEffects, ...effects]) {
-      const descriptor = getEffectDescriptor(effect);
+      const descriptor = describeExecutableEffect(effect);
       expect(JSON.parse(JSON.stringify(descriptor))).toEqual(descriptor);
     }
   });
@@ -825,7 +825,7 @@ describe('review findings: seventh round', () => {
       (child) => (child as AnyActor).address
     );
     expect(childAddresses).not.toContain(listener!.address);
-    expect(listener!.address).toBe('order/xstate.listener:0');
+    expect(listener!.address).toBe('order/@xstate.listener:0');
   });
 });
 
@@ -896,39 +896,42 @@ describe('review findings: eighth round', () => {
 });
 
 describe('reserved id namespace', () => {
-  it('rejects user sources that would number in the internal helper namespace', () => {
-    // Internal helpers (enq.listen/enq.subscribeTo) number from system-level
-    // counters; snapshot-owned children from per-snapshot counters. The
-    // spaces stay collision-free only because their prefixes are disjoint.
-    const impostor = createMachine({
-      id: 'xstate.listener',
-      initial: 'a',
-      states: { a: {} }
-    });
-    const machine = createMachine({
-      id: 'order',
-      initial: 'a',
-      entry: (_: any, enq: any) => {
-        enq.spawn(impostor);
-      },
-      states: { a: {} }
-    });
+  it.each(['@xstate.listener', 'xstate.listener'])(
+    'rejects user sources that would number in the internal helper namespace (%s)',
+    (impostorId) => {
+      // Internal helpers (enq.listen/enq.subscribeTo) number from system-level
+      // counters; snapshot-owned children from per-snapshot counters. The
+      // spaces stay collision-free only because their prefixes are disjoint.
+      const impostor = createMachine({
+        id: impostorId,
+        initial: 'a',
+        states: { a: {} }
+      });
+      const machine = createMachine({
+        id: 'order',
+        initial: 'a',
+        entry: (_: any, enq: any) => {
+          enq.spawn(impostor);
+        },
+        states: { a: {} }
+      });
 
-    const actor = createActor(machine);
-    actor.subscribe({ error: () => {} });
-    actor.start();
-    expect(actor.getSnapshot().status).toBe('error');
-    expect(actor.getSnapshot().error).toMatchObject({
-      message: expect.stringMatching(/reserved for internal actors/)
-    });
-  });
+      const actor = createActor(machine);
+      actor.subscribe({ error: () => {} });
+      actor.start();
+      expect(actor.getSnapshot().status).toBe('error');
+      expect(actor.getSnapshot().error).toMatchObject({
+        message: expect.stringMatching(/reserved for internal actors/)
+      });
+    }
+  );
 
   it('rejects explicit generated-shaped ids in the reserved namespace', () => {
     const machine = createMachine({
       id: 'order',
       initial: 'a',
       entry: (_: any, enq: any) => {
-        enq.spawn(workerMachine, { id: 'xstate.listener:0' });
+        enq.spawn(workerMachine, { id: '@xstate.listener:0' });
       },
       states: { a: {} }
     });
@@ -1168,9 +1171,12 @@ describe('incarnation tokens on remote handles', () => {
     const [, effects] = transition(machine, restored as never, {
       type: 'KICK'
     });
-    const descriptor = getEffectDescriptor(effects[0]!) as any;
+    const descriptor = describeExecutableEffect(effects[0]!) as any;
     expect(descriptor.type).toBe('@xstate.sendTo');
-    expect(descriptor.incarnation).toBe('runtime-b:7');
+    expect(descriptor.target).toEqual({
+      $actor: 'order/w',
+      incarnation: 'runtime-b:7'
+    });
   });
 });
 
@@ -1227,7 +1233,7 @@ describe('timer restore honors wall-clock deadlines', () => {
     }
   });
 
-  it('persists startedAt from a live runtime and resumes the remaining delay', () => {
+  it('persists scheduledAt from a live runtime and resumes the remaining delay', () => {
     vi.useFakeTimers();
     try {
       const actor = createActor(timerMachine).start();
@@ -1235,7 +1241,7 @@ describe('timer restore honors wall-clock deadlines', () => {
       const persisted = actor.getPersistedSnapshot() as any;
       actor.stop();
       const [timer] = Object.values(persisted.timers) as any[];
-      expect(timer.startedAt).toBe(Date.now() - 600);
+      expect(timer.scheduledAt).toBe(Date.now() - 600);
 
       const restored = createActor(timerMachine, {
         snapshot: persisted
@@ -1262,10 +1268,10 @@ describe('timer restore honors wall-clock deadlines', () => {
       vi.advanceTimersByTime(300);
       const repersisted = second.getPersistedSnapshot() as any;
       second.stop();
-      // startedAt stays anchored to the original deadline, not re-derived
+      // scheduledAt stays anchored to the original deadline, not re-derived
       // from the latest scheduling moment with the full declared delay.
       const [timer] = Object.values(repersisted.timers) as any[];
-      expect(timer.startedAt + timer.delay).toBe(Date.now() + 400);
+      expect(timer.scheduledAt + timer.delay).toBe(Date.now() + 400);
 
       const third = createActor(timerMachine, {
         snapshot: repersisted
@@ -1304,7 +1310,7 @@ describe('timer restore honors wall-clock deadlines', () => {
     const [timer] = Object.values(persisted.timers) as any[];
     // No local schedule ran, so replayed persists stay byte-deterministic;
     // restoring falls back to the declared delay.
-    expect(timer.startedAt).toBeUndefined();
+    expect(timer.scheduledAt).toBeUndefined();
   });
 });
 
@@ -1471,9 +1477,9 @@ describe('tenth round: review findings', () => {
       vi.useRealTimers();
     }
     const [timer] = Object.values(persisted.timers) as any[];
-    expect(typeof timer.startedAt).toBe('number');
+    expect(typeof timer.scheduledAt).toBe('number');
 
-    // A wall-clock startedAt is meaningless under a simulated clock; the
+    // A wall-clock scheduledAt is meaningless under a simulated clock; the
     // declared delay applies instead of firing instantly (or never).
     const clock = new SimulatedClock();
     const restored = createActor(machine, {
@@ -1522,7 +1528,7 @@ describe('tenth round: review findings', () => {
 });
 
 describe('remote handle serialization', () => {
-  it('serializes with the same actor-reference marker as a co-located actor', () => {
+  it('serializes with the same actor-reference shape as a co-located actor', () => {
     const machine = setup({ actors: { worker: workerMachine } }).createMachine({
       id: 'order',
       initial: 'a',
@@ -1536,21 +1542,16 @@ describe('remote handle serialization', () => {
 
     const restored = createActor(machine, { snapshot: persisted }).start();
     const handle = restored.getSnapshot().children.w as AnyActor;
-    expect(handle.toJSON!()).toEqual({
-      xstate$type: 'actorRef',
-      id: 'w',
-      address: 'order/w',
-      src: 'worker'
-    });
-    // JSON round-trip of the whole snapshot keeps the discriminant, so
+    expect(handle.toJSON!()).toEqual({ $actor: 'order/w' });
+    // JSON round-trip of the whole snapshot keeps the same shape, so
     // tooling that detects actor references sees remote children too.
     const json = JSON.parse(JSON.stringify(restored.getSnapshot())) as any;
-    expect(json.children.w.xstate$type).toBe('actorRef');
+    expect(json.children.w).toEqual({ $actor: 'order/w' });
     restored.stop();
   });
 });
 
-describe('timer startedAt survives a restore that never starts', () => {
+describe('timer scheduledAt survives a restore that never starts', () => {
   const timerMachine2 = createMachine({
     id: 'p2',
     initial: 'waiting',
@@ -1574,7 +1575,7 @@ describe('timer startedAt survives a restore that never starts', () => {
       const restored = timerMachine2.restoreSnapshot(persisted as never);
       const repersisted = timerMachine2.getPersistedSnapshot(restored) as any;
       const carried = Object.values(repersisted.timers as any)[0] as any;
-      expect(carried.startedAt).toBe(originalStart.startedAt);
+      expect(carried.scheduledAt).toBe(originalStart.scheduledAt);
 
       const resumed = createActor(timerMachine2, {
         snapshot: repersisted
@@ -1690,11 +1691,7 @@ describe('serialized actor refs as send targets', () => {
     const actor = createActor(client, {
       onRejectedEvent: (rejection) => rejections.push(rejection)
     }).start();
-    const replyTo: SerializedActorRef = {
-      xstate$type: 'actorRef',
-      id: 'ghost',
-      address: 'client/ghost'
-    };
+    const replyTo: SerializedActorRef = { $actor: 'client/ghost' };
 
     expect(() =>
       actor.send({ type: 'FORWARD', replyTo, requestId: 'r1' })
@@ -1756,16 +1753,14 @@ describe('serialized actor refs as send targets', () => {
   it('serializes to the address in effect descriptors', () => {
     const [, effects] = transition(server, initialTransition(server)[0], {
       type: 'PING',
-      replyTo: {
-        xstate$type: 'actorRef',
-        id: 'elsewhere',
-        address: 'other/elsewhere'
-      },
+      replyTo: { $actor: 'other/elsewhere' },
       requestId: 'd1'
     });
     expect(
-      effects.map(getEffectDescriptor).find((d) => d.type === '@xstate.sendTo')
-    ).toMatchObject({ target: 'other/elsewhere' });
+      effects
+        .map(describeExecutableEffect)
+        .find((d) => d.type === '@xstate.sendTo')
+    ).toMatchObject({ target: { $actor: 'other/elsewhere' } });
   });
 
   it('routes and dead-letters by address in pure system transitions', () => {
@@ -1773,19 +1768,20 @@ describe('serialized actor refs as send targets', () => {
     const [snapshot] = initialSystemTransition(logic);
     const [next] = systemTransition(logic, snapshot, 'client', {
       type: 'FORWARD',
-      replyTo: { xstate$type: 'actorRef', id: 'client', address: 'client' },
+      replyTo: { $actor: 'client' },
       requestId: 'p1'
     });
     expect(next.actors.client.snapshot.context.got).toBe('p1');
 
     const [, effects] = systemTransition(logic, snapshot, 'client', {
       type: 'FORWARD',
-      replyTo: { xstate$type: 'actorRef', id: 'ghost', address: 'ghost' },
+      replyTo: { $actor: 'ghost' },
       requestId: 'p2'
     });
     expect(effects).toContainEqual(
       expect.objectContaining({
-        kind: 'deadLetter',
+        kind: 'builtin',
+        type: '@xstate.deadLetter',
         source: expect.objectContaining({ $actor: 'client/server' }),
         reason: 'missingTarget',
         event: { type: 'PONG', requestId: 'p2' }
@@ -1921,6 +1917,59 @@ describe('delayed sends to serialized actor refs', () => {
       system.createActor(delayedServer, { snapshot: persisted }).start();
       vi.advanceTimersByTime(100);
       expect(requester.getSnapshot().context.got).toBe('r1');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('delivers a ref with a matching incarnation', () => {
+    vi.useFakeTimers();
+    try {
+      const system = createSystem();
+      const requester = system.createActor(requesterMachine).start();
+      const server = system.createActor(delayedServer).start();
+      server.send({
+        type: 'PING',
+        replyTo: {
+          $actor: requester.address,
+          incarnation: requester.sessionId
+        },
+        requestId: 'r1'
+      });
+
+      vi.advanceTimersByTime(100);
+      expect(requester.getSnapshot().context.got).toBe('r1');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('dead-letters a ref whose incarnation is no longer live at the address', () => {
+    vi.useFakeTimers();
+    try {
+      const rejections: EventRejection[] = [];
+      const system = createSystem();
+      system.onRejectedEvent((rejection) => rejections.push(rejection));
+      const original = system.createActor(requesterMachine).start();
+      const replyTo: SerializedActorRef = {
+        $actor: original.address,
+        incarnation: original.sessionId
+      };
+      const server = system.createActor(delayedServer).start();
+      server.send({ type: 'PING', replyTo, requestId: 'r1' });
+
+      original.stop();
+      const replacement = system
+        .createActor(requesterMachine, { id: original.id })
+        .start();
+
+      vi.advanceTimersByTime(100);
+      expect(replacement.getSnapshot().context.got).toBe(null);
+      expect(rejections).toHaveLength(1);
+      expect(rejections[0]).toMatchObject({
+        reason: 'missingTarget',
+        event: { type: 'PONG', requestId: 'r1' }
+      });
     } finally {
       vi.useRealTimers();
     }

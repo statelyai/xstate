@@ -1,10 +1,10 @@
-import { createMachineFromConfig } from '../src/createMachineFromConfig';
+import { machineFromJSON } from '../src/machineFromJSON';
 import {
   createActor,
   createAsyncLogic,
   createMachine,
   createObservableLogic,
-  serializeMachine,
+  machineToJSON,
   SimulatedClock,
   type EventRejection,
   type MachineJSON
@@ -35,7 +35,7 @@ function expectSchemaInvalid(json: unknown) {
 
 describe('json', () => {
   it('should serialize the machine', () => {
-    const machine = createMachineFromConfig(
+    const machine = machineFromJSON(
       {
         initial: 'foo',
         version: '1.0.0',
@@ -120,7 +120,7 @@ describe('json', () => {
       }
     );
 
-    const json = JSON.parse(JSON.stringify(serializeMachine(machine)));
+    const json = JSON.parse(JSON.stringify(machineToJSON(machine)));
 
     try {
       validate(json);
@@ -154,7 +154,7 @@ describe('json', () => {
       }
     });
 
-    const json = JSON.parse(JSON.stringify(serializeMachine(machine)));
+    const json = JSON.parse(JSON.stringify(machineToJSON(machine)));
 
     validate(json);
 
@@ -180,14 +180,14 @@ describe('json', () => {
         done: {}
       }
     });
-    const json = JSON.parse(JSON.stringify(serializeMachine(machine)));
+    const json = JSON.parse(JSON.stringify(machineToJSON(machine)));
     const evaluator = ({ source, scope }: any) => {
       const fn = Function(`return (${source});`)();
       return fn(scope, scope.enq);
     };
 
     const actor = createActor(
-      createMachineFromConfig(json, {
+      machineFromJSON(json, {
         evaluators: { ts: evaluator }
       })
     ).start();
@@ -222,14 +222,14 @@ describe('json', () => {
         done: {}
       }
     });
-    const json = JSON.parse(JSON.stringify(serializeMachine(machine)));
+    const json = JSON.parse(JSON.stringify(machineToJSON(machine)));
     const evaluator = ({ source, scope }: any) => {
       const fn = Function(`return (${source});`)();
       return fn(scope, scope.enq);
     };
 
     const actor = createActor(
-      createMachineFromConfig(json, {
+      machineFromJSON(json, {
         actions: { track },
         guards: { isOk },
         evaluators: { ts: evaluator }
@@ -257,7 +257,7 @@ describe('json', () => {
         }
       }
     });
-    const json = JSON.parse(JSON.stringify(serializeMachine(machine)));
+    const json = JSON.parse(JSON.stringify(machineToJSON(machine)));
     const evaluator = ({ source, scope }: any) => {
       const fn = Function(`return (${source});`)();
       return fn(scope);
@@ -271,7 +271,7 @@ describe('json', () => {
     `);
 
     const actor = createActor(
-      createMachineFromConfig(json, {
+      machineFromJSON(json, {
         evaluators: { ts: evaluator }
       })
     ).start();
@@ -294,7 +294,7 @@ describe('json', () => {
   });
 
   it('should not double-serialize invoke transitions', () => {
-    const machine = createMachineFromConfig(
+    const machine = machineFromJSON(
       {
         initial: 'active',
         states: {
@@ -322,11 +322,11 @@ describe('json', () => {
       }
     );
 
-    const machineJSON = JSON.stringify(serializeMachine(machine));
+    const machineJSON = JSON.stringify(machineToJSON(machine));
 
     const machineObject = JSON.parse(machineJSON);
 
-    const revivedMachine = createMachineFromConfig(machineObject, {
+    const revivedMachine = machineFromJSON(machineObject, {
       actors: {
         someSrc: createAsyncLogic({
           run: () => new Promise(() => {})
@@ -356,7 +356,7 @@ describe('json', () => {
     `);
 
     // A second round-trip is byte-stable.
-    expect(JSON.stringify(serializeMachine(revivedMachine))).toBe(machineJSON);
+    expect(JSON.stringify(machineToJSON(revivedMachine))).toBe(machineJSON);
 
     const transitions = [
       ...revivedMachine.states.active.transitions.values()
@@ -379,7 +379,7 @@ describe('json', () => {
   });
 
   it('round-trips transition payload matches', () => {
-    const machine = createMachineFromConfig({
+    const machine = machineFromJSON({
       initial: 'pending',
       states: {
         pending: {
@@ -394,8 +394,8 @@ describe('json', () => {
         second: {}
       }
     });
-    const revived = createMachineFromConfig(
-      JSON.parse(JSON.stringify(serializeMachine(machine)))
+    const revived = machineFromJSON(
+      JSON.parse(JSON.stringify(machineToJSON(machine)))
     );
     const actor = createActor(revived).start();
 
@@ -407,7 +407,7 @@ describe('json', () => {
   it('revives delayed transitions from JSON', () => {
     const clock = new SimulatedClock();
     const actor = createActor(
-      createMachineFromConfig({
+      machineFromJSON({
         initial: 'waiting',
         states: {
           waiting: {
@@ -430,7 +430,7 @@ describe('json', () => {
   it('revives state timeouts from JSON', () => {
     const clock = new SimulatedClock();
     const actor = createActor(
-      createMachineFromConfig({
+      machineFromJSON({
         initial: 'waiting',
         states: {
           waiting: {
@@ -449,7 +449,7 @@ describe('json', () => {
 
   it('revives state tags and final output from JSON', () => {
     const actor = createActor(
-      createMachineFromConfig({
+      machineFromJSON({
         initial: 'pending',
         output: { ok: true },
         states: {
@@ -483,7 +483,7 @@ describe('json', () => {
     });
 
     const actor = createActor(
-      createMachineFromConfig(
+      machineFromJSON(
         {
           initial: 'loading',
           states: {
@@ -517,7 +517,7 @@ describe('json', () => {
     });
 
     const actor = createActor(
-      createMachineFromConfig(
+      machineFromJSON(
         {
           initial: 'loading',
           states: {
@@ -541,7 +541,7 @@ describe('json', () => {
 
   it('rejects missing action sources', () => {
     expect(() =>
-      createMachineFromConfig({
+      machineFromJSON({
         entry: [{ type: 'track' }]
       })
     ).toThrow('Missing action source "track"');
@@ -549,14 +549,14 @@ describe('json', () => {
 
   it('rejects initial states that do not exist', () => {
     expect(() =>
-      createMachineFromConfig({
+      machineFromJSON({
         initial: 'strat',
         states: { start: {} }
       })
     ).toThrow('Invalid initial state at $.initial');
 
     expect(() =>
-      createMachineFromConfig({
+      machineFromJSON({
         initial: 'start',
         states: {
           start: {},
@@ -568,7 +568,7 @@ describe('json', () => {
 
   it('rejects missing guard sources', () => {
     expect(() =>
-      createMachineFromConfig({
+      machineFromJSON({
         initial: 'idle',
         states: {
           idle: {
@@ -595,9 +595,9 @@ describe('json', () => {
     };
 
     // machine.schema.json leaves state nodes open (additionalProperties: true),
-    // so it does not catch this; createMachineFromConfig must.
+    // so it does not catch this; machineFromJSON must.
     expectSchemaValid(json);
-    expect(() => createMachineFromConfig(json as any)).toThrow(
+    expect(() => machineFromJSON(json as any)).toThrow(
       'Unknown key "whatever" at $.states.idle'
     );
   });
@@ -612,7 +612,7 @@ describe('json', () => {
     };
 
     expectSchemaInvalid(json);
-    expect(() => createMachineFromConfig(json as any)).toThrow(
+    expect(() => machineFromJSON(json as any)).toThrow(
       'Unknown key "bogusKey" at $.states.idle.on.GO'
     );
   });
@@ -627,7 +627,7 @@ describe('json', () => {
     };
 
     expectSchemaInvalid(json);
-    expect(() => createMachineFromConfig(json as any)).toThrow(
+    expect(() => machineFromJSON(json as any)).toThrow(
       'Unknown key "gaurd" at $.states.idle.on.GO'
     );
   });
@@ -635,7 +635,7 @@ describe('json', () => {
   it('revives serialized numeric delays from root delay maps', () => {
     const clock = new SimulatedClock();
     const actor = createActor(
-      createMachineFromConfig({
+      machineFromJSON({
         delays: {
           short: 10
         },
@@ -664,7 +664,7 @@ describe('json', () => {
     });
 
     const actor = createActor(
-      createMachineFromConfig(
+      machineFromJSON(
         {
           initial: 'loading',
           states: {
@@ -687,7 +687,7 @@ describe('json', () => {
     const subject = new BehaviorSubject(0);
     const worker = createObservableLogic(() => subject);
     const actor = createActor(
-      createMachineFromConfig(
+      machineFromJSON(
         {
           initial: 'watching',
           states: {
@@ -711,7 +711,7 @@ describe('json', () => {
 
   it('revives transition input from JSON', () => {
     const actor = createActor(
-      createMachineFromConfig({
+      machineFromJSON({
         initial: 'idle',
         states: {
           idle: {
@@ -741,7 +741,7 @@ describe('json', () => {
     });
 
     const actor = createActor(
-      createMachineFromConfig(
+      machineFromJSON(
         {
           initial: 'loading',
           states: {
@@ -766,7 +766,7 @@ describe('json', () => {
 
   it('rejects missing evaluators for expressions', () => {
     expect(() =>
-      createMachineFromConfig({
+      machineFromJSON({
         '@exprLang': 'js',
         context: {
           count: { '@expr': 'input.count' }
@@ -777,7 +777,7 @@ describe('json', () => {
 
   it('rejects expressions without a top-level or local language', () => {
     expect(() =>
-      createMachineFromConfig({
+      machineFromJSON({
         context: {
           count: { '@expr': 'input.count' }
         }
@@ -788,7 +788,7 @@ describe('json', () => {
   it('uses local expression language overrides and passes evaluator metadata', () => {
     const calls: any[] = [];
     const actor = createActor(
-      createMachineFromConfig(
+      machineFromJSON(
         {
           '@exprLang': 'js',
           context: {
@@ -830,7 +830,7 @@ describe('json', () => {
       return Function('scope', `with (scope) { return (${source}); }`)(scope);
     };
     const actor = createActor(
-      createMachineFromConfig(
+      machineFromJSON(
         {
           '@exprLang': 'js',
           initial: 'outer',
@@ -861,7 +861,7 @@ describe('json', () => {
   it('resolves expressions in delays and state timeouts', () => {
     const clock = new SimulatedClock();
     const actor = createActor(
-      createMachineFromConfig(
+      machineFromJSON(
         {
           '@exprLang': 'js',
           context: {
@@ -911,7 +911,7 @@ describe('json', () => {
     });
 
     const actor = createActor(
-      createMachineFromConfig(
+      machineFromJSON(
         {
           '@exprLang': 'js',
           context: {
@@ -948,7 +948,7 @@ describe('json', () => {
 
   it('resolves expressions in transition input and final output', () => {
     const actor = createActor(
-      createMachineFromConfig(
+      machineFromJSON(
         {
           '@exprLang': 'js',
           context: {
@@ -983,7 +983,7 @@ describe('json', () => {
 
   it('resolves expressions nested in final output', () => {
     const actor = createActor(
-      createMachineFromConfig(
+      machineFromJSON(
         {
           '@exprLang': 'js',
           context: {
@@ -1019,7 +1019,7 @@ describe('json', () => {
 
   it('resolves final output expressions with state input', () => {
     const actor = createActor(
-      createMachineFromConfig(
+      machineFromJSON(
         {
           '@exprLang': 'js',
           initial: 'idle',
@@ -1058,7 +1058,7 @@ describe('json', () => {
     const evaluator = ({ source, scope }: any) =>
       Function('scope', `with (scope) { return (${source}); }`)(scope);
     const actor = createActor(
-      createMachineFromConfig(
+      machineFromJSON(
         {
           '@exprLang': 'js',
           context: {
@@ -1102,7 +1102,7 @@ describe('json', () => {
 
   it('rejects choice fallback branches before the last branch', () => {
     expect(() =>
-      createMachineFromConfig({
+      machineFromJSON({
         initial: 'routing',
         states: {
           routing: {
@@ -1123,7 +1123,7 @@ describe('json', () => {
 
   it('errors when a choice state has no matching branch', () => {
     const actor = createActor(
-      createMachineFromConfig(
+      machineFromJSON(
         {
           '@exprLang': 'js',
           initial: 'routing',
@@ -1152,7 +1152,7 @@ describe('json', () => {
     const evaluator = ({ source, scope }: any) =>
       Function('scope', `with (scope) { return (${source}); }`)(scope);
     const actor = createActor(
-      createMachineFromConfig(
+      machineFromJSON(
         {
           '@exprLang': 'js',
           context: {
@@ -1183,7 +1183,7 @@ describe('json', () => {
 
   it('runs declarative named action arrays', () => {
     const actor = createActor(
-      createMachineFromConfig({
+      machineFromJSON({
         context: {
           count: 0
         },
@@ -1214,7 +1214,7 @@ describe('json', () => {
     } as const;
     const counted = { type: 'COUNTED', count: { '@expr': 'context.count' } };
     const actor = createActor(
-      createMachineFromConfig(
+      machineFromJSON(
         {
           '@exprLang': 'js',
           context: { count: 0, double: 0 },
@@ -1251,7 +1251,7 @@ describe('json', () => {
 
   it('rejects circular declarative named actions', () => {
     expect(() =>
-      createMachineFromConfig({
+      machineFromJSON({
         actions: {
           a: { type: 'b' },
           b: { type: 'a' }
@@ -1263,7 +1263,7 @@ describe('json', () => {
 
   it('rejects circular declarative named guards', () => {
     expect(() =>
-      createMachineFromConfig({
+      machineFromJSON({
         guards: {
           a: { when: { type: 'b' } },
           b: { when: { type: 'a' } }
@@ -1277,7 +1277,7 @@ describe('json', () => {
     ).toThrow('Circular guard reference: a -> b -> a');
 
     expect(() =>
-      createMachineFromConfig({
+      machineFromJSON({
         guards: {
           a: { when: { type: 'a' } }
         }
@@ -1285,19 +1285,19 @@ describe('json', () => {
     ).toThrow('Circular guard reference: a -> a');
 
     expect(() =>
-      createMachineFromConfig({
+      machineFromJSON({
         guards: {
           a: {
-            when: { type: 'xstate.not', params: { guard: { type: 'a' } } }
+            when: { type: '@xstate.not', params: { guard: { type: 'a' } } }
           }
         }
       })
     ).toThrow('Circular guard reference: a -> a');
   });
 
-  it('rejects missing guard sources inside xstate.not', () => {
+  it('rejects missing guard sources inside @xstate.not', () => {
     const createWithGuard = (guard: any) =>
-      createMachineFromConfig(
+      machineFromJSON(
         {
           initial: 'idle',
           states: {
@@ -1310,20 +1310,20 @@ describe('json', () => {
 
     expect(() =>
       createWithGuard({
-        type: 'xstate.not',
+        type: '@xstate.not',
         params: {
-          guard: { type: 'xstate.not', params: { guard: { type: 'raedy' } } }
+          guard: { type: '@xstate.not', params: { guard: { type: 'raedy' } } }
         }
       })
     ).toThrow('Missing guard source "raedy"');
-    expect(() => createWithGuard({ type: 'xstate.not' })).toThrow(
+    expect(() => createWithGuard({ type: '@xstate.not' })).toThrow(
       'Missing guard at $.states.idle.on.GO.guard.params.guard'
     );
   });
 
-  it('negates declarative named guards and expressions with xstate.not', () => {
+  it('negates declarative named guards and expressions with @xstate.not', () => {
     const createWithGuard = (guard: any) =>
-      createMachineFromConfig(
+      machineFromJSON(
         {
           '@exprLang': 'js',
           context: { ready: false },
@@ -1341,23 +1341,23 @@ describe('json', () => {
 
     for (const inner of [{ type: 'isReady' }, { '@expr': 'context.ready' }]) {
       const actor = createActor(
-        createWithGuard({ type: 'xstate.not', params: { guard: inner } })
+        createWithGuard({ type: '@xstate.not', params: { guard: inner } })
       ).start();
       actor.send({ type: 'GO' });
       expect(actor.getSnapshot().value).toBe('done');
     }
   });
 
-  it('rejects xstate.stateIn references to unknown state IDs', () => {
+  it('rejects @xstate.stateIn references to unknown state IDs', () => {
     const createWithStateId = (stateId?: string) =>
-      createMachineFromConfig({
+      machineFromJSON({
         id: 'm',
         initial: 'idle',
         states: {
           idle: {
             on: {
               GO: {
-                guard: { type: 'xstate.stateIn', params: { stateId } },
+                guard: { type: '@xstate.stateIn', params: { stateId } },
                 target: 'done'
               }
             }
@@ -1382,7 +1382,7 @@ describe('json', () => {
     const evaluator = ({ source, scope }: any) =>
       Function('scope', `with (scope) { return (${source}); }`)(scope);
     const actor = createActor(
-      createMachineFromConfig(
+      machineFromJSON(
         {
           '@exprLang': 'js',
           context: {
@@ -1624,7 +1624,7 @@ describe('json', () => {
         }
       }
     };
-    const machine = createMachineFromConfig(json, {
+    const machine = machineFromJSON(json, {
       evaluators: { js: jsEvaluator },
       schemas: {
         events: { 'email.change': z.object({ value: z.string() }) }
@@ -1647,21 +1647,39 @@ describe('json', () => {
 
     expect(actor.getSnapshot().context).toEqual({ email: 'a@b.c' });
     // runtime schemas are not part of the definition
-    expect(serializeMachine(machine)).toEqual(json);
+    expect(machineToJSON(machine)).toEqual(json);
   });
 });
 
 describe('reserved source names', () => {
-  it("rejects source names using the reserved '@xstate.' prefix", () => {
+  it.each(['@xstate.raise', 'xstate.raise'])(
+    "rejects provided source name '%s'",
+    (name) => {
+      expect(() =>
+        machineFromJSON({
+          initial: 'a',
+          states: { a: {} }
+        } as any).provide({
+          actions: { [name]: () => {} } as any
+        })
+      ).toThrow(
+        `Invalid actions name '${name}': the 'xstate.' and '@xstate.' prefixes are reserved`
+      );
+    }
+  );
+
+  it.each([
+    ['actions', { 'xstate.track': { type: '@xstate.log' } }],
+    ['guards', { '@xstate.not': { when: { type: 'ok' } } }],
+    ['delays', { 'xstate.slow': 1000 }]
+  ] as const)('rejects reserved %s names in the JSON', (kind, definitions) => {
     expect(() =>
-      createMachineFromConfig({
-        initial: 'a',
-        states: { a: {} }
-      } as any).provide({
-        actions: { '@xstate.raise': () => {} } as any
-      })
+      machineFromJSON(
+        { initial: 'a', states: { a: {} }, [kind]: definitions } as any,
+        { guards: { ok: () => true } }
+      )
     ).toThrow(
-      "Invalid actions name '@xstate.raise': the '@xstate.' prefix is reserved"
+      `Invalid ${kind} name '${Object.keys(definitions)[0]}': the 'xstate.' and '@xstate.' prefixes are reserved`
     );
   });
 });
@@ -1676,14 +1694,14 @@ it('rejects string transition targets', () => {
   };
 
   expectSchemaInvalid(json);
-  expect(() => createMachineFromConfig(json as any)).toThrow(
+  expect(() => machineFromJSON(json as any)).toThrow(
     'Invalid transition at $.states.green.on.TIMER: use { "target": "yellow" } instead of a string'
   );
 });
 
 it('rejects circular declarative named guards', () => {
   expect(() =>
-    createMachineFromConfig({
+    machineFromJSON({
       guards: {
         a: { when: { type: 'b' } },
         b: { when: { type: 'a' } }
@@ -1697,7 +1715,7 @@ it('rejects circular declarative named guards', () => {
   ).toThrow('Circular guard reference: a -> b -> a');
 
   expect(() =>
-    createMachineFromConfig({
+    machineFromJSON({
       guards: {
         a: { when: { type: 'a' } }
       }

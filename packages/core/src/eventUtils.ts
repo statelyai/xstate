@@ -23,10 +23,6 @@ export function createAfterEvent(
   return { type: 'xstate.after', delay: delayRef, stateId: id };
 }
 
-export function createAfterEventId(delayRef: number | string, id: string) {
-  return `xstate.after.${delayRef}.${id}`;
-}
-
 /**
  * Returns an event that represents an implicit state-level timeout. Fired when
  * a state's `timeout` duration elapses without the state being exited.
@@ -34,11 +30,7 @@ export function createAfterEventId(delayRef: number | string, id: string) {
  * @param id The state node ID where this timeout is configured
  */
 export function createTimeoutEvent(id: string): TimeoutEvent {
-  return { type: 'xstate.timeout', stateId: id };
-}
-
-export function createTimeoutEventId(id: string) {
-  return `xstate.timeout.${id}`;
+  return { type: 'xstate.timeout.state', stateId: id };
 }
 
 /**
@@ -56,10 +48,6 @@ export function createInvokeTimeoutEvent(
     actorId: invokeId,
     sessionId
   };
-}
-
-export function createInvokeTimeoutEventId(invokeId: string) {
-  return `xstate.timeout.actor.${invokeId}`;
 }
 
 /**

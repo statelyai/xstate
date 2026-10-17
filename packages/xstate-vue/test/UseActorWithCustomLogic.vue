@@ -6,7 +6,7 @@
 
 <script lang="ts">
 import { useActor } from '../src/index.ts';
-import { createLogic } from 'xstate/actors';
+import { createStepLogic } from 'xstate/actors';
 import { defineComponent } from 'vue';
 
 const reducer = (state: number, event: { type: 'INC' }): number => {
@@ -16,7 +16,7 @@ const reducer = (state: number, event: { type: 'INC' }): number => {
   return state;
 };
 
-const logic = createLogic({
+const logic = createStepLogic({
   context: 0,
   run: ({ context, event }) => ({
     context: reducer(context, event as { type: 'INC' })

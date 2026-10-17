@@ -217,8 +217,8 @@ export class EffectActor<TLogic extends AnyActorLogic> implements ActorRef<
     return this;
   }
 
-  toJSON() {
-    return { xstate$$type: 1, id: this.id };
+  toJSON(): { $actor: string } {
+    return { $actor: this.address };
   }
 
   /** @internal Publishes a snapshot produced by the execution loop. */

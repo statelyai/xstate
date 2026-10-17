@@ -12,8 +12,8 @@ import {
 import { getShortestPaths } from 'xstate/graph';
 import {
   createEffectActor,
-  fromEffect,
-  fromEffectStream,
+  createEffectLogic,
+  createEffectStreamLogic,
   join,
   waitFor,
   type EffectActor
@@ -74,7 +74,7 @@ const counter = createMachine({
   }
 });
 
-const fetchReport = fromEffect(
+const fetchReport = createEffectLogic(
   Effect.gen(function* () {
     tally.fetches++;
     yield* Effect.sleep('1 second');
@@ -582,9 +582,9 @@ describe('createEffectActor with a persisted snapshot', () => {
         )
       );
 
-    it('restarts a root fromEffect task', async () => {
+    it('restarts a root createEffectLogic task', async () => {
       let attempts = 0;
-      const task = fromEffect(
+      const task = createEffectLogic(
         Effect.suspend(() =>
           ++attempts === 1 ? Effect.never : Effect.succeed('done')
         )
@@ -603,7 +603,7 @@ describe('createEffectActor with a persisted snapshot', () => {
     it('restarts root and child streams from their first item', async () => {
       const seen: number[] = [];
       let runs = 0;
-      const ticks = fromEffectStream(() => {
+      const ticks = createEffectStreamLogic(() => {
         const items = Stream.fromIterable([1, 2, 3]).pipe(
           Stream.tap((n) => Effect.sync(() => seen.push(n)))
         );

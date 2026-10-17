@@ -5,11 +5,11 @@ import {
   ActorRefFrom,
   ActorFromLogic,
   AnyMachineSnapshot,
-  createLogic,
+  createStepLogic,
   createAsyncLogic,
   createActor,
   SnapshotFrom,
-  LogicSnapshot,
+  StepSnapshot,
   createMachine,
   setup,
   types
@@ -489,7 +489,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
   it('should immediately render snapshot of initially spawned custom actor', () => {
     const createCustomActor = (latestValue: string) =>
       createActor(
-        createLogic({
+        createStepLogic({
           context: latestValue,
           run: () => undefined
         })
@@ -654,7 +654,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
 
   it("should render snapshot value when actor doesn't emit anything", () => {
     const createCustomLogic = (latestValue: string) =>
-      createLogic({
+      createStepLogic({
         context: latestValue,
         run: () => undefined
       });
@@ -694,7 +694,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
   it('should render snapshot state when actor changes', () => {
     const createCustomActor = (latestValue: string) =>
       createActor(
-        createLogic({
+        createStepLogic({
           context: latestValue,
           run: () => undefined
         })
@@ -723,7 +723,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
 
   it("should keep rendering a new selected value after selector change when the actor doesn't emit", async () => {
     const actor = createActor(
-      createLogic({
+      createStepLogic({
         context: undefined,
         run: () => undefined
       })
@@ -914,7 +914,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
   it('should work with an optional actor', () => {
     const Child = (props: {
       actor:
-        | ActorRef<LogicSnapshot<{ count: number }, undefined, unknown>, any>
+        | ActorRef<StepSnapshot<{ count: number }, undefined, unknown>, any>
         | undefined;
     }) => {
       const state = useSelector(props.actor, (s) => s);
@@ -931,7 +931,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
     const App = () => {
       const [actor, setActor] =
         React.useState<
-          ActorRef<LogicSnapshot<{ count: number }, undefined, unknown>, any>
+          ActorRef<StepSnapshot<{ count: number }, undefined, unknown>, any>
         >();
 
       return (
@@ -941,7 +941,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
             onClick={() =>
               setActor(
                 createActor(
-                  createLogic<{ count: number }, undefined>({
+                  createStepLogic<{ count: number }, undefined>({
                     context: { count: 42 },
                     run: () => undefined
                   })

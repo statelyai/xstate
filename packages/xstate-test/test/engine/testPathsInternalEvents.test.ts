@@ -1,6 +1,6 @@
 import { createAsyncLogic, createMachine, types } from 'xstate';
 import {
-  ModelTestFailure,
+  ModelTestFailureError,
   replayTest,
   testPaths,
   type TestCoverage
@@ -203,9 +203,9 @@ describe('testPaths with invoke and `after` branches', () => {
     };
     const failure = (await testPaths(checkoutMachine, failing).catch(
       (error) => error
-    )) as ModelTestFailure;
+    )) as ModelTestFailureError;
 
-    expect(failure).toBeInstanceOf(ModelTestFailure);
+    expect(failure).toBeInstanceOf(ModelTestFailureError);
     expect(failure.fixture).toBeDefined();
     expect(failure.coverage?.exploration.strategy).toBe('paths');
 
@@ -213,6 +213,6 @@ describe('testPaths with invoke and `after` branches', () => {
       replayTest(checkoutMachine, failure.fixture!, {
         sut: failing.sut
       })
-    ).rejects.toBeInstanceOf(ModelTestFailure);
+    ).rejects.toBeInstanceOf(ModelTestFailureError);
   });
 });

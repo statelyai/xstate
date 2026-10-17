@@ -46,7 +46,7 @@ The option applies to the whole tree, not to a single placement boundary. Persis
 
 Persisted children changed shape in v6: each entry carries an `address` field and either an embedded `snapshot` or a `remote: true` marker. A remote entry may also carry an opaque `incarnation` token, round-tripped verbatim: XState never stamps one, but a host that does gets stale-completion protection on the referencing side and the token on journaled `sendTo` descriptors. Snapshots persisted by earlier versions restore unchanged; migrate them with [`machineVersions`](#migrate-machine-versions) if you validate their shape.
 
-A timer persisted from a running actor carries its wall-clock start (`startedAt`), and restoring the snapshot schedules the remaining time toward the original deadline — a timer past due fires immediately. Snapshots produced only by pure transitions carry no timestamp, so restoring one restarts each timer with its declared delay. A [durable execution](durable-execution.md) records timer starts when scheduling effects succeed; await `executeEffects()` before persisting its checkpoint to preserve deadlines. A custom adapter clock must use the same time origin when restoring.
+A timer persisted from a running actor carries its wall-clock start (`scheduledAt`), and restoring the snapshot schedules the remaining time toward the original deadline — a timer past due fires immediately. Snapshots produced only by pure transitions carry no timestamp, so restoring one restarts each timer with its declared delay. A [durable execution](durable-execution.md) records timer starts when scheduling effects succeed; await `executeEffects()` before persisting its checkpoint to preserve deadlines. A custom adapter clock must use the same time origin when restoring.
 
 For a host-driven durable loop, use `execution.restore(persistedSnapshot)` from
 `xstate/durable`, then `execution.executeEffects(effects)` to resume embedded
@@ -60,7 +60,16 @@ An actor's address is the `/`-joined path of actor ids from the root, such as `o
 
 A persisted snapshot is a plain JSON-shaped object. Restoring one is lenient: XState reads the fields it knows and does not check a format marker.
 
-These envelope fields are stable across 6.x releases: `status`, `value`, `context`, `output`, `error`, `historyValue`, `stateInputs`, `children`, `timers`, `machine` and `version`. The [persisted snapshot JSON Schema](https://github.com/statelyai/xstate/blob/next/packages/core/src/persistedSnapshot.schema.json) (draft 2020-12) describes them. Nested machine children carry their own envelope in `children[id].snapshot`. Fields prefixed with `_`, such as `_nextActorIds`, are private. They round-trip verbatim; do not read or write them.
+These envelope fields are stable across 6.x releases: `status`, `value`, `context`, `output`, `error`, `historyValue`, `stateInputs`, `children`, `timers` and `machine`. The [persisted snapshot JSON Schema](https://github.com/statelyai/xstate/blob/next/packages/core/src/persistedSnapshot.schema.json) (draft 2020-12) describes them. Nested machine children carry their own envelope in `children[id].snapshot`. Fields prefixed with `_`, such as `_nextActorIds`, are private. They round-trip verbatim; do not read or write them.
+
+`timers` is a list of pending timers in scheduling order. A delayed `enq.raise(...)` or `enq.sendTo(...)` entry carries its `id`, or a `seq` number when scheduled without one. Built-in `after` and `timeout` timers have neither; their `event` (`xstate.after`, `xstate.timeout.state` or `xstate.timeout.actor`) identifies them.
+
+```json
+"timers": [
+  { "id": "retry", "delay": 500, "type": "@xstate.raise", "event": { "type": "RETRY" }, "target": "self", "scheduledAt": 1760000000000 },
+  { "delay": 1000, "type": "@xstate.raise", "event": { "type": "xstate.after", "stateId": "checkout.waiting", "delay": 1000 }, "target": "self" }
+]
+```
 
 Later 6.x releases may add new optional fields to the envelope, to `children` entries and to `timers` entries. Code that reads or validates persisted snapshots must ignore fields it does not recognize. The JSON Schema allows unknown fields on these objects.
 
@@ -81,7 +90,30 @@ In development builds, `getPersistedSnapshot()` warns once per call with the pat
 
 `Date` values are not reported. `JSON.stringify` writes them as ISO strings, and `JSON.parse` does not turn them back into `Date` objects. Convert them on restore if your context needs `Date` instances.
 
-Actor refs in `context` persist as `{ xstate$type: 'actorRef', id }` and are not reported.
+Actor refs in `context` persist as `{ $actor: address }` and are not reported. A ref that names one of the snapshot's children restores to that child.
+
+`$actor` is a reserved key in persisted context. On restore, any object in `context` whose keys are exactly `$actor` (and optionally `incarnation`) is read as a serialized actor ref: without an `incarnation`, it becomes the live child at that address, if there is one. Objects with other keys alongside `$actor` stay plain data. Do not store application data as an object with only an `$actor` key.
+
+### Serialized actor refs
+
+An actor ref serializes with `JSON.stringify` as `{ $actor: address }` (the `SerializedActorRef` type, which also allows an optional string `incarnation`). This shape appears when a ref travels in an event payload, such as a `replyTo` field, and the event is persisted or crosses a process boundary. A serialized ref in `context` keeps its address across persistence and restore.
+
+A serialized ref is a valid `enq.sendTo(...)` target. The event is delivered to the live actor at the ref's `$actor` address, including an actor restored after the ref was serialized. If no live actor has that address, the event becomes a dead letter with reason `'missingTarget'`.
+
+```ts
+const server = createMachine({
+  schemas: {
+    events: {
+      ping: types<{ replyTo: SerializedActorRef; requestId: string }>()
+    }
+  },
+  on: {
+    ping: ({ event }, enq) => {
+      enq.sendTo(event.replyTo, { type: 'pong', requestId: event.requestId });
+    }
+  }
+});
+```
 
 ### Serialized actor refs
 
@@ -136,7 +168,7 @@ const checkoutVersions = machineVersions([
       context: z.object({ count: z.number() }),
       children: z.object({}),
       historyValue: z.object({}),
-      timers: z.object({}),
+      timers: z.tuple([]),
       _nextActorIds: z.record(z.string(), z.number()).optional(),
       _nextTimerId: z.number(),
       stateInputs: z.undefined().optional(),
@@ -178,8 +210,9 @@ status/output/error, state value, context, children, history, timers, state
 inputs, counters and version metadata as applicable. Active state nodes are
 reconstructed from the state value, so `nodes` itself is not persisted. A
 versioned machine's generated `snapshotSchema` validates this durable shape,
-its state value and its configured context schema. It normalizes omitted
-`historyValue` and `timers` to empty records, matching restoration behavior.
+its state value and its configured context schema. It normalizes an omitted
+`historyValue` to an empty record and omitted `timers` to an empty list,
+matching restoration behavior.
 
 Use `'*'` to handle any snapshot that cannot use an exact retained version. The
 snapshot is `unknown`, so the migration can inspect its shape or load an old

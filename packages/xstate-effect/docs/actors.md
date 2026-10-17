@@ -18,7 +18,7 @@ The enclosing scope owns the actor. When that scope closes, the actor stops and 
 
 - `Effect.scoped(program)` closes the scope when `program` finishes.
 - `actor.stop()` stops the actor explicitly.
-- Tasks created with `fromEffect`, `fromEffectStream` and `fromEffectEventStream` have their own scopes. Their resources are released when the task completes, fails or is interrupted.
+- Tasks created with `createEffectLogic`, `createEffectStreamLogic` and `createEffectEventStreamLogic` have their own scopes. Their resources are released when the task completes, fails or is interrupted.
 - Background Effect actions use the owning actor's scope. Their resources are released when that actor stops.
 - Use `withActorScope` around a resource acquisition to keep it until the owning actor stops.
 - The enclosing scope waits for the actor's finalizers before finishing its own cleanup.
@@ -35,14 +35,14 @@ This release task owns a temporary workspace and opens a cache for the rest of t
 import { Effect } from 'effect';
 import {
   createEffectActor,
-  fromEffect,
+  createEffectLogic,
   waitFor,
   withActorScope
 } from '@xstate/effect';
 import { setup } from 'xstate';
 
 const events: string[] = [];
-const prepareRelease = fromEffect(
+const prepareRelease = createEffectLogic(
   Effect.gen(function* () {
     // Keep the shared cache open for the rest of the release workflow.
     yield* Effect.acquireRelease(
@@ -200,7 +200,7 @@ Restoring resumes the persisted state and context without running entry actions 
 - A pending `after` transition or delayed send keeps its original deadline, measured on Effect's `Clock`. A deadline that passed while the snapshot was stored fires as soon as the actor starts.
 - State-machine children resume their persisted state and context.
 - Completed children do not restart.
-- Running Effect tasks and streams restart from the beginning: a `fromEffect` task runs its Effect again, and a `fromEffectStream` or `fromEffectEventStream` stream starts again from its first item. A half-finished Effect cannot be persisted, so this matches how XState restarts running async and callback actors. Make that work safe to repeat, for example with an idempotency key.
+- Running Effect tasks and streams restart from the beginning: a `createEffectLogic` task runs its Effect again, and a `createEffectStreamLogic` or `createEffectEventStreamLogic` stream starts again from its first item. A half-finished Effect cannot be persisted, so this matches how XState restarts running async and callback actors. Make that work safe to repeat, for example with an idempotency key.
 - A snapshot-only restore does not need `input`, even when the logic requires it.
 - The restored actor belongs to the enclosing scope like any other: closing the scope stops it, its children and its timers.
 

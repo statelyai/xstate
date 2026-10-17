@@ -1,7 +1,7 @@
 import * as fc from 'fast-check';
 import { createAsyncLogic, createMachine, types } from 'xstate';
 import {
-  ModelTestFailure,
+  ModelTestFailureError,
   fastCheckAdapter,
   propertyTest,
   replayTest
@@ -155,9 +155,9 @@ describe('executed mode', () => {
           throw new Error('reached success');
         }
       }
-    }).catch((cause) => cause)) as ModelTestFailure;
+    }).catch((cause) => cause)) as ModelTestFailureError;
 
-    expect(failure).toBeInstanceOf(ModelTestFailure);
+    expect(failure).toBeInstanceOf(ModelTestFailureError);
     const fixture = failure.fixture as TestFixture;
     expect(fixture.mode).toBe('executed');
     expect(fixture.outcomes?.length).toBeGreaterThan(0);
@@ -171,7 +171,7 @@ describe('executed mode', () => {
           }
         }
       })
-    ).rejects.toThrow(ModelTestFailure);
+    ).rejects.toThrow(ModelTestFailureError);
     expect(calls).toBe(0);
   });
 

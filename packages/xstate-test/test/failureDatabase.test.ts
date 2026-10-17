@@ -10,8 +10,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createMachine, types } from 'xstate';
 import {
-  ModelTestFailure,
-  createFailureDatabase,
+  ModelTestFailureError,
+  createTestFailureStore,
   propertyTest,
   testPaths,
   type TestSut
@@ -69,7 +69,7 @@ async function catchFailure(run: () => Promise<unknown>) {
   try {
     await run();
   } catch (error) {
-    return error as ModelTestFailure;
+    return error as ModelTestFailureError;
   }
   throw new Error('Expected the campaign to fail');
 }
@@ -93,7 +93,7 @@ describe('failures', () => {
     const first = await catchFailure(() =>
       propertyTest(counterMachine, options)
     );
-    expect(first).toBeInstanceOf(ModelTestFailure);
+    expect(first).toBeInstanceOf(ModelTestFailureError);
     const saved = readdirSync(join(dir, 'counter'));
     expect(saved).toHaveLength(1);
     const location = join(dir, 'counter', saved[0]);
@@ -170,7 +170,7 @@ describe('failures', () => {
       events,
       sut: counterSut(() => true),
       stopWhen: (snapshot: CounterSnapshot) => snapshot.context.count >= 3,
-      failures: createFailureDatabase({ dir, key: 'paths' })
+      failures: createTestFailureStore({ dir, key: 'paths' })
     };
     const first = await catchFailure(() => testPaths(counterMachine, options));
     expect(first.summary).toMatch(/^Path \d+ \(.*\) failed/);

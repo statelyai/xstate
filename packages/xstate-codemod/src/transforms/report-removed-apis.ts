@@ -22,10 +22,13 @@ const REMOVED_APIS: Record<string, string> = {
   and: 'inline the guard as `(...) => a(...) && b(...)`',
   or: 'inline the guard as `(...) => a(...) || b(...)`',
   not: 'inline the guard as `(...) => !a(...)`',
-  stateIn:
-    'use `self.getSnapshot().matches(...)` or `checkStateIn(snapshot, "#id")`',
+  stateIn: 'use `self.getSnapshot().matches(...)`',
   fromPromise: 'use `createAsyncLogic(...)`',
-  fromTransition: 'use `createLogic({ context, run })`'
+  fromTransition: 'use `createStepLogic({ context, run })`',
+  toObserver: 'pass an observer object or callback directly',
+  pathToStateValue: 'build the state value object directly',
+  SpecialTargets:
+    'use `enq.sendTo(self, event)` for internal sends; parent sends use `enq.sendTo(...)` with the parent ref'
 };
 
 /**
@@ -36,7 +39,7 @@ const REMOVED_APIS: Record<string, string> = {
 export const reportRemovedApis: Transform = {
   name: 'report-removed-apis',
   description:
-    'Detect (report only) usages of removed/restructured v5 xstate APIs (assign, raise, sendTo, emit, fromPromise, and/or/not, etc.) that need manual migration.',
+    'Detect (report only) usages of removed/restructured v5 xstate APIs (assign, raise, sendTo, emit, fromPromise, and/or/not, toObserver, SpecialTargets, etc.) that need manual migration.',
   apply(sourceFile: SourceFile): TransformResult {
     const notes: string[] = [];
 

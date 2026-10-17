@@ -1,7 +1,7 @@
 import { getTimerStart } from './timerClock.ts';
+import { getScheduledTimerKey, getTimerKey } from './timerKey.ts';
 import isDevelopment from '#is-development';
-import { ACTOR_REF_TYPE } from './createActor.ts';
-import { getStateValue } from './stateUtils.ts';
+import { getStateValue, isStateId } from './stateUtils.ts';
 import type {
   AnyMachineSnapshot,
   AnyStateMachine,
@@ -19,6 +19,7 @@ import type {
   StateId,
   StateIdInputs,
   StateContextFromStateValue,
+  StateIdReference,
   SnapshotStatus,
   PersistedHistoryValue,
   AnyStateNode,
@@ -35,6 +36,13 @@ import { isRemoteActorRef, isSerializedActorRef } from './remoteActorRef.ts';
 import { findNonJsonPath } from './persistedSnapshotFormat.ts';
 
 const emptySnapshotRecord = Object.freeze({});
+const emptyTimers: readonly LogicalTimer[] = Object.freeze([]);
+
+function compactTimers(
+  timers: readonly LogicalTimer[] | undefined
+): readonly LogicalTimer[] {
+  return timers?.length ? timers : emptyTimers;
+}
 
 /**
  * Deep-freezes the plain objects and arrays in machine context so accidental
@@ -246,6 +254,18 @@ export type TestStateValueCheck<
     ? never
     : unknown;
 
+/**
+ * The `#id` references a snapshot (or union of snapshots) accepts, read from
+ * its `getMeta()` keys so the overload does not depend on the state schema.
+ */
+type SnapshotStateIdReference<TSnapshot> = TSnapshot extends {
+  getMeta: () => Record<infer TStateId, any>;
+}
+  ? string extends TStateId
+    ? `#${string}`
+    : `#${TStateId & string}`
+  : `#${string}`;
+
 interface MachineSnapshotBase<
   TContext extends MachineContext,
   TEvent extends EventObject,
@@ -293,7 +313,7 @@ interface MachineSnapshotBase<
   /** An object mapping actor names to spawned/invoked actors. */
   children: TChildren;
   /** Pending logical timers owned by this machine snapshot. */
-  timers: Readonly<Record<string, LogicalTimer>>;
+  timers: readonly LogicalTimer[];
   /** @internal */
   _stateInputs: Record<string, Record<string, unknown>>;
   /** @internal */
@@ -302,10 +322,14 @@ interface MachineSnapshotBase<
   _nextActorIds?: Record<string, number>;
   /**
    * Whether the current state value is a subset of the given partial state
-   * value.
+   * value, or, for a `'#id'` reference, whether the state node with that `id`
+   * is active.
    *
    * @param partialStateValue
    */
+  matches<const TTestStateId extends StateIdReference<TStateSchema>>(
+    stateId: TTestStateId
+  ): boolean;
   matches<
     const TTestStateValue extends Extract<ToTestStateValue<TStateValue>, string>
   >(
@@ -339,7 +363,12 @@ interface MachineSnapshotBase<
     TMeta,
     TStateSchema
   >;
-  // Non-literal values, and unions of snapshots (whose overloads above differ)
+  // Unions of snapshots (whose overloads above differ)
+  matches<TSnapshot extends { value: StateValue }>(
+    this: TSnapshot,
+    stateId: NoInfer<SnapshotStateIdReference<TSnapshot>>
+  ): boolean;
+  // Non-literal values, and unions of snapshots
   matches<
     TSnapshot extends { value: StateValue },
     const TTestStateValue extends StateValue
@@ -535,6 +564,10 @@ const machineSnapshotMatches = function matches(
   this: AnyMachineSnapshot,
   testValue: StateValue
 ) {
+  if (typeof testValue === 'string' && isStateId(testValue)) {
+    const stateNode = this.machine.getStateNodeById(testValue);
+    return this.nodes.includes(stateNode);
+  }
   return matchesState(testValue, this.value);
 };
 
@@ -640,7 +673,7 @@ export function createMachineSnapshot<
       getStateValue(machine.root, config._nodes)) as never,
     tags: collectTags(config._nodes),
     children: compactSnapshotRecord(config.children) as TChildren,
-    timers: compactSnapshotRecord(config.timers),
+    timers: compactTimers(config.timers),
     historyValue: compactSnapshotRecord(config.historyValue),
     _stateInputs: compactSnapshotRecord(config._stateInputs),
     _nextTimerId: config._nextTimerId ?? 0,
@@ -681,7 +714,7 @@ export function cloneMachineSnapshot<TState extends AnyMachineSnapshot>(
       value: snapshot.value,
       tags: snapshot.tags,
       children: compactSnapshotRecord(configWithSnapshot.children),
-      timers: compactSnapshotRecord(configWithSnapshot.timers),
+      timers: compactTimers(configWithSnapshot.timers),
       historyValue: compactSnapshotRecord(configWithSnapshot.historyValue),
       _stateInputs: compactSnapshotRecord(configWithSnapshot._stateInputs),
       _nextTimerId: configWithSnapshot._nextTimerId ?? 0,
@@ -778,7 +811,7 @@ export function getPersistedSnapshot<
   }
 
   const childrenJson: Record<string, unknown> = {};
-  const timersJson: Record<string, unknown> = {};
+  const timersJson: unknown[] = [];
 
   const embedChildren =
     (options as { embedChildren?: boolean } | undefined)?.embedChildren !==
@@ -832,8 +865,7 @@ export function getPersistedSnapshot<
   const scheduledTimers = snapshotActor?.system?._clock?.now
     ? undefined
     : snapshotActor?.system?._snapshot?._scheduledTimers;
-  for (const id in timers) {
-    const timer = timers[id];
+  for (const timer of timers) {
     let event = timer.event;
     if (event.type === 'xstate.timeout.actor') {
       event = { ...event };
@@ -857,7 +889,7 @@ export function getPersistedSnapshot<
         target = { type: 'parent' };
       } else {
         throw new Error(
-          `Unable to persist timer '${id}': target actor '${timer.target.id}' is no longer addressable from this snapshot.`
+          `Unable to persist timer ${timer.id !== undefined ? `'${timer.id}'` : `for event '${timer.event.type}'`}: target actor '${timer.target.id}' is no longer addressable from this snapshot.`
         );
       }
     }
@@ -868,18 +900,22 @@ export function getPersistedSnapshot<
     // (a restored-but-never-started actor, a pure-transition snapshot) the
     // timer's accepted durable start or carried-in start passes through,
     // so re-persisting cannot push the deadline back.
-    const scheduled = scheduledTimers?.[`${snapshotActor!.sessionId}.${id}`];
-    const startedAt = scheduled
+    const scheduled =
+      scheduledTimers?.[
+        getScheduledTimerKey(snapshotActor!, getTimerKey(timer))
+      ];
+    const scheduledAt = scheduled
       ? scheduled.dueAt - timer.delay
       : getTimerStart(timer);
-    timersJson[id] = {
-      id: timer.id,
+    timersJson.push({
+      ...(timer.id !== undefined && { id: timer.id }),
+      ...(timer.seq !== undefined && { seq: timer.seq }),
       delay: timer.delay,
       type: timer.type,
       event,
       target,
-      ...(startedAt !== undefined && { startedAt })
-    };
+      ...(scheduledAt !== undefined && { scheduledAt })
+    });
   }
 
   const persisted: Record<string, unknown> = {
@@ -902,7 +938,6 @@ export function getPersistedSnapshot<
       id: machine.id,
       version: machine.version
     };
-    persisted.version = machine.version;
   }
 
   return persisted as Snapshot<unknown>;
@@ -940,13 +975,8 @@ function persistContext(
         copy ??= Array.isArray(contextPart)
           ? (contextPart.slice() as typeof contextPart)
           : { ...contextPart };
-        const address = (value as any as AnyActor).address;
-        copy[key] = {
-          xstate$type: ACTOR_REF_TYPE,
-          id: (value as any as AnyActor).id,
-          // The address lets refs to non-children still route after restore.
-          ...(typeof address === 'string' ? { address } : {})
-        };
+        // The address lets refs to non-children still route after restore.
+        copy[key] = { $actor: (value as any as AnyActor).address };
       } else {
         const valuePath = Array.isArray(contextPart)
           ? `${path}[${key}]`

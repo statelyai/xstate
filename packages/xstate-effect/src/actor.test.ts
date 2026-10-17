@@ -11,7 +11,7 @@ import {
   EffectActor,
   createEffectActor,
   emitted,
-  fromEffect,
+  createEffectLogic,
   inspect,
   send,
   snapshots,
@@ -194,7 +194,7 @@ describe('snapshots', () => {
     const collected = await runScoped(
       Effect.gen(function* () {
         const actor = yield* createEffectActor(
-          fromEffect(Effect.fail(failure).pipe(Effect.delay(10)))
+          createEffectLogic(Effect.fail(failure).pipe(Effect.delay(10)))
         );
 
         return yield* Stream.runCollect(snapshots(actor));
@@ -391,7 +391,7 @@ describe('join', () => {
     const error = await runScoped(
       Effect.gen(function* () {
         const actor = yield* createEffectActor(
-          fromEffect(Effect.fail(failure).pipe(Effect.delay(10)))
+          createEffectLogic(Effect.fail(failure).pipe(Effect.delay(10)))
         );
 
         return yield* Effect.flip(join(actor));

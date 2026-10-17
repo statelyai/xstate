@@ -1,7 +1,7 @@
 import { historicalEventSchemas } from './historicalEventSchemas.ts';
 import type { PublicEventFromMachine } from './eventTypes.ts';
 import isDevelopment from '#is-development';
-import { ACTOR_REF_TYPE, createActor } from './createActor.ts';
+import { createActor } from './createActor.ts';
 import {
   createErrorPlatformEvent,
   createInitEvent,
@@ -98,6 +98,7 @@ import {
   MachineOptions
 } from './types.v6.ts';
 import {
+  assertUnreservedSourceName,
   matchesEventDescriptor,
   resolveReferencedActor,
   toStatePath
@@ -133,7 +134,7 @@ let emptyCanActorScope: AnyActorScope | undefined;
 function getEmptyCanActor(): AnyActor {
   // A minimal inert actor used purely as the `self`/`parent` argument when
   // dry-running transitions for `snapshot.can(...)`. Intentionally not built
-  // on `createLogic` so `can()` does not pull that machinery into bundles.
+  // on `createStepLogic` so `can()` does not pull that machinery into bundles.
   return (emptyCanActor ??= createActor({
     transition: (snapshot: any) => [snapshot, []],
     initialTransition: () => [
@@ -399,15 +400,9 @@ export class StateMachine<
       ...sources
     };
     if (isDevelopment) {
-      // The `@xstate.` prefix is reserved for built-in serialized action and
-      // guard descriptors — user source names must not collide.
       for (const kind of ['actions', 'guards', 'actors', 'delays'] as const) {
         for (const key of Object.keys(this.sources[kind])) {
-          if (key.startsWith('@xstate.')) {
-            throw new Error(
-              `Invalid ${kind} name '${key}': the '@xstate.' prefix is reserved for built-in descriptors.`
-            );
-          }
+          assertUnreservedSourceName(kind, key);
         }
       }
     }
@@ -423,7 +418,7 @@ export class StateMachine<
           }
           const snapshot: Record<string, unknown> = {
             historyValue: {},
-            timers: {},
+            timers: [],
             ...(value as Record<string, unknown>)
           };
           const contextSchema = this.schemas?.context;
@@ -457,7 +452,7 @@ export class StateMachine<
               issues: [{ message: 'Persisted snapshot has invalid status.' }]
             };
           }
-          for (const key of ['children', 'historyValue', 'timers'] as const) {
+          for (const key of ['children', 'historyValue'] as const) {
             if (
               snapshot[key] === null ||
               typeof snapshot[key] !== 'object' ||
@@ -469,6 +464,11 @@ export class StateMachine<
                 ]
               };
             }
+          }
+          if (!Array.isArray(snapshot.timers)) {
+            return {
+              issues: [{ message: "Persisted snapshot has invalid 'timers'." }]
+            };
           }
           try {
             this.resolveState({
@@ -1576,7 +1576,7 @@ export class StateMachine<
 
   /**
    * The original JSON definition this machine was created from (set by
-   * `createMachineFromConfig`), if any. Used by `serializeMachine` for lossless
+   * `machineFromJSON`), if any. Used by `machineToJSON` for lossless
    * round-trips.
    *
    * @internal
@@ -1772,18 +1772,17 @@ export class StateMachine<
       children[actorId] = actor;
     }
 
-    const timers: Record<string, LogicalTimer> = {};
-    const persistedTimers: Record<
-      string,
-      {
-        id: string;
-        delay: number;
-        type: '@xstate.raise' | '@xstate.sendTo';
-        event: EventObject;
-        target: string | { type: 'parent' };
-      }
-    > = snapshotData.timers ?? {};
-    for (const [id, timer] of Object.entries(persistedTimers)) {
+    const timers: LogicalTimer[] = [];
+    const persistedTimers: Array<{
+      id?: string;
+      seq?: number;
+      delay: number;
+      type: '@xstate.raise' | '@xstate.sendTo';
+      event: EventObject;
+      target: string | { type: 'parent' };
+      scheduledAt?: number;
+    }> = snapshotData.timers ?? [];
+    for (const timer of persistedTimers) {
       let event = timer.event;
       if (event.type === 'xstate.timeout.actor') {
         const actorId = (event as AnyEventObject).actorId as string;
@@ -1806,10 +1805,10 @@ export class StateMachine<
             ? timer.target
             : (timer.target as { type: string }).type;
         throw new Error(
-          `Unable to restore timer '${id}': target actor '${targetDescription}' is unavailable.`
+          `Unable to restore timer ${timer.id !== undefined ? `'${timer.id}'` : `for event '${timer.event.type}'`}: target actor '${targetDescription}' is unavailable.`
         );
       }
-      timers[id] = { ...timer, event, target };
+      timers.push({ ...timer, event, target });
     }
 
     const reviveHistoryValue = (
@@ -1933,15 +1932,21 @@ export class StateMachine<
         return value;
       }
       // The context object itself is data, never a serialized actor ref.
-      if (!isRoot && value.xstate$type === ACTOR_REF_TYPE) {
-        // A ref persisted from a live child carries only its id. One that
-        // was already serialized data (e.g. a `replyTo` from an event) keeps
-        // its address unless it names this child, so it still routes.
-        const child = children[value.id];
-        return typeof value.address === 'string' &&
-          child?.address !== value.address
-          ? value
-          : child;
+      // Only an object whose keys are exactly `$actor` (+ `incarnation`)
+      // is a serialized ref; any other object is data.
+      if (!isRoot && isSerializedActorRef(value)) {
+        // A ref that names one of this snapshot's children revives to that
+        // child; restored children are new incarnations, so a ref pinned to
+        // an incarnation stays data. Any other ref (e.g. a `replyTo` from an
+        // event) stays data and routes by address.
+        if (value.incarnation !== undefined) {
+          return value;
+        }
+        return (
+          Object.values(children).find(
+            (child) => child.address === value.$actor
+          ) ?? value
+        );
       }
       const proto = Object.getPrototypeOf(value);
       if (

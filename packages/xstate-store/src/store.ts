@@ -396,7 +396,7 @@ function createStoreCore<
 
       observer.next?.({
         type: '@xstate.transition',
-        event: { type: '@xstate.init' },
+        event: { type: 'xstate.init' },
         snapshot: currentSnapshot,
         actorRef: store,
         rootId: store.sessionId

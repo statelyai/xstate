@@ -4,6 +4,7 @@ import {
   type AnyEventObject,
   type InputFrom,
   type SnapshotFrom,
+  type TimerKey,
   createMachine,
   setup
 } from '../src/index.ts';
@@ -19,8 +20,8 @@ type DurableConformanceCapability =
 
 export type DurableConformanceOperation =
   | { type: 'action'; actionType: string }
-  | { type: 'timer.schedule'; actorId: string; id: string; delay: number }
-  | { type: 'timer.cancel'; actorId: string; id: string }
+  | { type: 'timer.schedule'; actorId: string; timer: TimerKey; delay: number }
+  | { type: 'timer.cancel'; actorId: string; timer: TimerKey }
   | { type: 'actor.spawn'; actorId: string }
   | { type: 'actor.start'; actorId: string }
   | { type: 'actor.stop'; actorId: string }
@@ -166,18 +167,21 @@ export function durableExecutionConformance({
         ).toEqual([
           expect.objectContaining({
             type: 'timer.schedule',
-            id: 'deadline',
-            delay: 100
-          }),
-          expect.objectContaining({ type: 'timer.cancel', id: 'deadline' }),
-          expect.objectContaining({
-            type: 'timer.schedule',
-            id: 'deadline',
+            timer: { id: 'deadline' },
             delay: 100
           }),
           expect.objectContaining({
+            type: 'timer.cancel',
+            timer: { id: 'deadline' }
+          }),
+          expect.objectContaining({
             type: 'timer.schedule',
-            id: 'deadline',
+            timer: { id: 'deadline' },
+            delay: 100
+          }),
+          expect.objectContaining({
+            type: 'timer.schedule',
+            timer: { id: 'deadline' },
             delay: 20
           })
         ]);
@@ -318,7 +322,7 @@ export function durableExecutionConformance({
         const execution = await createHarness().start(machine, undefined);
 
         await execution.send({
-          type: 'xstate.error.actor.worker',
+          type: 'xstate.error.actor',
           actorId: 'worker',
           error
         });

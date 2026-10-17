@@ -1,7 +1,7 @@
 export {
-  fromEffect,
-  fromEffectEventStream,
-  fromEffectStream,
+  createEffectLogic,
+  createEffectEventStreamLogic,
+  createEffectStreamLogic,
   type EffectActorLogic,
   type EffectLogicBrand,
   type EffectSnapshot,
@@ -10,7 +10,7 @@ export {
   type EffectStreamSource,
   type EffectStreamActorLogic,
   type EffectStreamSnapshot
-} from './fromEffect.ts';
+} from './effectLogic.ts';
 export {
   createEffectActor,
   type EffectActorOptions

@@ -1,7 +1,7 @@
 import * as fc from 'fast-check';
 import { createMachine, types } from 'xstate';
 import {
-  ModelTestFailure,
+  ModelTestFailureError,
   TestCampaignError,
   formatTestCoverage,
   propertyTest,
@@ -167,8 +167,8 @@ describe('respond', () => {
           }
         ]
       })
-    )) as ModelTestFailure;
-    expect(failure).toBeInstanceOf(ModelTestFailure);
+    )) as ModelTestFailureError;
+    expect(failure).toBeInstanceOf(ModelTestFailureError);
     expect(failure.summary).toBe('Temporal property "closes-again" failed');
     expect(failure.fixture?.temporalFailure).toMatchObject({
       type: 'respond',
@@ -228,7 +228,7 @@ describe('respond', () => {
           }
         ]
       })
-    )) as ModelTestFailure;
+    )) as ModelTestFailureError;
     expect(failure.summary).toBe(
       'Temporal property "closes-eventually" failed'
     );

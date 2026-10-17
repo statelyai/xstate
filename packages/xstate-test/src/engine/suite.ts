@@ -418,7 +418,7 @@ export function describeTestSuite<TSource extends ActorLogic<any, any, any>>(
  *
  * @experimental
  */
-export function serializeTestSuite(suite: TestSuite): string {
+export function testSuiteToJSON(suite: TestSuite): string {
   return JSON.stringify(
     {
       formatVersion: suite.formatVersion,

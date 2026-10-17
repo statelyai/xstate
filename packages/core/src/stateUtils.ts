@@ -7,13 +7,16 @@ import {
 import type { StateNode } from './StateNode.ts';
 import {
   createAfterEvent,
-  createAfterEventId,
   createDoneStateEvent,
   createInvokeTimeoutEvent,
-  createInvokeTimeoutEventId,
-  createTimeoutEvent,
-  createTimeoutEventId
+  createTimeoutEvent
 } from './eventUtils.ts';
+import {
+  getBuiltInTimerIdentity,
+  getTimerKey,
+  matchesTimerKey,
+  readTimerKey
+} from './timerKey.ts';
 import {
   XSTATE_INIT,
   STATE_DELIMITER,
@@ -30,7 +33,6 @@ import {
 import {
   AnyEventObject,
   AnyMachineSnapshot,
-  AnyStateMachine,
   AnyStateNode,
   AnyTransitionDefinition,
   DelayedTransitionDefinition,
@@ -40,6 +42,7 @@ import {
   MachineContext,
   StateValue,
   TransitionDefinition,
+  TimerKey,
   AnyAction,
   AnyTransitionConfig,
   AnyActor,
@@ -280,36 +283,6 @@ export function isInFinalState(
 
 export const isStateId = (str: string) => str[0] === STATE_IDENTIFIER;
 
-function getLegacyEventType(event: EventObject): string | undefined {
-  switch (event.type) {
-    case 'xstate.done.actor':
-    case 'xstate.error.actor':
-      return `${event.type}.${(event as any).actorId}`;
-    case 'xstate.snapshot.actor':
-      return `xstate.snapshot.${(event as any).actorId}`;
-    case 'xstate.done.state':
-      return `xstate.done.state.${(event as any).stateId}`;
-    case 'xstate.after':
-      return `xstate.after.${(event as any).delay}.${(event as any).stateId}`;
-    case 'xstate.timeout':
-      return `xstate.timeout.${(event as any).stateId}`;
-    case 'xstate.timeout.actor':
-      return `xstate.timeout.actor.${(event as any).actorId}`;
-    default:
-      return undefined;
-  }
-}
-
-function getEventTypeAliases(event: EventObject): string[] {
-  const legacyType = getLegacyEventType(event);
-  return legacyType ? [event.type, legacyType] : [event.type];
-}
-
-export function getEventDescriptorKey(event: EventObject): string {
-  const legacyType = getLegacyEventType(event);
-  return legacyType ? `${event.type}|${legacyType}` : event.type;
-}
-
 export function matchesActorSession(
   event: EventObject,
   snapshot: AnyMachineSnapshot,
@@ -328,86 +301,16 @@ export function matchesActorSession(
   );
 }
 
-function normalizeLegacyInternalEvent(
-  event: EventObject,
-  machine: AnyStateMachine
-): EventObject {
-  if (
-    event.type === 'xstate.done.actor' ||
-    event.type === 'xstate.error.actor' ||
-    event.type === 'xstate.snapshot.actor' ||
-    event.type === 'xstate.done.state' ||
-    event.type === 'xstate.after' ||
-    event.type === 'xstate.timeout' ||
-    event.type === 'xstate.timeout.actor'
-  ) {
-    return event;
-  }
-
-  const normalizeWithId = (
-    prefix: string,
-    type: string,
-    idKey: 'actorId' | 'stateId'
-  ) =>
-    event.type.startsWith(prefix)
-      ? {
-          ...event,
-          type,
-          [idKey]: (event as any)[idKey] ?? event.type.slice(prefix.length)
-        }
-      : undefined;
-
-  const normalized =
-    normalizeWithId('xstate.done.actor.', 'xstate.done.actor', 'actorId') ??
-    normalizeWithId('xstate.error.actor.', 'xstate.error.actor', 'actorId') ??
-    normalizeWithId('xstate.snapshot.', 'xstate.snapshot.actor', 'actorId') ??
-    normalizeWithId('xstate.done.state.', 'xstate.done.state', 'stateId') ??
-    normalizeWithId(
-      'xstate.timeout.actor.',
-      'xstate.timeout.actor',
-      'actorId'
-    ) ??
-    normalizeWithId('xstate.timeout.', 'xstate.timeout', 'stateId');
-
-  if (normalized) {
-    return normalized;
-  }
-
-  const afterPrefix = 'xstate.after.';
-  if (!event.type.startsWith(afterPrefix)) {
-    return event;
-  }
-
-  const stateId = [...machine.idMap.keys()]
-    .sort((a, b) => b.length - a.length)
-    .find((id) => event.type.endsWith(`.${id}`));
-  if (!stateId) {
-    return event;
-  }
-  const delayText = event.type.slice(afterPrefix.length, -stateId.length - 1);
-  return {
-    ...event,
-    type: 'xstate.after',
-    delay: Number.isNaN(+delayText) ? delayText : +delayText,
-    stateId
-  } as AnyEventObject;
-}
-
 export function getCandidates<TEvent extends EventObject>(
   stateNode: StateNode<any, TEvent>,
   event: TEvent
 ): Array<TransitionDefinition<any, TEvent>> {
-  const eventTypes = getEventTypeAliases(event);
-  const exactMatches = eventTypes.flatMap(
-    (eventType) => stateNode.transitions.get(eventType) ?? []
-  );
+  const exactMatches = stateNode.transitions.get(event.type) ?? [];
   const wildcardCandidates = [...stateNode.transitions.keys()]
     .filter(
       (eventDescriptor) =>
-        !eventTypes.includes(eventDescriptor) &&
-        eventTypes.some((eventType) =>
-          matchesEventDescriptor(eventType, eventDescriptor)
-        )
+        eventDescriptor !== event.type &&
+        matchesEventDescriptor(event.type, eventDescriptor)
     )
     .sort((a, b) => b.length - a.length)
     .flatMap((key) => stateNode.transitions.get(key)!);
@@ -419,7 +322,7 @@ export function getCandidates<TEvent extends EventObject>(
 
 function scheduleDelayedEvent(
   stateNode: AnyStateNode,
-  timerId: string,
+  timerEvent: AnyEventObject,
   resolveEvent: (args: any) => AnyEventObject,
   resolveScheduledDelay: (x: {
     context: MachineContext;
@@ -437,8 +340,8 @@ function scheduleDelayedEvent(
       result?.context !== undefined
         ? mergeContextPatch(x.context, result.context)
         : x.context;
+    // Built-in timers have no id: the event identifies them.
     enq.raise(resolveEvent(x) as any, {
-      id: timerId,
       delay: resolveScheduledDelay({
         context,
         event: x.event,
@@ -450,7 +353,7 @@ function scheduleDelayedEvent(
   };
   const oldExit = stateNode.exit;
   stateNode.exit = (_: any, enq: any) => {
-    enq.cancel(timerId);
+    enq.cancel({ event: getBuiltInTimerIdentity(timerEvent)! });
     return typeof oldExit === 'function' ? oldExit(_, enq) : undefined;
   };
 }
@@ -492,13 +395,12 @@ export function getDelayedTransitions(
   // differ only in the event raised, the transition(s) caught, and whether the
   // delay resolves against the machine's `delays` map (invoke timeouts do not).
   //
-  // `xstate.timeout` is a dedicated event category so a state-level `timeout`
+  // `xstate.timeout.state` is a dedicated event category so a state-level `timeout`
   // cannot collide with an explicit `after` entry on the same state. Invoke
   // timeouts are scheduled on the enclosing state; completion transitions
   // cancel the timer separately, so it clears even when the parent stays active.
   const sources: Array<{
     event: AnyEventObject;
-    timerId: string;
     resolveEvent?: (args: any) => AnyEventObject;
     eventMatcher?: (
       event: EventObject,
@@ -514,7 +416,6 @@ export function getDelayedTransitions(
       const delay = Number.isNaN(+key) ? key : +key;
       sources.push({
         event: createAfterEvent(delay, stateNode.id),
-        timerId: createAfterEventId(delay, stateNode.id),
         delay,
         transitions: afterConfig[key],
         fromDelaysMap: true
@@ -525,7 +426,6 @@ export function getDelayedTransitions(
   if (timeoutConfig !== undefined && onTimeoutConfig) {
     sources.push({
       event: createTimeoutEvent(stateNode.id),
-      timerId: createTimeoutEventId(stateNode.id),
       delay: timeoutConfig,
       transitions: onTimeoutConfig,
       fromDelaysMap: true
@@ -535,7 +435,6 @@ export function getDelayedTransitions(
   for (const invokeDef of invokeDefs) {
     sources.push({
       event: createInvokeTimeoutEvent(invokeDef.id),
-      timerId: createInvokeTimeoutEventId(invokeDef.id),
       resolveEvent: ({ children }: any) =>
         createInvokeTimeoutEvent(
           invokeDef.id,
@@ -565,24 +464,19 @@ export function getDelayedTransitions(
 
   for (const {
     event,
-    timerId,
     resolveEvent,
     eventMatcher,
     delay,
     transitions,
     fromDelaysMap
   } of sources) {
-    scheduleDelayedEvent(
-      stateNode,
-      timerId,
-      resolveEvent ?? (() => event),
-      (x) =>
-        resolveDelay(delay, fromDelaysMap ? x.delays : {}, {
-          context: x.context,
-          event: x.event,
-          stateNode,
-          input: x.input
-        })
+    scheduleDelayedEvent(stateNode, event, resolveEvent ?? (() => event), (x) =>
+      resolveDelay(delay, fromDelaysMap ? x.delays : {}, {
+        context: x.context,
+        event: x.event,
+        stateNode,
+        input: x.input
+      })
     );
     const { type: eventType, ...eventPattern } = event;
     for (const transition of toTransitionConfigArray(transitions as any)) {
@@ -2643,16 +2537,19 @@ export function macrostep(
     return completeMacrostep();
   }
 
-  let nextEvent = normalizeLegacyInternalEvent(event, snapshot.machine);
+  let nextEvent = event;
 
   if (event.type === XSTATE_TIMER) {
-    const timer = nextSnapshot.timers[(event as any).id];
-    if (!timer) {
+    const key = readTimerKey(event);
+    const index = key
+      ? nextSnapshot.timers.findIndex((timer) => matchesTimerKey(timer, key))
+      : -1;
+    if (index === -1) {
       return completeMacrostep();
     }
 
-    const timers = { ...nextSnapshot.timers };
-    delete timers[timer.id];
+    const timer = nextSnapshot.timers[index];
+    const timers = nextSnapshot.timers.filter((_, i) => i !== index);
     nextSnapshot = cloneMachineSnapshot(nextSnapshot, { timers });
     if (timer.type === '@xstate.raise') {
       internalQueue.push(timer.event);
@@ -2693,7 +2590,6 @@ export function macrostep(
       }
       // TODO: we should likely only allow transitions selected by very explicit descriptors
       // `*` shouldn't be matched, likely `xstate.error.*` shouldn't be either
-      // similarly `xstate.error.actor.*` and `xstate.error.actor.todo.*` have to be considered too
       nextSnapshot = cloneMachineSnapshot<typeof snapshot>(snapshot, {
         status: 'error',
         error: currentEvent.error
@@ -2956,14 +2852,13 @@ function cancelTimers(
   event: AnyEventObject,
   actorScope: AnyActorScope
 ): [AnyMachineSnapshot, ExecutableEffect[]] {
-  const timerIds = Object.keys(snapshot.timers);
-  if (!timerIds.length) {
+  if (!snapshot.timers.length) {
     return [snapshot, []];
   }
   const actions: AnyAction[] = [];
   const enqueue = createTransitionEnqueue(actorScope, actions, []);
-  for (const id of timerIds) {
-    enqueue.cancel(id);
+  for (const timer of snapshot.timers) {
+    (enqueue.cancel as unknown as (key: TimerKey) => void)(getTimerKey(timer));
   }
   return resolveActionsWithContext(snapshot, event, actorScope, actions);
 }

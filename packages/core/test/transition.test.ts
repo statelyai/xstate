@@ -3,7 +3,7 @@ import {
   createMachine,
   EventFrom,
   createAsyncLogic,
-  createLogic,
+  createStepLogic,
   createCallbackLogic,
   toPromise,
   transition,
@@ -24,7 +24,11 @@ import { createDoneActorEvent } from '../src/eventUtils';
 import { initialTransition } from '../src/transition';
 import { listenerLogic } from '../src/actors/listener';
 import { subscriptionLogic } from '../src/actors/subscription';
-import { XSTATE_SPAWN, XSTATE_START, XSTATE_STOP } from '../src/constants';
+import {
+  XSTATE_SPAWN,
+  XSTATE_START,
+  XSTATE_STOP_EFFECT
+} from '../src/constants';
 import { getSnapshotActorRef } from '../src/snapshotActorRef';
 import { setInertActorMaterializationObserver } from '../src/inertActorScope';
 import { z } from 'zod';
@@ -56,7 +60,7 @@ function describeEffects(effects: ExecutableEffect[]): string[] {
 
   return effects.filter(isBuiltInExecutableEffect).flatMap((e) => {
     switch (e.type) {
-      case XSTATE_STOP:
+      case XSTATE_STOP_EFFECT:
         return `stop(${e.actor.id})`;
       case XSTATE_SPAWN:
         return labelByActor.get(e.actor)!;
@@ -610,13 +614,11 @@ describe('transition function', () => {
         args: [
           expect.anything(),
           { type: 'xstate.after', delay: 10, stateId: '(machine).a' },
-          expect.objectContaining({
-            delay: 10,
-            id: 'xstate.after.10.(machine).a'
-          })
+          { delay: 10 }
         ]
       })
     );
+    expect(actions[0]).toHaveProperty('id', undefined);
   });
 
   it('cancel action should be returned', async () => {
@@ -650,7 +652,8 @@ describe('transition function', () => {
         // params: expect.objectContaining({
         //   sendId: 'myRaise'
         // })
-        args: [expect.anything(), 'myRaise']
+        id: 'myRaise',
+        args: [expect.anything(), { id: 'myRaise' }]
       })
     );
   });
@@ -943,7 +946,7 @@ describe('transition function', () => {
       id: 'raise-id'
     });
 
-    const stopAction = actions.find(isEffect(XSTATE_STOP))!;
+    const stopAction = actions.find(isEffect(XSTATE_STOP_EFFECT))!;
     expect(stopAction.type).toBe('@xstate.stop');
     expect(stopAction.actor).toBe(state.children.child);
     expect(stopAction.id).toBe('child');
@@ -973,9 +976,9 @@ describe('transition function', () => {
       });
 
       expect(mini.children).toEqual({});
-      expect(effects.filter(isEffect(XSTATE_STOP))).toEqual([
+      expect(effects.filter(isEffect(XSTATE_STOP_EFFECT))).toEqual([
         expect.objectContaining({
-          type: XSTATE_STOP,
+          type: XSTATE_STOP_EFFECT,
           actor: child,
           id: 'keyEscape',
           args: [expect.anything(), child]
@@ -1002,7 +1005,7 @@ describe('transition function', () => {
 
       expect(effects.map((effect) => effect.type)).toEqual([
         'exitAction',
-        XSTATE_STOP
+        XSTATE_STOP_EFFECT
       ]);
     });
 
@@ -1025,7 +1028,10 @@ describe('transition function', () => {
 
       expect(exitAction).toHaveBeenCalledTimes(1);
       expect(effects).toHaveLength(1);
-      expect(effects[0]).toMatchObject({ type: XSTATE_STOP, id: 'child' });
+      expect(effects[0]).toMatchObject({
+        type: XSTATE_STOP_EFFECT,
+        id: 'child'
+      });
     });
 
     it('orders after cancellation before the invoke stop', () => {
@@ -1045,15 +1051,19 @@ describe('transition function', () => {
       const [, effects] = transition(machine, active, { type: 'EXIT' });
       const lifecycleEffects = effects.filter(
         (effect) =>
-          effect.type === '@xstate.cancel' || effect.type === XSTATE_STOP
+          effect.type === '@xstate.cancel' || effect.type === XSTATE_STOP_EFFECT
       );
 
       expect(lifecycleEffects).toEqual([
         expect.objectContaining({
           type: '@xstate.cancel',
-          id: 'xstate.after.1000.(machine).active'
+          event: {
+            type: 'xstate.after',
+            stateId: '(machine).active',
+            delay: 1000
+          }
         }),
-        expect.objectContaining({ type: XSTATE_STOP, id: 'child' })
+        expect.objectContaining({ type: XSTATE_STOP_EFFECT, id: 'child' })
       ]);
     });
 
@@ -1077,7 +1087,7 @@ describe('transition function', () => {
       const [, effects] = transition(machine, active, { type: 'EXIT' });
 
       expect(
-        effects.filter(isEffect(XSTATE_STOP)).map((effect) => effect.id)
+        effects.filter(isEffect(XSTATE_STOP_EFFECT)).map((effect) => effect.id)
       ).toEqual(['right', 'left']);
     });
 
@@ -1100,7 +1110,7 @@ describe('transition function', () => {
       const [, effects] = transition(machine, active, { type: 'EXIT' });
 
       expect(
-        effects.filter(isEffect(XSTATE_STOP)).map((effect) => effect.id)
+        effects.filter(isEffect(XSTATE_STOP_EFFECT)).map((effect) => effect.id)
       ).toEqual(['first', 'second']);
     });
 
@@ -1124,7 +1134,7 @@ describe('transition function', () => {
       const [, effects] = transition(machine, active, { type: 'EXIT' });
 
       expect(
-        effects.filter(isEffect(XSTATE_STOP)).map((effect) => effect.id)
+        effects.filter(isEffect(XSTATE_STOP_EFFECT)).map((effect) => effect.id)
       ).toEqual(['child', 'parent']);
     });
 
@@ -1144,7 +1154,7 @@ describe('transition function', () => {
       expect(done.status).toBe('done');
       expect(done.children).toEqual({});
       expect(
-        effects.filter(isEffect(XSTATE_STOP)).map((effect) => effect.id)
+        effects.filter(isEffect(XSTATE_STOP_EFFECT)).map((effect) => effect.id)
       ).toEqual(['rootChild']);
     });
 
@@ -1199,7 +1209,7 @@ describe('transition function', () => {
           (id) => !(id in next.children)
         );
         const stoppedIds = effects
-          .filter(isEffect(XSTATE_STOP))
+          .filter(isEffect(XSTATE_STOP_EFFECT))
           .map((effect) => effect.id);
 
         expect(stoppedIds).toEqual(removedIds);
@@ -1226,11 +1236,11 @@ describe('transition function', () => {
       expect(microsteps).toHaveLength(1);
       expect(
         microsteps[0][1]
-          .filter(isEffect(XSTATE_STOP))
+          .filter(isEffect(XSTATE_STOP_EFFECT))
           .map((effect) => effect.id)
       ).toEqual(
         transitionEffects
-          .filter(isEffect(XSTATE_STOP))
+          .filter(isEffect(XSTATE_STOP_EFFECT))
           .map((effect) => effect.id)
       );
 
@@ -1250,10 +1260,12 @@ describe('transition function', () => {
       expect(initialMicrosteps).toHaveLength(2);
       expect(
         initialMicrosteps[1][1]
-          .filter(isEffect(XSTATE_STOP))
+          .filter(isEffect(XSTATE_STOP_EFFECT))
           .map((effect) => effect.id)
       ).toEqual(
-        initialEffects.filter(isEffect(XSTATE_STOP)).map((effect) => effect.id)
+        initialEffects
+          .filter(isEffect(XSTATE_STOP_EFFECT))
+          .map((effect) => effect.id)
       );
     });
 
@@ -1316,7 +1328,7 @@ describe('transition function', () => {
       const [stopped, effects] = transition(machine, active, { type: 'STOP' });
 
       expect(stopped.children).toEqual({});
-      expect(effects.filter(isEffect(XSTATE_STOP))).toEqual([
+      expect(effects.filter(isEffect(XSTATE_STOP_EFFECT))).toEqual([
         expect.objectContaining({ actor: child, id: 'child' })
       ]);
       effects.forEach((effect) => void effect.exec());
@@ -1347,7 +1359,7 @@ describe('transition function', () => {
 
       const [active] = initialTransition(machine);
       const [, effects] = transition(machine, active, { type: 'EXIT' });
-      expect(effects.filter(isEffect(XSTATE_STOP))).toHaveLength(1);
+      expect(effects.filter(isEffect(XSTATE_STOP_EFFECT))).toHaveLength(1);
     });
 
     it('supports naive sequential execution of invoke lifecycle effects', () => {
@@ -1897,7 +1909,7 @@ describe('transition function', () => {
   });
 
   describe('terminal child cleanup', () => {
-    const child = createLogic({
+    const child = createStepLogic({
       context: undefined,
       run: () => undefined
     });
@@ -1923,14 +1935,14 @@ describe('transition function', () => {
       const machine = createMachine({
         entry: (_, enq) => enq.spawn(child, { id: 'child' }),
         on: {
-          'xstate.error.actor.child': {}
+          'xstate.error.actor': { matches: { actorId: 'child' } }
         }
       });
       const [active] = initialTransition(machine);
       const childRef = active.children.child;
 
       const [failed] = transition(machine, active, {
-        type: 'xstate.error.actor.child',
+        type: 'xstate.error.actor',
         actorId: 'child',
         sessionId: childRef.sessionId,
         error: new Error('failed')
@@ -1945,9 +1957,12 @@ describe('transition function', () => {
       const machine = createMachine({
         entry: (_, enq) => enq.spawn(child, { id: 'child' }),
         on: {
-          'xstate.done.actor.child': ({ children, event }, _enq) => {
-            observedChild = children.child;
-            observedEvent = event;
+          'xstate.done.actor': {
+            matches: { actorId: 'child' },
+            to: ({ children, event }, _enq) => {
+              observedChild = children.child;
+              observedEvent = event;
+            }
           }
         }
       });
@@ -1955,7 +1970,7 @@ describe('transition function', () => {
       const childRef = active.children.child;
 
       const [completed] = transition(machine, active, {
-        type: 'xstate.done.actor.child',
+        type: 'xstate.done.actor',
         actorId: 'child',
         sessionId: childRef.sessionId,
         output: 42
@@ -1987,7 +2002,7 @@ describe('transition function', () => {
       const secondChild = secondSnapshot.children.child;
 
       const [afterStaleDone] = transition(machine, secondSnapshot, {
-        type: 'xstate.done.actor.child',
+        type: 'xstate.done.actor',
         actorId: 'child',
         sessionId: firstChild.sessionId,
         output: undefined
@@ -2061,21 +2076,21 @@ describe('transition function', () => {
       );
     });
 
-    it('accepts legacy suffixed actor terminal events', () => {
+    it('ignores suffixed actor terminal events', () => {
       const machine = createMachine({
         entry: (_, enq) => enq.spawn(child, { id: 'child' })
       });
       const [active] = initialTransition(machine);
       const childRef = active.children.child;
 
-      const [completed] = transition(machine, active, {
+      const [next] = transition(machine, active, {
         type: 'xstate.done.actor.child',
         actorId: 'child',
         sessionId: childRef.sessionId,
         output: undefined
       } as any);
 
-      expect(completed.children).toEqual({});
+      expect(next.children.child).toBe(childRef);
     });
 
     it('reports the pruned child in the final microstep', () => {
@@ -2086,7 +2101,7 @@ describe('transition function', () => {
       const childRef = active.children.child;
 
       const microsteps = getMicrosteps(machine, active, {
-        type: 'xstate.done.actor.child',
+        type: 'xstate.done.actor',
         actorId: 'child',
         sessionId: childRef.sessionId,
         output: undefined
@@ -2096,7 +2111,7 @@ describe('transition function', () => {
     });
 
     it('removes a completed dynamically spawned child on the live path', () => {
-      const completingChild = createLogic({
+      const completingChild = createStepLogic({
         context: undefined,
         run: () => ({ status: 'done', output: 42 })
       });
@@ -2110,8 +2125,8 @@ describe('transition function', () => {
     });
   });
 
-  describe('legacy suffixed internal events', () => {
-    it('accepts state completion events', () => {
+  describe('suffixed internal events', () => {
+    it('does not match state completion transitions', () => {
       const machine = createMachine({
         initial: 'parent',
         states: {
@@ -2125,15 +2140,15 @@ describe('transition function', () => {
       });
       const [active] = initialTransition(machine);
 
-      const [completed] = transition(machine, active, {
+      const [next] = transition(machine, active, {
         type: 'xstate.done.state.(machine).parent',
         output: undefined
       } as any);
 
-      expect(completed.value).toBe('done');
+      expect(next.value).toEqual({ parent: 'active' });
     });
 
-    it('accepts delayed transition events', () => {
+    it('does not match delayed transitions', () => {
       const machine = createMachine({
         initial: 'waiting',
         states: {
@@ -2143,11 +2158,11 @@ describe('transition function', () => {
       });
       const [waiting] = initialTransition(machine);
 
-      const [completed] = transition(machine, waiting, {
+      const [next] = transition(machine, waiting, {
         type: 'xstate.after.10.(machine).waiting'
       } as any);
 
-      expect(completed.value).toBe('done');
+      expect(next.value).toBe('waiting');
     });
   });
 
@@ -2155,7 +2170,7 @@ describe('transition function', () => {
     emit({ type: 'someEvent' });
   });
 
-  const completingLogic = createLogic({
+  const completingLogic = createStepLogic({
     context: undefined,
     run: () => ({
       status: 'done',
@@ -2572,7 +2587,7 @@ describe('transition function', () => {
   });
 
   it('should calculate the next snapshot for custom logic', () => {
-    const logic = createLogic({
+    const logic = createStepLogic({
       context: { count: 0 },
       run: ({ context, event }) => {
         if (event.type === 'next') {

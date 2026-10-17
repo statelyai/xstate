@@ -1,4 +1,3 @@
-import { ACTOR_REF_TYPE } from './createActor.ts';
 import type { AnyActorSystem } from './system.ts';
 import type {
   AnyActor,
@@ -25,20 +24,54 @@ export function isRemoteActorRef(actorRef: AnyActor): boolean {
 export function isSerializedActorRef(
   target: unknown
 ): target is SerializedActorRef {
-  return (
-    typeof target === 'object' &&
-    target !== null &&
-    (target as SerializedActorRef).xstate$type === ACTOR_REF_TYPE &&
-    typeof (target as SerializedActorRef).address === 'string' &&
-    typeof (target as { send?: unknown }).send !== 'function'
-  );
+  if (
+    typeof target !== 'object' ||
+    target === null ||
+    Array.isArray(target) ||
+    typeof (target as SerializedActorRef).$actor !== 'string'
+  ) {
+    return false;
+  }
+  for (const key in target) {
+    if (key !== '$actor' && key !== 'incarnation') {
+      return false;
+    }
+  }
+  const incarnation = (target as SerializedActorRef).incarnation;
+  return incarnation === undefined || typeof incarnation === 'string';
+}
+
+/** @internal The actor id that the last segment of an address encodes. */
+export function getAddressId(address: string): string {
+  const segment = address.slice(address.lastIndexOf('/') + 1);
+  return segment.includes('%')
+    ? segment.replaceAll('%2F', '/').replaceAll('%25', '%')
+    : segment;
 }
 
 /** @internal The error reported when no live actor has a serialized address. */
 export function createMissingAddressError(target: SerializedActorRef): Error {
   return new Error(
-    `Unable to send event to actor '${target.address}': no live actor has that address`
+    target.incarnation === undefined
+      ? `Unable to send event to actor '${target.$actor}': no live actor has that address`
+      : `Unable to send event to actor '${target.$actor}' (incarnation '${target.incarnation}'): no live actor has that address and incarnation`
   );
+}
+
+/**
+ * @internal The live actor a serialized ref names: the actor at its address,
+ * and, when the ref carries an `incarnation`, only that incarnation. A ref
+ * without one follows whichever actor is live at the address.
+ */
+export function resolveSerializedActorRef(
+  system: { _getByAddress?: (address: string) => AnyActor | undefined },
+  target: SerializedActorRef
+): AnyActor | undefined {
+  const live = system._getByAddress?.(target.$actor);
+  return live &&
+    (target.incarnation === undefined || live.sessionId === target.incarnation)
+    ? live
+    : undefined;
 }
 
 /**
@@ -149,14 +182,9 @@ export function createRemoteActorRef(
       return false;
     },
     // The same shape Actor.toJSON produces, so serialized snapshots carry
-    // one actor-reference marker whether a child is co-located or remote.
-    toJSON() {
-      return {
-        xstate$type: ACTOR_REF_TYPE,
-        id: options.id,
-        address: options.address,
-        src: options.src
-      };
+    // one actor-reference shape whether a child is co-located or remote.
+    toJSON(): SerializedActorRef {
+      return { $actor: options.address };
     }
   };
   const ref = handle as unknown as AnyActor;

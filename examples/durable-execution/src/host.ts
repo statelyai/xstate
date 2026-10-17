@@ -2,7 +2,8 @@ import {
   deliverEvent,
   type AnyActor,
   type AnyActorLogic,
-  type AnyEventObject
+  type AnyEventObject,
+  type TimerKey
 } from 'xstate';
 import { createDurable } from 'xstate/durable';
 
@@ -45,7 +46,7 @@ export async function runOnHost<TLogic extends AnyActorLogic>(options: {
   const { logic, journal, resume, log } = options;
   const machine = logic as any;
   const mailbox: AnyEventObject[] = [...options.events];
-  const timers = new Map<string, { source: AnyActor; id: string }>();
+  const timers = new Map<string, { source: AnyActor; timer: TimerKey }>();
   const pendingLogic = new Set<Promise<unknown>>();
   let rootAddress: string | undefined;
 
@@ -76,12 +77,15 @@ export async function runOnHost<TLogic extends AnyActorLogic>(options: {
       }
       deliverEvent(source, target, event);
     },
-    scheduleTimer: (source: AnyActor, id: string, delay: number) => {
-      log(`  host: schedule timer ${id} (+${delay}ms)`);
-      timers.set(`${source.address}#${id}`, { source, id });
+    // A timer is identified by its source address and its timer key:
+    // `{ id }`, `{ seq }`, or a built-in timer's `{ event }`.
+    scheduleTimer: (source: AnyActor, timer: TimerKey, delay: number) => {
+      const key = JSON.stringify(timer);
+      log(`  host: schedule timer ${key} (+${delay}ms)`);
+      timers.set(`${source.address}#${key}`, { source, timer });
     },
-    cancelTimer: (source: AnyActor, id: string) => {
-      timers.delete(`${source.address}#${id}`);
+    cancelTimer: (source: AnyActor, timer: TimerKey) => {
+      timers.delete(`${source.address}#${JSON.stringify(timer)}`);
     },
     // An invoked actor is the primary durable unit: its whole body is one
     // journal entry, keyed by its stable address.
@@ -114,8 +118,8 @@ export async function runOnHost<TLogic extends AnyActorLogic>(options: {
     }
     const [key, timer] = next.value;
     timers.delete(key);
-    log(`  host: firing timer ${timer.id}`);
-    const timerEvent = { type: 'xstate.timer', id: timer.id };
+    log(`  host: firing timer ${JSON.stringify(timer.timer)}`);
+    const timerEvent = { type: 'xstate.timer', ...timer.timer };
     if (timer.source.address === rootAddress) {
       return timerEvent;
     }
@@ -151,13 +155,23 @@ export async function runOnHost<TLogic extends AnyActorLogic>(options: {
     rootAddress = durable.getActorRef(snapshot)?.address;
     // Timers belong to the host, so it re-arms the ones the checkpoint
     // recorded as pending; XState does not reschedule them on a durable host.
-    for (const timer of Object.values(
-      (resume.snapshot.timers ?? {}) as Record<string, { id: string }>
-    )) {
-      log(`  host: re-arming checkpointed timer ${timer.id}`);
-      timers.set(`${rootAddress}#${timer.id}`, {
+    // A persisted built-in timer's event is its identity.
+    for (const persisted of (resume.snapshot.timers ?? []) as Array<{
+      id?: string;
+      seq?: number;
+      event: { type: string };
+    }>) {
+      const timer: TimerKey =
+        persisted.id !== undefined
+          ? { id: persisted.id }
+          : persisted.seq !== undefined
+            ? { seq: persisted.seq }
+            : { event: persisted.event };
+      const key = JSON.stringify(timer);
+      log(`  host: re-arming checkpointed timer ${key}`);
+      timers.set(`${rootAddress}#${key}`, {
         source: durable.getActorRef(snapshot)!,
-        id: timer.id
+        timer
       });
     }
   } else {

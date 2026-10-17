@@ -1,13 +1,11 @@
 import isDevelopment from '#is-development';
 import { NULL_EVENT, STATE_DELIMITER } from './constants.ts';
 import type { SetupStateSchemas } from './schema.types.ts';
-import { createInvokeTimeoutEventId } from './eventUtils.ts';
 import { memo } from './memo.ts';
 import {
   evaluateCandidate,
   formatTransition,
   getCandidates,
-  getEventDescriptorKey,
   getDelayedTransitions,
   matchesActorSession,
   type TransitionSelectionResults
@@ -15,6 +13,7 @@ import {
 import type {
   DelayedTransitionDefinition,
   EventObject,
+  TimerKey,
   InitialTransitionDefinition,
   MachineContext,
   Mapper,
@@ -317,11 +316,10 @@ export class StateNode<
     if (this.type === 'final') {
       return undefined;
     }
-    const descriptorKey = getEventDescriptorKey(event);
-    let candidates = this._candidateCache?.get(descriptorKey);
+    let candidates = this._candidateCache?.get(event.type);
     if (!candidates) {
       candidates = getCandidates(this, event);
-      (this._candidateCache ??= new Map()).set(descriptorKey, candidates);
+      (this._candidateCache ??= new Map()).set(event.type, candidates);
     }
 
     for (const candidate of candidates) {
@@ -521,7 +519,7 @@ function formatTransitions<
   }
   const createCancelInvokeTimeoutTransition = (
     descriptor: string,
-    timeoutEventId: string,
+    timeoutKey: TimerKey,
     actorId: string
   ): AnyTransitionDefinition =>
     formatTransition(stateNode, descriptor, {
@@ -529,14 +527,14 @@ function formatTransitions<
       _eventMatcher: (event: EventObject, snapshot: AnyMachineSnapshot) =>
         matchesActorSession(event, snapshot, actorId),
       to: (_args: any, enq: any) => {
-        enq.cancel(timeoutEventId);
+        enq.cancel(timeoutKey);
         return {};
       }
     } as AnyTransitionConfig);
   const formatInvokeCompletionTransition = (
     descriptor: string,
     transitionConfig: AnyTransitionConfig,
-    timeoutEventId: string
+    timeoutKey: TimerKey
   ): AnyTransitionDefinition => {
     const { target, to, reenter, ...rest } = transitionConfig;
 
@@ -567,13 +565,13 @@ function formatTransitions<
           const result = to(args, trackingEnqueue);
 
           if (result !== undefined || didEnqueue) {
-            enq.cancel(timeoutEventId);
+            enq.cancel(timeoutKey);
           }
 
           return result;
         }
 
-        enq.cancel(timeoutEventId);
+        enq.cancel(timeoutKey);
         return {
           target,
           reenter
@@ -588,9 +586,15 @@ function formatTransitions<
       _eventMatcher: (event: EventObject, snapshot: AnyMachineSnapshot) =>
         matchesActorSession(event, snapshot, invokeDef.id)
     });
-    const invokeTimeoutEventId =
+    // Built-in timers have no id; the invoke timeout is keyed by its event.
+    const invokeTimeoutKey: TimerKey | undefined =
       invokeDef.timeout !== undefined
-        ? createInvokeTimeoutEventId(invokeDef.id)
+        ? {
+            event: {
+              type: 'xstate.timeout.actor',
+              actorId: invokeDef.id
+            } as EventObject
+          }
         : undefined;
 
     if (invokeDef.onDone) {
@@ -599,33 +603,33 @@ function formatTransitions<
         invokeDef.onDone,
         (rawTransition) => {
           const transition = withInvokeMatch(rawTransition);
-          return invokeTimeoutEventId
+          return invokeTimeoutKey
             ? formatInvokeCompletionTransition(
                 descriptor,
                 transition,
-                invokeTimeoutEventId
+                invokeTimeoutKey
               )
             : formatTransition(stateNode, descriptor, transition);
         }
       );
 
-      if (invokeTimeoutEventId) {
+      if (invokeTimeoutKey) {
         invokeDoneTransitions.push(
           createCancelInvokeTimeoutTransition(
             descriptor,
-            invokeTimeoutEventId,
+            invokeTimeoutKey,
             invokeDef.id
           )
         );
       }
 
       addTransitions(descriptor, invokeDoneTransitions);
-    } else if (invokeTimeoutEventId) {
+    } else if (invokeTimeoutKey) {
       const descriptor = 'xstate.done.actor';
       addTransitions(descriptor, [
         createCancelInvokeTimeoutTransition(
           descriptor,
-          invokeTimeoutEventId,
+          invokeTimeoutKey,
           invokeDef.id
         )
       ]);
@@ -636,11 +640,11 @@ function formatTransitions<
         descriptor,
         mapTransitionConfigs(invokeDef.onError, (rawTransition) => {
           const transition = withInvokeMatch(rawTransition);
-          return invokeTimeoutEventId
+          return invokeTimeoutKey
             ? formatInvokeCompletionTransition(
                 descriptor,
                 transition,
-                invokeTimeoutEventId
+                invokeTimeoutKey
               )
             : formatTransition(stateNode, descriptor, transition);
         })

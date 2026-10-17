@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema",
   "title": "XState v6 machine definition (MachineJSON)",
-  "description": "The JSON-serializable XState machine definition accepted by createMachineFromConfig. Expressions use reserved @ keys: @exprLang on the machine and @expr/@code with optional @lang in value slots.",
+  "description": "The JSON-serializable XState machine definition accepted by machineFromJSON. Expressions use reserved @ keys: @exprLang on the machine and @expr/@code with optional @lang in value slots.",
   "$ref": "#/$defs/machine",
   "$defs": {
     "jsonSchema": {

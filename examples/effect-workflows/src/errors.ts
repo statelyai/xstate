@@ -1,11 +1,11 @@
 import { Data, Effect } from 'effect';
-import { createEffectActor, fromEffect, join } from '@xstate/effect';
+import { createEffectActor, createEffectLogic, join } from '@xstate/effect';
 
 class PublishFailed extends Data.TaggedError('PublishFailed')<{
   readonly reason: string;
 }> {}
 
-const publish = fromEffect(
+const publish = createEffectLogic(
   Effect.fail(new PublishFailed({ reason: 'Release needs approval' }))
 );
 

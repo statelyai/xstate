@@ -1,7 +1,11 @@
 import * as fc from 'fast-check';
 import * as z from 'zod';
 import { createMachine, types, type SnapshotFrom } from 'xstate';
-import { ModelTestFailure, propertyTest, testPaths } from '../src/index.ts';
+import {
+  ModelTestFailureError,
+  propertyTest,
+  testPaths
+} from '../src/index.ts';
 import type { TestStateKey } from '../src/engine/propertyTest.ts';
 import { expectTypeOf } from 'vitest';
 
@@ -135,7 +139,7 @@ describe('types', () => {
 
   it('keeps the trace typed after `instanceof`', () => {
     const error: unknown = undefined;
-    if (error instanceof ModelTestFailure) {
+    if (error instanceof ModelTestFailureError) {
       expectTypeOf(error.trace).not.toBeAny();
       expectTypeOf(error.trace.finalSnapshot).not.toBeAny();
     }

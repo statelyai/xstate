@@ -1,7 +1,7 @@
 import * as fc from 'fast-check';
 import { createMachine, types } from 'xstate';
 import {
-  ModelTestFailure,
+  ModelTestFailureError,
   fastCheckAdapter,
   propertyTest,
   replayTest
@@ -74,10 +74,10 @@ describe('swarm testing with fast-check', () => {
       }
     }).then(
       () => undefined,
-      (error) => error as ModelTestFailure<any, any>
+      (error) => error as ModelTestFailureError<any, any>
     );
 
-    expect(failure).toBeInstanceOf(ModelTestFailure);
+    expect(failure).toBeInstanceOf(ModelTestFailureError);
     const fixture = failure!.fixture!;
     // The shrunk counterexample is three increments and nothing else.
     expect(fixture.timeline).toHaveLength(3);

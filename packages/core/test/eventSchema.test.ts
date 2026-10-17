@@ -132,7 +132,7 @@ describe('public eventSchema', () => {
     const versions = machineVersions([machine, target]);
     const history = [
       { type: 'private.tick', value: 2 },
-      { type: 'xstate.done.actor.child', output: 3 }
+      { type: 'xstate.done.actor', actorId: 'child', output: 3 }
     ];
     await expect(
       versions.adaptEvents(history, {
@@ -200,7 +200,7 @@ const runtimeTyped = createMachine({
   schemas: {
     events: {
       PUBLIC: types<{}>(),
-      'xstate.done.actor.child': types<{ output: number }>()
+      'xstate.done.actor': types<{ output: number }>()
     }
   }
 });
@@ -209,7 +209,7 @@ type RuntimePublicEvent = StandardSchemaV1.InferOutput<
 >;
 const runtimePublicEvent: RuntimePublicEvent = {
   // @ts-expect-error Runtime notifications are excluded even if a schema declares them.
-  type: 'xstate.done.actor.child',
+  type: 'xstate.done.actor',
   output: 1
 };
 void runtimePublicEvent;

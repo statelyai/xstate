@@ -17,7 +17,7 @@ Ordinary JavaScript conditions narrow context and event data for the updates and
 
 ## Where are `and`, `or`, `not` and `stateIn`?
 
-Guards are plain JavaScript in v6, so the combinators are gone. Write conditions with `&&`, `||` and `!` inside the transition function, and return `undefined` to reject the event. `stateIn(...)` is replaced by `checkStateIn(self.getSnapshot(), 'some.state')`, which is exported from `xstate`. See [guards](guards.md).
+Guards are plain JavaScript in v6, so the combinators are gone. Write conditions with `&&`, `||` and `!` inside the transition function, and return `undefined` to reject the event. `stateIn(...)` is replaced by `self.getSnapshot().matches('some.state')` or, for a state id, `self.getSnapshot().matches('#someId')`. See [guards](guards.md).
 
 ## Does typegen exist in v6?
 
@@ -57,4 +57,4 @@ Yes. A backend workflow restores a persisted snapshot, sends the incoming event,
 
 ## Does Stately Studio or the VS Code extension support v6?
 
-Check [stately.ai](https://stately.ai) for current v6 support in Stately Studio and the VS Code extension. To save and load machine definitions as data, use `serializeMachine(...)`, `machineConfigToJSON(...)` and `createMachineFromConfig(...)`. See [serialization](serialization.md).
+Check [stately.ai](https://stately.ai) for current v6 support in Stately Studio and the VS Code extension. To save and load machine definitions as data, use `machineToJSON(...)`, `machineConfigToJSON(...)` and `machineFromJSON(...)`. See [serialization](serialization.md).

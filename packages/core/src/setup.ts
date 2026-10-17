@@ -27,9 +27,7 @@ import {
   EventObject,
   AnyEventObject,
   EventDescriptor,
-  ReservedEventAliasDescriptor,
   ReservedMachineEvent,
-  ReservedActorEventAliases,
   ReservedEventFromDescriptor,
   ExtractEvent,
   MachineContext,
@@ -71,7 +69,7 @@ import {
   createAsyncLogic,
   type AsyncActorLogic,
   type AsyncSnapshot,
-  type LogicFunction
+  type AsyncLogicFunction
 } from './actors/promise.ts';
 import {
   ActionSchemas,
@@ -638,7 +636,7 @@ type SetupRelativeStateTarget<
       : '.' | `.${StatePaths<TStateSchemas> & string}`;
 
 type SetupStateTarget<TStateSchemas extends Record<string, SetupStateSchema>> =
-  TStateSchemas extends StrictSetupStateTargetsFlag
+  TStateSchemas extends StrictSetupStateTargetsMarker
     ?
         | StrictSetupStatePaths<TStateSchemas>
         | SetupRelativeStateTarget<RelativeSetupStateSchemas<TStateSchemas>>
@@ -673,31 +671,31 @@ declare const parentSetupStateType: unique symbol;
 // markers instead of expanding their private unique-symbol keys into exported
 // types. They are split one key apiece because the conditional types below
 // match on a single key at a time, and those conditionals are emitted too.
-/** @public Referenced by emitted declarations of strict transition targets. */
-export type StrictSetupStateTargetsFlag = {
+/** @experimental Type-level plumbing referenced by emitted declarations of strict transition targets; not for direct use. */
+export type StrictSetupStateTargetsMarker = {
   readonly [strictSetupStateTargets]: true;
 };
 
-/** @public Referenced by emitted declarations of strict transition targets. */
+/** @experimental Type-level plumbing referenced by emitted declarations of strict transition targets; not for direct use. */
 export type RelativeSetupStateSchemasMarker<
   TRelativeStateSchemas extends Record<string, SetupStateSchema>
 > = {
   readonly [relativeSetupStateSchemas]: TRelativeStateSchemas;
 };
 
-/** @public Referenced by emitted declarations of strict transition targets. */
+/** @experimental Type-level plumbing referenced by emitted declarations of strict transition targets; not for direct use. */
 export type CurrentSetupStateSchemaMarker<
   TCurrentStateSchema extends SetupStateSchema
 > = {
   readonly [currentSetupStateSchema]: TCurrentStateSchema;
 };
 
-/** @public Referenced by emitted declarations of strict transition targets. */
-export type StrictSetupStateTargetsMarker<
+/** @experimental Type-level plumbing referenced by emitted declarations of strict transition targets; not for direct use. */
+export type StrictSetupStateMarkers<
   TRelativeStateSchemas extends Record<string, SetupStateSchema>,
   TRootStateSchemas extends Record<string, SetupStateSchema>,
   TCurrentStateSchema extends SetupStateSchema
-> = StrictSetupStateTargetsFlag &
+> = StrictSetupStateTargetsMarker &
   RelativeSetupStateSchemasMarker<TRelativeStateSchemas> &
   RootSetupStateSchemasMarker<TRootStateSchemas> &
   CurrentSetupStateSchemaMarker<TCurrentStateSchema>;
@@ -713,7 +711,7 @@ export type StrictSetupStateSchemas<
     RootSetupStateSchemas<TStateSchemas>,
   TCurrentStateSchema extends SetupStateSchema = never
 > = TStateSchemas &
-  StrictSetupStateTargetsMarker<
+  StrictSetupStateMarkers<
     TRelativeStateSchemas,
     TRootStateSchemas,
     TCurrentStateSchema
@@ -747,7 +745,7 @@ type SetupStateSelfSchema<TStateSchema extends SetupStateSchema> =
     ? { schemas: TSchemas }
     : {};
 
-/** @public Referenced by emitted declarations of strict transition targets. */
+/** @experimental Type-level plumbing referenced by emitted declarations of strict transition targets; not for direct use. */
 export type SetupStateParentTypeMarker<
   TParentStateType extends SetupStateType | never
 > = {
@@ -790,7 +788,7 @@ type ResolveStateSiblingsForPath<
       : ResolveStateSiblings<TStates, TPath>
     : never;
 
-/** @public Referenced by emitted declarations of strict transition targets. */
+/** @experimental Type-level plumbing referenced by emitted declarations of strict transition targets; not for direct use. */
 export type RootSetupStateSchemasMarker<
   TRootStateSchemas extends Record<string, SetupStateSchema>
 > = {
@@ -1736,7 +1734,7 @@ declare const rootContext: unique symbol;
 
 // Keep this marker named so declaration emit can reference it without expanding
 // the private unique-symbol key into exported machine config types.
-/** @public Referenced by emitted declarations of narrowed state contexts. */
+/** @experimental Type-level plumbing referenced by emitted declarations of narrowed state contexts; not for direct use. */
 export interface RootContextMarker<TContext> {
   readonly [rootContext]?: RootContext<TContext>;
 }
@@ -1853,7 +1851,7 @@ type SetupChoiceTargetConfig<
         TEvent
       >;
     }[KnownSetupStateTarget<TStateSchemas>]
-  | (TStateSchemas extends StrictSetupStateTargetsFlag
+  | (TStateSchemas extends StrictSetupStateTargetsMarker
       ? {
           target: KnownSetupStateTarget<TStateSchemas>[];
           input?: Record<string, unknown>;
@@ -3520,47 +3518,6 @@ type StateTransitions<
         TTarget,
         TKnownTarget
       >;
-    } & {
-      [K in keyof ReservedActorEventAliases<
-        TActorMap,
-        TChildren
-      >]?: StateTransitionConfigOrTarget<
-        TStateSchemas,
-        TContext,
-        TContextShape,
-        ReservedActorEventAliases<TActorMap, TChildren>[K] & EventObject,
-        TEvent,
-        TEmitted,
-        TChildren,
-        TMeta,
-        TActionMap,
-        TActorMap,
-        TGuardMap,
-        TDelayMap,
-        TSystemRegistry,
-        TInput,
-        TTarget,
-        TKnownTarget
-      >;
-    } & {
-      [K in ReservedEventAliasDescriptor]?: StateTransitionConfigOrTarget<
-        TStateSchemas,
-        TContext,
-        TContextShape,
-        ReservedEventFromDescriptor<K>,
-        TEvent,
-        TEmitted,
-        TChildren,
-        TMeta,
-        TActionMap,
-        TActorMap,
-        TGuardMap,
-        TDelayMap,
-        TSystemRegistry,
-        TInput,
-        TTarget,
-        TKnownTarget
-      >;
     });
 
 type InvokeDoneEvent<TInvoke> = TInvoke extends {
@@ -4000,7 +3957,7 @@ export type CreateAsyncInvokeConfig<
     };
     src: (
       ...args: Parameters<
-        LogicFunction<
+        AsyncLogicFunction<
           AsyncInvokeSchemaOutput<NoInfer<TOutputSchema>, unknown>,
           AsyncInvokeSchemaOutput<NoInfer<TInputSchema>, NonReducibleUnknown>
         >
@@ -4512,7 +4469,7 @@ type StateTransitionResult<
             });
     }[TKnownTarget]
   | {
-      target: TStateSchemas extends StrictSetupStateTargetsFlag
+      target: TStateSchemas extends StrictSetupStateTargetsMarker
         ? never
         : Exclude<TTarget, TKnownTarget>;
       context?: StateTransitionContext<
@@ -5486,7 +5443,7 @@ export const setup = function setupImplementation<
     },
     createInvoke(
       invokeConfig: {
-        src: AnyActorLogic | LogicFunction<unknown, any>;
+        src: AnyActorLogic | AsyncLogicFunction<unknown, any>;
         schemas?: {
           input?: StandardSchemaV1;
           output?: StandardSchemaV1;

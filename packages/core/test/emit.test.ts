@@ -2,7 +2,7 @@ import { z } from 'zod';
 import {
   AnyEventObject,
   createActor,
-  createLogic,
+  createStepLogic,
   createMachine,
   createAsyncLogic,
   createCallbackLogic,
@@ -333,7 +333,7 @@ describe('event emitter', () => {
   it('events can be emitted from custom logic', () => {
     const spy = vi.fn();
 
-    const logic = createLogic<
+    const logic = createStepLogic<
       {},
       undefined,
       AnyEventObject,

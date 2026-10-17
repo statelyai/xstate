@@ -2,7 +2,7 @@ import { z } from 'zod';
 import {
   createMachine,
   createActor,
-  serializeMachine,
+  machineToJSON,
   setup,
   StateId
 } from '../src/index.ts';
@@ -634,7 +634,7 @@ describe('transition meta data', () => {
     expect(machine.root.initial.meta).toEqual({ source: 'initial' });
     expect(machine.root.initial.description).toBe('start idle');
     expect(
-      JSON.parse(JSON.stringify(serializeMachine(machine))).initial
+      JSON.parse(JSON.stringify(machineToJSON(machine))).initial
     ).toMatchObject({
       meta: { source: 'initial' },
       description: 'start idle'

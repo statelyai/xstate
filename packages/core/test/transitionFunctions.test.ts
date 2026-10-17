@@ -1,7 +1,7 @@
 import {
   type ActorLogic,
   type AnyActor,
-  createLogic,
+  createStepLogic,
   createMachine,
   transition,
   initialTransition
@@ -9,7 +9,7 @@ import {
 
 describe('transition', () => {
   it('should calculate the next snapshot for custom logic', () => {
-    const logic = createLogic({
+    const logic = createStepLogic({
       context: { count: 0 },
       run: ({ context, event }) => {
         if (event.type === 'next') {

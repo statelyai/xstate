@@ -15,7 +15,7 @@ import {
   ActorRef,
   ActorRefFrom,
   createActor,
-  createLogic,
+  createStepLogic,
   createMachine
 } from 'xstate';
 import { fromActorRef, useActor } from '../src/index.ts';
@@ -23,7 +23,7 @@ import { z } from 'zod';
 
 const createSimpleActor = <T extends unknown>(value: T) =>
   createActor(
-    createLogic({
+    createStepLogic({
       context: value,
       run: () => undefined
     })
@@ -632,7 +632,7 @@ describe('fromActorRef', () => {
 
   it('should provide value from `actor.getSnapshot()` immediately', () => {
     const simpleActor = createActor(
-      createLogic({
+      createStepLogic({
         context: 42,
         run: () => undefined
       })
