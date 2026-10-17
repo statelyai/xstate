@@ -23,7 +23,7 @@
   },
   "license": "MIT",
   "peerDependencies": {
-    "effect": "^4.0.0-beta.106",
+    "effect": "^4.0.0",
     "fast-check": "^4.9.0",
     "vitest": "^3.0.0 || ^4.0.0",
     "xstate": "workspace:^",
@@ -31,7 +31,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.40.0",
-    "effect": "4.0.0-beta.106",
+    "effect": "4.0.0",
     "fast-check": "^4.9.0",
     "vitest": "^3.2.7",
     "xstate": "workspace:^",
