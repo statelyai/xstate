@@ -150,7 +150,7 @@ Get started by forking one of these templates on CodeSandbox:
 <!-- install command matching packages/core/package.json#version and example matching the XState v6 API -->
 
 ```bash
-npm install xstate@alpha
+npm install xstate@beta
 ```
 
 ```ts

@@ -190,7 +190,7 @@ Get started by forking one of these templates on CodeSandbox:
 ## Super quick start
 
 ```bash
-npm install xstate
+npm install xstate@beta
 ```
 
 ```ts

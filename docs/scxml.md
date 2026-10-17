@@ -4,12 +4,14 @@ title: SCXML
 
 # SCXML
 
+> **Experimental:** `createMachineFromSCXML(...)` and `SCXMLConversionOptions` may change in a minor release.
+
 Use `createMachineFromSCXML(...)` to create an XState machine from an [SCXML](https://www.w3.org/TR/scxml/) document.
 
 Install the `@xstate/scxml` package alongside `xstate`. The XML parser is kept out of the `xstate` package.
 
 ```bash
-npm i xstate @xstate/scxml
+npm i xstate@beta @xstate/scxml@beta
 ```
 
 ```ts

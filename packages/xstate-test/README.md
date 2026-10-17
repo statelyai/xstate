@@ -30,7 +30,7 @@ complete worked example.
 ## Installation
 
 ```bash
-pnpm add -D @xstate/test fast-check xstate
+pnpm add -D @xstate/test@beta fast-check xstate@beta
 ```
 
 `xstate` and `fast-check` are required peer dependencies. The other peer

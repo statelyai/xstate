@@ -8,7 +8,7 @@ XState is framework-agnostic. Machines and actors run the same way everywhere. T
 Install the package for your framework alongside `xstate`:
 
 ```bash
-npm install xstate@alpha @xstate/react@alpha
+npm install xstate@beta @xstate/react@beta
 ```
 
 ## React

@@ -38,14 +38,16 @@ const actor = createActor(machine, { input: { userId: 'u_1' } });
 | `id` | `string` | Custom identifier for this actor. |
 | `input` | input of the logic | [Input](input-output.md) passed to the logic when it starts. |
 | `snapshot` | persisted snapshot | Starts the actor from a [persisted snapshot](persistence.md). Actions are not re-executed; invocations restart and children are restored. |
-| `inspect` | function or observer | Receives [inspection](inspection.md) events. |
+| `inspect` | function or observer | Receives [inspection](inspection.md) events for the whole system. Ignored on child actors. |
 | `onRejectedEvent` | `(rejection) => void` | Dead-letter hook for events rejected at the delivery boundary. Registers a `system.onRejectedEvent` listener; see [dead letters](systems.md#dead-letters). Ignored on child actors. |
-| `onUnhandledEvent` | `(event, snapshot) => void` | Called when this state machine actor receives an event that no transition handles. Internal `xstate.*` events are not reported. See [unhandled events](transitions.md#unhandled-events). |
+| `onUnhandledEvent` | `(event, snapshot) => void` | Called when this state machine actor receives an event that no transition handles. Internal `xstate.*` events are not reported. Applies to this actor only, including a child actor; children do not inherit it. See [unhandled events](transitions.md#unhandled-events). |
 | `clock` | `{ setTimeout, clearTimeout, now? }` | Controls [delays](delays.md) and [timeouts](timeouts.md). Use `SimulatedClock` in [tests](testing.md). |
 | `logger` | `(...args) => void` | Used by `log(...)` actions. Defaults to `console.log`. |
 | `registryKey` | `string` | Registers the actor in the [system](systems.md) under this key. |
 | `src` | `string` or actor logic | The source of the logic, used by inspectors and persistence. |
 | `parent` | actor | Parent actor. Set by XState when invoking or spawning; rarely passed by hand. |
+
+`inspect` and `onRejectedEvent` are system-wide: only the options of the root actor (an actor created without `parent`) apply. Passing them to an actor created with `parent` has no effect; the root's inspector and rejection listeners already observe every child. `onUnhandledEvent` is per actor and works on a child actor.
 
 There is no `systemId` option in v6. Use `registryKey`, which is typed against the machine's system registry.
 

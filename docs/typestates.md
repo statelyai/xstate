@@ -96,6 +96,8 @@ An `on.load` transition already receives the narrowed `load` event.
 
 ## Runtime validation
 
+> **Experimental:** `standardSchemaValidator()`, `ActorValidationError` and the other `xstate/validation` exports may change in a minor release.
+
 Schemas infer types by default. To check values at runtime, install
 `standardSchemaValidator()` from `xstate/validation` on the setup. XState then
 validates stable context against the root schema and every active state schema
