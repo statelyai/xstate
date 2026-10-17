@@ -122,9 +122,17 @@
           "properties": { "type": { "type": "string" } }
         },
         "target": {
-          "description": "'self', a child id, or the parent.",
+          "description": "'self', a child id, the parent, or a serialized actor reference resolved by address when the timer fires.",
           "anyOf": [
             { "type": "string" },
+            {
+              "type": "object",
+              "required": ["xstate$type", "address"],
+              "properties": {
+                "xstate$type": { "const": "actorRef" },
+                "address": { "type": "string" }
+              }
+            },
             {
               "type": "object",
               "required": ["type"],
