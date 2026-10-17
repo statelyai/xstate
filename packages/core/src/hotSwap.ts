@@ -74,6 +74,7 @@ export function hotSwapActorLogic(
     }
     const invoked =
       typeof child.src !== 'string' &&
+      (child as { _invoked?: boolean })._invoked === true &&
       snapshot.nodes.some((node) =>
         node.invoke.some((definition) => definition.id === childId)
       );
@@ -152,6 +153,9 @@ export function hotSwapActorLogic(
       registryKey: child.registryKey,
       input: (child as { options?: { input?: unknown } }).options?.input
     });
+    (children[childId] as { _invoked?: boolean })._invoked = (
+      child as { _invoked?: boolean }
+    )._invoked;
   }
 
   if (actor.src === actor.logic) {

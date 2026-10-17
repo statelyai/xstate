@@ -1920,6 +1920,9 @@ function microstep(
             parent: actorScope.self,
             syncSnapshot: !!invokeDef.onSnapshot
           });
+          // Persistence restores a source-less child through its invoke
+          // definition only when the invoke created it.
+          (actor as { _invoked?: boolean })._invoked = true;
 
           actions.push({
             action: builtInActions['@xstate.spawn'],

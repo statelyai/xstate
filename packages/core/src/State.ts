@@ -823,6 +823,7 @@ export function getPersistedSnapshot<
     // definition with its id among the active states.
     const invoked =
       sourceKey === undefined &&
+      child._invoked === true &&
       nodes.some((node) => node.invoke.some((def) => def.id === id));
     if (
       sourceKey === undefined &&

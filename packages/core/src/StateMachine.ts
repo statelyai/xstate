@@ -1902,6 +1902,9 @@ export class StateMachine<
       // Mark so `start()` knows to start this child (freshly invoked/spawned
       // children are started via deferred `@xstate.start` actions instead).
       (actor as any)._rehydrated = true;
+      if (src === undefined) {
+        (actor as any)._invoked = true;
+      }
 
       children[actorId] = actor;
     }

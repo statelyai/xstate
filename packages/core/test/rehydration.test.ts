@@ -972,3 +972,39 @@ describe('inline invoke persistence', () => {
     });
   });
 });
+
+describe('replaced inline invoke persistence', () => {
+  it('does not persist a child that replaced an inline invoke as that invoke', () => {
+    const original = createStepLogic({
+      context: { kind: 'original' },
+      run: ({ context }) => ({ context })
+    });
+    const replacement = createStepLogic({
+      context: { kind: 'replacement' },
+      run: ({ context }) => ({ context })
+    });
+    const machine = createMachine({
+      initial: 'active',
+      states: {
+        active: {
+          invoke: { id: 'worker', src: original },
+          on: {
+            REPLACE: ({ children }, enq) => {
+              enq.stop(children.worker);
+              enq.spawn(replacement, { id: 'worker' });
+            }
+          }
+        }
+      }
+    });
+    const actor = createActor(machine).start();
+    actor.send({ type: 'REPLACE' });
+    expect(
+      (actor.getSnapshot().children.worker as AnyActor).getSnapshot().context
+    ).toEqual({ kind: 'replacement' });
+
+    expect(() => actor.getPersistedSnapshot()).toThrow(
+      'An inline child actor cannot be persisted.'
+    );
+  });
+});
