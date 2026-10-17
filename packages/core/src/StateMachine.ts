@@ -1932,10 +1932,16 @@ export class StateMachine<
         return value;
       }
       // The context object itself is data, never a serialized actor ref.
+      // Only an object whose keys are exactly `$actor` (+ `incarnation`)
+      // is a serialized ref; any other object is data.
       if (!isRoot && isSerializedActorRef(value)) {
         // A ref that names one of this snapshot's children revives to that
-        // child. Any other ref (e.g. a `replyTo` from an event) stays data
-        // and routes by address.
+        // child; restored children are new incarnations, so a ref pinned to
+        // an incarnation stays data. Any other ref (e.g. a `replyTo` from an
+        // event) stays data and routes by address.
+        if (value.incarnation !== undefined) {
+          return value;
+        }
         return (
           Object.values(children).find(
             (child) => child.address === value.$actor

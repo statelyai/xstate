@@ -92,6 +92,8 @@ In development builds, `getPersistedSnapshot()` warns once per call with the pat
 
 Actor refs in `context` persist as `{ $actor: address }` and are not reported. A ref that names one of the snapshot's children restores to that child.
 
+`$actor` is a reserved key in persisted context. On restore, any object in `context` whose keys are exactly `$actor` (and optionally `incarnation`) is read as a serialized actor ref: without an `incarnation`, it becomes the live child at that address, if there is one. Objects with other keys alongside `$actor` stay plain data. Do not store application data as an object with only an `$actor` key.
+
 ### Serialized actor refs
 
 An actor ref serializes with `JSON.stringify` as `{ $actor: address }` (the `SerializedActorRef` type, which also allows an optional string `incarnation`). This shape appears when a ref travels in an event payload, such as a `replyTo` field, and the event is persisted or crosses a process boundary. A serialized ref in `context` keeps its address across persistence and restore.

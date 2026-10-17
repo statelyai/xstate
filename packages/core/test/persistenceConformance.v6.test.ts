@@ -500,6 +500,25 @@ describe('serialized actor refs in context', () => {
 
     expect(persisted.context.ref).toEqual({ $actor: 'parent/kid' });
   });
+
+  it('revives only objects whose keys are exactly $actor (+ incarnation)', () => {
+    const actor = createActor(parent).start();
+    const persisted = roundTrip(actor.getPersistedSnapshot()) as any;
+    actor.stop();
+    persisted.context.other = {
+      tagged: { $actor: 'parent/kid', note: 'data' },
+      pinned: { $actor: 'parent/kid', incarnation: 'x:9' }
+    };
+
+    const restored = createActor(parent, { snapshot: persisted });
+    const { context, children } = restored.getSnapshot();
+
+    expect(context.ref).toBe(children.kid);
+    expect(context.other).toEqual({
+      tagged: { $actor: 'parent/kid', note: 'data' },
+      pinned: { $actor: 'parent/kid', incarnation: 'x:9' }
+    });
+  });
 });
 
 describe('#4873 system.get after restore', () => {
