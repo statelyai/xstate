@@ -1201,6 +1201,9 @@ export function resolveActionsWithContext(
         ...actionRecord.args.slice(2)
       ];
     }
+    // A ref that went through JSON stays address-backed through effects and
+    // timers: delivery resolves it to whichever actor is live at the address
+    // then, routes it through a host runtime, or reports a dead letter.
 
     const resolvedAction = isInline
       ? action

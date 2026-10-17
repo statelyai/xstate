@@ -9,6 +9,7 @@ import { listenerLogic } from './actors/listener.ts';
 import { subscriptionLogic } from './actors/subscription.ts';
 import { matchesEventDescriptor } from './utils.ts';
 import { IndexedHeap } from './IndexedHeap.ts';
+import { isSerializedActorRef } from './remoteActorRef.ts';
 import type {
   AnyActor,
   AnyActorLogic,
@@ -556,6 +557,12 @@ class SystemReduction {
             delete this.snapshot.registry[key];
         }
       },
+      _getByAddress: (address: string) => {
+        const actor = this.snapshot.actors[address];
+        return actor?.snapshot.status === 'active'
+          ? this.handle({ $actor: address, incarnation: actor.incarnation })
+          : undefined;
+      },
       get: (key: string) =>
         this.snapshot.registry[key] && this.handle(this.snapshot.registry[key]),
       getAll: () =>
@@ -766,6 +773,24 @@ class SystemReduction {
             const timer = this.current(ref)?.snapshot.timers?.[value.id];
             if (!timer) break;
             this.schedule(ref, value.id, value.delay);
+          } else if (isSerializedActorRef(value.target)) {
+            // A ref that went through JSON targets the current incarnation
+            // at its address; without one the event is a dead letter.
+            const target = this.snapshot.actors[value.target.address];
+            if (target?.snapshot.status === 'active')
+              this.enqueue(
+                ref,
+                { $actor: target.address, incarnation: target.incarnation },
+                value.event
+              );
+            else
+              this.external(ref, {
+                kind: 'builtin',
+                type: '@xstate.deadLetter',
+                event: value.event,
+                reason: 'missingTarget',
+                args: []
+              } as unknown as ExecutableEffect);
           } else if (value.target)
             this.enqueue(ref, this.reference(value.target), value.event);
           break;

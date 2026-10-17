@@ -8,9 +8,16 @@ import {
   setup,
   transition,
   type AnyActor,
+  type AnyActorRef,
   createAsyncLogic,
   waitFor,
-  SimulatedClock
+  SimulatedClock,
+  createSystem,
+  initialSystemTransition,
+  systemTransition,
+  types,
+  type EventRejection,
+  type SerializedActorRef
 } from '../src';
 import { createDurable } from '../src/durable/index.ts';
 
@@ -1577,6 +1584,368 @@ describe('timer startedAt survives a restore that never starts', () => {
       vi.advanceTimersByTime(1);
       expect(resumed.getSnapshot().value).toBe('fired');
       resumed.stop();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe('serialized actor refs as send targets', () => {
+  type ReplyTo = SerializedActorRef | AnyActorRef;
+
+  function createServer(delay?: number) {
+    return createMachine({
+      id: 'server',
+      schemas: {
+        events: { PING: types<{ replyTo: ReplyTo; requestId: string }>() }
+      },
+      on: {
+        PING: ({ event }, enq) => {
+          enq.sendTo(
+            event.replyTo,
+            { type: 'PONG', requestId: event.requestId },
+            { delay }
+          );
+        }
+      }
+    });
+  }
+
+  function createClient(server: ReturnType<typeof createServer>) {
+    return setup({
+      actors: { server },
+      schemas: {
+        events: {
+          GO: types<{}>(),
+          FORWARD: types<{ replyTo: ReplyTo; requestId: string }>(),
+          PONG: types<{ requestId: string }>()
+        }
+      }
+    }).createMachine({
+      id: 'client',
+      context: { got: null as string | null },
+      invoke: { id: 'server', src: 'server' },
+      on: {
+        GO: ({ self, children }, enq) => {
+          const replyTo: SerializedActorRef = JSON.parse(JSON.stringify(self));
+          enq.sendTo(children.server, {
+            type: 'PING',
+            replyTo,
+            requestId: 'r1'
+          });
+        },
+        FORWARD: ({ event, children }, enq) => {
+          enq.sendTo(children.server, {
+            type: 'PING',
+            replyTo: event.replyTo,
+            requestId: event.requestId
+          });
+        },
+        PONG: ({ event }) => ({ context: { got: event.requestId } })
+      }
+    });
+  }
+
+  const server = createServer();
+  const client = createClient(server);
+
+  it('delivers to the live actor at the serialized address', () => {
+    const rejections: EventRejection[] = [];
+    const actor = createActor(client, {
+      onRejectedEvent: (rejection) => rejections.push(rejection)
+    }).start();
+
+    actor.send({ type: 'GO' });
+
+    expect(actor.getSnapshot().context.got).toBe('r1');
+    expect(rejections).toEqual([]);
+  });
+
+  it('reports a dead letter when the actor at the address has stopped', () => {
+    const rejections: EventRejection[] = [];
+    const system = createSystem();
+    system.onRejectedEvent((rejection) => rejections.push(rejection));
+    const actor = system.createActor(client).start();
+    const worker = system.createActor(workerMachine).start();
+    const replyTo: SerializedActorRef = JSON.parse(JSON.stringify(worker));
+    worker.stop();
+
+    expect(() =>
+      actor.send({ type: 'FORWARD', replyTo, requestId: 'r1' })
+    ).not.toThrow();
+
+    expect(actor.getSnapshot().context.got).toBe(null);
+    expect(rejections).toHaveLength(1);
+    expect(rejections[0]).toMatchObject({
+      reason: 'missingTarget',
+      targetRef: undefined,
+      targetId: 'worker',
+      event: { type: 'PONG', requestId: 'r1' }
+    });
+    expect(rejections[0].sourceRef).toBe(actor.getSnapshot().children.server);
+  });
+
+  it('reports a dead letter when no actor ever had the address', () => {
+    const rejections: EventRejection[] = [];
+    const actor = createActor(client, {
+      onRejectedEvent: (rejection) => rejections.push(rejection)
+    }).start();
+    const replyTo: SerializedActorRef = {
+      xstate$type: 'actorRef',
+      id: 'ghost',
+      address: 'client/ghost'
+    };
+
+    expect(() =>
+      actor.send({ type: 'FORWARD', replyTo, requestId: 'r1' })
+    ).not.toThrow();
+
+    expect(actor.getSnapshot().context.got).toBe(null);
+    expect(rejections).toHaveLength(1);
+    expect(rejections[0]).toMatchObject({
+      reason: 'missingTarget',
+      targetId: 'ghost',
+      event: { type: 'PONG' }
+    });
+  });
+
+  it('leaves sends to live refs unchanged', () => {
+    const rejections: EventRejection[] = [];
+    const actor = createActor(client, {
+      onRejectedEvent: (rejection) => rejections.push(rejection)
+    }).start();
+
+    actor.send({ type: 'FORWARD', replyTo: actor, requestId: 'live' });
+
+    expect(actor.getSnapshot().context.got).toBe('live');
+    expect(rejections).toEqual([]);
+  });
+
+  it('routes a ref serialized before persistence to the restored actor', () => {
+    const actor = createActor(client).start();
+    const replyTo: SerializedActorRef = JSON.parse(JSON.stringify(actor));
+    const persisted = actor.getPersistedSnapshot();
+    actor.stop();
+
+    const rejections: EventRejection[] = [];
+    const restored = createActor(client, {
+      snapshot: persisted,
+      onRejectedEvent: (rejection) => rejections.push(rejection)
+    }).start();
+    expect(restored.sessionId).not.toBe(actor.sessionId);
+
+    restored.send({ type: 'FORWARD', replyTo, requestId: 'r2' });
+
+    expect(restored.getSnapshot().context.got).toBe('r2');
+    expect(rejections).toEqual([]);
+  });
+
+  it('resolves a serialized ref when a delayed send fires', () => {
+    vi.useFakeTimers();
+    try {
+      const actor = createActor(createClient(createServer(10))).start();
+      actor.send({ type: 'GO' });
+      expect(actor.getSnapshot().context.got).toBe(null);
+      vi.advanceTimersByTime(10);
+      expect(actor.getSnapshot().context.got).toBe('r1');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('serializes to the address in effect descriptors', () => {
+    const [, effects] = transition(server, initialTransition(server)[0], {
+      type: 'PING',
+      replyTo: {
+        xstate$type: 'actorRef',
+        id: 'elsewhere',
+        address: 'other/elsewhere'
+      },
+      requestId: 'd1'
+    });
+    expect(
+      effects.map(getEffectDescriptor).find((d) => d.type === '@xstate.sendTo')
+    ).toMatchObject({ target: 'other/elsewhere' });
+  });
+
+  it('routes and dead-letters by address in pure system transitions', () => {
+    const logic = { root: client };
+    const [snapshot] = initialSystemTransition(logic);
+    const [next] = systemTransition(logic, snapshot, 'client', {
+      type: 'FORWARD',
+      replyTo: { xstate$type: 'actorRef', id: 'client', address: 'client' },
+      requestId: 'p1'
+    });
+    expect(next.actors.client.snapshot.context.got).toBe('p1');
+
+    const [, effects] = systemTransition(logic, snapshot, 'client', {
+      type: 'FORWARD',
+      replyTo: { xstate$type: 'actorRef', id: 'ghost', address: 'ghost' },
+      requestId: 'p2'
+    });
+    expect(effects).toContainEqual(
+      expect.objectContaining({
+        kind: 'deadLetter',
+        source: expect.objectContaining({ $actor: 'client/server' }),
+        reason: 'missingTarget',
+        event: { type: 'PONG', requestId: 'p2' }
+      })
+    );
+  });
+
+  it('keeps a serialized ref held in context across persistence', () => {
+    const holder = setup({
+      actors: { server },
+      schemas: {
+        events: {
+          HOLD: types<{ replyTo: SerializedActorRef }>(),
+          ASK: types<{}>()
+        }
+      }
+    }).createMachine({
+      id: 'holder',
+      context: { replyTo: null as SerializedActorRef | null },
+      invoke: { id: 'server', src: 'server' },
+      on: {
+        HOLD: ({ event }) => ({ context: { replyTo: event.replyTo } }),
+        ASK: ({ context, children }, enq) => {
+          enq.sendTo(children.server, {
+            type: 'PING',
+            replyTo: context.replyTo!,
+            requestId: 'held'
+          });
+        }
+      }
+    });
+    const system = createSystem();
+    const requester = system.createActor(client).start();
+    const actor = system.createActor(holder).start();
+    actor.send({
+      type: 'HOLD',
+      replyTo: JSON.parse(JSON.stringify(requester))
+    });
+    const persisted = JSON.parse(JSON.stringify(actor.getPersistedSnapshot()));
+    actor.stop();
+
+    const restored = system
+      .createActor(holder, { snapshot: persisted })
+      .start();
+    restored.send({ type: 'ASK' });
+
+    expect(requester.getSnapshot().context.got).toBe('held');
+  });
+
+  it('keeps a live non-child ref held in context across persistence', () => {
+    const holder = setup({
+      actors: { server },
+      schemas: {
+        events: {
+          HOLD: types<{ replyTo: AnyActorRef }>(),
+          ASK: types<{}>()
+        }
+      }
+    }).createMachine({
+      id: 'holder',
+      context: { replyTo: null as ReplyTo | null },
+      invoke: { id: 'server', src: 'server' },
+      on: {
+        HOLD: ({ event }) => ({ context: { replyTo: event.replyTo } }),
+        ASK: ({ context, children }, enq) => {
+          enq.sendTo(children.server, {
+            type: 'PING',
+            replyTo: context.replyTo!,
+            requestId: 'live'
+          });
+        }
+      }
+    });
+    const system = createSystem();
+    const requester = system.createActor(client).start();
+    const actor = system.createActor(holder).start();
+    actor.send({ type: 'HOLD', replyTo: requester });
+    const persisted = JSON.parse(JSON.stringify(actor.getPersistedSnapshot()));
+    actor.stop();
+
+    const restored = system
+      .createActor(holder, { snapshot: persisted })
+      .start();
+    restored.send({ type: 'ASK' });
+
+    expect(requester.getSnapshot().context.got).toBe('live');
+  });
+});
+
+describe('delayed sends to serialized actor refs', () => {
+  const requesterMachine = setup({
+    schemas: { events: { PONG: types<{ requestId: string }>() } }
+  }).createMachine({
+    id: 'requester',
+    context: { got: null as string | null },
+    on: { PONG: ({ event }) => ({ context: { got: event.requestId } }) }
+  });
+  const delayedServer = createMachine({
+    id: 'server',
+    schemas: {
+      events: {
+        PING: types<{ replyTo: SerializedActorRef; requestId: string }>()
+      }
+    },
+    on: {
+      PING: ({ event }, enq) => {
+        enq.sendTo(
+          event.replyTo,
+          { type: 'PONG', requestId: event.requestId },
+          { delay: 100 }
+        );
+      }
+    }
+  });
+
+  it('persists a delayed send to a non-child serialized ref and delivers it after restore', () => {
+    vi.useFakeTimers();
+    try {
+      const system = createSystem();
+      const requester = system.createActor(requesterMachine).start();
+      const replyTo: SerializedActorRef = JSON.parse(JSON.stringify(requester));
+      const server = system.createActor(delayedServer).start();
+      server.send({ type: 'PING', replyTo, requestId: 'r1' });
+
+      const persisted = JSON.parse(
+        JSON.stringify(server.getPersistedSnapshot())
+      );
+      expect(Object.values(persisted.timers)).toMatchObject([
+        { target: replyTo }
+      ]);
+      server.stop();
+
+      system.createActor(delayedServer, { snapshot: persisted }).start();
+      vi.advanceTimersByTime(100);
+      expect(requester.getSnapshot().context.got).toBe('r1');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('delivers to the actor live at the address when the send fires', () => {
+    vi.useFakeTimers();
+    try {
+      const rejections: EventRejection[] = [];
+      const system = createSystem();
+      system.onRejectedEvent((rejection) => rejections.push(rejection));
+      const original = system.createActor(requesterMachine).start();
+      const replyTo: SerializedActorRef = JSON.parse(JSON.stringify(original));
+      const server = system.createActor(delayedServer).start();
+      server.send({ type: 'PING', replyTo, requestId: 'r1' });
+
+      original.stop();
+      const replacement = system
+        .createActor(requesterMachine, { id: original.id })
+        .start();
+      expect(replacement.address).toBe(original.address);
+
+      vi.advanceTimersByTime(100);
+      expect(replacement.getSnapshot().context.got).toBe('r1');
+      expect(rejections).toEqual([]);
     } finally {
       vi.useRealTimers();
     }

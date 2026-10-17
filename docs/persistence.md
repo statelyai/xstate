@@ -83,6 +83,27 @@ In development builds, `getPersistedSnapshot()` warns once per call with the pat
 
 Actor refs in `context` persist as `{ xstate$type: 'actorRef', id }` and are not reported.
 
+### Serialized actor refs
+
+An actor ref serializes with `JSON.stringify` as `{ xstate$type: 'actorRef', id, address, src }` (the `SerializedActorRef` type). This shape appears when a ref travels in an event payload, such as a `replyTo` field, and the event is persisted or crosses a process boundary. A serialized ref in `context` keeps its address across persistence and restore.
+
+A serialized ref is a valid `enq.sendTo(...)` target. The event is delivered to the live actor at the ref's `address`, including an actor restored after the ref was serialized. If no live actor has that address, the event becomes a dead letter with reason `'missingTarget'`.
+
+```ts
+const server = createMachine({
+  schemas: {
+    events: {
+      ping: types<{ replyTo: SerializedActorRef; requestId: string }>()
+    }
+  },
+  on: {
+    ping: ({ event }, enq) => {
+      enq.sendTo(event.replyTo, { type: 'pong', requestId: event.requestId });
+    }
+  }
+});
+```
+
 ### In-flight children
 
 A restored child with work in flight restarts: an async logic child runs `run` again, and a callback logic child runs its callback again. Record each external call with [`enq.step()`](actor-logic.md) so a restored actor reuses completed outcomes instead of repeating them.

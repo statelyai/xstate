@@ -9,7 +9,10 @@ import {
 } from './eventUtils.ts';
 import { XSTATE_TIMER } from './constants.ts';
 import { parseGeneratedActorId } from './system.ts';
-import { createRemoteActorRef } from './remoteActorRef.ts';
+import {
+  createRemoteActorRef,
+  isSerializedActorRef
+} from './remoteActorRef.ts';
 
 import { createSpawner } from './spawn.ts';
 import {
@@ -1794,10 +1797,14 @@ export class StateMachine<
           ? timer.target === 'self'
             ? 'self'
             : children[timer.target]
-          : resolvedActorScope.self._parent;
+          : isSerializedActorRef(timer.target)
+            ? (timer.target as unknown as AnyActor)
+            : resolvedActorScope.self._parent;
       if (!target) {
         const targetDescription =
-          typeof timer.target === 'string' ? timer.target : timer.target.type;
+          typeof timer.target === 'string'
+            ? timer.target
+            : (timer.target as { type: string }).type;
         throw new Error(
           `Unable to restore timer '${id}': target actor '${targetDescription}' is unavailable.`
         );
@@ -1927,7 +1934,14 @@ export class StateMachine<
       }
       // The context object itself is data, never a serialized actor ref.
       if (!isRoot && value.xstate$type === ACTOR_REF_TYPE) {
-        return children[value.id];
+        // A ref persisted from a live child carries only its id. One that
+        // was already serialized data (e.g. a `replyTo` from an event) keeps
+        // its address unless it names this child, so it still routes.
+        const child = children[value.id];
+        return typeof value.address === 'string' &&
+          child?.address !== value.address
+          ? value
+          : child;
       }
       const proto = Object.getPrototypeOf(value);
       if (

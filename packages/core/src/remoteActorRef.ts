@@ -3,6 +3,7 @@ import type { AnyActorSystem } from './system.ts';
 import type {
   AnyActor,
   AnyEventObject,
+  SerializedActorRef,
   Snapshot,
   Subscription
 } from './types.ts';
@@ -15,6 +16,29 @@ const restoreHint =
 /** @internal */
 export function isRemoteActorRef(actorRef: AnyActor): boolean {
   return (actorRef as { _remote?: boolean })._remote === true;
+}
+
+/**
+ * @internal Whether a send target is an actor reference that went through
+ * JSON (`actor.toJSON()`): plain data carrying an address, not an actor.
+ */
+export function isSerializedActorRef(
+  target: unknown
+): target is SerializedActorRef {
+  return (
+    typeof target === 'object' &&
+    target !== null &&
+    (target as SerializedActorRef).xstate$type === ACTOR_REF_TYPE &&
+    typeof (target as SerializedActorRef).address === 'string' &&
+    typeof (target as { send?: unknown }).send !== 'function'
+  );
+}
+
+/** @internal The error reported when no live actor has a serialized address. */
+export function createMissingAddressError(target: SerializedActorRef): Error {
+  return new Error(
+    `Unable to send event to actor '${target.address}': no live actor has that address`
+  );
 }
 
 /**

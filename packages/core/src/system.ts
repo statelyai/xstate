@@ -19,6 +19,10 @@ import { reportUnhandledError } from './reportUnhandledError.ts';
 import { getAmbientInspector } from './inspectionAmbient.ts';
 import { markSystemSnapshotDirty } from './snapshotActorRef.ts';
 import {
+  createMissingAddressError,
+  isSerializedActorRef
+} from './remoteActorRef.ts';
+import {
   rejectUndeliverableEvent,
   deliverEvent,
   stopActor as stopActorLocally,
@@ -464,6 +468,11 @@ export interface ActorSystem<
   _peekKeyedActors?: () =>
     | Map<keyof T['actors'], AnyActor | undefined>
     | undefined;
+  /**
+   * @internal Returns the live actor at a logical address, if any. Resolves
+   * serialized actor refs used as send targets.
+   */
+  _getByAddress?: (address: string) => AnyActor | undefined;
   /** @internal */
   _register: (sessionId: string, actor: AnyActor) => string;
   /** @internal */
@@ -760,6 +769,19 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
     return sessionId;
   }
 
+  public _getByAddress(address: string): AnyActor | undefined {
+    const root = this._getRootActor();
+    if (root?.address === address) {
+      return root;
+    }
+    for (const actor of this._children?.values() ?? []) {
+      if (actor.address === address && actor._isRunning()) {
+        return actor;
+      }
+    }
+    return undefined;
+  }
+
   public _unregister(actor: AnyActor): void {
     let changed: boolean;
     // Remote handles have no sessionId and are never in the session map;
@@ -908,6 +930,20 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
     target: AnyActor,
     event: AnyEventObject
   ): void | PromiseLike<void> {
+    if (isSerializedActorRef(target)) {
+      // A ref that went through JSON resolves by address to the live actor.
+      // A host runtime may own actors this system cannot see, so an
+      // unresolved address is its to route; locally it is a dead letter.
+      const live = this._getByAddress(target.address);
+      if (live) {
+        target = live;
+      } else if (!this.runtime?.sendEvent) {
+        return this.deadLetter(source, undefined, event, 'missingTarget', {
+          targetId: target.id,
+          error: createMissingAddressError(target)
+        });
+      }
+    }
     if (rejectUndeliverableEvent(source, target, event)) {
       return;
     }
