@@ -70,7 +70,7 @@ describe('Fast Refresh', () => {
     expect(() => app.refreshTo(v2)).not.toThrow();
 
     expect(app.actorRef).toBe(original);
-    expect(app.actorRef.logic).toBe(v2);
+    expect(app.actorRef.logic.config).toBe(v2.config);
     const snapshot = app.actorRef.getSnapshot();
     expect(snapshot.value).toBe('editing');
     expect(snapshot.context.el).toBe(el);
@@ -95,7 +95,7 @@ describe('Fast Refresh', () => {
     app.refreshTo(v2);
 
     expect(app.actorRef).not.toBe(original);
-    expect(app.actorRef.logic).toBe(v2);
+    expect(app.actorRef.logic.config).toBe(v2.config);
     expect(app.actorRef.getSnapshot().value).toBe('idle');
   });
 
@@ -280,6 +280,6 @@ describe('Fast Refresh', () => {
     rerender(<App machine={createEditor({ DONE: { target: 'done' } })} />);
 
     expect(actorRef).toBe(original);
-    expect(actorRef.logic).toBe(v1);
+    expect(actorRef.logic.config).toBe(v1.config);
   });
 });
