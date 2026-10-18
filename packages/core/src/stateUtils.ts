@@ -824,9 +824,6 @@ function getInitialStateNodes(stateNode: AnyStateNode) {
 
 /** Returns the child state node from its relative `stateKey`, or throws. */
 function getStateNode(stateNode: AnyStateNode, stateKey: string): AnyStateNode {
-  if (isStateId(stateKey)) {
-    return stateNode.machine.getStateNodeById(stateKey);
-  }
   const result = stateNode.states?.[stateKey];
   if (!result) {
     throw new Error(
@@ -843,17 +840,13 @@ function getStateNode(stateNode: AnyStateNode, stateKey: string): AnyStateNode {
  *
  * @param statePath The string or string array relative path to the state node.
  */
-export function getStateNodeByPath(
+function getStateNodeByPath(
   stateNode: AnyStateNode,
   statePath: string | string[]
 ): AnyStateNode {
+  // `#id` is an exact id lookup, never an id followed by a path.
   if (typeof statePath === 'string' && isStateId(statePath)) {
-    try {
-      return stateNode.machine.getStateNodeById(statePath);
-    } catch {
-      // try individual paths
-      // throw e;
-    }
+    return stateNode.machine.getStateNodeById(statePath);
   }
   const arrayStatePath = toStatePath(statePath).slice();
   let currentStateNode: AnyStateNode = stateNode;

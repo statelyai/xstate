@@ -66,7 +66,7 @@ actor.send({ type: 'xstate.route', to: '#overview' });
 
 In a parallel machine, a route only moves the region that contains the target. Routing to `#filter-active` in a todo machine changes `filter` from `all` to `active` and leaves the `todo` region untouched.
 
-Route targets are always a single `#id`. Dot-separated paths like `#dashboard.overview` are not valid route targets and do nothing.
+Route targets are always a single whole `#id` of a routable state, matched exactly. An id followed by a path, such as `#dashboard.overview` when only `dashboard` has an `id`, does nothing. An explicit id that contains dots is a whole id: a routable state with `id: 'dashboard.overview'` is routed with `to: '#dashboard.overview'`.
 
 Routing to the state the actor is already in re-enters it: exit and entry actions run again. If that state's `route` function blocks, nothing happens.
 

@@ -107,4 +107,62 @@ describe('StateId', () => {
       });
     });
   });
+
+  it('accepts `#` targets only as whole ids', () => {
+    const machine = createMachine({
+      id: 'shop',
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            EXPLICIT: { target: '#flow' },
+            IMPLICIT: { target: '#shop.wizard.step' },
+            DOTTED: { target: '#my.id' }
+          }
+        },
+        wizard: { id: 'flow', initial: 'step', states: { step: {} } },
+        dotted: { id: 'my.id' }
+      }
+    });
+    const snapshot = createActor(machine).getSnapshot();
+
+    snapshot.matches('#flow');
+    snapshot.matches('#shop.wizard.step');
+    snapshot.matches('#my.id');
+    // Type-only: these would throw at runtime.
+    void (() => {
+      // @ts-expect-error an explicit id followed by a path is not an id
+      snapshot.matches('#flow.step');
+      // @ts-expect-error unknown id
+      snapshot.matches('#nope');
+      // @ts-expect-error an explicit id followed by a path is not an id
+      createMachine({
+        id: 'shop',
+        initial: 'idle',
+        states: {
+          idle: { on: { GO: { target: '#flow.step' } } },
+          wizard: { id: 'flow', initial: 'step', states: { step: {} } }
+        }
+      });
+      // @ts-expect-error unknown id
+      createMachine({
+        id: 'shop',
+        initial: 'idle',
+        states: {
+          idle: { on: { GO: { target: '#nope' } } },
+          wizard: { id: 'flow', initial: 'step', states: { step: {} } }
+        }
+      });
+    });
+
+    // `#flow.step` is accepted when it is some state's whole id.
+    createMachine({
+      initial: 'idle',
+      states: {
+        idle: { on: { GO: { target: '#flow.step' } } },
+        wizard: { id: 'flow', initial: 'step', states: { step: {} } },
+        other: { id: 'flow.step' }
+      }
+    });
+  });
 });
