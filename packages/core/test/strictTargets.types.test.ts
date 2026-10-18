@@ -265,9 +265,9 @@ describe('strict authored targets', () => {
   it('resolves bare targets as siblings of source keys containing dots', () => {
     createMachine({
       // Initial values are direct child keys, not state-path expressions.
-      initial: 'foo.bar',
+      initial: 'foo\\.bar',
       states: {
-        'foo.bar': {
+        'foo\\.bar': {
           on: { NEXT: { target: 'done' } }
         },
         done: {}
@@ -282,7 +282,7 @@ describe('strict authored targets', () => {
       initial: 'start',
       states: {
         start: { on: { NEXT: { target: 'foo\\.bar' } } },
-        'foo.bar': {},
+        'foo\\.bar': {},
         foo: { initial: 'bar', states: { bar: {} } }
       }
     });

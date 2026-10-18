@@ -274,8 +274,8 @@ export const userActor = createActor(userMachine);
 const machine = createMachine({
   initial: 'inactive',
   states: {
-    inactive: { on: { toggle: 'active' } },
-    active: { on: { toggle: 'inactive' } }
+    inactive: { on: { toggle: { target: 'active' } } },
+    active: { on: { toggle: { target: 'inactive' } } }
   }
 });
 const actor = createActor(machine).start();

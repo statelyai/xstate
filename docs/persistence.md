@@ -24,7 +24,7 @@ const restored = createActor(machine, {
 
 A restored snapshot is opaque: restoring runs no transitions and re-executes no actions. `always` transitions and choice states in the restored configuration are not re-evaluated until the next event, even if their guards would now pass. Development builds warn when the restored state has eventless transitions.
 
-Restoring a terminal snapshot keeps it terminal. A snapshot with `status: 'done'`, `'error'` or `'stopped'` restores to an actor with that status after `start()`; it runs no transitions and processes no events. For `'error'`, subscribers with an `error` observer receive the persisted error, whether they subscribe before or after `start()`. A snapshot that cannot be restored, such as one whose `value` names a state the machine does not have, produces an actor with an `'error'` snapshot whose `error` describes the failure; `createActor(...)` and `start()` do not throw.
+Restoring a terminal snapshot keeps it terminal. A snapshot with `status: 'done'`, `'error'` or `'stopped'` restores to an actor with that status after `start()`; it runs no transitions and processes no events. For `'error'`, subscribers with an `error` observer receive the persisted error, whether they subscribe before or after `start()`. A snapshot that cannot be restored, such as one that is not an object, has no valid `value`, or whose `value` names a state the machine does not have, produces an actor with an `'error'` snapshot whose `error` describes the failure (an `InvalidSnapshotError` for these structural cases); `createActor(...)` and `start()` do not throw. A `value` that stops at a compound state, such as `{ active: {} }`, is completed with that state's initial descendants, and the restored snapshot's `value` reflects the completed configuration.
 
 Persisted snapshots may include child actor state. Keep the actor logic compatible with snapshots already stored by your application.
 
@@ -60,7 +60,7 @@ An actor's address is the `/`-joined path of actor ids from the root, such as `o
 
 A persisted snapshot is a plain JSON-shaped object. Restoring one is lenient: XState reads the fields it knows and does not check a format marker.
 
-These envelope fields are stable across 6.x releases: `status`, `value`, `context`, `output`, `error`, `historyValue`, `stateInputs`, `children`, `timers` and `machine`. The [persisted snapshot JSON Schema](https://github.com/statelyai/xstate/blob/next/packages/core/src/persistedSnapshot.schema.json) (draft 2020-12) describes them. Nested machine children carry their own envelope in `children[id].snapshot`. Fields prefixed with `_`, such as `_nextActorIds`, are private. They round-trip verbatim; do not read or write them.
+These envelope fields are stable across 6.x releases: `status`, `value`, `context`, `output`, `error`, `historyValue`, `stateInputs`, `children`, `timers` and `machine`. The [persisted snapshot JSON Schema](https://github.com/statelyai/xstate/blob/next/packages/core/src/persistedSnapshot.schema.json) (draft 2020-12) describes them. Nested machine children carry their own envelope in `children[id].snapshot`. A child entry's `src` is the registered source key the child restores from. A child invoked with inline logic has no `src`; it restores through the invoke definition with its id among the restored active states, and restoring fails when no active state, or more than one, invokes that id. Fields prefixed with `_`, such as `_nextActorIds`, are private. They round-trip verbatim; do not read or write them.
 
 `timers` is a list of pending timers in scheduling order. A delayed `enq.raise(...)` or `enq.sendTo(...)` entry carries its `id`, or a `seq` number when scheduled without one. Built-in `after` and `timeout` timers have neither; their `event` (`xstate.after`, `xstate.timeout.state` or `xstate.timeout.actor`) identifies them.
 
@@ -73,7 +73,7 @@ These envelope fields are stable across 6.x releases: `status`, `value`, `contex
 
 Later 6.x releases may add new optional fields to the envelope, to `children` entries and to `timers` entries. Code that reads or validates persisted snapshots must ignore fields it does not recognize. The JSON Schema allows unknown fields on these objects.
 
-Changes to your own machine are handled with `machine.version`: migrate stored snapshots with `migrate` or `machineVersions().migrateSnapshot()`. See [Migrate machine versions](#migrate-machine-versions).
+Changes to your own machine are handled with `machine.version`: migrate stored snapshots with `migrate` or `machineVersions().migrateSnapshot()`. A machine that declares `version` must also declare `id`; persisted snapshots record both as `machine: { id, version }`. See [Migrate machine versions](#migrate-machine-versions).
 
 ### Payload values
 

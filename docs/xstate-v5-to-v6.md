@@ -846,9 +846,11 @@ invoke: {
 
 String IDs work for `invoke.src` and transition spawning when the actor is registered on `createMachine({ actors: { ... } })` directly or supplied via `machine.provide({ actors: { ... } })`. `enq.spawn('worker')` is checked against that actor map and retains exactly that source identity. The context initializer's `spawn` continues to accept actor logic.
 
-Invoked children always persist and rehydrate: inline `invoke.src` logic receives a synthetic source identity resolved back through the machine config. `spawn(actors.worker)` in a context initializer and both `enq.spawn(actors.worker)` and `enq.spawn('worker')` in a transition retain a registered source key and persist. `provide(...)` may replace the implementation under that key. When multiple keys share a logic value, the string form preserves the selected key; the logic form uses the first registered key. Raw inline logic that is not registered has no reconstructable source identity, so `getPersistedSnapshot()` throws while such a spawned child exists.
+Invoked children always persist and rehydrate. A child invoked with a registered name persists that key as `src`. A child invoked with inline logic persists without `src` and restores through the invoke definition with the same id among the restored active states. Two limits apply: a `src` function that returns inline logic (rather than a registered name) cannot be restored and throws a named error on restore, and address-only persistence (`getPersistedSnapshot(snapshot, { embedChildren: false })`) rejects inline invokes because they have no source key to restore by address. `spawn(actors.worker)` in a context initializer and both `enq.spawn(actors.worker)` and `enq.spawn('worker')` in a transition retain a registered source key and persist. `provide(...)` may replace the implementation under that key. When multiple keys share a logic value, the string form preserves the selected key; the logic form uses the first registered key. Raw inline logic that is not registered has no reconstructable source identity, so `getPersistedSnapshot()` throws while such a spawned child exists.
 
 `invoke.src` may also be a **function** resolving to logic or to a registered name: `src: ({ actors, context, event, self }) => actors.fetchUser`.
+
+`invoke` requires `input` when the invoked logic requires input (its input type excludes `undefined`, for example when it declares `schemas.input`), whether `src` is a logic value, a registered name, or a function. This matches `createActor(logic, { input })`, `spawn(logic, { input })` and `enq.spawn(logic, { input })`. v5 required it only for string sources registered through `setup({ actors })`.
 
 An `invoke` may declare its own `timeout` / `onTimeout` (independent of state-level `timeout`): when the timeout elapses before the invoked actor completes, the `onTimeout` transition is taken. Exiting the owning state stops the child; a targetless handler leaves it running unless it calls `enq.stop(...)`.
 
@@ -1060,6 +1062,8 @@ These exports have been **removed** from `xstate`:
 - Deprecated snapshot helpers: `getInitialSnapshot(logic, input?)` and `getNextSnapshot(logic, snapshot, event)`. Use `initialTransition(logic, input?)` and `transition(logic, snapshot, event)`; the snapshot is the first element of the returned tuple.
 - Deprecated type aliases: `NoInfer` (use the built-in `NoInfer`), `AnyInterpreter` (use `AnyActor`), and `ResolvedStateMachineTypes`
 - Internal helpers: `toObserver`, `pathToStateValue`, and the `SpecialTargets` enum
+- Type-level helpers: `TODO`, `IsAny`, `IsNever`, `Equals`, `Cast`, `Compute`, `Prop`, `HomomorphicOmit`, `LowInfer`, `DoNotInfer`, `SingleOrArray`, `MaybeLazy` and `AnyFunction`. Define equivalents in your own code if you used them. `ConditionalRequired`, `IsNotNever` and `NonReducibleUnknown` stay exported for emitted declarations and are marked experimental.
+- The undocumented `parent` actor option. Child actors are created through `invoke`, `spawn` and `enq.spawn`.
 - `xstate/graph`: `getStateNodes(stateNode)` (all descendant state nodes) is renamed to `getDescendantStateNodes(stateNode)`. The root `getStateNodes(stateNode, stateValue)` export from `xstate` is unchanged.
 - `xstate/graph`: `createTestModel`, `TestModel`, and the types used only by them (`TestModelOptions`, `TestParam`, `TestPath`, `TestPathResult`, `TestStepResult`, `TestMeta`, `EventExecutor`), plus `createShortestPathsGen` and `createSimplePathsGen`. `xstate/graph` now only generates paths. Use `testPaths()` from `@xstate/test` to run them; see [Model-based testing](model-based-testing.md).
 - The `xstate/scxml` entry point. `createMachineFromSCXML` moved to the separate `@xstate/scxml` package (`npm i @xstate/scxml`).
@@ -1092,8 +1096,13 @@ See [compact finite state machines](fsm.md) for its exact supported surface.
 ### Renamed members and identifiers
 
 - `machine.implementations` is now `machine.sources`, and the `MachineImplementationsFrom` type is now `MachineSourcesFrom`.
+- `ActorRefFromLogic<T>` is now `ActorRefFrom<T>`. `ActorRefFrom<T>` accepts actor logic only: `ActorRefFrom<Promise<T>>`, `ActorRefFrom<typeof actorRef>`, and `ActorRefFrom<() => logic>` no longer type-check. Pass the logic type, for example `ActorRefFrom<typeof machine>` or `ActorRefFrom<typeof asyncLogic>`. `ref.getSnapshot()` returns the fully typed snapshot, so `context`, `value` and `matches('#id')` are checked.
 - The executable action types are now executable effect types: `ExecutableActionObject` is `ExecutableEffect`, `ExecutableActionsFrom` is `ExecutableEffectFrom`, `SpecialExecutableAction` is `SpecialExecutableEffect`, `ExecutableSpawnAction` is `SpawnExecutableEffect`, and `ToExecutableAction` is `ToExecutableEffect`. The new v6 types and helpers use the same naming, for example `BuiltInExecutableEffect` and `isBuiltInExecutableEffect`.
 - `snapshot._nodes` is now `snapshot.nodes`. It lists the active state nodes.
+- Implicit state ids no longer use the `(machine)` placeholder. A state's implicit id is its path from the root joined by `.`, prefixed by the machine `id` when the machine has one: `shop.checkout` for `id: 'shop'`, and `checkout` without an id (v5: `(machine).checkout`). `machine.id` and the root's id are `''` for a machine without an `id`, so `#` cannot reference that root; give the machine an `id` to target it. An explicit state `id` that equals another state's id throws.
+- Bare string transition values (`on: { GO: 'next' }`, `after: { 1000: 'idle' }`, `always: 'ready'`, `onDone: 'done'`) throw when the machine is created: `Transition for "GO" in state "idle" is the string "next". Use { target: 'next' }.` Write `{ target: 'next' }`; the `string-targets` codemod transform rewrites them. `initial` keeps its string form, and `xstate/fsm` still accepts string targets.
+- State keys cannot contain an unescaped `.`. v5 accepted a key like `'foo.bar'` and targeted it as `'foo\\.bar'`; in v6, write the key itself escaped (`'foo\\.bar': {}`). The state value, implicit id (`foo\\.bar`) and persisted snapshots use that escaped key.
+- Implicit invoke ids are `<stateId>:<index>`, such as `checkout:0` or `shop.checkout:1` (v5: `0.(machine).checkout`). An invoke on the root is `:0`, or `shop:0` with a machine id. These ids key `snapshot.children`, completion events (`event.actorId`) and persisted children.
 - The `systemId` option is now `registryKey`, in `createActor(logic, { registryKey })`, `invoke: { registryKey }`, and `enq.spawn(logic, { registryKey })`. `actorRef.systemId` is now `actorRef.registryKey`. `system.get(registryKey)` looks the actor up (see §24). `systemId` is not accepted as an option.
 - The `spawn` function passed to a `context` factory accepts actor logic only. Replace `spawn('worker')` with `spawn(actors.worker)`, using the `actors` argument of the same factory.
 - The `createMachine` types do not accept transition arrays in `on` or `always`. Select among targets in one transition function (see §15). JSON configs passed to `machineFromJSON(...)` still accept transition arrays.
@@ -1216,20 +1225,21 @@ Actor refs in persisted `context` are stored as `{ "$actor": "<address>" }`. v5 
 
 ### Snapshot versioning
 
-A machine may declare an `id` and `version`. When set, they are stamped onto every
-persisted snapshot as `machine: { id, version }` (and survive `JSON.stringify`), so
+A machine may declare a `version`, which requires an `id`: `createMachine({ version: '1' })` is a type error and throws `Machine with version '1' must declare an id.` A versioned machine stamps every
+persisted snapshot with `machine: { id, version }` (which survives `JSON.stringify`), so
 a rollout can detect and migrate older snapshots instead of feeding them to an
 incompatible machine. Persisted snapshots have no top-level `version` field:
 
 ```ts
 const machine = createMachine({
+  id: 'order',
   version: '1',
   initial: 'a',
   states: { a: {} }
 });
 
 const persisted = actor.getPersistedSnapshot();
-(persisted as any).machine; // { id: '(machine)', version: '1' }
+(persisted as any).machine; // { id: 'order', version: '1' }
 (persisted as any).version; // undefined
 ```
 
@@ -1606,6 +1616,7 @@ Code written against a v6 alpha uses names that changed before the beta. The old
 | v6 alpha                                                     | v6 beta                                                  |
 | ------------------------------------------------------------ | -------------------------------------------------------- |
 | `@xstate.init` event                                         | `xstate.init`                                            |
+| `(machine).x` implicit state ids, `0.(machine).x` invoke ids | `x` (or `<machineId>.x`), `x:0`; see [Renamed members](#renamed-members-and-identifiers) |
 | `@xstate.stop` event                                         | `xstate.stop` (the stop-child effect stays `@xstate.stop`) |
 | `xstate.timeout` event                                       | `xstate.timeout.state`                                   |
 | `xstate.system.cancelEffect`, `xstate.logic.cleanup` effects | `@xstate.cancelEffect`, `@xstate.cleanup`                |

@@ -27,8 +27,10 @@ describe('createActor()', () => {
     const explicitlyNamed = createActor(logic, {
       id: 'x:1',
       parent: root
-    });
-    const automaticallyNamed = createActor(logic, { parent: root });
+    } as {});
+    const automaticallyNamed = createActor(logic, {
+      parent: root
+    } as {});
 
     expect(explicitlyNamed.id).toBe('x:1');
     expect(automaticallyNamed.id).toBe('x:2');

@@ -33,7 +33,7 @@ describe('logical snapshot timers', () => {
     expect(timer).toEqual({
       delay: 100,
       type: '@xstate.raise',
-      event: { type: 'xstate.after', delay: 100, stateId: '(machine).red' },
+      event: { type: 'xstate.after', delay: 100, stateId: 'red' },
       target: 'self'
     });
     expect(schedule.event).toEqual(timer.event);
@@ -69,7 +69,7 @@ describe('logical snapshot timers', () => {
         event: {
           type: 'xstate.after',
           delay: 100,
-          stateId: '(machine).waiting'
+          stateId: 'waiting'
         }
       },
       delay: 100,
@@ -92,7 +92,7 @@ describe('logical snapshot timers', () => {
     const event = {
       type: 'xstate.after',
       delay: 100,
-      stateId: '(machine).red'
+      stateId: 'red'
     };
 
     const [timerConsumed, effects] = transition(machine, red, {

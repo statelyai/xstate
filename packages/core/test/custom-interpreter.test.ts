@@ -695,7 +695,7 @@ describe('custom interpreter runtime', () => {
     expect(operations.map(({ type }) => type)).toEqual(['schedule', 'cancel']);
     // A built-in timer has no id; its event identifies it.
     expect(operations[0].timer).toEqual({
-      event: { type: 'xstate.after', stateId: '(machine).waiting', delay: 1000 }
+      event: { type: 'xstate.after', stateId: 'waiting', delay: 1000 }
     });
     expect(operations[1].timer).toEqual(operations[0].timer);
   });

@@ -313,6 +313,7 @@ describe('invoke', () => {
         waiting: {
           invoke: {
             src: childMachine,
+            input: { userId: 'user-1' },
             onDone: { target: 'received' }
           }
         },
@@ -3351,7 +3352,7 @@ describe('invoke', () => {
               // invoke ID should not be 'someSrc'
               expect(event).toMatchObject({
                 type: 'xstate.done.actor',
-                actorId: '0.(machine).a'
+                actorId: 'a:0'
               });
               return { target: 'b' };
             }
@@ -3411,7 +3412,7 @@ describe('invoke', () => {
       );
 
       expect(
-        createActor(machine).getSnapshot().children['0.machine.a']
+        createActor(machine).getSnapshot().children['machine.a:0']
       ).toBeDefined();
     }
   );
@@ -3530,13 +3531,13 @@ describe('invoke', () => {
         {
           type: 'xstate.done.actor',
           output: undefined,
-          actorId: '0.(machine).first.fetch',
+          actorId: 'first.fetch:0',
           sessionId: expect.any(String)
         },
         {
           type: 'xstate.done.actor',
           output: undefined,
-          actorId: '0.(machine).second.fetch',
+          actorId: 'second.fetch:0',
           sessionId: expect.any(String)
         }
       ]);

@@ -40,8 +40,6 @@ export {
   type LinearizabilityResult,
   type ParallelPropertyCommandsOptions,
   type ParallelPropertyCommandsResult,
-  type PropertyExecutionConfig,
-  type PropertyTargetObservation,
   type ReplayTestSuiteOptions,
   type TestActorOutcome,
   type TestAdapter,

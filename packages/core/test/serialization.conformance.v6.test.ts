@@ -44,6 +44,7 @@ function findCodeExpressions(json: unknown, path = '$'): string[] {
 describe('serializability conformance', () => {
   it('a fully-serializable definition round-trips losslessly', () => {
     const definition = {
+      id: 'machine',
       initial: 'idle',
       version: '1.0.0',
       context: { retries: 0 },

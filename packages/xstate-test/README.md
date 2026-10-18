@@ -506,6 +506,21 @@ await propertyTest(counterMachine, {
 });
 ```
 
+The Effect Schema conversion generates the schema's type (decoded) side. It
+supports literals, enums, unions, primitives, arrays, tuples (with optional and
+rest elements), structs (with optional properties), records with string keys,
+and refinements such as `isInt`, `isBetween`, `isMinLength`, and `isPattern`.
+Every check also filters the generated values. Other AST nodes, such as
+`Schema.Date` or recursive schemas, throw an error naming the node. Pass
+`override` to supply an arbitrary for them:
+
+```ts
+fromEffectSchema(Schema.Struct({ at: Schema.Date }), {
+  override: (ast) =>
+    ast._tag === 'Declaration' ? fc.date({ noInvalidDate: true }) : undefined
+});
+```
+
 Schemas that expose no structure cannot be derived from. That includes other
 Standard Schema libraries and type-only `types<...>()` declarations. Implicit
 derivation skips `types<...>()` declarations. For other schemas, configure the

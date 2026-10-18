@@ -9,17 +9,15 @@ import {
   AnyStateMachine,
   EventObject,
   AnyEventObject,
-  Cast,
   MachineContext,
   ProvidedActor,
   StateValueFromStateSchema,
   ToChildren,
   MetaObject,
   StateSchema,
-  DoNotInfer,
-  RoutableStateId,
-  Compute
+  RoutableStateId
 } from './types.ts';
+import type { Cast, DoNotInfer, Compute } from './typeUtils.ts';
 import {
   ChildCompletionEvents,
   Sources,
@@ -35,6 +33,8 @@ import {
   ValidateDelayReferences,
   ValidateEventDescriptors,
   ValidateHistoryDefaults,
+  ValidateInvokeInputs,
+  ValidateVersionedMachineId,
   ValidateStateTargets,
   ValidateTopLevelFinalOutputs,
   WidenLiterals,
@@ -49,9 +49,7 @@ type MergeChildren<
   : Compute<TChildren>;
 
 type MachineIdentity<TConfig> = {
-  readonly id: TConfig extends { id: infer TId extends string }
-    ? TId
-    : '(machine)';
+  readonly id: TConfig extends { id: infer TId extends string } ? TId : '';
   readonly version: TConfig extends { version: infer TVersion extends string }
     ? TVersion
     : undefined;
@@ -146,6 +144,8 @@ export function createMachine<
   config: TSS &
     ValidateDelayReferences<TSS> &
     ValidateHistoryDefaults<TSS> &
+    ValidateInvokeInputs<TSS> &
+    ValidateVersionedMachineId<TSS> &
     ValidateStateTargets<TSS> &
     ValidateEventDescriptors<
       TSS,
@@ -263,6 +263,8 @@ export function createMachine<
   config: TSS &
     ValidateDelayReferences<TSS> &
     ValidateHistoryDefaults<TSS> &
+    ValidateInvokeInputs<TSS> &
+    ValidateVersionedMachineId<TSS> &
     ValidateStateTargets<TSS> &
     ValidateEventDescriptors<
       TSS,

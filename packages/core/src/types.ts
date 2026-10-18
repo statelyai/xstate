@@ -6,7 +6,6 @@ import type {
 } from './State.ts';
 import type { StateMachine } from './StateMachine.ts';
 import type { StateNode } from './StateNode.ts';
-import { AsyncActorLogic } from './actors/promise.ts';
 import type { Actor, ProcessingStatus } from './createActor.ts';
 import { InspectionEvent } from './inspection.ts';
 import { Spawner } from './spawn.ts';
@@ -18,6 +17,27 @@ import type {
   EventRejection,
   EventRejectionReason
 } from './system.ts';
+import type {
+  NonReducibleUnknown,
+  AnyFunction,
+  IsNever,
+  IsNotNever,
+  Compute,
+  Prop,
+  IsAny,
+  DoNotInfer,
+  ConditionalRequired,
+  SingleOrArray,
+  HomomorphicOmit,
+  TODO
+} from './typeUtils.ts';
+// Referenced by framework adapter declarations and by emitted declarations of
+// inferred logic types, so the entry point keeps them.
+export type {
+  ConditionalRequired,
+  IsNotNever,
+  NonReducibleUnknown
+} from './typeUtils.ts';
 
 // this is needed to make JSDoc `@link` work properly
 // oxlint-disable-next-line no-unused-vars
@@ -36,10 +56,6 @@ export type Identity<T> = { [K in keyof T]: T[K] };
 export type HomomorphicPick<T, K extends keyof any> = {
   [P in keyof T as P & K]: T[P];
 };
-/** @public */
-export type HomomorphicOmit<T, K extends keyof any> = {
-  [P in keyof T as Exclude<P, K>]: T[P];
-};
 
 /** @internal */
 export type Invert<T extends Record<PropertyKey, PropertyKey>> = {
@@ -50,39 +66,10 @@ export type Invert<T extends Record<PropertyKey, PropertyKey>> = {
 export type GetParameterizedParams<T extends ParameterizedObject | undefined> =
   T extends any ? ('params' extends keyof T ? T['params'] : undefined) : never;
 
-/**
- * @remarks
- * `T | unknown` reduces to `unknown` and that can be problematic when it comes
- * to contextual typing. It especially is a problem when the union has a
- * function member, like here:
- *
- * ```ts
- * declare function test(
- *   cbOrVal: ((arg: number) => unknown) | unknown
- * ): void;
- * test((arg) => {}); // oops, implicit any
- * ```
- *
- * This type can be used to avoid this problem. This union represents the same
- * value space as `unknown`.
- * @public
- */
-export type NonReducibleUnknown = {} | null | undefined;
-/** @public */
-export type AnyFunction = (...args: any[]) => any;
-
 type ReturnTypeOrValue<T> = T extends AnyFunction ? ReturnType<T> : T;
 
 // https://github.com/microsoft/TypeScript/issues/23182#issuecomment-379091887
-/** @public */
-export type IsNever<T> = [T] extends [never] ? true : false;
-/** @public */
-export type IsNotNever<T> = [T] extends [never] ? false : true;
 
-/** @public */
-export type Compute<A> = { [K in keyof A]: A[K] } & unknown;
-/** @public */
-export type Prop<T, K> = K extends keyof T ? T[K] : never;
 /** @internal */
 export type Elements<T> = T[keyof T & `${number}`];
 /** @internal */
@@ -99,32 +86,10 @@ export type IndexByType<T extends { type: string }> = IndexByProp<T, 'type'>;
 export type IsEmptyObject<T> = keyof T extends never ? true : false;
 
 /** @public */
-export type Equals<A1, A2> =
-  (<A>() => A extends A2 ? true : false) extends <A>() => A extends A1
-    ? true
-    : false
-    ? true
-    : false;
-/** @public */
-export type IsAny<T> = Equals<T, any>;
-/** @public */
-export type Cast<A, B> = A extends B ? A : B;
-// @TODO: we can't use native `NoInfer` as we need those:
-// https://github.com/microsoft/TypeScript/pull/61092
-// https://github.com/microsoft/TypeScript/pull/61077
-// but even with those fixes native NoInfer still doesn't work - further issues have to be reproduced and fixed
-/** @public */
-export type DoNotInfer<T> = [T][T extends any ? 0 : any];
-/** @public */
-export type LowInfer<T> = T & NonNullable<unknown>;
-
-/** @public */
 export type MetaObject = Record<string, any>;
 
 /** @public */
 export type Lazy<T> = () => T;
-/** @public */
-export type MaybeLazy<T> = T | Lazy<T>;
 
 /** @public */
 export type EventPayloadPattern<TEvent extends EventObject> = TEvent extends any
@@ -268,12 +233,6 @@ export type NoRequiredParams<T extends ParameterizedObject> = T extends any
     ? T['type']
     : never
   : never;
-
-/** @public */
-export type ConditionalRequired<
-  T,
-  Condition extends boolean
-> = Condition extends true ? Required<T> : T;
 
 /** @internal */
 export type WithDynamicParams<
@@ -464,8 +423,11 @@ export interface InvokeDefinition<
         event: TEvent;
         self: AnyActorRef;
       }) => string | AnyActorLogic);
-  /** The source of the actor logic to be invoked */
-  src: AnyActorLogic | string;
+  /**
+   * The registered source key of the invoked logic, or `undefined` for inline
+   * logic.
+   */
+  src: string | undefined;
 
   input?:
     | Mapper<TContext, TEvent, NonReducibleUnknown, TEvent>
@@ -609,9 +571,6 @@ export type StateTypes =
   | 'choice'
   | 'history'
   | ({} & string);
-
-/** @public */
-export type SingleOrArray<T> = readonly T[] | T;
 
 /** @public */
 export type StateNodesConfig<
@@ -869,9 +828,6 @@ type DistributeActors<
              */
             id?: TSpecificActor['id'];
 
-            // TODO: currently we do not enforce required inputs here
-            // in a sense, we shouldn't - they could be provided within the `sources` object
-            // how do we verify if the required input has been provided?
             input?:
               | Mapper<
                   TContext,
@@ -2008,7 +1964,6 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
    * native `console.log(...)` method.
    */
   logger?: (...args: any[]) => void;
-  parent?: AnyActor;
   /** @internal */
   syncSnapshot?: boolean;
   /** @internal */
@@ -2432,21 +2387,6 @@ export type ActorSelf<
 > = ActorRuntime<TSnapshot, TEvent, TEmitted, TSendEvent> &
   ActorRef<TSnapshot, TEvent, TEmitted, TSendEvent>;
 
-// TODO: in v6, this should only accept AnyActorLogic, like ActorRefFromLogic
-/** @public */
-export type ActorRefFrom<T> =
-  T extends Promise<infer U>
-    ? ActorRefFrom<AsyncActorLogic<U>>
-    : T extends ActorLogic<
-          infer TSnapshot,
-          infer TEvent,
-          infer _TInput,
-          infer _TSystem,
-          infer TEmitted
-        >
-      ? ActorRef<TSnapshot, TEvent, TEmitted, SendableEventFromLogic<T>>
-      : never;
-
 /** @public */
 export type SendableEventFromLogic<TLogic extends AnyActorLogic> =
   TLogic extends StateMachine<
@@ -2495,9 +2435,19 @@ type OpaqueMachineSnapshot<TSnapshot extends Snapshot<unknown>> =
       >
     : TSnapshot;
 
-/** @public */
-export type ActorRefFromLogic<T extends AnyActorLogic> = ActorRef<
-  OpaqueMachineSnapshot<SnapshotFrom<T>>,
+/**
+ * The actor ref type for the given actor logic.
+ *
+ * @example
+ *
+ * ```ts
+ * type ChildRef = ActorRefFrom<typeof childMachine>;
+ * ```
+ *
+ * @public
+ */
+export type ActorRefFrom<T extends AnyActorLogic> = ActorRef<
+  SnapshotFrom<T>,
   EventFromLogic<T>,
   EmittedFrom<T>,
   SendableEventFromLogic<T>
@@ -2908,9 +2858,6 @@ export type InferEvent<E extends EventObject> = {
 }[E['type']];
 
 /** @public */
-export type TODO = any;
-
-/** @public */
 export type StateValueFrom<TMachine extends AnyStateMachine> = Parameters<
   StateFrom<TMachine>['matches']
 >[0];
@@ -2936,9 +2883,7 @@ export type RegistryKeyForLogic<
   ? string
   : Values<{
       [K in keyof TSystemRegistry &
-        string]: ActorRefFromLogic<TLogic> extends ActorRefFromLogic<
-        TSystemRegistry[K]
-      >
+        string]: ActorRefFrom<TLogic> extends ActorRefFrom<TSystemRegistry[K]>
         ? K
         : never;
     }>;
@@ -3052,31 +2997,48 @@ export type StateSchemaFrom<T extends AnyStateMachine> =
     ? TStateSchema
     : never;
 
-/** @public */
+// The id prefix a state node gives its children: the path from the root,
+// starting with the machine id when it has one. `TPath` is `null` for the
+// root, whose own id is the machine id.
+type ChildStateIdPath<
+  TSchema extends StateSchema,
+  TPath extends string | null,
+  TKey extends string
+> = TPath extends string
+  ? `${TPath}.${TKey}`
+  : TSchema['id'] extends string
+    ? `${TSchema['id']}.${TKey}`
+    : TKey;
+
+/**
+ * The ids of the state nodes of a state schema: an explicit `id`, otherwise
+ * the path from the root joined by `.`, prefixed by the machine id when the
+ * machine has one. The root of a machine without an id has the empty id,
+ * which `#` references cannot name.
+ *
+ * @public
+ */
 export type StateId<
   TSchema extends StateSchema,
-  TKey extends string = '(machine)',
-  TParentKey extends string | null = null
+  TPath extends string | null = null
 > =
   IsAny<TSchema> extends true
     ? string
     :
         | (TSchema extends { id: string }
             ? TSchema['id']
-            : TParentKey extends null
-              ? TKey
-              : `${TParentKey}.${TKey}`)
+            : TPath extends string
+              ? TPath
+              : '')
         | (TSchema['states'] extends Record<string, any>
             ? Values<{
-                [K in keyof TSchema['states'] & string]: StateId<
-                  TSchema['states'][K],
-                  K,
-                  TParentKey extends string
-                    ? `${TParentKey}.${TKey}`
-                    : TSchema['id'] extends string
-                      ? TSchema['id']
-                      : TKey
-                >;
+                // Unknown state keys: stop before building unbounded paths.
+                [K in keyof TSchema['states'] & string]: string extends K
+                  ? string
+                  : StateId<
+                      TSchema['states'][K],
+                      ChildStateIdPath<TSchema, TPath, K>
+                    >;
               }>
             : never);
 
@@ -3087,28 +3049,22 @@ export type StateId<
  */
 export type StateIdInputs<
   TSchema extends StateSchema,
-  TKey extends string = '(machine)',
-  TParentKey extends string | null = null
+  TPath extends string | null = null
 > = {
   [K in TSchema extends { id: string }
     ? TSchema['id']
-    : TParentKey extends null
-      ? TKey
-      : `${TParentKey}.${TKey}`]: TSchema['input'] extends undefined
-    ? undefined
-    : TSchema['input'];
+    : TPath extends string
+      ? TPath
+      : '']: TSchema['input'] extends undefined ? undefined : TSchema['input'];
 } & (TSchema['states'] extends Record<string, StateSchema>
   ? UnionToIntersection<
       Values<{
-        [K in keyof TSchema['states'] & string]: StateIdInputs<
-          TSchema['states'][K],
-          K,
-          TParentKey extends string
-            ? `${TParentKey}.${TKey}`
-            : TSchema['id'] extends string
-              ? TSchema['id']
-              : TKey
-        >;
+        [K in keyof TSchema['states'] & string]: string extends K
+          ? Record<string, unknown>
+          : StateIdInputs<
+              TSchema['states'][K],
+              ChildStateIdPath<TSchema, TPath, K>
+            >;
       }>
     >
   : {});
@@ -3178,7 +3134,7 @@ export type StateContextFromStateValue<
 export type StateIdReference<TSchema extends StateSchema> =
   string extends StateId<TSchema>
     ? `#${string}`
-    : `#${StateId<TSchema> & string}`;
+    : `#${Exclude<StateId<TSchema>, ''> & string}`;
 
 /** @public */
 export type RoutableStateId<TSchema extends StateSchema> =
@@ -3496,7 +3452,7 @@ type EnqueueSpawnArgs<
 > = ConditionalRequired<
   [
     options?: EnqueueSpawnOptions<TLogic, TSystemRegistry> & {
-      [K in RequiredLogicInput<TLogic>]: unknown;
+      [K in RequiredLogicInput<TLogic>]: InputFrom<TLogic>;
     }
   ],
   IsNotNever<RequiredLogicInput<TLogic>>
@@ -3505,16 +3461,24 @@ type EnqueueSpawnArgs<
 type EnqueueSpawner<
   TActorMap extends Sources['actors'],
   TSystemRegistry extends SystemRegistry
-> = {
-  <TSource extends keyof TActorMap & string>(
+> =
+  // One signature (not a key overload plus a logic overload) so a missing
+  // required `input` reports "Expected 2 arguments" instead of a `src` mismatch
+  // against the key overload.
+  <TSource extends (keyof TActorMap & string) | AnyActorLogic>(
     src: TSource,
-    ...[options]: EnqueueSpawnArgs<TActorMap[TSource], TSystemRegistry>
-  ): ActorFromLogic<TActorMap[TSource]>;
-  <TLogic extends AnyActorLogic>(
-    logic: TLogic,
-    ...[options]: EnqueueSpawnArgs<TLogic, TSystemRegistry>
-  ): ActorFromLogic<TLogic>;
-};
+    ...[options]: EnqueueSpawnArgs<
+      EnqueueSpawnLogic<TActorMap, TSource>,
+      TSystemRegistry
+    >
+  ) => ActorFromLogic<EnqueueSpawnLogic<TActorMap, TSource>>;
+
+type EnqueueSpawnLogic<
+  TActorMap extends Sources['actors'],
+  TSource
+> = TSource extends AnyActorLogic
+  ? TSource
+  : TActorMap[TSource & keyof TActorMap];
 
 /** @public */
 export type EnqueueObject<

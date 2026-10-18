@@ -85,7 +85,7 @@ describe('restoring terminal snapshots', () => {
     expect(snapshot.status).toBe('error');
     expect(snapshot.error).toBeInstanceOf(Error);
     expect((snapshot.error as Error).message).toBe(
-      "Persisted snapshot references state 'missing' which does not exist on machine '(machine)'."
+      "Persisted snapshot references state 'missing' which does not exist on the machine."
     );
     expect(error).toHaveBeenCalledExactlyOnceWith(snapshot.error);
   });

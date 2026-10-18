@@ -229,7 +229,7 @@ describe('getShortestPaths', () => {
           type: 'xstate.done.actor',
           actorId: 'submit'
         }),
-        { type: 'xstate.after', delay: 1000, stateId: '(machine).confirm' }
+        { type: 'xstate.after', delay: 1000, stateId: 'confirm' }
       ]
     ]);
   });
@@ -251,7 +251,7 @@ it('types supplied public and synthesized internal traversal events', () => {
         actorId: 'worker',
         error: new Error('failed')
       },
-      { type: 'xstate.after', delay: 1000, stateId: '(machine).idle' }
+      { type: 'xstate.after', delay: 1000, stateId: 'idle' }
     ]
   });
   // @ts-expect-error public event payloads remain checked

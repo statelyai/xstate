@@ -242,7 +242,7 @@ describe('state meta data', () => {
     meta['one'] satisfies { template: string };
 
     // @ts-expect-error
-    meta['(machine)'];
+    meta[''];
 
     // @ts-expect-error
     meta['c'];
@@ -392,11 +392,9 @@ describe('state meta data', () => {
 
     const actor = createActor(machine);
 
-    actor.getSnapshot().getMeta()['(machine)'] satisfies
-      | { layout: string }
-      | undefined;
+    actor.getSnapshot().getMeta()[''] satisfies { layout: string } | undefined;
 
-    actor.getSnapshot().getMeta()['(machine).a'];
+    actor.getSnapshot().getMeta()['a'];
   });
 
   it('should strongly type the state IDs in snapshot.getMeta()', () => {
@@ -467,13 +465,13 @@ describe('state meta data', () => {
 
     const metaValues = actor.getSnapshot().getMeta();
 
-    metaValues['(machine)'];
-    metaValues['(machine).parentState'];
-    metaValues['(machine).parentState.childState'];
+    metaValues[''];
+    metaValues['parentState'];
+    metaValues['parentState.childState'];
     metaValues['state with id'];
 
     // @ts-expect-error
-    metaValues['(machine).parentState.stateWithId'];
+    metaValues['parentState.stateWithId'];
 
     // @ts-expect-error
     metaValues['unknown state'];
