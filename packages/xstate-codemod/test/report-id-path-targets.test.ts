@@ -48,8 +48,7 @@ const machine = createMachine({
     wizard: { id: 'flow', initial: 'step', states: { step: {} } },
     other: { id: 'my.id' }
   }
-});
-machine.getInitialSnapshot().matches('#shop.wizard.step');`;
+});`;
     const { notes } = applyTransform(reportIdPathTargets, input);
     expect(notes).toEqual([]);
   });
@@ -92,5 +91,61 @@ const machine = createMachine({
 snapshot.matches('#a');`;
     const { notes } = applyTransform(reportIdPathTargets, input);
     expect(notes).toEqual([]);
+  });
+
+  it('scopes known ids to the machine config that contains the target', () => {
+    const input = `import { createMachine } from 'xstate';
+const first = createMachine({
+  id: 'first',
+  initial: 'idle',
+  states: {
+    idle: { on: { GO: { target: '#flow.step' } } },
+    wizard: { id: 'flow', initial: 'step', states: { step: {} } }
+  }
+});
+const second = createMachine({
+  initial: 'a',
+  invoke: { id: 'flow.child', src: 'child' },
+  states: {
+    a: {
+      invoke: { id: 'flow.step', src: 'child' },
+      on: { GO: { target: '#flow.child' } }
+    },
+    b: { id: 'flow.step' }
+  }
+});`;
+    const { notes } = applyTransform(reportIdPathTargets, input);
+    expect(notes).toHaveLength(2);
+    expect(notes[0]).toMatch(/:6:\d+/);
+    expect(notes[0]).toContain("'#flow.step'");
+    expect(notes[1]).toContain("'#flow.child'");
+  });
+
+  it('reports matches arguments outside a machine config', () => {
+    const input = `const machine = createMachine({
+  id: 'shop',
+  initial: 'idle',
+  states: { idle: {} }
+});
+machine.getInitialSnapshot().matches('#shop.idle');`;
+    const { notes } = applyTransform(reportIdPathTargets, input);
+    expect(notes).toHaveLength(1);
+    expect(notes[0]).toContain("'#shop.idle'");
+  });
+
+  it('scans static template literals', () => {
+    const input = `const machine = createMachine({
+  initial: 'a',
+  states: {
+    a: {
+      on: { GO: { target: \`#flow.step\` }, BARE: \`#x.y\` },
+      after: { 100: \`#late.child\` }
+    }
+  }
+});
+snapshot.matches(\`#flow.step\`);
+stateIn(\`#flow.step\`);`;
+    const { notes } = applyTransform(reportIdPathTargets, input);
+    expect(notes).toHaveLength(5);
   });
 });

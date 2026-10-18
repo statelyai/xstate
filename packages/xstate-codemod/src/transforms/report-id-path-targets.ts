@@ -1,6 +1,7 @@
 import {
   CallExpression,
   Node,
+  NoSubstitutionTemplateLiteral,
   ObjectLiteralExpression,
   SourceFile,
   StringLiteral,
@@ -49,52 +50,63 @@ function getStringProperty(
     : undefined;
 }
 
+type TargetLiteral = StringLiteral | NoSubstitutionTemplateLiteral;
+
 /**
- * Collects the state ids that the machine configs in this file statically
- * declare: explicit `id`s and implicit ids (the path from the root, prefixed
- * by the machine id when one is set).
+ * Collects the state ids that one machine config literal declares: explicit
+ * state `id`s and, for `createMachine` configs, implicit ids (the path from
+ * the root, prefixed by the machine id when one is set). Invoke and actor ids
+ * are not state ids and are not collected.
  */
-function collectKnownIds(sourceFile: SourceFile): Set<string> {
+function collectStateIds(
+  config: ObjectLiteralExpression,
+  withImplicitIds: boolean
+): Set<string> {
   const ids = new Set<string>();
 
-  function walk(config: ObjectLiteralExpression, implicitId: string): void {
-    const explicitId = getStringProperty(config, 'id');
-    ids.add(explicitId ?? implicitId);
-    const states = config.getProperty('states');
+  function walk(stateConfig: ObjectLiteralExpression, implicitId: string) {
+    const explicitId = getStringProperty(stateConfig, 'id');
+    if (explicitId !== undefined) ids.add(explicitId);
+    else if (withImplicitIds) ids.add(implicitId);
+    const states = stateConfig.getProperty('states');
     if (!states || !Node.isPropertyAssignment(states)) return;
     const statesObject = states.getInitializer();
     if (!statesObject || !Node.isObjectLiteralExpression(statesObject)) return;
     for (const state of statesObject.getProperties()) {
       const key = getPropertyName(state);
       if (key === undefined || !Node.isPropertyAssignment(state)) continue;
-      const stateConfig = state.getInitializer();
-      if (!stateConfig || !Node.isObjectLiteralExpression(stateConfig)) {
-        continue;
-      }
-      walk(stateConfig, implicitId ? `${implicitId}.${key}` : key);
+      const child = state.getInitializer();
+      if (!child || !Node.isObjectLiteralExpression(child)) continue;
+      walk(child, implicitId ? `${implicitId}.${key}` : key);
     }
   }
 
-  for (const config of findMachineConfigObjects(sourceFile, [
-    'createMachine'
-  ])) {
-    walk(config, getStringProperty(config, 'id') ?? '');
-  }
-  // Explicit ids declared elsewhere, such as in `createStateConfig(...)` or
-  // `setup({ states })`, are still whole ids.
-  for (const property of sourceFile.getDescendantsOfKind(
-    SyntaxKind.PropertyAssignment
-  )) {
-    if (getPropertyName(property) !== 'id') continue;
-    const initializer = property.getInitializer();
-    if (initializer && Node.isStringLiteral(initializer)) {
-      ids.add(initializer.getLiteralText());
-    }
-  }
+  walk(config, getStringProperty(config, 'id') ?? '');
   return ids;
 }
 
-function isMatchArgument(literal: StringLiteral): boolean {
+/**
+ * Finds the `createMachine(...)` or `createStateConfig(...)` config literal
+ * that contains `node`, if any.
+ */
+function findEnclosingConfig(
+  node: Node,
+  machineConfigs: ReadonlySet<ObjectLiteralExpression>,
+  stateConfigs: ReadonlySet<ObjectLiteralExpression>
+): { config: ObjectLiteralExpression; withImplicitIds: boolean } | undefined {
+  for (const ancestor of node.getAncestors()) {
+    if (!Node.isObjectLiteralExpression(ancestor)) continue;
+    if (machineConfigs.has(ancestor)) {
+      return { config: ancestor, withImplicitIds: true };
+    }
+    if (stateConfigs.has(ancestor)) {
+      return { config: ancestor, withImplicitIds: false };
+    }
+  }
+  return undefined;
+}
+
+function isMatchArgument(literal: TargetLiteral): boolean {
   const call = literal.getParent();
   if (!call || !Node.isCallExpression(call)) return false;
   if ((call as CallExpression).getArguments()[0] !== literal) return false;
@@ -107,7 +119,7 @@ function isMatchArgument(literal: StringLiteral): boolean {
   return !!name && MATCH_CALLS.has(name);
 }
 
-function isTargetValue(literal: StringLiteral): boolean {
+function isTargetValue(literal: TargetLiteral): boolean {
   let node: Node = literal;
   let parent = node.getParent();
   if (parent && Node.isArrayLiteralExpression(parent)) {
@@ -137,17 +149,40 @@ export const reportIdPathTargets: Transform = {
     "Detect (report only) '#id.path' targets and matches('#id.path') references that may combine an id with a relative path, which v6 no longer resolves.",
   apply(sourceFile: SourceFile): TransformResult {
     const notes: string[] = [];
-    let knownIds: Set<string> | undefined;
     const filePath = sourceFile.getFilePath();
+    const machineConfigs = new Set(
+      findMachineConfigObjects(sourceFile, ['createMachine'])
+    );
+    const stateConfigs = new Set(
+      findMachineConfigObjects(sourceFile, ['createStateConfig'])
+    );
+    const idsByConfig = new Map<ObjectLiteralExpression, Set<string>>();
+    const literals: TargetLiteral[] = [
+      ...sourceFile.getDescendantsOfKind(SyntaxKind.StringLiteral),
+      ...sourceFile.getDescendantsOfKind(
+        SyntaxKind.NoSubstitutionTemplateLiteral
+      )
+    ].sort((a, b) => a.getStart() - b.getStart());
 
-    for (const literal of sourceFile.getDescendantsOfKind(
-      SyntaxKind.StringLiteral
-    )) {
+    for (const literal of literals) {
       const text = literal.getLiteralText();
       if (!text.startsWith('#') || !text.includes('.')) continue;
       if (!isTargetValue(literal) && !isMatchArgument(literal)) continue;
-      knownIds ??= collectKnownIds(sourceFile);
-      if (knownIds.has(text.slice(1))) continue;
+      // Only ids from the config that contains the reference count; a
+      // reference outside an analyzable config is always reported.
+      const enclosing = findEnclosingConfig(
+        literal,
+        machineConfigs,
+        stateConfigs
+      );
+      if (enclosing) {
+        let ids = idsByConfig.get(enclosing.config);
+        if (!ids) {
+          ids = collectStateIds(enclosing.config, enclosing.withImplicitIds);
+          idsByConfig.set(enclosing.config, ids);
+        }
+        if (ids.has(text.slice(1))) continue;
+      }
       const { line, column } = sourceFile.getLineAndColumnAtPos(
         literal.getStart()
       );

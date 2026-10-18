@@ -76,7 +76,7 @@ const machine = createMachine({
 No state has id "flow.review". Use "#shop.wizard.review", or give that state an id.
 ```
 
-Explicit ids are matched as written. An explicit `id: 'checkout.v2'` is targeted as `#checkout.v2`, without escaping. Key segments in implicit ids keep their `\\.` escapes (`#shop.foo\\.bar`).
+Only an id followed by a path fails. Any whole id is a valid target, including an explicit id that contains dots: `id: 'checkout.v2'` is targeted as `#checkout.v2`, without escaping. Key segments in implicit ids keep their `\\.` escapes (`#shop.foo\\.bar`).
 
 ## Transition functions
 

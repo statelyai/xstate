@@ -1117,7 +1117,7 @@ See [compact finite state machines](fsm.md) for its exact supported surface.
   No state has id "flow.review". Use "#shop.wizard.review", or give that state an id.
   ```
 
-  The `report-id-path-targets` codemod transform lists `#a.b` targets and `matches('#a.b')` arguments it cannot confirm are whole ids.
+  The `report-id-path-targets` codemod transform lists `#a.b` targets and `matches('#a.b')` arguments it cannot confirm are whole state ids of the enclosing machine config.
 - State keys cannot contain an unescaped `.`. v5 accepted a key like `'foo.bar'` and targeted it as `'foo\\.bar'`; in v6, write the key itself escaped (`'foo\\.bar': {}`). The state value, implicit id (`foo\\.bar`) and persisted snapshots use that escaped key.
 - Implicit invoke ids are `<stateId>:<index>`, such as `checkout:0` or `shop.checkout:1` (v5: `0.(machine).checkout`). An invoke on the root is `:0`, or `shop:0` with a machine id. These ids key `snapshot.children`, completion events (`event.actorId`) and persisted children.
 - The `systemId` option is now `registryKey`, in `createActor(logic, { registryKey })`, `invoke: { registryKey }`, and `enq.spawn(logic, { registryKey })`. `actorRef.systemId` is now `actorRef.registryKey`. `system.get(registryKey)` looks the actor up (see §24). `systemId` is not accepted as an option.
@@ -1574,7 +1574,7 @@ It runs these transforms in order. `--transform name,name` selects a subset.
 | `string-targets`      | Wraps bare string transition values under `on`, `after`, `onDone`, `onError`, and `always` in `{ target: '...' }` inside `createMachine` and `createStateConfig` configs.                                                                                                   |
 | `types-to-schemas`    | Converts `types: {} as { ... }` to `schemas` with `types<T>()` entries. Events become a map only when they are written as an inline union literal.                                                                                                                         |
 | `report-removed-apis` | Reports, without rewriting, uses of `assign`, `raise`, `sendTo`, `sendParent`, `forwardTo`, `emit`, `log`, `cancel`, `spawnChild`, `stop`, `stopChild`, `enqueueActions`, `and`, `or`, `not`, `stateIn`, `fromPromise`, `fromTransition`, `toObserver`, `pathToStateValue`, and `SpecialTargets`, with a suggested replacement. |
-| `report-id-path-targets` | Reports, without rewriting, `#a.b` targets and `matches('#a.b')` or `stateIn('#a.b')` arguments that are not whole ids declared in the same file. v6 resolves `#` targets by exact id only. |
+| `report-id-path-targets` | Reports, without rewriting, `#a.b` targets and `matches('#a.b')` or `stateIn('#a.b')` arguments that are not whole state ids of the machine config that contains them. References outside a `createMachine` or `createStateConfig` config are always reported. v6 resolves `#` targets by exact id only. |
 
 `string-targets` wraps string elements inside transition arrays but keeps the arrays. The v6 `createMachine` types reject transition arrays in `on` and `always` (for example, `on: { X: [ … ] }`), and no transform reports them. Find them by hand and replace each with one transition function (§15, §16).
 
