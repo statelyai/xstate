@@ -127,9 +127,7 @@ describe('choice states', () => {
           a: {}
         }
       } as any)
-    ).toThrow(
-      'Choice state "(machine).routing" must declare a `choice` function.'
-    );
+    ).toThrow('Choice state "routing" must declare a `choice` function.');
   });
 
   it('throws when a non-choice state declares `choice`', () => {
@@ -144,7 +142,7 @@ describe('choice states', () => {
         }
       } as any)
     ).toThrow(
-      'State "(machine).a" has `choice`, but `choice` can only be used with `type: \'choice\'`.'
+      'State "a" has `choice`, but `choice` can only be used with `type: \'choice\'`.'
     );
   });
 
@@ -162,7 +160,7 @@ describe('choice states', () => {
 
     expect(() =>
       machine.getInitialSnapshot(createInertActorScope(machine))
-    ).toThrow('Choice state "(machine).routing" must resolve to a target.');
+    ).toThrow('Choice state "routing" must resolve to a target.');
   });
 
   it.each([
@@ -187,6 +185,6 @@ describe('choice states', () => {
           done: {}
         }
       })
-    ).toThrow(`Choice state "(machine).routing" cannot declare \`${key}\`.`);
+    ).toThrow(`Choice state "routing" cannot declare \`${key}\`.`);
   });
 });

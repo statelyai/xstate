@@ -124,7 +124,7 @@ describe('State node IDs', () => {
             unescaped: { target: 'foo.bar' }
           }
         },
-        'foo.bar': {},
+        'foo\\.bar': {},
         foo: {
           initial: 'bar',
           states: {
@@ -139,7 +139,7 @@ describe('State node IDs', () => {
       type: 'escaped'
     });
 
-    expect(escapedState.value).toEqual('foo.bar');
+    expect(escapedState.value).toEqual('foo\\.bar');
 
     const [unescapedState] = transition(machine, initialState, {
       type: 'unescaped'
@@ -149,6 +149,9 @@ describe('State node IDs', () => {
 
   it('should work with IDs that have escaped periods', () => {
     const machine = createMachine({
+      // Without a machine id, the implicit id of `foo.bar` would collide with
+      // the explicit `foo.bar` id.
+      id: 'machine',
       initial: 'start',
       states: {
         start: {

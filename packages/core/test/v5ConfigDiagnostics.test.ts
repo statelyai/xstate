@@ -23,7 +23,7 @@ describe('v5 config diagnostics', () => {
         }
       } as any)
     ).toThrowError(
-      'Transition "go" in state "(machine).a" uses "cond", which was removed. Use an inline transition function instead'
+      'Transition "go" in state "a" uses "cond", which was removed. Use an inline transition function instead'
     );
   });
 
@@ -81,9 +81,7 @@ describe('v5 config diagnostics', () => {
           b: {}
         }
       } as any)
-    ).toThrowError(
-      'Transition "invoke.onDone" in state "(machine).a" uses "cond"'
-    );
+    ).toThrowError('Transition "invoke.onDone" in state "a" uses "cond"');
   });
 
   it('throws on a string `entry`', () => {
@@ -94,7 +92,7 @@ describe('v5 config diagnostics', () => {
         states: { a: { entry: 'track' } }
       } as any)
     ).toThrowError(
-      'State "(machine).a" has a string ("track") as "entry", which is not supported. Use a single inline function `(args, enq) => { ... }`; call named actions with `enq(actions.name, params)`.'
+      'State "a" has a string ("track") as "entry", which is not supported. Use a single inline function `(args, enq) => { ... }`; call named actions with `enq(actions.name, params)`.'
     );
   });
 
@@ -104,7 +102,7 @@ describe('v5 config diagnostics', () => {
         initial: 'a',
         states: { a: { exit: [() => {}] } }
       } as any)
-    ).toThrowError('State "(machine).a" has an array as "exit"');
+    ).toThrowError('State "a" has an array as "exit"');
   });
 
   it('throws on transition `actions`', () => {
@@ -118,7 +116,7 @@ describe('v5 config diagnostics', () => {
         }
       } as any)
     ).toThrowError(
-      'Transition "go" in state "(machine).a" uses "actions", which was removed.'
+      'Transition "go" in state "a" uses "actions", which was removed.'
     );
   });
 
@@ -129,7 +127,7 @@ describe('v5 config diagnostics', () => {
         states: { ready: {} }
       } as any)
     ).toThrowError(
-      'Initial transition of state "(machine)" uses "actions", which was removed.'
+      'Initial transition of the root state uses "actions", which was removed.'
     );
   });
 
@@ -145,7 +143,7 @@ describe('v5 config diagnostics', () => {
         }
       } as any)
     ).toThrowError(
-      'Initial transition of state "(machine).a" uses "cond", which was removed.'
+      'Initial transition of state "a" uses "cond", which was removed.'
     );
   });
 
@@ -300,11 +298,11 @@ describe('v5 config diagnostics', () => {
       const cases: Array<[stateA: object, message: string]> = [
         [
           { on: { go: { target: 'b', cond: () => false } } },
-          'Transition "go" in state "(machine).a" uses "cond", which was removed in v6. Use a transition function.'
+          'Transition "go" in state "a" uses "cond", which was removed in v6. Use a transition function.'
         ],
         [
           { always: { target: 'b', cond: () => false } },
-          'Transition "always" in state "(machine).a" uses "cond"'
+          'Transition "always" in state "a" uses "cond"'
         ],
         [
           { after: { 1000: { target: 'b', cond: () => false } } },
@@ -312,7 +310,7 @@ describe('v5 config diagnostics', () => {
         ],
         [
           { on: { go: { target: 'b', actions: 'track' } } },
-          'Transition "go" in state "(machine).a" uses "actions"'
+          'Transition "go" in state "a" uses "actions"'
         ],
         [
           { on: { go: { target: 'b', actions: { type: 'track' } } } },
@@ -321,7 +319,7 @@ describe('v5 config diagnostics', () => {
         [{ on: { go: { target: 'b', actions: () => {} } } }, 'uses "actions"'],
         [
           { on: { go: { target: 'b', guard: 'isReady' } } },
-          'Transition "go" in state "(machine).a" uses an object-form "guard"'
+          'Transition "go" in state "a" uses an object-form "guard"'
         ],
         [
           { on: { go: { target: 'b', guard: { type: 'isReady' } } } },

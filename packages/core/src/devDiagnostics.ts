@@ -55,7 +55,7 @@ function checkTransitions(
   if (!transitions) return;
   for (const t of Array.isArray(transitions) ? transitions : [transitions]) {
     if (!t || typeof t !== 'object') continue;
-    const where = `Transition "${name}" in state "${stateId}"`;
+    const where = `Transition "${name}" in ${describeState(stateId)}`;
     if ((t as any).cond !== undefined) {
       throw new Error(
         `${where} uses "cond", which was removed. ${INLINE_TRANSITION}`
@@ -74,9 +74,18 @@ function checkTransitions(
   }
 }
 
+// The root of a machine without an id has the empty id.
+function describeState(stateId: string): string {
+  return stateId ? `state "${stateId}"` : 'the root state';
+}
+
+function capitalize(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
 function checkInitialTransition(initial: any, stateId: string): void {
   if (!initial || typeof initial !== 'object') return;
-  const where = `Initial transition of state "${stateId}"`;
+  const where = `Initial transition of ${describeState(stateId)}`;
   const unguarded =
     'Initial transitions cannot be guarded; use an "always" transition on the target state to redirect conditionally.';
   if (initial.cond !== undefined) {
@@ -98,7 +107,7 @@ function checkStateNode(node: any, stateId: string): void {
   checkInitialTransition(node.initial, stateId);
   if (node.activities !== undefined) {
     console.warn(
-      `State "${stateId}": "activities" ${IGNORED_ROOT_KEYS.activities}`
+      `${capitalize(describeState(stateId))}: "activities" ${IGNORED_ROOT_KEYS.activities}`
     );
   }
   for (const key of ['entry', 'exit'] as const) {
@@ -110,7 +119,7 @@ function checkStateNode(node: any, stateId: string): void {
           ? `a string ("${action}")`
           : `a ${typeof action}`;
       throw new Error(
-        `State "${stateId}" has ${shape} as "${key}", which is not supported. ${INLINE_ACTION}`
+        `${capitalize(describeState(stateId))} has ${shape} as "${key}", which is not supported. ${INLINE_ACTION}`
       );
     }
   }
@@ -141,7 +150,10 @@ function checkStateNode(node: any, stateId: string): void {
     for (const key of Object.keys(node.states)) {
       const child = node.states[key];
       if (child && typeof child === 'object') {
-        checkStateNode(child, child.id ?? `${stateId}.${key}`);
+        checkStateNode(
+          child,
+          child.id ?? (stateId ? `${stateId}.${key}` : key)
+        );
       }
     }
   }
@@ -163,7 +175,7 @@ export function diagnoseAuthorConfig(config: any): void {
       console.warn(`Machine config "${key}" ${IGNORED_ROOT_KEYS[key]}`);
     }
   }
-  checkStateNode(config, config.id ?? '(machine)');
+  checkStateNode(config, config.id ?? '');
 }
 
 /**

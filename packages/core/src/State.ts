@@ -26,7 +26,7 @@ import type {
   LogicalTimer,
   SerializedActorRef
 } from './types.ts';
-import { isActorRefLike, matchesState } from './utils.ts';
+import { describeMachine, isActorRefLike, matchesState } from './utils.ts';
 import {
   copySnapshotActorRef,
   getSnapshotActorRef,
@@ -263,7 +263,7 @@ type SnapshotStateIdReference<TSnapshot> = TSnapshot extends {
 }
   ? string extends TStateId
     ? `#${string}`
-    : `#${TStateId & string}`
+    : `#${Exclude<TStateId, ''> & string}`
   : `#${string}`;
 
 interface MachineSnapshotBase<
@@ -818,8 +818,16 @@ export function getPersistedSnapshot<
     false;
   for (const id in children) {
     const child = children[id] as any;
+    const sourceKey = typeof child.src === 'string' ? child.src : undefined;
+    // An inline invoke has no source key; it restores through the invoke
+    // definition with its id among the active states.
+    const invoked =
+      sourceKey === undefined &&
+      child._invoked === true &&
+      nodes.some((node) => node.invoke.some((def) => def.id === id));
     if (
-      typeof child.src !== 'string' &&
+      sourceKey === undefined &&
+      !invoked &&
       (!options || !('__unsafeAllowInlineActors' in (options as object)))
     ) {
       throw new Error('An inline child actor cannot be persisted.');
@@ -828,7 +836,7 @@ export function getPersistedSnapshot<
     // state is the co-locating runtime's whole-tree checkpoint capability;
     // remote handles never embed — their state lives with another runtime.
     const embed = embedChildren && !isRemoteActorRef(child);
-    if (!embed && typeof child.src !== 'string') {
+    if (!embed && sourceKey === undefined) {
       // Fail where it is actionable: a by-address reference without a
       // registered source key could be persisted but never restored.
       throw new Error(
@@ -850,7 +858,7 @@ export function getPersistedSnapshot<
             // persisted snapshots nondeterministic across replays.
             incarnation: isRemoteActorRef(child) ? child.sessionId : undefined
           }),
-      src: child.src,
+      ...(invoked ? {} : { src: child.src }),
       registryKey: child.registryKey,
       syncSnapshot: child._syncSnapshot
     };
@@ -951,7 +959,7 @@ function warnOnNonJsonPayload(
     const found = findNonJsonPath(persisted[key], key);
     if (found) {
       console.warn(
-        `Persisted snapshot of machine '${machineId}' contains a non-JSON value (${found.kind}) at '${found.path}'. Persisted snapshots must be JSON-serializable; this value will be lost or throw in JSON.stringify.`
+        `Persisted snapshot of ${describeMachine(machineId)} contains a non-JSON value (${found.kind}) at '${found.path}'. Persisted snapshots must be JSON-serializable; this value will be lost or throw in JSON.stringify.`
       );
       return;
     }

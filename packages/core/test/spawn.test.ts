@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { createActor, createMachine } from '../src';
+import { createActor, createMachine, type AnyActor } from '../src';
 
 describe('spawn inside machine', () => {
   it('input is required when defined in actor', () => {
@@ -21,5 +21,119 @@ describe('spawn inside machine', () => {
 
     const actor = createActor(machine).start();
     expect(actor.system.get('test')).toBeDefined();
+  });
+});
+
+describe('spawn during speculative evaluation', () => {
+  const child = createMachine({ id: 'worker' });
+
+  it('returns an inert ref when `can()` evaluates a spawning transition', () => {
+    const refs: AnyActor[] = [];
+    const machine = createMachine({
+      id: 'parent',
+      on: {
+        SPAWN: (_, enq) => {
+          refs.push(enq.spawn(child, { id: 'w' }));
+          return {};
+        }
+      }
+    });
+    const actor = createActor(machine).start();
+
+    expect(actor.getSnapshot().can({ type: 'SPAWN' })).toBe(true);
+
+    const [ref] = refs;
+    expect(ref!.id).toBe('w');
+    expect(ref!.sessionId).toBeUndefined();
+    // `can()` evaluates detached from the parent actor: no address.
+    expect(ref!.address).toBeUndefined();
+    expect(ref!.getSnapshot()).toBe(ref!.getSnapshot());
+    expect(ref!.getSnapshot()).toMatchObject({ status: 'active' });
+    expect(() => ref!.send({ type: 'ANY' })).not.toThrow();
+    expect(() => JSON.stringify(ref)).toThrow(/speculative transition/);
+    expect(actor.getSnapshot().children).toEqual({});
+  });
+
+  it('gives the inert ref the id and address a real spawn would get', () => {
+    const refs: AnyActor[] = [];
+    const machine = createMachine({
+      id: 'parent',
+      type: 'parallel',
+      states: {
+        a: {
+          initial: 'idle',
+          states: {
+            idle: {
+              on: {
+                SPAWN: (_, enq) => {
+                  refs.push(enq.spawn(child));
+                  return { target: 'done' };
+                }
+              }
+            },
+            done: {}
+          }
+        },
+        b: {
+          initial: 'idle',
+          states: { idle: { on: { SPAWN: { target: 'done' } } }, done: {} }
+        }
+      }
+    });
+    const actor = createActor(machine).start();
+
+    actor.send({ type: 'SPAWN' });
+
+    // Resolving the two enabled transitions evaluates `a`'s transition
+    // speculatively first, then for real.
+    const [inert, real] = refs;
+    expect(inert!.sessionId).toBeUndefined();
+    expect(inert!.id).toBe('worker:0');
+    expect(inert!.address).toBe('parent/worker:0');
+    expect(inert!.toJSON!()).toEqual({ $actor: 'parent/worker:0' });
+    expect(real!.id).toBe('worker:0');
+    expect(real!.address).toBe(inert!.address);
+    expect(Object.keys(actor.getSnapshot().children)).toEqual(['worker:0']);
+  });
+});
+
+describe('speculative spawn ids', () => {
+  it('skip ids held by live children, like committed spawns', () => {
+    const worker = createMachine({});
+    const refs: AnyActor[] = [];
+    const machine = createMachine({
+      actors: { worker },
+      type: 'parallel',
+      states: {
+        worker: { invoke: { src: worker } },
+        a: {
+          initial: 'idle',
+          states: {
+            idle: {
+              on: {
+                SPAWN: (_, enq) => {
+                  refs.push(enq.spawn('worker'));
+                  return { target: 'done' };
+                }
+              }
+            },
+            done: {}
+          }
+        },
+        b: {
+          initial: 'idle',
+          states: { idle: { on: { SPAWN: { target: 'done' } } }, done: {} }
+        }
+      }
+    });
+    const actor = createActor(machine).start();
+    expect(Object.keys(actor.getSnapshot().children)).toEqual(['worker:0']);
+
+    actor.send({ type: 'SPAWN' });
+
+    const [inert, real] = refs;
+    expect(real!.id).toBe('worker:1');
+    expect(inert!.id).toBe(real!.id);
+    expect(inert!.address).toBe(real!.address);
   });
 });

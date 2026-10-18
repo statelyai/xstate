@@ -772,7 +772,7 @@ describe('setup state contracts', () => {
           initial: 'idle',
           id: 'active.id',
           states: {
-            'foo.bar': {
+            'foo\\.bar': {
               type: 'atomic',
               id: 'node.id',
               schemas: { input: types<{ id: number }>() }
@@ -817,7 +817,7 @@ describe('setup state contracts', () => {
         active: {
           initial: 'idle',
           states: {
-            'foo.bar': {},
+            'foo\\.bar': {},
             idle: {
               on: {
                 ID: { target: '#node\\.id', input: { id: 1 } }
@@ -834,7 +834,7 @@ describe('setup state contracts', () => {
         active: {
           initial: 'idle',
           states: {
-            'foo.bar': {},
+            'foo\\.bar': {},
             idle: {}
           }
         }
@@ -848,7 +848,7 @@ describe('setup state contracts', () => {
           active: {
             initial: 'idle',
             states: {
-              'foo.bar': {},
+              'foo\\.bar': {},
               idle: {
                 on: {
                   // @ts-expect-error - dots in IDs must be escaped

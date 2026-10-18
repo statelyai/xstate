@@ -21,7 +21,6 @@ import type {
   TransitionDefinitionMap,
   AnyStateMachine,
   AnyStateNodeConfig,
-  NonReducibleUnknown,
   EventDescriptor,
   AnyActorScope,
   AnyStateNode,
@@ -34,8 +33,10 @@ import type {
   InvokeDefinition,
   MetaObject
 } from './types.ts';
+import type { NonReducibleUnknown } from './typeUtils.ts';
 import {
   createInvokeId,
+  hasUnescapedDot,
   mapValues,
   toArray,
   toTransitionConfigArray
@@ -167,12 +168,23 @@ export class StateNode<
     this.parent = options._parent;
     this.key = options._key;
     this.machine = options._machine;
+    if (this.parent && hasUnescapedDot(this.key)) {
+      throw new Error(
+        // The suggestion is written as a JS string literal.
+        `State key "${this.key}" contains "." — nest the states or escape it as "${this.key.replaceAll(/(?<!\\)\./g, '\\\\.')}".`
+      );
+    }
     this.path = this.parent ? this.parent.path.concat(this.key) : [];
     const firstStateKey = this.config.states
       ? Object.keys(this.config.states)[0]
       : undefined;
+    // The implicit id is the path from the root, prefixed by the machine id
+    // when it has one: `shop.checkout`, or `checkout` without a machine id.
     this.id =
-      this.config.id || [this.machine.id, ...this.path].join(STATE_DELIMITER);
+      this.config.id ||
+      (this.machine.id ? [this.machine.id, ...this.path] : this.path).join(
+        STATE_DELIMITER
+      );
     this.type =
       this.config.type ||
       (firstStateKey !== undefined
@@ -188,6 +200,14 @@ export class StateNode<
       warnOnFinalStateBehavior(this);
     }
 
+    const existing = this.machine.idMap.get(this.id);
+    // Valid keys escape their dots, so two implicit ids cannot coincide; an
+    // explicit id that equals another id would make `#id` ambiguous.
+    if (existing) {
+      throw new Error(
+        `Duplicate state id '${this.id}': the states at '${existing.path.join(STATE_DELIMITER)}' and '${this.path.join(STATE_DELIMITER)}' both have it. State ids must be unique; rename the explicit \`id\`.`
+      );
+    }
     this.order = this.machine.idMap.size;
     this.machine.idMap.set(this.id, this);
 
@@ -237,15 +257,12 @@ export class StateNode<
       const { src, registryKey } = invokeConfig;
       const invokeId = createInvokeId(this.id, i);
       const resolvedId = invokeConfig.id ?? invokeId;
-      // Referenced (string) actors keep their logical name so persisted
-      // snapshots reference `src: 'fetchUser'` rather than a positional id;
-      // only inline logic gets the synthetic source name.
-      const sourceName =
-        typeof src === 'string' ? src : `xstate.invoke.${invokeId}`;
 
       return {
         ...invokeConfig,
-        src: sourceName,
+        // Registered (string) sources persist by key; inline logic has no
+        // source key and restores through this invoke definition's id.
+        src: typeof src === 'string' ? src : undefined,
         logic: src,
         id: resolvedId,
         registryKey
@@ -260,8 +277,11 @@ export class StateNode<
     if (this.type === 'choice') {
       this.always = formatChoiceTransitions(this) as typeof this.always;
     } else if (this.config.always) {
-      this.always = mapTransitionConfigs(this.config.always, (transition) =>
-        formatTransition(this, NULL_EVENT, transition)
+      this.always = mapTransitionConfigs(
+        this,
+        'always',
+        this.config.always,
+        (transition) => formatTransition(this, NULL_EVENT, transition)
       ) as typeof this.always;
     }
 
@@ -446,10 +466,16 @@ function formatChoiceTransitions(
 }
 
 function mapTransitionConfigs<T>(
+  stateNode: AnyStateNode,
+  name: string,
   transitionsConfig: unknown,
   mapper: (transition: AnyTransitionConfig) => T
 ): T[] {
-  const transitionConfigs = toTransitionConfigArray(transitionsConfig as any);
+  const transitionConfigs = toTransitionConfigArray(
+    transitionsConfig as any,
+    name,
+    stateNode.id
+  );
   const transitions = new Array<T>(transitionConfigs.length);
 
   for (let i = 0; i < transitionConfigs.length; i++) {
@@ -490,8 +516,11 @@ function formatTransitions<
       const transitionsConfig = stateNode.config.on[descriptor];
       transitions.set(
         descriptor,
-        mapTransitionConfigs(transitionsConfig, (transition) =>
-          formatTransition(stateNode, descriptor, transition)
+        mapTransitionConfigs(
+          stateNode,
+          descriptor,
+          transitionsConfig,
+          (transition) => formatTransition(stateNode, descriptor, transition)
         )
       );
     }
@@ -500,11 +529,15 @@ function formatTransitions<
     const descriptor = 'xstate.done.state';
     addTransitions(
       descriptor,
-      mapTransitionConfigs(stateNode.config.onDone, (transition) =>
-        formatTransition(stateNode, descriptor, {
-          ...transition,
-          matches: { ...transition.matches, stateId: stateNode.id }
-        })
+      mapTransitionConfigs(
+        stateNode,
+        'onDone',
+        stateNode.config.onDone,
+        (transition) =>
+          formatTransition(stateNode, descriptor, {
+            ...transition,
+            matches: { ...transition.matches, stateId: stateNode.id }
+          })
       )
     );
   }
@@ -512,8 +545,11 @@ function formatTransitions<
     const descriptor = 'xstate.error.*';
     transitions.set(
       descriptor,
-      mapTransitionConfigs(stateNode.config.onError, (transition) =>
-        formatTransition(stateNode, descriptor, transition)
+      mapTransitionConfigs(
+        stateNode,
+        'onError',
+        stateNode.config.onError,
+        (transition) => formatTransition(stateNode, descriptor, transition)
       )
     );
   }
@@ -600,6 +636,8 @@ function formatTransitions<
     if (invokeDef.onDone) {
       const descriptor = 'xstate.done.actor';
       const invokeDoneTransitions = mapTransitionConfigs(
+        stateNode,
+        'invoke.onDone',
         invokeDef.onDone,
         (rawTransition) => {
           const transition = withInvokeMatch(rawTransition);
@@ -638,24 +676,33 @@ function formatTransitions<
       const descriptor = 'xstate.error.actor';
       addTransitions(
         descriptor,
-        mapTransitionConfigs(invokeDef.onError, (rawTransition) => {
-          const transition = withInvokeMatch(rawTransition);
-          return invokeTimeoutKey
-            ? formatInvokeCompletionTransition(
-                descriptor,
-                transition,
-                invokeTimeoutKey
-              )
-            : formatTransition(stateNode, descriptor, transition);
-        })
+        mapTransitionConfigs(
+          stateNode,
+          'invoke.onError',
+          invokeDef.onError,
+          (rawTransition) => {
+            const transition = withInvokeMatch(rawTransition);
+            return invokeTimeoutKey
+              ? formatInvokeCompletionTransition(
+                  descriptor,
+                  transition,
+                  invokeTimeoutKey
+                )
+              : formatTransition(stateNode, descriptor, transition);
+          }
+        )
       );
     }
     if (invokeDef.onSnapshot) {
       const descriptor = 'xstate.snapshot.actor';
       addTransitions(
         descriptor,
-        mapTransitionConfigs(invokeDef.onSnapshot, (transition) =>
-          formatTransition(stateNode, descriptor, withInvokeMatch(transition))
+        mapTransitionConfigs(
+          stateNode,
+          'invoke.onSnapshot',
+          invokeDef.onSnapshot,
+          (transition) =>
+            formatTransition(stateNode, descriptor, withInvokeMatch(transition))
         )
       );
     }

@@ -781,11 +781,16 @@ export async function testPaths<TSource extends ActorLogic<any, any, any>>(
     if (typeof (snapshot as { nodes?: unknown }).nodes === 'object') {
       for (const stateNode of (
         snapshot as unknown as {
-          nodes: readonly { invoke?: readonly { id: string; src: string }[] }[];
+          nodes: readonly {
+            invoke?: readonly { id: string; src: string | undefined }[];
+          }[];
         }
       ).nodes) {
         for (const invokeDef of stateNode.invoke ?? []) {
-          invokeSrcById.set(invokeDef.id, invokeDef.src);
+          // Only registered sources have a key to declare outcomes under.
+          if (invokeDef.src !== undefined) {
+            invokeSrcById.set(invokeDef.id, invokeDef.src);
+          }
         }
       }
       for (const event of getAllOwnEvents(snapshot as never)) {

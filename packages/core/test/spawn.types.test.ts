@@ -3,7 +3,7 @@ import {
   createStepLogic,
   createMachine,
   setup,
-  type ActorRefFromLogic,
+  type ActorRefFrom,
   type Spawner
 } from '../src';
 
@@ -48,12 +48,12 @@ describe('spawn inside machine', () => {
         const childRef = enq.spawn(actors.child, {
           input: { value: 42 }
         });
-        childRef satisfies ActorRefFromLogic<typeof childMachine>;
+        childRef satisfies ActorRefFrom<typeof childMachine>;
 
         const childRefBySource = enq.spawn('child', {
           input: { value: 42 }
         });
-        childRefBySource satisfies ActorRefFromLogic<typeof childMachine>;
+        childRefBySource satisfies ActorRefFrom<typeof childMachine>;
         childRefBySource.send({ type: 'PING', value: 'ok' });
         childRefBySource.getSnapshot().context.value satisfies number;
         childRefBySource.getSnapshot().output satisfies string | undefined;
@@ -88,7 +88,7 @@ describe('spawn inside machine', () => {
       entry: (_, enq) => {
         const child = enq.spawn('child', { input: { value: 42 } });
         child.trigger.PING({ value: 'ok' });
-        child satisfies ActorRefFromLogic<typeof childMachine>;
+        child satisfies ActorRefFrom<typeof childMachine>;
       }
     }).provide({ actors: { child: childMachine } });
 
@@ -98,7 +98,7 @@ describe('spawn inside machine', () => {
         entry: (_, enq) => {
           const child = enq.spawn('child', { input: { value: 42 } });
           child.trigger.PING({ value: 'ok' });
-          child satisfies ActorRefFromLogic<typeof childMachine>;
+          child satisfies ActorRefFrom<typeof childMachine>;
         }
       });
   });
@@ -168,7 +168,7 @@ describe('spawn inside machine', () => {
       // @ts-expect-error required payload event still requires a payload
       optionalPayloadRef.trigger.SAVE();
 
-      const actorRef: ActorRefFromLogic<typeof childMachine> = childRef;
+      const actorRef: ActorRefFrom<typeof childMachine> = childRef;
       // @ts-expect-error ActorRef is the narrow public interface
       actorRef.trigger.PING({ value: 'ok' });
     }

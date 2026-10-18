@@ -674,11 +674,13 @@ describe('#5228 restore errors surface', () => {
 
   it('a version-mismatched snapshot without `migrate` surfaces an error', () => {
     const machineV1 = createMachine({
+      id: 'machine',
       version: '1',
       initial: 'a',
       states: { a: {} }
     });
     const machineV2 = createMachine({
+      id: 'machine',
       version: '2',
       initial: 'a',
       states: { a: {} }
@@ -700,12 +702,14 @@ describe('#5228 restore errors surface', () => {
 
   it('positive control: a version-mismatched snapshot WITH `migrate` restores successfully', () => {
     const machineV1 = createMachine({
+      id: 'machine',
       version: '1',
       context: { count: 5 },
       initial: 'a',
       states: { a: {} }
     });
     const machineV2 = createMachine({
+      id: 'machine',
       version: '2',
       migrate: (persisted: any) => ({
         ...persisted,
@@ -732,6 +736,7 @@ describe('#5228 restore errors surface', () => {
       context: { implementation: 'second-v2' }
     });
     const machineV1 = createMachine({
+      id: 'machine',
       version: '1',
       actors: { first: shared, second: shared },
       entry: (_, enq) => {
@@ -739,6 +744,7 @@ describe('#5228 restore errors surface', () => {
       }
     });
     const machineV2 = createMachine({
+      id: 'machine',
       version: '2',
       migrate: (persisted: any) => ({ ...persisted, version: '2' }),
       actors: { first: shared, second: secondV2 }

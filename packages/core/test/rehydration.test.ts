@@ -4,6 +4,9 @@ import {
   createActor,
   createAsyncLogic,
   createObservableLogic,
+  createStepLogic,
+  InvalidSnapshotError,
+  type AnyActor,
   type AnyStateMachine,
   type RestorablePersistedSnapshotFor,
   type Snapshot
@@ -638,6 +641,177 @@ describe('rehydration', () => {
       });
     });
 
+    describe('malformed snapshots', () => {
+      const machine = createMachine({
+        id: 'order-approval',
+        initial: 'reviewing',
+        states: {
+          reviewing: { on: { APPROVE: { target: 'approved' } } },
+          approved: {}
+        }
+      });
+      const parallelMachine = createMachine({
+        id: 'order-approval',
+        initial: 'active',
+        states: {
+          active: {
+            initial: 'reviewing',
+            states: { reviewing: {}, approved: {} }
+          }
+        }
+      });
+
+      function restoreMalformed(logic: AnyStateMachine, snapshot: unknown) {
+        const restored = createActor(logic, {
+          snapshot: snapshot as any,
+          input: undefined
+        });
+        restored.subscribe({ error: () => {} });
+        restored.start();
+        return restored;
+      }
+
+      function persisted(overrides: Record<string, unknown>) {
+        const actorRef = createActor(machine).start();
+        const snapshot = actorRef.getPersistedSnapshot();
+        actorRef.stop();
+        return { ...(snapshot as object), ...overrides };
+      }
+
+      it.each([
+        ['null', null],
+        ['a string', 'reviewing'],
+        ['a number', 42],
+        ['an array', [] as unknown[]]
+      ])(
+        'should error with InvalidSnapshotError when the snapshot is %s',
+        (_, snapshot) => {
+          const restored = restoreMalformed(machine, snapshot);
+          const restoredSnapshot = restored.getSnapshot();
+
+          expect(restoredSnapshot.status).toBe('error');
+          expect(restoredSnapshot.error).toBeInstanceOf(InvalidSnapshotError);
+          expect(restoredSnapshot.error).toMatchObject({
+            name: 'InvalidSnapshotError',
+            message:
+              "Persisted snapshot for machine 'order-approval' must be an object."
+          });
+          // Machine-shaped error snapshot, like a missing-state restore.
+          expect(restoredSnapshot.can({ type: 'APPROVE' })).toBe(false);
+        }
+      );
+
+      it('should error with InvalidSnapshotError when the state value is missing', () => {
+        const { value: _value, ...snapshot } = persisted({});
+
+        expect(restoreMalformed(machine, snapshot).getSnapshot()).toMatchObject(
+          {
+            status: 'error',
+            error: expect.objectContaining({
+              name: 'InvalidSnapshotError',
+              message:
+                "Persisted snapshot for machine 'order-approval' has no state value."
+            })
+          }
+        );
+      });
+
+      it.each([
+        ['a number', 42],
+        ['null', null],
+        ['an array', ['reviewing']],
+        ['a boolean', true]
+      ])(
+        'should error with InvalidSnapshotError when the state value is %s',
+        (_, value) => {
+          expect(
+            restoreMalformed(machine, persisted({ value })).getSnapshot()
+          ).toMatchObject({
+            status: 'error',
+            error: expect.objectContaining({
+              name: 'InvalidSnapshotError',
+              message:
+                "Persisted snapshot for machine 'order-approval' has an invalid state value: expected a state name or an object of state values."
+            })
+          });
+        }
+      );
+
+      it('should error with InvalidSnapshotError when a nested state value is invalid', () => {
+        expect(
+          restoreMalformed(
+            parallelMachine,
+            persisted({ value: { active: 42 } })
+          ).getSnapshot()
+        ).toMatchObject({
+          status: 'error',
+          error: expect.objectContaining({
+            name: 'InvalidSnapshotError',
+            message:
+              "Persisted snapshot for machine 'order-approval' has an invalid state value at 'active': expected a state name or an object of state values."
+          })
+        });
+      });
+
+      it('should error with InvalidSnapshotError when a non-parallel state has several active children', () => {
+        expect(
+          restoreMalformed(
+            parallelMachine,
+            persisted({ value: { active: { reviewing: {}, approved: {} } } })
+          ).getSnapshot()
+        ).toMatchObject({
+          status: 'error',
+          error: expect.objectContaining({
+            name: 'InvalidSnapshotError',
+            message:
+              "Persisted snapshot for machine 'order-approval' has an invalid state value at 'active': state 'active' is not parallel, so only one child state can be active."
+          })
+        });
+      });
+
+      it('should report missing states as InvalidSnapshotError', () => {
+        expect(
+          restoreMalformed(
+            machine,
+            persisted({ value: 'archived' })
+          ).getSnapshot()
+        ).toMatchObject({
+          status: 'error',
+          error: expect.objectContaining({
+            name: 'InvalidSnapshotError',
+            message:
+              "Persisted snapshot references state 'archived' which does not exist on machine 'order-approval'."
+          })
+        });
+      });
+
+      it('should complete a partial state value with initial states', () => {
+        const restored = restoreMalformed(
+          parallelMachine,
+          persisted({ value: { active: {} } })
+        );
+        const snapshot = restored.getSnapshot();
+
+        expect(snapshot.status).toBe('active');
+        expect(snapshot.value).toEqual({ active: 'reviewing' });
+        expect(snapshot.matches('active.reviewing' as never)).toBe(true);
+        expect(restored.getPersistedSnapshot()).toMatchObject({
+          value: { active: 'reviewing' }
+        });
+      });
+
+      it('should still ignore unknown fields', () => {
+        const restored = restoreMalformed(
+          machine,
+          persisted({ somethingElse: true })
+        );
+
+        expect(restored.getSnapshot().status).toBe('active');
+        restored.send({ type: 'APPROVE' });
+        expect(restored.getSnapshot().value).toBe('approved');
+      });
+    });
+
     it('should restore successfully when the persisted state value is valid', () => {
       const machine = createMachine({
         id: 'order-approval',
@@ -659,5 +833,194 @@ describe('rehydration', () => {
         payment: 'pending'
       });
     });
+  });
+});
+
+describe('inline invoke persistence', () => {
+  const counter = createStepLogic({
+    context: { count: 0 },
+    run: ({ context, event }) => ({
+      context: event.type === 'INC' ? { count: context.count + 1 } : context
+    })
+  });
+
+  function persistAfterIncrement(
+    machine: AnyStateMachine,
+    childId: string,
+    input?: unknown
+  ) {
+    const actor = createActor(machine, { input } as never).start();
+    actor.getSnapshot().children[childId]!.send({ type: 'INC' });
+    const persisted = actor.getPersistedSnapshot() as any;
+    actor.stop();
+    return persisted;
+  }
+
+  it('persists an inline invoke without `src` and restores it', () => {
+    const machine = createMachine({
+      id: 'parent',
+      initial: 'active',
+      states: {
+        active: {
+          initial: 'running',
+          states: { running: { invoke: { id: 'counter', src: counter } } }
+        }
+      }
+    });
+
+    const persisted = persistAfterIncrement(machine, 'counter');
+
+    expect(persisted.children.counter).not.toHaveProperty('src');
+
+    const restored = createActor(machine, {
+      snapshot: JSON.parse(JSON.stringify(persisted))
+    }).start();
+    const child = restored.getSnapshot().children.counter as AnyActor;
+    expect(restored.getSnapshot().status).toBe('active');
+    expect(child.getSnapshot().context).toEqual({ count: 1 });
+    child.send({ type: 'INC' });
+    expect(child.getSnapshot().context).toEqual({ count: 2 });
+  });
+
+  it('restores inline invokes in parallel regions', () => {
+    const other = createStepLogic({
+      context: { name: 'other' },
+      run: ({ context }) => ({ context })
+    });
+    const machine = createMachine({
+      id: 'parent',
+      type: 'parallel',
+      states: {
+        a: { invoke: { id: 'counter', src: counter } },
+        b: { invoke: { id: 'other', src: other } }
+      }
+    });
+
+    const persisted = persistAfterIncrement(machine, 'counter');
+    expect(persisted.children.counter).not.toHaveProperty('src');
+    expect(persisted.children.other).not.toHaveProperty('src');
+
+    const restored = createActor(machine, { snapshot: persisted }).start();
+    const { children } = restored.getSnapshot();
+    expect((children.counter as AnyActor).getSnapshot().context).toEqual({
+      count: 1
+    });
+    expect((children.other as AnyActor).getSnapshot().context).toEqual({
+      name: 'other'
+    });
+  });
+
+  it('resolves a reused invoke id against the active state only', () => {
+    const other = createStepLogic({
+      context: { count: 100 },
+      run: ({ context, event }) => ({
+        context: event.type === 'INC' ? { count: context.count + 100 } : context
+      })
+    });
+    const machine = createMachine({
+      id: 'parent',
+      initial: 'first',
+      states: {
+        first: {
+          invoke: { id: 'worker', src: other },
+          on: { NEXT: { target: 'second' } }
+        },
+        second: { invoke: { id: 'worker', src: counter } }
+      }
+    });
+
+    const actor = createActor(machine).start();
+    actor.send({ type: 'NEXT' });
+    actor.getSnapshot().children.worker!.send({ type: 'INC' });
+    const persisted = actor.getPersistedSnapshot();
+    actor.stop();
+
+    const restored = createActor(machine, { snapshot: persisted }).start();
+    const child = restored.getSnapshot().children.worker as AnyActor;
+    expect(child.getSnapshot().context).toEqual({ count: 1 });
+    child.send({ type: 'INC' });
+    expect(child.getSnapshot().context).toEqual({ count: 2 });
+  });
+
+  it('keeps the source key of a registered invoke', () => {
+    const machine = createMachine({
+      id: 'parent',
+      actors: { counter },
+      invoke: { id: 'counter', src: 'counter' }
+    });
+
+    const persisted = persistAfterIncrement(machine, 'counter');
+    expect(persisted.children.counter.src).toBe('counter');
+
+    const restored = createActor(machine, { snapshot: persisted }).start();
+    expect(
+      (restored.getSnapshot().children.counter as AnyActor).getSnapshot()
+        .context
+    ).toEqual({ count: 1 });
+  });
+
+  it('errors when no active state invokes a source-less child', () => {
+    const machine = createMachine({
+      id: 'parent',
+      initial: 'idle',
+      states: {
+        idle: { on: { GO: { target: 'running' } } },
+        running: { invoke: { id: 'counter', src: counter } }
+      }
+    });
+    const actor = createActor(machine).start();
+    actor.send({ type: 'GO' });
+    const persisted = actor.getPersistedSnapshot() as any;
+    actor.stop();
+
+    const restored = createActor(machine, {
+      snapshot: { ...persisted, value: 'idle' }
+    });
+    restored.subscribe({ error: () => {} });
+    restored.start();
+
+    expect(restored.getSnapshot()).toMatchObject({
+      status: 'error',
+      error: expect.objectContaining({
+        message:
+          "Unable to restore child actor 'counter': it has no source key, and no active state of machine 'parent' invokes it."
+      })
+    });
+  });
+});
+
+describe('replaced inline invoke persistence', () => {
+  it('does not persist a child that replaced an inline invoke as that invoke', () => {
+    const original = createStepLogic({
+      context: { kind: 'original' },
+      run: ({ context }) => ({ context })
+    });
+    const replacement = createStepLogic({
+      context: { kind: 'replacement' },
+      run: ({ context }) => ({ context })
+    });
+    const machine = createMachine({
+      initial: 'active',
+      states: {
+        active: {
+          invoke: { id: 'worker', src: original },
+          on: {
+            REPLACE: ({ children }, enq) => {
+              enq.stop(children.worker);
+              enq.spawn(replacement, { id: 'worker' });
+            }
+          }
+        }
+      }
+    });
+    const actor = createActor(machine).start();
+    actor.send({ type: 'REPLACE' });
+    expect(
+      (actor.getSnapshot().children.worker as AnyActor).getSnapshot().context
+    ).toEqual({ kind: 'replacement' });
+
+    expect(() => actor.getPersistedSnapshot()).toThrow(
+      'An inline child actor cannot be persisted.'
+    );
   });
 });

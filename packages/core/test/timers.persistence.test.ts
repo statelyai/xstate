@@ -38,7 +38,7 @@ describe('persisted logical timers', () => {
       event: {
         type: 'xstate.after',
         delay: 1000,
-        stateId: '(machine).green'
+        stateId: 'green'
       },
       target: 'self'
     });

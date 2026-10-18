@@ -1,4 +1,5 @@
-import type { EventObject, IsAny, NormalizeDescriptor } from './types.ts';
+import type { EventObject, NormalizeDescriptor } from './types.ts';
+import type { IsAny } from './typeUtils.ts';
 
 type EventTypeMatchesDescriptor<
   TEventType extends string,

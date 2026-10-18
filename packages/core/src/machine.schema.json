@@ -302,6 +302,8 @@
         "initial": { "$ref": "#/$defs/initial" },
         "states": {
           "type": "object",
+          "description": "State keys escape a literal dot as \\\\. (an unescaped . separates path segments).",
+          "propertyNames": { "pattern": "^(?:[^.\\\\]|\\\\.)*$" },
           "additionalProperties": { "$ref": "#/$defs/stateNode" }
         },
         "on": { "$ref": "#/$defs/transitionMap" },
@@ -388,6 +390,10 @@
       ],
       "additionalProperties": true
     },
-    "machine": { "$ref": "#/$defs/stateNode" }
+    "machine": {
+      "allOf": [{ "$ref": "#/$defs/stateNode" }],
+      "description": "A machine with a version must declare an id.",
+      "dependencies": { "version": ["id"] }
+    }
   }
 }

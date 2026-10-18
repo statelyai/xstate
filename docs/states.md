@@ -27,6 +27,10 @@ const machine = createMachine({
 
 See [machine configuration](configuration.md) for every property a state node accepts.
 
+## State keys
+
+A `.` in a state key separates path segments, so a key cannot contain an unescaped `.`; creating such a machine throws. To use a literal dot, escape it: `'foo\\.bar'`. The escaped form is the key everywhere: in state values (`snapshot.value === 'foo\\.bar'`), implicit ids (`#foo\\.bar`), `matches('foo\\.bar')`, targets and persisted snapshots. It never collides with a nested `foo` → `bar` (`'foo.bar'`).
+
 ## State snapshots
 
 `actor.getSnapshot()` returns a machine snapshot: an immutable description of the machine at one point in time.

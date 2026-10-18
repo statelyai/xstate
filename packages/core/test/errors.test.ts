@@ -116,7 +116,7 @@ describe('error handling', () => {
           enq.effect('child', () => {
             createActor(
               createCallbackLogic(() => cleanup),
-              { parent: self as AnyActor }
+              { parent: self as AnyActor } as {}
             ).start();
           });
         }

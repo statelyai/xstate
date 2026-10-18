@@ -9,13 +9,12 @@ import {
   AnyActorLogic,
   AnyActorRef,
   AnyActorScope,
-  ConditionalRequired,
   InputFrom,
-  IsNotNever,
   RegistryKeyForLogic,
   SystemRegistry,
   type RequiredLogicInput
 } from './types.ts';
+import type { ConditionalRequired, IsNotNever } from './typeUtils.ts';
 
 /** @public */
 export type Spawner<TSystemRegistry extends SystemRegistry = SystemRegistry> = <
@@ -29,7 +28,7 @@ export type Spawner<TSystemRegistry extends SystemRegistry = SystemRegistry> = <
         registryKey?: RegistryKeyForLogic<TLogic, TSystemRegistry>;
         input?: InputFrom<TLogic>;
         syncSnapshot?: boolean;
-      } & { [K in RequiredLogicInput<TLogic>]: unknown }
+      } & { [K in RequiredLogicInput<TLogic>]: InputFrom<TLogic> }
     ],
     IsNotNever<RequiredLogicInput<TLogic>>
   >

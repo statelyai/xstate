@@ -8,13 +8,13 @@ import { systemLogicMetadata } from '../systemLogicMetadata.ts';
 import {
   ActorLogic,
   ActorFromLogic,
-  ActorRefFromLogic,
+  ActorRefFrom,
   AnyActor,
   AnyEventObject,
   EventObject,
-  NonReducibleUnknown,
   Snapshot
 } from '../types.ts';
+import type { NonReducibleUnknown } from '../typeUtils.ts';
 import { createStepLogic as createBaseLogic } from './logic.ts';
 
 /** @public */
@@ -49,7 +49,7 @@ export type AsyncActorLogic<
 >;
 
 /** @public */
-export type AsyncActorRef<TOutput> = ActorRefFromLogic<
+export type AsyncActorRef<TOutput> = ActorRefFrom<
   AsyncActorLogic<TOutput, unknown>
 >;
 

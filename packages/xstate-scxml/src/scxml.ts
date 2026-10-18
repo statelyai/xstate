@@ -986,7 +986,8 @@ function compileScxmlElement(
   const binding =
     machineElement.attributes?.binding === 'late' ? 'late' : 'early';
   const data = collectDataDescriptors(machineElement, options);
-  const machineId = (machineElement.attributes?.name as string) || '(machine)';
+  // Without a `name`, the machine has no id (the empty id).
+  const machineId = (machineElement.attributes?.name as string) || '';
   const stateNodeJSON = toStateNodeJSON(
     machineElement,
     machineId,

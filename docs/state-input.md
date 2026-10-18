@@ -106,7 +106,7 @@ const machine = createMachine({
 
 const actor = createActor(machine).start();
 actor.send({ type: 'UPLOAD' });
-actor.getSnapshot().getInputs(); // { '(machine).uploading': { fileName: 'report.pdf' } }
+actor.getSnapshot().getInputs(); // { 'uploading': { fileName: 'report.pdf' } }
 
 actor.send({ type: 'CANCEL' });
 actor.getSnapshot().getInputs(); // {}
@@ -120,7 +120,7 @@ Persisted snapshots only include inputs for active states.
 
 ```ts
 const inputs = actor.getSnapshot().getInputs();
-inputs['(machine).uploading']; // { fileName: 'report.pdf' }
+inputs['uploading']; // { fileName: 'report.pdf' }
 ```
 
 Use state input for data that belongs to one state rather than to the whole machine:
