@@ -5,7 +5,8 @@ export {
   renameImports,
   stringTargets,
   typesToSchemas,
-  reportRemovedApis
+  reportRemovedApis,
+  reportIdPathTargets
 } from './transforms/index.ts';
 export {
   run,

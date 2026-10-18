@@ -15,7 +15,7 @@ idle: { on: { start: { target: 'active' } } }
 
 | Property | Description |
 | --- | --- |
-| `target` | Target state or states: a sibling key, a `.`-separated path, a `.child` descendant, or a `#id` (explicit or implicit). Escape a literal dot in a key as `\\.`. |
+| `target` | Target state or states: a sibling key, a `.`-separated path, a `.child` descendant, or a `#id` (a state's whole explicit or implicit id; see [target by id](#target-by-id)). Escape a literal dot in a key as `\\.`. |
 | `matches` | Event payload that must match. |
 | `context` | Context patch or mapper. |
 | `input` | Input for the target state. |
@@ -45,6 +45,38 @@ on: {
   restart: { target: 'active', reenter: true }
 }
 ```
+
+## Target by id
+
+A `#` target names one state by its id. The text after `#` is matched exactly against the state ids and is never split into a path. A state's id is its explicit `id`, or else its implicit id: the path from the root joined by `.`, prefixed by the machine `id` when there is one.
+
+```ts
+const machine = createMachine({
+  id: 'shop',
+  initial: 'browsing',
+  states: {
+    browsing: {
+      on: {
+        edit: { target: '#flow' },
+        review: { target: '#shop.wizard.review' }
+      }
+    },
+    wizard: {
+      id: 'flow',
+      initial: 'details',
+      states: { details: {}, review: {} }
+    }
+  }
+});
+```
+
+`#flow` targets `wizard` by its explicit id. `#shop.wizard.review` targets `review` by its implicit id. `#flow.review` is not a valid target: no state has the id `flow.review`, and an id is not combined with a relative path. Creating the machine with it throws:
+
+```
+No state has id "flow.review". Use "#shop.wizard.review", or give that state an id.
+```
+
+Explicit ids are matched as written. An explicit `id: 'checkout.v2'` is targeted as `#checkout.v2`, without escaping. Key segments in implicit ids keep their `\\.` escapes (`#shop.foo\\.bar`).
 
 ## Transition functions
 
@@ -149,4 +181,5 @@ after: { 1000: { target: 'idle' } }
 on: { 'xstate.done.actor': { matches: { actorId: 'job' }, target: 'done' } }
 onDone: { target: 'success' }
 onError: { target: 'failure' }
+on: { edit: { target: '#flow' } } // whole explicit or implicit id
 ```

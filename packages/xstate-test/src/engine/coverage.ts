@@ -461,14 +461,10 @@ function getHistoryDefaultTargets(node: AnyStateNode): AnyStateNode[] {
   return targets;
 }
 
-/** Resolves a `'#id'` or (escaped) dot-separated path relative to `node`. */
+/** Resolves an exact `'#id'` or (escaped) dot-separated path relative to `node`. */
 function resolveStateNodePath(node: AnyStateNode, path: string): AnyStateNode {
   if (path.startsWith('#')) {
-    try {
-      return node.machine.getStateNodeById(path);
-    } catch {
-      // fall back to resolving it as a path
-    }
+    return node.machine.getStateNodeById(path);
   }
   const segments: string[] = [];
   let segment = '';

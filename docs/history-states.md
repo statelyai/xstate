@@ -55,7 +55,7 @@ Leaving from `details.address` and returning through `form.hist` lands on `detai
 
 ## Targeting a history state
 
-A history state is targeted like any other state: by relative key, by dotted path, by `#id`, or by a leading dot for a transition inside the same parent.
+A history state is targeted like any other state: by relative key, by dotted path, by its whole `#id`, or by a leading dot for a transition inside the same parent.
 
 ```ts
 on: {

@@ -2047,13 +2047,6 @@ type AppendStatePath<TPrefix extends StatePath, TKey extends string> = [
   TKey
 ];
 
-// Explicit ids are stored unescaped and referenced with escaped dots. State
-// keys already escape their dots, and an escaped dot stays in its segment.
-type EscapeStatePathDots<TValue extends string> =
-  TValue extends `${infer THead}.${infer TTail}`
-    ? `${THead}\\.${EscapeStatePathDots<TTail>}`
-    : TValue;
-
 type ProtectEscapedStatePathDots<TValue extends string> =
   TValue extends `${infer THead}\\.${infer TTail}`
     ? `${THead}__XSTATE_ESCAPED_DOT__${ProtectEscapedStatePathDots<TTail>}`
@@ -2126,32 +2119,17 @@ type JoinStateTargetString<
   TKey extends string
 > = TPrefix extends '' ? TKey : `${TPrefix}.${TKey}`;
 
-type StateTargetStringsFromStates<TStates, TPrefix extends string = ''> =
-  TStates extends Record<string, unknown>
-    ? {
-        [K in keyof TStates & string]:
-          | JoinStateTargetString<TPrefix, K>
-          | (0 extends 1 & TStates[K]
-              ? never
-              : TStates[K] extends { states: infer TChildren }
-                ? StateTargetStringsFromStates<
-                    TChildren,
-                    JoinStateTargetString<TPrefix, K>
-                  >
-                : never);
-      }[keyof TStates & string]
-    : never;
-
-// The id a `#` target names a state node by: its explicit `id` (dots
-// escaped), or its implicit id, the path from the root (keys keep their
+// The id a `#` target names a state node by: its explicit `id`, matched
+// exactly, or its implicit id, the path from the root (keys keep their
 // escaped dots) prefixed by the machine id when it has one. The root of a
-// machine without an id has the empty implicit id, which `#` cannot name.
+// machine without an id has the empty implicit id, which `#` cannot name. A
+// `#` target is never an id followed by a path.
 type ReferenceIdForNode<TNode, TImplicitId extends string> = TNode extends {
   id: infer TId extends string;
 }
   ? string extends TId
     ? never
-    : EscapeStatePathDots<TId>
+    : TId
   : TImplicitId extends ''
     ? never
     : TImplicitId;
@@ -2160,9 +2138,7 @@ type IdTargetsForNode<TNode, TImplicitId extends string> =
   ReferenceIdForNode<TNode, TImplicitId> extends infer TRef extends string
     ? [TRef] extends [never]
       ? never
-      : TNode extends { states: infer TStates }
-        ? `#${TRef}` | `#${TRef}.${StateTargetStringsFromStates<TStates>}`
-        : `#${TRef}`
+      : `#${TRef}`
     : never;
 
 type IdTargetsFromStates<TStates, TPrefix extends string> =
@@ -2204,9 +2180,7 @@ type ResolveIdTargetAtNode<
       ? never
       : TTarget extends `#${TRef}`
         ? TNodePath
-        : TTarget extends `#${TRef}.${infer TDescendant}`
-          ? [...TNodePath, ...SplitStatePath<TDescendant>]
-          : never
+        : never
     : never;
 
 type ResolveIdTargetInStates<

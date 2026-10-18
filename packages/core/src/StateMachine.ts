@@ -7,7 +7,7 @@ import {
   createInitEvent,
   createInvokeTimeoutEvent
 } from './eventUtils.ts';
-import { XSTATE_TIMER } from './constants.ts';
+import { STATE_DELIMITER, XSTATE_TIMER } from './constants.ts';
 import { parseGeneratedActorId } from './system.ts';
 import {
   createRemoteActorRef,
@@ -34,7 +34,6 @@ import { StateNode } from './StateNode.ts';
 import {
   formatRouteTransitions,
   getAllStateNodes,
-  getStateNodeByPath,
   getStateNodes,
   getTransitionResult,
   hasEffect,
@@ -1563,61 +1562,47 @@ export class StateMachine<
   public getStateNodeById(
     stateId: string
   ): StateNode<TContext, TEvent, TMeta, TTransitionMeta> {
-    const fullPath = toStatePath(stateId);
-    const relativePath = fullPath.slice(1);
-    const resolvedStateId = isStateId(fullPath[0])
-      ? fullPath[0].slice(STATE_IDENTIFIER.length)
-      : fullPath[0];
+    // `#id` is an exact id lookup: the text after `#` is never split into a
+    // path. It names a state's explicit `id` or its implicit id.
+    const hasPrefix = isStateId(stateId);
+    const id = hasPrefix ? stateId.slice(STATE_IDENTIFIER.length) : stateId;
 
-    if (resolvedStateId === '' && isStateId(fullPath[0])) {
+    if (id === '' && hasPrefix) {
       throw new Error(
         this.id
           ? `State id '#' is empty. Target the root of ${describeMachine(this.id)} with '#${this.id}'.`
           : "State id '#' is empty: the root of a machine without an `id` cannot be referenced by id. Give the machine an `id` to reference its root as '#<id>'."
       );
     }
-    // Implicit ids keep escaped dots (`foo\\.bar`); explicit ids that contain
-    // a `.` are referenced with the dot escaped and stored unescaped.
-    const stateNode =
-      this.idMap.get(resolvedStateId) ??
-      this.idMap.get(resolvedStateId.replaceAll('\\.', '.'));
+    const stateNode = this.idMap.get(id);
     if (stateNode) {
-      try {
-        return getStateNodeByPath(stateNode, relativePath) as StateNode<
-          TContext,
-          TEvent,
-          TMeta,
-          TTransitionMeta
-        >;
-      } catch (err) {
-        if (!relativePath.length) throw err;
+      return stateNode as StateNode<TContext, TEvent, TMeta, TTransitionMeta>;
+    }
+    throw new Error(this._describeUnknownStateId(id));
+  }
+
+  /**
+   * The error message for an id that matches no state. When a prefix of the
+   * id is a state id and the rest resolves beneath it as a relative path,
+   * suggests the target's own id.
+   */
+  private _describeUnknownStateId(id: string): string {
+    const message = `No state has id "${id}".`;
+    const segments = toStatePath(id);
+    for (let i = segments.length - 1; i > 0; i--) {
+      let node: AnyStateNode | undefined = this.idMap.get(
+        segments.slice(0, i).join(STATE_DELIMITER)
+      );
+      for (let j = i; node && j < segments.length; j++) {
+        node = node.states?.[segments[j]];
+      }
+      if (node) {
+        return node.config.id
+          ? `${message} Use "#${node.id}".`
+          : `${message} Use "#${node.id}", or give that state an id.`;
       }
     }
-    // A whole implicit id, such as `a.b` when `a` has an explicit id and so
-    // cannot be referenced as `#a`.
-    const implicitId = isStateId(stateId)
-      ? stateId.slice(STATE_IDENTIFIER.length)
-      : stateId;
-    const implicitNode = this.idMap.get(implicitId);
-    if (implicitNode && !implicitNode.config.id) {
-      return implicitNode as StateNode<
-        TContext,
-        TEvent,
-        TMeta,
-        TTransitionMeta
-      >;
-    }
-    if (!stateNode) {
-      throw new Error(
-        `Child state node '#${resolvedStateId}' does not exist on ${describeMachine(this.id)}`
-      );
-    }
-    return getStateNodeByPath(stateNode, relativePath) as StateNode<
-      TContext,
-      TEvent,
-      TMeta,
-      TTransitionMeta
-    >;
+    return message;
   }
 
   public getPersistedSnapshot(

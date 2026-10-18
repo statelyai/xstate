@@ -790,7 +790,7 @@ describe('setup state contracts', () => {
           input: { id: 1 }
         },
         ID: {
-          target: '#node\\.id',
+          target: '#node.id',
           input: { id: 1 }
         }
       }
@@ -820,7 +820,7 @@ describe('setup state contracts', () => {
             'foo\\.bar': {},
             idle: {
               on: {
-                ID: { target: '#node\\.id', input: { id: 1 } }
+                ID: { target: '#node.id', input: { id: 1 } }
               }
             }
           }
@@ -829,7 +829,7 @@ describe('setup state contracts', () => {
     });
 
     s.createMachine({
-      initial: { target: '#active\\.id' },
+      initial: { target: '#active.id' },
       states: {
         active: {
           initial: 'idle',
@@ -851,8 +851,8 @@ describe('setup state contracts', () => {
               'foo\\.bar': {},
               idle: {
                 on: {
-                  // @ts-expect-error - dots in IDs must be escaped
-                  ID: { target: '#node.id', input: { id: 1 } }
+                  // @ts-expect-error - ids are matched exactly, not unescaped
+                  ID: { target: '#node\\.id', input: { id: 1 } }
                 }
               }
             }
@@ -1267,14 +1267,12 @@ describe('setup state contracts', () => {
           input: { grandchildToken: true }
         },
         GO: {
-          target: '#parent-id.flow.done',
+          target: '#done-state',
           context: { mode: 'done', code: 1 },
           input: { token: 'ready' }
         },
         NESTED_ID: {
-          target: '#flow-id.done',
-          context: { mode: 'done', code: 1 },
-          input: { token: 'ready' }
+          target: '#flow-id'
         }
       }
     });
@@ -1282,7 +1280,13 @@ describe('setup state contracts', () => {
     if (false) {
       s.createStateConfig('parent', {
         on: {
-          // @ts-expect-error - descendants after nested IDs must be known
+          // @ts-expect-error - an id followed by a path is not an id
+          NESTED_ID: { target: '#flow-id.done', input: { token: 'ready' } }
+        }
+      });
+      s.createStateConfig('parent', {
+        on: {
+          // @ts-expect-error - no state has this id
           NESTED_ID: { target: '#flow-id.missing' }
         }
       });
@@ -1891,7 +1895,7 @@ describe('setup state contracts', () => {
               initial: 's1',
               states: {
                 s1: {},
-                s2: {},
+                s2: { id: 'regionOne.s2' },
                 s3: {},
                 s4: {},
                 s5: {},
@@ -1982,7 +1986,7 @@ describe('setup state contracts', () => {
           states: {
             regionOne: {
               states: {
-                s1: { on: { NEXT: { target: '#workflow.regionOne.s2' } } },
+                s1: { on: { NEXT: { target: '#regionOne.s2' } } },
                 s2: {},
                 s3: {},
                 s4: {},
