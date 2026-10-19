@@ -143,12 +143,10 @@ export function deliverEvent(
     return;
   }
   const runtimeTarget = target as AnyActor & {
-    _lastSourceRef?: AnyActor;
-    _send(event: AnyEventObject): void;
+    _send(event: AnyEventObject, sourceRef?: AnyActor): void;
   };
 
-  runtimeTarget._lastSourceRef = source;
-  runtimeTarget._send(event);
+  runtimeTarget._send(event, source);
 }
 
 /**

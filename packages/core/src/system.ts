@@ -898,9 +898,13 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
       ...event,
       rootId: this._rootActor.sessionId!
     };
-    this._inspectionObservers.forEach((observer) =>
-      observer.next?.(resolvedInspectionEvent)
-    );
+    this._inspectionObservers.forEach((observer) => {
+      try {
+        observer.next?.(resolvedInspectionEvent);
+      } catch (err) {
+        reportUnhandledError(err);
+      }
+    });
   }
 
   // Unlike the other operations, spawn has no local work: local actors
