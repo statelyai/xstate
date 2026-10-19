@@ -1,5 +1,173 @@
 # xstate
 
+## 6.0.0-alpha.70
+
+### Major Changes
+
+- ceeebb0: `ActorRefFrom<T>` accepts actor logic only, and `ActorRefFromLogic<T>` is removed. Replace `ActorRefFromLogic<T>` with `ActorRefFrom<T>`. Pass the logic type instead of a promise, an actor ref, or a function returning logic:
+  
+  ```ts
+  // Before
+  type Ref = ActorRefFromLogic<typeof machine>;
+  type AsyncRef = ActorRefFrom<Promise<User>>;
+  
+  // After
+  type Ref = ActorRefFrom<typeof machine>;
+  type AsyncRef = ActorRefFrom<typeof loadUser>;
+  ```
+  
+  `ActorRefFrom<typeof machine>` refs return the fully typed machine snapshot from `getSnapshot()`, including `context`, `value` and `matches('#id')`.
+- ceeebb0: State keys cannot contain an unescaped `.`, which separates path segments. Creating a machine with such a key throws `State key "foo.bar" contains "." — nest the states or escape it as "foo\\.bar".` To use a literal dot, write the key escaped. The escaped form is then the key everywhere: state values, implicit ids, `matches(...)`, targets and persisted snapshots. It never collides with a nested `foo` → `bar`.
+  
+  ```ts
+  // Before
+  states: { 'foo.bar': {} }, on: { GO: { target: 'foo\\.bar' } }
+  
+  // After
+  states: { 'foo\\.bar': {} }, on: { GO: { target: 'foo\\.bar' } }
+  // snapshot.value === 'foo\\.bar'
+  ```
+  
+  Two implicit state ids can no longer coincide, and any duplicate state id now throws.
+- 39d3b5c: `#` targets, `snapshot.matches('#…')` and `@xstate.stateIn` guards resolve by exact state id. The text after `#` is a state's whole id, either its explicit `id` or its implicit id (the path from the root, prefixed by the machine `id`). It is no longer split into an id followed by a relative path. Dots in explicit ids are matched as written, without escaping.
+  
+  ```ts
+  // `wizard` has `id: 'flow'` in a machine with `id: 'shop'`
+  
+  // Before
+  browsing: { on: { review: { target: '#flow.review' } } }
+  
+  // After: the target's full implicit id, or give it its own `id`
+  browsing: { on: { review: { target: '#shop.wizard.review' } } }
+  ```
+  
+  An unknown id throws when the machine is created. When the old id-plus-path form resolves, the error names the target's id:
+  
+  ```
+  No state has id "flow.review". Use "#shop.wizard.review", or give that state an id.
+  ```
+  
+  Typed `#` targets and `matches('#…')` accept only whole ids.
+- ceeebb0: The root `xstate` entry no longer exports type-level helpers: `TODO`, `IsAny`, `IsNever`, `Equals`, `Cast`, `Compute`, `Prop`, `HomomorphicOmit`, `LowInfer`, `DoNotInfer`, `SingleOrArray`, `MaybeLazy` and `AnyFunction`. Define equivalents in your own code if you used them. `ConditionalRequired`, `IsNotNever` and `NonReducibleUnknown` remain exported because emitted declarations reference them, and are marked `@experimental`.
+  
+  `ActorOptions` no longer has the undocumented `parent` option. Create child actors with `invoke`, `spawn(...)` or `enq.spawn(...)`.
+- ceeebb0: Implicit state and invoke ids no longer use the `(machine)` placeholder.
+  
+  - A state's implicit id is its path from the root joined by `.`, prefixed by the machine `id` when there is one: `shop.checkout.payment` for `id: 'shop'`, and `checkout.payment` without an id (previously `(machine).checkout.payment`).
+  - `machine.id` and the root state's id are `''` for a machine without an `id`. `#` cannot reference that root; give the machine an `id` to target it as `#shop`.
+  - An unnamed invoke's id is `<stateId>:<index>`: `loading:0`, `loading:1`, `shop.checkout:0`. A root invoke is `:0`, or `shop:0` with a machine id (previously `0.(machine).loading`). Anonymous spawned actors keep `x:<n>`, and generated spawn ids skip ids already held by an invoke.
+  - An explicit state `id` that equals another state's id throws when the machine is created.
+  - Error messages name `the machine` instead of `machine '(machine)'`.
+  
+  ```ts
+  const machine = createMachine({
+    initial: 'loading',
+    states: { loading: { invoke: { src: fetchUser } } }
+  });
+  
+  createActor(machine).getSnapshot().children; // { 'loading:0': ... }
+  machine.getStateNodeById('#loading').id; // 'loading'
+  ```
+  
+  Persisted snapshots that reference `(machine).…` state ids or `0.(machine).…` child ids do not restore; migrate them with `machineVersions`.
+- ceeebb0: Children invoked with inline logic no longer get a synthetic source name (`xstate.invoke.<index>.<stateId>`). Their persisted entries omit `src`, and restoring resolves them through the invoke definition with the same id among the restored active states. Restoring fails with a descriptive error when no active state, or more than one, invokes that id. Children invoked with a registered name (`src: 'fetchUser'`) keep persisting that key, and remote children still require one.
+  
+  ```ts
+  const machine = createMachine({
+    id: 'shop',
+    initial: 'loading',
+    states: {
+      loading: { invoke: { id: 'fetch', src: fetchUser } }
+    }
+  });
+  
+  createActor(machine).start().getPersistedSnapshot().children.fetch;
+  // { address: 'shop/fetch', snapshot: {...} }, with no `src`
+  ```
+  
+  Snapshots persisted by earlier alphas that carry `src: 'xstate.invoke.…'` no longer restore; remove that `src` or migrate them with `machineVersions`.
+- ceeebb0: Bare string transition values throw when the machine is created, in every build. This matches the types and `machineFromJSON`, which already rejected them. It covers `on`, `after`, `always`, `onDone`, `onError`, `onTimeout`, and invoke `onDone`/`onError`/`onSnapshot`/`onTimeout`. `initial` stays a string key, and `xstate/fsm` still accepts string targets.
+  
+  ```ts
+  // Throws: Transition for "GO" in state "idle" is the string "next". Use { target: 'next' }.
+  on: { GO: 'next' }
+  
+  // Use
+  on: { GO: { target: 'next' } }
+  ```
+  
+  `xstate-codemod migrate` (the `string-targets` transform) rewrites these.
+- ceeebb0: `invoke` requires `input` when the invoked actor logic requires input, matching `createActor(logic, { input })` and `enq.spawn(logic, { input })`. This applies to logic values, registered source names and `src` functions, in `createMachine`, `setup(...).createMachine` and `setup(...).createStateConfig`. Logic whose input type accepts `undefined` (no `schemas.input`, or an optional input schema) can still omit it.
+  
+  ```ts
+  const child = createMachine({
+    schemas: { input: z.object({ userId: z.string() }) }
+  });
+  
+  createMachine({
+    // Type error: This actor logic requires input. Add an `input` to this invoke.
+    invoke: { src: child }
+  });
+  
+  createMachine({
+    invoke: { src: child, input: ({ context }) => ({ userId: context.userId }) }
+  });
+  ```
+  
+  `enq.spawn(logic)` without required input now reports `Expected 2 arguments` instead of a mismatch against the source-name overload.
+- ceeebb0: A machine that declares `version` must also declare `id`, because persisted snapshots record the machine as `{ id, version }`. `createMachine`, `setup(...).createMachine` and `MachineJSON` report a missing `id` as a type error, and creating such a machine throws `Machine with version '2' must declare an id.` Machines without a `version` keep `id` optional.
+  
+  ```ts
+  // Before
+  createMachine({ version: '2', initial: 'idle', states: { idle: {} } });
+  
+  // After
+  createMachine({
+    id: 'order',
+    version: '2',
+    initial: 'idle',
+    states: { idle: {} }
+  });
+  ```
+
+### Patch Changes
+
+- ceeebb0: `#` transition targets type-check against implicit state ids as well as explicit ones: `target: '#checkout.payment'`, or `'#shop.checkout.payment'` for a machine with `id: 'shop'`. Unknown ids are still type errors. At runtime, a `#` target can name a whole implicit id below a state with an explicit id, such as `'#wizard.step'` when `wizard` has `id: 'flow'`.
+- ceeebb0: `enq.spawn(...)` returns an inert actor ref while a transition is only evaluated, such as by `snapshot.can(event)` or when resolving conflicting transitions in parallel states. The ref has the `id` (and, when the parent is known, the `address`) the real spawn would get, an `undefined` `sessionId`, a stable `getSnapshot()`, a no-op `send()`, and `toJSON()` returning `{ $actor: address }`. Previously it was a bare `{ id }` object.
+- ceeebb0: `createActor(machine, { snapshot })` reports a persisted snapshot that cannot represent a state as an `'error'` snapshot with an `InvalidSnapshotError`, instead of starting an unusable actor. This covers snapshots that are not objects, have no `value` or an invalid one (not a state name or an object of state values, or several active children of a non-parallel state), and values naming states the machine does not have. Unknown fields are still ignored.
+  
+  ```ts
+  import { createActor, InvalidSnapshotError } from 'xstate';
+  
+  const actor = createActor(machine, { snapshot: stored });
+  const snapshot = actor.getSnapshot();
+  if (snapshot.status === 'error' && snapshot.error instanceof InvalidSnapshotError) {
+    // fall back to a fresh actor
+  }
+  ```
+- 73b2edf: Fix several v6 alpha transition, typing, and inspection issues:
+  
+  - Preserve enqueued effects when transition functions wrap `enq` calls in `try/catch`, and avoid reevaluating ordinary effect-only transitions during selection.
+  - Preserve declared schema context types in callbacks and snapshots, and reject patches containing only undeclared keys.
+  - Infer invoke input mapper arguments when the registered actor accepts `unknown` or `any` input.
+  - Report the sender of the event being processed in transition inspection events, even when more events are queued during processing.
+  - Report inspection observer exceptions without interrupting actor processing or other inspection observers.
+  - Include the source state, event, and original `cause` when graph transition evaluation fails. Supply representative payloads through the graph traversal `events` option when transition functions require them.
+- 05f1e0f: Ship version-matched XState v6 documentation with the xstate package. Start with README.md or docs/index.md after installation for v6 examples and migration guidance.
+- 8773a22: Require payload samples for known event types with required fields in `getShortestPaths`, `getSimplePaths`, and `getAdjacencyMap`. Use an `events` map to explore multiple payloads while retaining default payload-free events, invoke completions, errors, and delays:
+  
+  ```ts
+  getShortestPaths(machine, {
+    events: {
+      'item.add': [{ item: { qty: 1 } }, { item: { qty: 0 } }]
+    }
+  });
+  ```
+  
+  Each map entry also accepts a snapshot callback returning nonempty payload cases. Event arrays and callbacks returning events still replace defaults, but their types must cover every required payload event. Fixed-sequence replay with `getPathsFromEvents` requires only the supplied events. Coverage remains sample-based.
+  
+  Unconfigured wildcard descriptors retain their default samples alongside concrete event cases. Use an event array to restrict traversal to supplied concrete events.
+
 ## 6.0.0-alpha.69
 
 ### Patch Changes

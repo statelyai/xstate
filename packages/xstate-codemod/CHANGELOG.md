@@ -1,5 +1,22 @@
 # @xstate/codemod
 
+## 0.1.0-alpha.4
+
+### Minor Changes
+
+- 39d3b5c: Added the `report-id-path-targets` transform. It reports, without rewriting, `#a.b` targets and `matches('#a.b')` or `stateIn('#a.b')` arguments that are not whole state ids of the machine config that contains them (references outside a machine config are always reported), since v6 resolves `#` targets by exact id only.
+  
+  ```ts
+  // Reported: `flow` is an explicit id, and `flow.review` is not an id
+  on: { review: { target: '#flow.review' } }
+  // Not reported: the full implicit id
+  on: { review: { target: '#shop.wizard.review' } }
+  ```
+
+### Patch Changes
+
+- ceeebb0: `xstate-codemod migrate` renames `ActorRefFromLogic` imports and usages to `ActorRefFrom`.
+
 ## 0.1.0-alpha.3
 
 ### Minor Changes
