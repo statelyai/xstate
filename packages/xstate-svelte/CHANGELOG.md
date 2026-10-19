@@ -1,5 +1,11 @@
 # @xstate/svelte
 
+## 5.0.1
+
+### Patch Changes
+
+- [#5811](https://github.com/statelyai/xstate/pull/5811) [`6a7fa79`](https://github.com/statelyai/xstate/commit/6a7fa79d1c5b3bc2468febe8d425b0aaeee7f905) Thanks [@ybai08](https://github.com/ybai08)! - The `snapshot` store returned by `useActor(…)` now reads the actor's current snapshot whenever it gains its first subscriber. Before, if the actor changed while nothing was subscribed to the store (for example, while the only component reading `$snapshot` was unmounted), the store kept showing the old snapshot until the next change. `useSelector(…)` already worked this way.
+
 ## 5.0.0
 
 ### Patch Changes
