@@ -689,7 +689,7 @@ export type CallbackActors<T extends Sources['actors']> = {
 };
 
 type TransitionFunctionArgs<
-  TContext,
+  TContext extends MachineContext,
   TCurrentEvent extends EventObject,
   TEvent extends EventObject,
   TActionMap extends Sources['actions'],
@@ -704,16 +704,7 @@ type TransitionFunctionArgs<
   context: TContext;
   event: TCurrentEvent;
   self: ActorSelf<
-    MachineSnapshot<
-      TContext & MachineContext,
-      TEvent,
-      TODO,
-      TODO,
-      TODO,
-      TODO,
-      TODO,
-      TODO
-    >,
+    MachineSnapshot<TContext, TEvent, TODO, TODO, TODO, TODO, TODO, TODO>,
     TEvent
   >;
   parent: UnknownActorRef | undefined;
@@ -1603,7 +1594,7 @@ export type Mapper<
   TExpressionEvent extends EventObject,
   TResult,
   TEvent extends EventObject,
-  _TCtx = [TContext] extends [never] ? any : TContext
+  _TCtx extends MachineContext = [TContext] extends [never] ? any : TContext
 > = (
   args: {
     context: _TCtx;
@@ -1611,7 +1602,7 @@ export type Mapper<
     input?: Record<string, unknown>;
     self: ActorSelf<
       MachineSnapshot<
-        _TCtx & MachineContext,
+        _TCtx,
         TEvent,
         Record<string, AnyActorRef>, // TODO: this should be replaced with `TChildren`
         StateValue,
@@ -3079,15 +3070,11 @@ type ContextFromStateSchema<
   TSchema extends StateSchema,
   TFallbackContext extends MachineContext
 > = TSchema['contextSchema'] extends StandardSchemaV1
-  ? StandardSchemaV1.InferOutput<TSchema['contextSchema']> &
-      TFallbackContext &
-      MachineContext
+  ? StandardSchemaV1.InferOutput<TSchema['contextSchema']> & TFallbackContext
   : TSchema extends {
         schemas: { context: infer TContextSchema extends StandardSchemaV1 };
       }
-    ? StandardSchemaV1.InferOutput<TContextSchema> &
-        TFallbackContext &
-        MachineContext
+    ? StandardSchemaV1.InferOutput<TContextSchema> & TFallbackContext
     : TFallbackContext;
 
 type ContextFromChildStateValue<
@@ -3123,7 +3110,7 @@ export type StateContextFromStateValue<
         >
       : TFallbackContext
   : TFallbackContext) &
-  MachineContext;
+  TFallbackContext;
 
 /**
  * The `#id` references that `snapshot.matches(...)` accepts: one per state
@@ -3564,23 +3551,14 @@ export type Action<
   TGuardMap extends Sources['guards'],
   TDelayMap extends Sources['delays'],
   TParams = Record<string, unknown> | undefined,
-  _TCtx = [TContext] extends [never] ? any : TContext
+  _TCtx extends MachineContext = [TContext] extends [never] ? any : TContext
 > = (
   _: {
     context: _TCtx;
     event: TEvent;
     parent: AnyActorRef | undefined;
     self: ActorSelf<
-      MachineSnapshot<
-        _TCtx & MachineContext,
-        TEvent,
-        TODO,
-        TODO,
-        TODO,
-        TODO,
-        TODO,
-        TODO
-      >,
+      MachineSnapshot<_TCtx, TEvent, TODO, TODO, TODO, TODO, TODO, TODO>,
       TEvent
     >;
     children: Record<string, AnyActor | undefined>;

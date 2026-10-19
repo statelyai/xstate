@@ -5,13 +5,18 @@ it('rejects undeclared context keys in callbacks, patches and snapshots', () => 
   const s = setup({
     schemas: {
       context: z.object({ qty: z.number(), name: z.string().nullable() }),
-      events: { add: z.object({}), clear: z.object({}), open: z.object({}) }
+      events: {
+        add: z.object({}),
+        clear: z.object({}),
+        open: z.object({}),
+        rename: z.object({})
+      }
     },
-    guards: {
-      allowed: ({ context }) => {
+    delays: {
+      wait: ({ context }) => {
         // @ts-expect-error schema context has no qtty
         context.qtty;
-        return context.qty > 0;
+        return context.qty;
       }
     }
   });
@@ -23,8 +28,10 @@ it('rejects undeclared context keys in callbacks, patches and snapshots', () => 
         entry: ({ context, self }) => {
           // @ts-expect-error schema context has no qtty
           context.qtty;
-          // @ts-expect-error self snapshots preserve the context schema
-          self.getSnapshot().context.qtty;
+          if (false) {
+            // @ts-expect-error self snapshots preserve the context schema
+            self.getSnapshot().context.qtty;
+          }
           return { context: { qty: context.qty + 1 } };
         },
         exit: ({ context }) => {
@@ -38,6 +45,13 @@ it('rejects undeclared context keys in callbacks, patches and snapshots', () => 
             // @ts-expect-error self snapshots preserve the context schema
             self.getSnapshot().context.qtty;
             return { context: { qty: context.qty + 1 } };
+          },
+          rename: {
+            context: ({ context, self }) => {
+              // @ts-expect-error context mappers preserve the context schema
+              self.getSnapshot().context.qtty;
+              return { qty: context.qty + 1 };
+            }
           },
           // @ts-expect-error function patches reject undeclared keys
           clear: () => ({ context: { qtty: 0 } }),

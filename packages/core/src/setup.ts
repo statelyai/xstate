@@ -23,6 +23,7 @@ import {
   AnyStateMachine,
   AnyActorLogic,
   ActorRefFrom,
+  ActorSelf,
   AnyStateNode,
   EventObject,
   AnyEventObject,
@@ -67,6 +68,7 @@ import type {
 } from './typeUtils.ts';
 import { AnyActorSystem } from './system.ts';
 import { InspectionEvent } from './inspection.ts';
+import type { MachineSnapshot } from './State.ts';
 import {
   createAsyncLogic,
   type AsyncActorLogic,
@@ -1372,14 +1374,14 @@ type SetupStateNodeConfig<
   TSystemRegistry
 >;
 
-type SetupContext<TSchemas, TContextSchema extends StandardSchemaV1> = [
-  SetupSchema<TSchemas, 'context'>
-] extends [never]
-  ? unknown extends StandardSchemaV1.InferOutput<TContextSchema>
-    ? MachineContext
-    : StandardSchemaV1.InferOutput<TContextSchema> & MachineContext
-  : StandardSchemaV1.InferOutput<SetupSchema<TSchemas, 'context'>> &
-      MachineContext;
+type SetupContext<TSchemas, TContextSchema extends StandardSchemaV1> = Cast<
+  [SetupSchema<TSchemas, 'context'>] extends [never]
+    ? unknown extends StandardSchemaV1.InferOutput<TContextSchema>
+      ? MachineContext
+      : StandardSchemaV1.InferOutput<TContextSchema>
+    : StandardSchemaV1.InferOutput<SetupSchema<TSchemas, 'context'>>,
+  MachineContext
+>;
 
 type SetupContextShape<
   TSchemas,
@@ -1671,7 +1673,6 @@ type StateContext<
   ? TContextSchema extends StandardSchemaV1
     ? StandardSchemaV1.InferOutput<TContextSchema> &
         RootContext<TFallbackContext> &
-        MachineContext &
         RootContextMarker<TFallbackContext>
     : RootContext<TFallbackContext>
   : RootContext<TFallbackContext>;
@@ -1708,9 +1709,7 @@ export type ActiveStateContext<
   TStateSchema extends SetupStateSchema,
   TRootContext extends MachineContext,
   TAncestorContext
-> = StateContext<TStateSchema, TRootContext> &
-  TAncestorContext &
-  MachineContext;
+> = StateContext<TStateSchema, TRootContext> & TAncestorContext;
 
 type ActiveStateContextShape<
   TStateSchema extends SetupStateSchema,
@@ -4187,7 +4186,19 @@ type StateTransitionContextMapper<
   args: {
     context: TContext;
     event: TExpressionEvent;
-    self: AnyActorRef;
+    self: ActorSelf<
+      MachineSnapshot<
+        TContext,
+        AnyEventObject,
+        TChildren,
+        StateValue,
+        string,
+        unknown,
+        MetaObject,
+        StateSchema
+      >,
+      AnyEventObject
+    >;
     parent: AnyActorRef | undefined;
     value: StateValue;
     children: TChildren;
@@ -4279,7 +4290,20 @@ type StateTransitionFunction<
     context: TContext;
     event: TExpressionEvent;
     output: TOutput;
-    self: AnyActorRef;
+    self: ActorSelf<
+      MachineSnapshot<
+        TContext,
+        TEvent,
+        TChildren,
+        StateValue,
+        string,
+        unknown,
+        TMeta,
+        StateSchema
+      >,
+      TEvent,
+      TEmitted
+    >;
     parent: AnyActorRef | undefined;
     value: StateValue;
     children: TChildren;
