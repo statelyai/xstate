@@ -330,6 +330,31 @@ describe('transition enqueue selection', () => {
     expect(effect).toHaveBeenCalledOnce();
   });
 
+  it('preserves caught ref detection after a nested can evaluation', () => {
+    const initialize = vi.fn(() => ({}));
+    const child = createMachine({ context: initialize });
+    const other = createActor(
+      createMachine({ on: { check: () => ({}) } })
+    ).start();
+    const actor = createActor(
+      createMachine({
+        on: {
+          go: (_, enq) => {
+            try {
+              enq.spawn(child, { id: 'child' });
+            } catch {}
+            other.getSnapshot().can({ type: 'check' });
+          }
+        }
+      })
+    ).start();
+    actor.send({ type: 'go' });
+    expect(initialize).toHaveBeenCalledOnce();
+    expect(actor.getSnapshot().children.child).toBeDefined();
+    actor.stop();
+    other.stop();
+  });
+
   it.each([false, true])(
     'closes retained handles when a user exception escapes, real=%s',
     (real) => {
