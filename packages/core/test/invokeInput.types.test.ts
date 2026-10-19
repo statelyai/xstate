@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { createMachine, setup } from '../src';
+import { createAsyncLogic, createMachine, setup } from '../src';
 
 const child = createMachine({
   schemas: { input: z.object({ n: z.number() }) }
@@ -157,6 +157,44 @@ describe('undefined input', () => {
         // @ts-expect-error input is required by the spawned logic
         enq.spawn(child, { input: undefined });
       }
+    });
+  });
+});
+
+describe('registered invoke input mappers', () => {
+  it('types mapper arguments when actor input is unknown or any', () => {
+    const unknownInput = createAsyncLogic<boolean, unknown>({
+      run: async () => true
+    });
+    const anyInput = createAsyncLogic<boolean, any>({ run: async () => true });
+    const s = setup({
+      schemas: { context: z.object({ n: z.number() }) },
+      actors: { unknownInput, anyInput, child, optionalInputChild }
+    });
+
+    s.createMachine({
+      context: { n: 1 },
+      invoke: [
+        { src: 'unknownInput', input: ({ context }) => ({ n: context.n }) },
+        { src: 'anyInput', input: (args) => ({ n: args.context.n }) },
+        { src: unknownInput, input: ({ context }) => context.n },
+        { src: 'unknownInput', input: null },
+        { src: 'unknownInput', input: undefined },
+        { src: 'unknownInput', input: 1 },
+        { src: 'unknownInput', input: () => undefined },
+        { src: 'optionalInputChild', input: () => undefined },
+        { src: 'child', input: ({ context }) => ({ n: context.n }) }
+      ]
+    });
+    s.createMachine({
+      context: { n: 1 },
+      // @ts-expect-error the typed actor requires a numeric n
+      invoke: { src: 'child', input: () => ({ n: 'wrong' }) }
+    });
+    s.createMachine({
+      context: { n: 1 },
+      // @ts-expect-error static inputs retain the actor input type
+      invoke: { src: 'child', input: { n: 'wrong' } }
     });
   });
 });
