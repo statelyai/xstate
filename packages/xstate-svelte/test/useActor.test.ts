@@ -2,6 +2,7 @@ import { fireEvent, render } from '@testing-library/svelte';
 import { createActor, createMachine, type AnyMachineSnapshot } from 'xstate';
 import UseActor from './UseActor.svelte';
 import UseActorNonPersistentSubscription from './UseActorNonPersistentSubscription.svelte';
+import UseActorResumedSubscription from './UseActorResumedSubscription.svelte';
 import { fetchMachine } from './fetchMachine.ts';
 
 const actorRef = createActor(
@@ -78,5 +79,28 @@ describe('useActor', () => {
     await fireEvent.click(incButton);
 
     expect(getByTestId('count').textContent).toBe('4');
+  });
+
+  it('should show the latest snapshot when a subscription resumes after changes made while unsubscribed', async () => {
+    const { findByText, getByTestId, getByText } = render(
+      UseActorResumedSubscription
+    );
+
+    await fireEvent.click(await findByText(/Increment/));
+    expect(getByTestId('count').textContent).toBe('1');
+
+    const toggleButton = getByText(/Toggle/);
+
+    // unmount the only subscriber of the snapshot store
+    await fireEvent.click(toggleButton);
+
+    // change the actor's snapshot while nothing is subscribed to the store
+    await fireEvent.click(getByText(/Send while hidden/));
+    await fireEvent.click(getByText(/Send while hidden/));
+
+    // subscribe again
+    await fireEvent.click(toggleButton);
+
+    expect(getByTestId('count').textContent).toBe('3');
   });
 });

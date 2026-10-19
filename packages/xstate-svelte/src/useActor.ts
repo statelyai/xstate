@@ -31,6 +31,13 @@ export function useActor<TLogic extends AnyActorLogic>(
   let currentSnapshot = actorRef.getSnapshot();
 
   const snapshot = readable(currentSnapshot, (set) => {
+    // The actor might have transitioned while nothing was subscribed to this
+    // store, so make sure it's up to date when a subscription (re)starts.
+    const latestSnapshot = actorRef.getSnapshot();
+    if (currentSnapshot !== latestSnapshot) {
+      currentSnapshot = latestSnapshot;
+      set(currentSnapshot);
+    }
     return actorRef.subscribe((nextSnapshot) => {
       if (currentSnapshot !== nextSnapshot) {
         currentSnapshot = nextSnapshot;
