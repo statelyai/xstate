@@ -6,6 +6,39 @@ import {
 } from '../src';
 
 describe('transition enqueue selection', () => {
+  it('keeps enqueue argument validation inside the transition catch', () => {
+    const caught = vi.fn();
+    const actor = createActor(
+      createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            on: {
+              go: (_, enq) => {
+                try {
+                  enq.raise('invalid' as never);
+                } catch {
+                  caught();
+                  return { target: 'fallback' };
+                }
+                return { target: 'b' };
+              }
+            }
+          },
+          fallback: {},
+          b: {}
+        }
+      })
+    );
+    actor.subscribe({ error() {} });
+    actor.start();
+    actor.send({ type: 'go' });
+    expect(actor.getSnapshot().status).toBe('active');
+    expect(actor.getSnapshot().value).toBe('fallback');
+    expect(caught).toHaveBeenCalledOnce();
+    actor.stop();
+  });
+
   it.each(['refuse', 'continue'])(
     'keeps effects inside a catch that would %s',
     (behavior) => {
