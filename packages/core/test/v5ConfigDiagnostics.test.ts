@@ -184,7 +184,7 @@ describe('v5 config diagnostics', () => {
         initial: 'a',
         states: { a: { on: { go: { target: '#missing' } } } }
       } as any)
-    ).toThrowError("Child state node '#missing' does not exist");
+    ).toThrowError('No state has id "missing".');
   });
 
   it('throws on an unresolvable sibling target at construction', () => {

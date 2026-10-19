@@ -1,7 +1,3 @@
-// Asserts that every literal path listed in a package's `files` exists, and
-// that every directory listed in a package's `files` (other than
-// `dist` and directories that only hold `bin` scripts) has a matching
-// `exports` entry, so published subpath folders are always importable.
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -24,13 +20,15 @@ for (const dir of readdirSync(packagesDir)) {
   for (const entry of pkg.files) {
     const name = normalize(entry).replace(/\/$/, '');
     const fullPath = join(packagesDir, dir, name);
-    if (!/[*?[\]{}!]/.test(name) && name !== 'dist' && !existsSync(fullPath)) {
+    const generated =
+      name === 'dist' || (pkg.name === 'xstate' && name === 'docs');
+    if (!/[*?[\]{}!]/.test(name) && !generated && !existsSync(fullPath)) {
       errors.push(
         `${pkg.name}: "files" includes "${name}" but it does not exist`
       );
       continue;
     }
-    if (name === 'dist' || binDirs.has(name)) continue;
+    if (name === 'dist' || name === 'docs' || binDirs.has(name)) continue;
     if (!existsSync(fullPath) || !statSync(fullPath).isDirectory()) continue;
     if (!exportKeys.has(`./${name}`)) {
       errors.push(

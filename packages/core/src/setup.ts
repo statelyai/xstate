@@ -874,34 +874,8 @@ type SetupStateIds<TStateSchemas extends Record<string, SetupStateSchema>> =
         : never;
     }[keyof TStateSchemas & string];
 
-type SetupStateIdTarget<TId extends string> =
-  `#${EscapeSetupStatePathDots<TId>}`;
-
-type SetupStateIdTargets<
-  TStateSchemas extends Record<string, SetupStateSchema>
-> =
-  string extends SetupStateKeys<TStateSchemas>
-    ? never
-    :
-        | {
-            [K in keyof TStateSchemas & string]: TStateSchemas[K] extends {
-              id: infer TId extends string;
-            }
-              ? TStateSchemas[K]['states'] extends infer TChildStateSchemas extends
-                  Record<string, SetupStateSchema>
-                ? string extends SetupStateKeys<TChildStateSchemas>
-                  ? never
-                  : `${SetupStateIdTarget<TId>}.${StatePaths<TChildStateSchemas> & string}`
-                : never
-              : never;
-          }[keyof TStateSchemas & string]
-        | {
-            [K in keyof TStateSchemas &
-              string]: TStateSchemas[K]['states'] extends infer TChildStateSchemas extends
-              Record<string, SetupStateSchema>
-              ? SetupStateIdTargets<TChildStateSchemas>
-              : never;
-          }[keyof TStateSchemas & string];
+// `#id` names a state by its whole id; it is never followed by a path.
+type SetupStateIdTarget<TId extends string> = `#${TId}`;
 
 type RootSetupStateIdTarget<
   TStateSchemas extends Record<string, SetupStateSchema>
@@ -909,7 +883,7 @@ type RootSetupStateIdTarget<
   SetupStateIds<TStateSchemas> extends infer TIds extends string
     ? [TIds] extends [never]
       ? never
-      : SetupStateIdTarget<TIds> | SetupStateIdTargets<TStateSchemas>
+      : SetupStateIdTarget<TIds>
     : never;
 
 type SetupStateSchemaAtTarget<
@@ -948,24 +922,8 @@ type SetupStateSchemaAtId<
 type SetupStateSchemaAtIdTarget<
   TStateSchemas extends Record<string, SetupStateSchema>,
   TTarget extends string
-> = TTarget extends `#${infer TPath}`
-  ? SplitSetupStatePath<TPath> extends [
-      infer TId extends string,
-      ...infer TDescendant extends string[]
-    ]
-    ? SetupStateSchemaAtId<TStateSchemas, TId> extends infer TStateSchema
-      ? TDescendant extends []
-        ? TStateSchema
-        : TStateSchema extends {
-              states: infer TChildStateSchemas extends Record<
-                string,
-                SetupStateSchema
-              >;
-            }
-          ? ResolveStatePathSegments<TChildStateSchemas, TDescendant>
-          : never
-      : never
-    : never
+> = TTarget extends `#${infer TId}`
+  ? SetupStateSchemaAtId<TStateSchemas, TId>
   : never;
 
 type StateSchemasWithKeys<
@@ -974,11 +932,6 @@ type StateSchemasWithKeys<
 > = TStateSchemas & {
   [K in Exclude<TStateKeys, keyof TStateSchemas>]: {};
 };
-
-type EscapeSetupStatePathDots<TValue extends string> =
-  TValue extends `${infer THead}.${infer TTail}`
-    ? `${THead}\\.${EscapeSetupStatePathDots<TTail>}`
-    : TValue;
 
 type ProtectSetupStatePathDots<TValue extends string> =
   TValue extends `${infer THead}\\.${infer TTail}`
@@ -1107,17 +1060,8 @@ type SetupResolvedStatePath<
   TRootStateSchemas extends Record<string, SetupStateSchema>,
   TSourcePath extends string,
   TTarget extends string
-> = TTarget extends `#${infer TIdPath}`
-  ? SplitSetupStatePath<TIdPath> extends [
-      infer TId extends string,
-      ...infer TDescendant extends string[]
-    ]
-    ? SetupStatePathAtId<TRootStateSchemas, TId> extends infer TIdStatePath
-      ? TIdStatePath extends SetupStatePath
-        ? [...TIdStatePath, ...TDescendant]
-        : never
-      : never
-    : never
+> = TTarget extends `#${infer TId}`
+  ? SetupStatePathAtId<TRootStateSchemas, TId>
   : TTarget extends '.'
     ? SplitSetupStatePath<TSourcePath>
     : TTarget extends `.${infer TDescendant}`

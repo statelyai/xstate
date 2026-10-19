@@ -80,7 +80,7 @@ describe('parallel state conformance', () => {
           id: 'value2',
           initial: 'hidden',
           states: {
-            shown: { on: { NEXT: { target: '#value3.shown' } } },
+            shown: { on: { NEXT: { target: '#question-flow.value3.shown' } } },
             hidden: {}
           }
         },

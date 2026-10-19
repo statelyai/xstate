@@ -5,6 +5,12 @@ import {
   transformsByName
 } from './transforms/index.ts';
 
+/** Report-only transforms whose notes list manual migration steps. */
+const REPORT_TRANSFORMS = new Set([
+  'report-removed-apis',
+  'report-id-path-targets'
+]);
+
 export interface FileTransformReport {
   filePath: string;
   perTransform: Array<{
@@ -19,7 +25,7 @@ export interface FileTransformReport {
 export interface RunReport {
   files: FileTransformReport[];
   filesChanged: number;
-  /** Notes emitted by `report-removed-apis` (manual-migration section). */
+  /** Notes emitted by the report-only transforms (manual-migration section). */
   manualMigrationNotes: string[];
 }
 
@@ -112,7 +118,7 @@ export function run(
     const report = applyToSourceFile(sourceFile, transforms);
 
     for (const pt of report.perTransform) {
-      if (pt.transform === 'report-removed-apis') {
+      if (REPORT_TRANSFORMS.has(pt.transform)) {
         manualMigrationNotes.push(...pt.notes);
       }
     }

@@ -24,6 +24,7 @@ __examples/
 .fleet
 
 # Documentation
+packages/core/docs/
 docs-src/
 netlify/
 docs/.cache

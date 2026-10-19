@@ -92,7 +92,7 @@ Every non-root state node accepts the following. All are optional.
 | `onDone` | transition | Taken when a final child state is reached. |
 | `onError` | transition | Taken on an error raised at or below this state. |
 | `output` | value or mapper | [Output](input-output.md) of a final state node. |
-| `id` | `string` | Unique id, targetable as `#id`. Defaults to the state's path from the root joined by `.`, prefixed by the machine `id` when there is one. An explicit id that equals another state's id throws. |
+| `id` | `string` | Unique id, targetable as `#id`. `#` targets match the whole id exactly; dots in an explicit id need no escaping. Defaults to the state's path from the root joined by `.`, prefixed by the machine `id` when there is one. An explicit id that equals another state's id throws. |
 | `route` | `RouteConfig` | Enables `{ type: 'xstate.route', to: '#id' }`. Requires an explicit `id`. See [route states](route-states.md). |
 | `meta` | `object` | Metadata read with `snapshot.getMeta()`. See [states](states.md). |
 | `tags` | `string[]` | Tags read with `snapshot.hasTag(...)`. |

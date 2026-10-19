@@ -77,7 +77,7 @@ approve: ({ context, self }) => {
 }
 ```
 
-`matches(value)` accepts a path (`'security.locked'`), a state-value object, or a state `id` prefixed with `#`. An `#id` check is true while the state node with that `id` is active, wherever it is nested:
+`matches(value)` accepts a path (`'security.locked'`), a state-value object, or a state `id` prefixed with `#`. An `#id` check is true while the state node with that `id` is active, wherever it is nested. The text after `#` is a whole state id (an explicit `id` or an implicit id such as `#security.unlocked`), never an id followed by a path:
 
 ```ts
 const machine = createMachine({

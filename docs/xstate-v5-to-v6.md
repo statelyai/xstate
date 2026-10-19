@@ -1101,6 +1101,23 @@ See [compact finite state machines](fsm.md) for its exact supported surface.
 - `snapshot._nodes` is now `snapshot.nodes`. It lists the active state nodes.
 - Implicit state ids no longer use the `(machine)` placeholder. A state's implicit id is its path from the root joined by `.`, prefixed by the machine `id` when the machine has one: `shop.checkout` for `id: 'shop'`, and `checkout` without an id (v5: `(machine).checkout`). `machine.id` and the root's id are `''` for a machine without an `id`, so `#` cannot reference that root; give the machine an `id` to target it. An explicit state `id` that equals another state's id throws.
 - Bare string transition values (`on: { GO: 'next' }`, `after: { 1000: 'idle' }`, `always: 'ready'`, `onDone: 'done'`) throw when the machine is created: `Transition for "GO" in state "idle" is the string "next". Use { target: 'next' }.` Write `{ target: 'next' }`; the `string-targets` codemod transform rewrites them. `initial` keeps its string form, and `xstate/fsm` still accepts string targets.
+- `#` targets and `matches('#…')` resolve by exact id. v5 split the text after `#` at the first `.` and resolved the rest as a path below that id, so `#flow.review` meant "child `review` of the state with id `flow`". In v6, the whole string after `#` is the id: use the target state's own explicit `id`, or its full implicit id. This also applies to `@xstate.stateIn` guards in JSON. Dots in an explicit id are matched literally (`#checkout.v2` for `id: 'checkout.v2'`); v5 required `#checkout\\.v2`. An unresolvable target throws when the machine is created, and suggests the target's id when the old form resolves:
+
+  ```ts
+  // v5
+  wizard: { id: 'flow', initial: 'details', states: { details: {}, review: {} } },
+  browsing: { on: { review: { target: '#flow.review' } } }
+
+  // v6
+  browsing: { on: { review: { target: '#shop.wizard.review' } } }
+  // or give the target an id: review: { id: 'review' }, then target '#review'
+  ```
+
+  ```
+  No state has id "flow.review". Use "#shop.wizard.review", or give that state an id.
+  ```
+
+  The `report-id-path-targets` codemod transform lists `#a.b` targets and `matches('#a.b')` arguments it cannot confirm are whole state ids of the enclosing machine config.
 - State keys cannot contain an unescaped `.`. v5 accepted a key like `'foo.bar'` and targeted it as `'foo\\.bar'`; in v6, write the key itself escaped (`'foo\\.bar': {}`). The state value, implicit id (`foo\\.bar`) and persisted snapshots use that escaped key.
 - Implicit invoke ids are `<stateId>:<index>`, such as `checkout:0` or `shop.checkout:1` (v5: `0.(machine).checkout`). An invoke on the root is `:0`, or `shop:0` with a machine id. These ids key `snapshot.children`, completion events (`event.actorId`) and persisted children.
 - The `systemId` option is now `registryKey`, in `createActor(logic, { registryKey })`, `invoke: { registryKey }`, and `enq.spawn(logic, { registryKey })`. `actorRef.systemId` is now `actorRef.registryKey`. `system.get(registryKey)` looks the actor up (see §24). `systemId` is not accepted as an option.
@@ -1558,6 +1575,7 @@ It runs these transforms in order. `--transform name,name` selects a subset.
 | `string-targets`      | Wraps bare string transition values under `on`, `after`, `onDone`, `onError`, and `always` in `{ target: '...' }` inside `createMachine` and `createStateConfig` configs.                                                                                                   |
 | `types-to-schemas`    | Converts `types: {} as { ... }` to `schemas` with `types<T>()` entries. Events become a map only when they are written as an inline union literal.                                                                                                                         |
 | `report-removed-apis` | Reports, without rewriting, uses of `assign`, `raise`, `sendTo`, `sendParent`, `forwardTo`, `emit`, `log`, `cancel`, `spawnChild`, `stop`, `stopChild`, `enqueueActions`, `and`, `or`, `not`, `stateIn`, `fromPromise`, `fromTransition`, `toObserver`, `pathToStateValue`, and `SpecialTargets`, with a suggested replacement. |
+| `report-id-path-targets` | Reports, without rewriting, `#a.b` targets and `matches('#a.b')` or `stateIn('#a.b')` arguments that are not whole state ids of the machine config that contains them. References outside a `createMachine` or `createStateConfig` config are always reported. v6 resolves `#` targets by exact id only. |
 
 `string-targets` wraps string elements inside transition arrays but keeps the arrays. The v6 `createMachine` types reject transition arrays in `on` and `always` (for example, `on: { X: [ … ] }`), and no transform reports them. Find them by hand and replace each with one transition function (§15, §16).
 
