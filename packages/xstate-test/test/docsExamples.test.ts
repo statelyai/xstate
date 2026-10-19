@@ -841,6 +841,7 @@ describe('README: How-to guides', () => {
       events,
       frontiers: {
         paths: getShortestPaths(cartMachine, {
+          events: { ADD: [{ sku: 'apple' }], REMOVE: [{ sku: 'apple' }] },
           toState: (snapshot) => Object.keys(snapshot.context.items).length > 0,
           stopWhen: (snapshot) =>
             Object.values(snapshot.context.items).some((qty) => qty >= 2)

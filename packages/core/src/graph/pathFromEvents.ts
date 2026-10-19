@@ -5,7 +5,7 @@ import {
   EventObject,
   Snapshot
 } from '../index.ts';
-import { StatePath, Steps, TraversalOptions } from './types.ts';
+import { StatePath, Steps, TraversalOptions, TraversalEvent } from './types.ts';
 import { resolveTraversalOptions } from './graph.ts';
 import { alterPath } from './alterPath.ts';
 import { createMockActorScope } from './actorScope.ts';
@@ -19,7 +19,11 @@ export function getPathsFromEvents<
 >(
   logic: ActorLogic<TSnapshot, TEvent, TInput, TSystem>,
   events: TEvent[],
-  options?: TraversalOptions<TSnapshot, TEvent, TInput>
+  options?: Omit<TraversalOptions<TSnapshot, TEvent, TInput>, 'events'> & {
+    events?:
+      | readonly TraversalEvent<TSnapshot, TEvent>[]
+      | ((state: TSnapshot) => readonly TraversalEvent<TSnapshot, TEvent>[]);
+  }
 ): Array<StatePath<TSnapshot, TEvent>> {
   const resolvedOptions = resolveTraversalOptions(logic, {
     events,

@@ -440,7 +440,7 @@ describe('advanced property testing', () => {
     });
     const model = machine;
     const frontiers = getShortestPaths(machine, {
-      events: [{ type: 'ACTIVATE' }],
+      events: [{ type: 'ACTIVATE' }, { type: 'INC', value: 1 }],
       serializeState: (snapshot) => JSON.stringify(snapshot.value)
     }).filter(
       (path) =>
