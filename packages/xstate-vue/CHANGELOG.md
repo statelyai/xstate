@@ -1,5 +1,11 @@
 # @xstate/vue
 
+## 5.0.2
+
+### Patch Changes
+
+- [#5812](https://github.com/statelyai/xstate/pull/5812) [`016daa7`](https://github.com/statelyai/xstate/commit/016daa76a45c4baaeade00034996f2617b45a7fa) Thanks [@ybai08](https://github.com/ybai08)! - `useSelector(…)` now updates its selected value when an actor errors. This also updates the `snapshot` returned by `useActor(…)` and `useMachine(…)`, so its `status` and `error` reflect the failure.
+
 ## 5.0.1
 
 ### Patch Changes
