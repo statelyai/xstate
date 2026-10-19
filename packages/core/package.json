@@ -108,6 +108,7 @@
   },
   "files": [
     "dist",
+    "docs",
     "actors",
     "graph",
     "validation",
