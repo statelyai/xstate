@@ -1,196 +1,24 @@
-<p align="center">
-  <br />
+# XState v6
 
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/statelyai/public-assets/main/logos/xstate-logo-white-nobg.svg">
-    <img alt="XState logotype" src="https://raw.githubusercontent.com/statelyai/public-assets/main/logos/xstate-logo-black-nobg.svg" width="200">
-  </picture>
-  <br />
-    <strong>Actor-based state management & orchestration for complex app logic.</strong> <a href="https://stately.ai/docs">→ Documentation</a>
-  <br />
-  <br />
-</p>
+This package contains **XState v6 alpha**. Its APIs differ from v5.
+Read the [bundled documentation](docs/index.md) for this installed version, starting
+with the [quick start](docs/quick-start.md) or the [v5 to v6 migration guide](docs/xstate-v5-to-v6.md).
 
-<!-- runtime dependencies and public entry points from package.json -->
+<!-- v6 authoring replacements from src/index.ts, src/transitionActions.ts and src/types.ts -->
 
-XState is a state management and orchestration solution for JavaScript and TypeScript apps. The `xstate` package has _zero_ runtime dependencies. XState is useful for frontend and backend application logic.
+| XState v5 | XState v6 |
+| --- | --- |
+| `assign(...)` | Return a shallow `{ context: { ... } }` patch from a transition, entry or exit function. |
+| `fromPromise(fn)` | `createAsyncLogic({ run: fn })` from `xstate`. |
+| `types: {} as { ... }` | `schemas` with `types<T>()` for type-only schemas or Standard Schema for runtime schemas. |
+| `{ target, guard, actions }` | A transition function that checks its condition and returns `{ target, context }`; queue effects with `enq`. |
 
-It uses event-driven programming, state machines, statecharts, and the actor model to handle complex logic in predictable, robust, and visual ways. XState provides a powerful and flexible way to manage application and workflow state by allowing developers to model logic as actors and state machines.
+<!-- quick start using public createMachine and createActor exports from src/index.ts -->
 
-<!-- experimental whole-system transitions from packages/core/src/systemTransition.ts -->
-
-For pure actor-system simulation, `initialSystemTransition`, `systemTransition`
-and `advanceSystemTime` return an immutable system snapshot and external effects
-as data. Branch or replay actors, messages and virtual timers without starting live
-actors. See [pure system transitions](../../docs/system-transitions.md).
-
-<!-- durable execution and checkpoint restoration from packages/core/src/durable/index.ts -->
-
-For durable hosts, the experimental `xstate/durable` entry point provides
-`createDurable`. Resume a checkpoint with `execution.restore(persistedSnapshot)`
-and execute the returned effects to restart active embedded children and pending
-timers without replaying entry actions. Await `executeEffects()` before persisting
-to retain accepted timer deadlines. The host handles root error snapshots;
-`run()` rejects with the root error. See [durable execution](../../docs/durable-execution.md).
-
-<!-- state context refinements from packages/core/src/setup.ts and packages/core/src/State.ts -->
-
-For [typestates](../../docs/typestates.md), declare state-level `schemas.context`
-in `setup({ states })`. State functions receive narrowed context, transitions
-check the target context requirements, and `snapshot.matches(...)` narrows
-context when reading snapshots.
-
-<!-- typed inline invocation from packages/core/src/setup.ts -->
-
-Use `s.createInvoke({ src, input, onDone })` inline in `s.createMachine(...)` for an actor used in one state. It infers the actor's input and output and the enclosing state's narrowed context without registering that actor in `setup.actors`. See [typed inline invokes](../../docs/invoke.md#typed-inline-invokes).
-
-Pass an async function directly as `src`, with `schemas.input`, `schemas.output`, and `schemas.error` on the same invoke. Output also infers from the async return when its schema is omitted. Existing logic values use their own schemas.
-
-The helper requires input for actors whose input excludes `undefined`, and checks child IDs and source compatibility against `schemas.children` declared in the setup or machine.
-
-<!-- graph traversal events from packages/core/src/graph/index.ts -->
-
-`getAllOwnEvents(snapshot)` from `xstate/graph` includes invoke completions, errors, and delayed events. Compose it with custom traversal payloads: supplied `events` replace the defaults. See [model-based testing](../../docs/model-based-testing.md).
-
-<!-- JSON loading and runtime validation from packages/core/src/machineFromJSON.ts -->
-
-Revive JSON definitions with `machineFromJSON(json, { schemas, validator, ...sources })` to restore runtime validation. The loader validates config keys and references. See [serialization](../../docs/serialization.md).
-
-For flat finite state machines, `xstate/fsm` provides a tiny pure transition
-table with context and TypeScript support:
-
-<!-- public exports from packages/core/src/fsm/index.ts; exact capabilities documented in docs/fsm.md -->
-
-```ts
-import { createFSM } from 'xstate/fsm';
-
-const machine = createFSM({
-  initial: 'inactive',
-  states: {
-    inactive: { on: { toggle: 'active' } },
-    active: { on: { toggle: 'inactive' } }
-  }
-});
-
-let state = machine.initialState;
-[state] = machine.transition(state, { type: 'toggle' });
-```
-
-The FSM is also actor logic, so `createActor(machine)` from `xstate` runs it.
-
-For typed context, event payloads, or state-specific context snapshots, use
-`setup` and `types` from `xstate/fsm`. These schemas are type-only in this
-subpath; use root `xstate` for runtime schema validation.
-
-See the [exact supported surface](https://stately.ai/docs/fsm). Use the root `xstate`
-entry point for compound or parallel statecharts, invocation, named sources,
-runtime schemas, serialization and inspection.
-
-### ✨ Create state machines visually in Stately Studio → [state.new](https://state.new)
-
----
-
-📖 [Read the documentation](https://stately.ai/docs)
-
-➡️ [Create state machines with the Stately Editor](https://stately.ai/editor)
-
-🖥 [Download our VS Code extension](https://marketplace.visualstudio.com/items?itemName=statelyai.stately-vscode)
-
-📑 Inspired by the [SCXML specification](https://www.w3.org/TR/scxml/)
-
-<!-- public SCXML entry point from packages/xstate-scxml/src/index.ts -->
-
-Create machines from SCXML documents with the separate [`@xstate/scxml`](../xstate-scxml) package. See the [SCXML guide](../../docs/scxml.md).
-
-💬 Chat on the [Stately Discord Community](https://discord.gg/xstate)
-
-✍️ Browse through the many [XState examples](https://github.com/statelyai/xstate/tree/main/examples)
-
-## Templates
-
-Get started by forking one of these templates on CodeSandbox:
-
-<table>
-<thead>
-<tr><th>Template</th><th></th></tr>
-</thead>
-<tbody>
-
-<tr>
-<td>
-
-[🤖 XState Template (CodeSandbox)](https://codesandbox.io/p/devbox/github/statelyai/xstate/tree/main/templates/vanilla-ts)
-
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/statelyai/xstate/tree/main/templates/vanilla-ts?file=%2Fsrc%2FfeedbackMachine.ts)
-
-</td>
-<td>
-
-- XState v5
-- TypeScript
-- _No framework_
-
-</td>
-</tr>
-
-<tr>
-<td>
-
-[⚛️ XState + React Template (CodeSandbox)](https://codesandbox.io/p/devbox/github/statelyai/xstate/tree/main/templates/react-ts)
-
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/statelyai/xstate/tree/main/templates/react-ts?file=%2Fsrc%2FfeedbackMachine.ts)
-
-</td>
-<td>
-
-- [React](https://react.dev/)
-- XState v5
-- TypeScript
-
-</td>
-</tr>
-
-<tr>
-<td>
-
-[💚 XState + Vue Template (CodeSandbox)](https://codesandbox.io/p/devbox/github/statelyai/xstate/tree/main/templates/vue-ts)
-
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/statelyai/xstate/tree/main/templates/vue-ts?file=%2Fsrc%2FfeedbackMachine.ts)
-
-</td>
-<td>
-
-- [Vue](https://vuejs.org/)
-- XState v5
-- TypeScript
-
-</td>
-</tr>
-
-<tr>
-<td>
-
-[🧡 XState + Svelte Template (CodeSandbox)](https://codesandbox.io/p/devbox/github/statelyai/xstate/tree/main/templates/svelte-ts)
-
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/statelyai/xstate/tree/main/templates/svelte-ts?file=%2Fsrc%2FfeedbackMachine.ts)
-
-</td>
-<td>
-
-- [Svelte](https://svelte.dev/)
-- XState v5
-- TypeScript
-
-</td>
-</tr>
-
-</tbody>
-</table>
-
-## Super quick start
+## Quick start
 
 ```bash
-npm install xstate
+npm install xstate@alpha
 ```
 
 ```ts
@@ -233,6 +61,195 @@ toggleActor.send({ type: 'TOGGLE' });
 // => logs 'inactive', { count: 1 }
 ```
 
+<p align="center">
+  <br />
+
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/statelyai/public-assets/main/logos/xstate-logo-white-nobg.svg">
+    <img alt="XState logotype" src="https://raw.githubusercontent.com/statelyai/public-assets/main/logos/xstate-logo-black-nobg.svg" width="200">
+  </picture>
+  <br />
+    <strong>Actor-based state management & orchestration for complex app logic.</strong> <a href="docs/index.md">→ Documentation</a>
+  <br />
+  <br />
+</p>
+
+<!-- runtime dependencies and public entry points from package.json -->
+
+XState is a state management and orchestration solution for JavaScript and TypeScript apps. The `xstate` package has _zero_ runtime dependencies. XState is useful for frontend and backend application logic.
+
+It uses event-driven programming, state machines, statecharts, and the actor model to handle complex logic in predictable, robust, and visual ways. XState provides a powerful and flexible way to manage application and workflow state by allowing developers to model logic as actors and state machines.
+
+<!-- experimental whole-system transitions from packages/core/src/systemTransition.ts -->
+
+For pure actor-system simulation, `initialSystemTransition`, `systemTransition`
+and `advanceSystemTime` return an immutable system snapshot and external effects
+as data. Branch or replay actors, messages and virtual timers without starting live
+actors. See [pure system transitions](docs/system-transitions.md).
+
+<!-- durable execution and checkpoint restoration from packages/core/src/durable/index.ts -->
+
+For durable hosts, the experimental `xstate/durable` entry point provides
+`createDurable`. Resume a checkpoint with `execution.restore(persistedSnapshot)`
+and execute the returned effects to restart active embedded children and pending
+timers without replaying entry actions. Await `executeEffects()` before persisting
+to retain accepted timer deadlines. The host handles root error snapshots;
+`run()` rejects with the root error. See [durable execution](docs/durable-execution.md).
+
+<!-- state context refinements from packages/core/src/setup.ts and packages/core/src/State.ts -->
+
+For [typestates](docs/typestates.md), declare state-level `schemas.context`
+in `setup({ states })`. State functions receive narrowed context, transitions
+check the target context requirements, and `snapshot.matches(...)` narrows
+context when reading snapshots.
+
+<!-- typed inline invocation from packages/core/src/setup.ts -->
+
+Use `s.createInvoke({ src, input, onDone })` inline in `s.createMachine(...)` for an actor used in one state. It infers the actor's input and output and the enclosing state's narrowed context without registering that actor in `setup.actors`. See [typed inline invokes](docs/invoke.md#typed-inline-invokes).
+
+Pass an async function directly as `src`, with `schemas.input`, `schemas.output`, and `schemas.error` on the same invoke. Output also infers from the async return when its schema is omitted. Existing logic values use their own schemas.
+
+The helper requires input for actors whose input excludes `undefined`, and checks child IDs and source compatibility against `schemas.children` declared in the setup or machine.
+
+<!-- graph traversal events from packages/core/src/graph/index.ts -->
+
+`getAllOwnEvents(snapshot)` from `xstate/graph` includes invoke completions, errors, and delayed events. Compose it with custom traversal payloads: supplied `events` replace the defaults. See [model-based testing](docs/model-based-testing.md).
+
+<!-- JSON loading and runtime validation from packages/core/src/machineFromJSON.ts -->
+
+Revive JSON definitions with `machineFromJSON(json, { schemas, validator, ...sources })` to restore runtime validation. The loader validates config keys and references. See [serialization](docs/serialization.md).
+
+For flat finite state machines, `xstate/fsm` provides a tiny pure transition
+table with context and TypeScript support:
+
+<!-- public exports from packages/core/src/fsm/index.ts; exact capabilities documented in docs/fsm.md -->
+
+```ts
+import { createFSM } from 'xstate/fsm';
+
+const machine = createFSM({
+  initial: 'inactive',
+  states: {
+    inactive: { on: { toggle: 'active' } },
+    active: { on: { toggle: 'inactive' } }
+  }
+});
+
+let state = machine.initialState;
+[state] = machine.transition(state, { type: 'toggle' });
+```
+
+The FSM is also actor logic, so `createActor(machine)` from `xstate` runs it.
+
+For typed context, event payloads, or state-specific context snapshots, use
+`setup` and `types` from `xstate/fsm`. These schemas are type-only in this
+subpath; use root `xstate` for runtime schema validation.
+
+See the [exact supported surface](https://stately.ai/docs/fsm). Use the root `xstate`
+entry point for compound or parallel statecharts, invocation, named sources,
+runtime schemas, serialization and inspection.
+
+### ✨ Create state machines visually in Stately Studio → [state.new](https://state.new)
+
+---
+
+📖 [Read the bundled documentation](docs/index.md)
+
+➡️ [Create state machines with the Stately Editor](https://stately.ai/editor)
+
+🖥 [Download our VS Code extension](https://marketplace.visualstudio.com/items?itemName=statelyai.stately-vscode)
+
+📑 Inspired by the [SCXML specification](https://www.w3.org/TR/scxml/)
+
+<!-- public SCXML entry point from packages/xstate-scxml/src/index.ts -->
+
+Create machines from SCXML documents with the separate [`@xstate/scxml`](https://www.npmjs.com/package/@xstate/scxml) package. See the [SCXML guide](docs/scxml.md).
+
+💬 Chat on the [Stately Discord Community](https://discord.gg/xstate)
+
+✍️ Browse through the many [XState examples](https://github.com/statelyai/xstate/tree/next/examples)
+
+## Templates
+
+Get started by forking one of these templates on CodeSandbox:
+
+<table>
+<thead>
+<tr><th>Template</th><th></th></tr>
+</thead>
+<tbody>
+
+<tr>
+<td>
+
+[🤖 XState Template (CodeSandbox)](https://codesandbox.io/p/devbox/github/statelyai/xstate/tree/next/templates/vanilla-ts)
+
+[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/statelyai/xstate/tree/next/templates/vanilla-ts?file=%2Fsrc%2FfeedbackMachine.ts)
+
+</td>
+<td>
+
+- XState v6 alpha
+- TypeScript
+- _No framework_
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+[⚛️ XState + React Template (CodeSandbox)](https://codesandbox.io/p/devbox/github/statelyai/xstate/tree/next/templates/react-ts)
+
+[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/statelyai/xstate/tree/next/templates/react-ts?file=%2Fsrc%2FfeedbackMachine.ts)
+
+</td>
+<td>
+
+- [React](https://react.dev/)
+- XState v6 alpha
+- TypeScript
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+[💚 XState + Vue Template (CodeSandbox)](https://codesandbox.io/p/devbox/github/statelyai/xstate/tree/next/templates/vue-ts)
+
+[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/statelyai/xstate/tree/next/templates/vue-ts?file=%2Fsrc%2FfeedbackMachine.ts)
+
+</td>
+<td>
+
+- [Vue](https://vuejs.org/)
+- XState v6 alpha
+- TypeScript
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+[🧡 XState + Svelte Template (CodeSandbox)](https://codesandbox.io/p/devbox/github/statelyai/xstate/tree/next/templates/svelte-ts)
+
+[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/statelyai/xstate/tree/next/templates/svelte-ts?file=%2Fsrc%2FfeedbackMachine.ts)
+
+</td>
+<td>
+
+- [Svelte](https://svelte.dev/)
+- XState v6 alpha
+- TypeScript
+
+</td>
+</tr>
+
+</tbody>
+</table>
+
 ## [Stately Studio](https://stately.ai)
 
 - Visually create, edit, and collaborate on state machines
@@ -261,10 +278,10 @@ Read [📽 the slides](http://slides.com/davidkhourshid/finite-state-machines) (
 | Package                                                                                     | Description                                                                  |
 | ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
 | 🤖 `xstate`                                                                                 | Core finite state machine and statecharts library + interpreter              |
-| [⚛️ `@xstate/react`](https://github.com/statelyai/xstate/tree/main/packages/xstate-react)   | React hooks and utilities for using XState in React applications             |
-| [💚 `@xstate/vue`](https://github.com/statelyai/xstate/tree/main/packages/xstate-vue)       | Vue composition functions and utilities for using XState in Vue applications |
-| [🎷 `@xstate/svelte`](https://github.com/statelyai/xstate/tree/main/packages/xstate-svelte) | Svelte utilities for using XState in Svelte applications                     |
-| [🥏 `@xstate/solid`](https://github.com/statelyai/xstate/tree/main/packages/xstate-solid)   | Solid hooks and utilities for using XState in Solid applications             |
+| [⚛️ `@xstate/react`](https://github.com/statelyai/xstate/tree/next/packages/xstate-react)   | React hooks and utilities for using XState in React applications             |
+| [💚 `@xstate/vue`](https://github.com/statelyai/xstate/tree/next/packages/xstate-vue)       | Vue composition functions and utilities for using XState in Vue applications |
+| [🎷 `@xstate/svelte`](https://github.com/statelyai/xstate/tree/next/packages/xstate-svelte) | Svelte utilities for using XState in Svelte applications                     |
+| [🥏 `@xstate/solid`](https://github.com/statelyai/xstate/tree/next/packages/xstate-solid)   | Solid hooks and utilities for using XState in Solid applications             |
 
 ## Finite State Machines
 
@@ -655,10 +672,10 @@ Most of the packages in the XState family declare a peer dependency on XState it
 Validate external input with `machine.eventSchema` before `actor.send()`.
 It validates complete public events, excludes internal/runtime events, and allows
 explicitly configured routes. Payload checks require runtime schemas;
-`types<T>()` supplies types only. See [public input validation](../../docs/internal-events.md#validating-public-input).
+`types<T>()` supplies types only. See [public input validation](docs/internal-events.md#validating-public-input).
 
 <!-- entry effects and terminal transition behavior from packages/core/src/stateUtils.ts and transitionActions.ts -->
 
-Use the `enq` argument in transition, entry and exit functions to queue effects. Return context or child patches from those functions; the return value of an enqueued effect is ignored, with a development warning. See [actions](../../docs/actions.md).
+Use the `enq` argument in transition, entry and exit functions to queue effects. Return context or child patches from those functions; the return value of an enqueued effect is ignored, with a development warning. See [actions](docs/actions.md).
 
-For actors that are done, stopped or failed, pure transitions return the same snapshot and no effects, and `snapshot.can(...)` returns `false`. See [snapshots](../../docs/snapshots.md) and [states](../../docs/states.md).
+For actors that are done, stopped or failed, pure transitions return the same snapshot and no effects, and `snapshot.can(...)` returns `false`. See [snapshots](docs/snapshots.md) and [states](docs/states.md).

@@ -36,6 +36,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const rootRequire = createRequire(join(root, 'package.json'));
+const ts = rootRequire('typescript');
 const tsManifest = rootRequire('typescript/package.json');
 const tsc = join(
   dirname(rootRequire.resolve('typescript/package.json')),
@@ -164,6 +165,46 @@ try {
     }
     if (missing.length) throw new Error(`Missing:\n  ${missing.join('\n  ')}`);
   });
+
+  step(
+    'tarball contains version-matched documentation and working local links',
+    () => {
+      const packageDir = join(nodeModules, 'xstate');
+      const { version } = JSON.parse(
+        readFileSync(join(packageDir, 'package.json'), 'utf8')
+      );
+      const { pages } = JSON.parse(
+        readFileSync(join(root, 'docs/meta.json'), 'utf8')
+      );
+      const index = readFileSync(join(packageDir, 'docs/index.md'), 'utf8');
+      if (!index.startsWith(`# XState ${version}\n`)) {
+        throw new Error(
+          'Bundled documentation version does not match the package'
+        );
+      }
+      for (const page of pages) {
+        if (!index.includes(`](${page}.md)`)) {
+          throw new Error(`Bundled documentation index is missing ${page}`);
+        }
+      }
+      for (const file of [
+        'README.md',
+        'docs/index.md',
+        ...pages.map((page) => `docs/${page}.md`)
+      ]) {
+        const source = readFileSync(join(packageDir, file), 'utf8');
+        for (const [, link] of source.matchAll(/\]\(([^\s)]+)\)/g)) {
+          if (/^(?:[a-z][a-z\d+.-]*:|#|\/)/i.test(link)) continue;
+          const target = join(packageDir, dirname(file), link.split(/[?#]/)[0]);
+          if (!existsSync(target)) {
+            throw new Error(
+              `${file}: local documentation link is missing: ${link}`
+            );
+          }
+        }
+      }
+    }
+  );
 
   step('no process.env.NODE_ENV in production dist', () => {
     const offenders = [];
@@ -296,6 +337,10 @@ console.log('ok');
   writeFileSync(join(consumer, 'machine.ts'), machineSource);
   // Same source compiled as CommonJS under node16 to exercise `require` types.
   writeFileSync(join(consumer, 'machine.cts'), machineSource);
+  const readme = readFileSync(join(nodeModules, 'xstate/README.md'), 'utf8');
+  const readmeExample = readme.match(/```ts\n([\s\S]*?)\n```/)?.[1];
+  if (!readmeExample) throw new Error('README quick start example is missing');
+  writeFileSync(join(consumer, 'readme.ts'), readmeExample);
   writeFileSync(
     join(consumer, 'react.tsx'),
     `import { useActorRef, useSelector } from '@xstate/react';
@@ -323,12 +368,12 @@ const { useActorRef } = require('@xstate/react');`)
     bundler: {
       module: 'ESNext',
       moduleResolution: 'bundler',
-      files: ['machine.ts', 'react.tsx']
+      files: ['machine.ts', 'react.tsx', 'readme.ts']
     },
     node16: {
       module: 'node16',
       moduleResolution: 'node16',
-      files: ['machine.ts', 'machine.cts', 'react.tsx']
+      files: ['machine.ts', 'machine.cts', 'react.tsx', 'readme.ts']
     }
   };
   for (const [label, { files, ...options }] of Object.entries(configs)) {
@@ -362,6 +407,28 @@ const { useActorRef } = require('@xstate/react');`)
 
   step('node esm.mjs', () => run(process.execPath, ['esm.mjs'], consumer));
   step('node cjs.cjs', () => run(process.execPath, ['cjs.cjs'], consumer));
+  step('README quick start runs with the packed package', () => {
+    const source = `${readmeExample}
+if (toggleActor.getSnapshot().value !== 'inactive' || toggleActor.getSnapshot().context.count !== 1) {
+  throw new Error('README quick start produced an unexpected snapshot');
+}
+toggleActor.send({ type: 'TOGGLE' });
+if (toggleActor.getSnapshot().value !== 'active' || toggleActor.getSnapshot().context.count !== 2) {
+  throw new Error('README quick start did not update context on re-entry');
+}
+toggleActor.stop();
+`;
+    writeFileSync(
+      join(consumer, 'readme.mjs'),
+      ts.transpileModule(source, {
+        compilerOptions: {
+          module: ts.ModuleKind.ESNext,
+          target: ts.ScriptTarget.ES2022
+        }
+      }).outputText
+    );
+    run(process.execPath, ['readme.mjs'], consumer);
+  });
 } finally {
   // Set PACKED_CONSUMER_KEEP=1 to inspect the consumer project afterwards.
   if (process.env.PACKED_CONSUMER_KEEP) console.log(`Kept ${work}`);
