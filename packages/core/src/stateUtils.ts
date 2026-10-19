@@ -61,6 +61,7 @@ import {
 import { builtInActions } from './actions.ts';
 import {
   assertChildIdFree,
+  assertRaiseEvent,
   createEnqueueObject,
   lateEnqueueCall,
   createTerminationEffect,
@@ -2797,11 +2798,10 @@ function createTransitionSelection(parent: AnyActor | undefined) {
     }
     operations.push(operation);
   };
-  const requireReevaluation = (): any => {
+  const abortRefProducingCall = (): any => {
     if (closed) {
       return lateEnqueueCall();
     }
-    // Ref-producing calls must stop before user code reads a speculative ref.
     frame.requiresReevaluation = true;
     throw transitionEffectSignal;
   };
@@ -2810,12 +2810,18 @@ function createTransitionSelection(parent: AnyActor | undefined) {
       cancel: (...args) => record((enq) => enq.cancel(...args)),
       emit: (...args) => record((enq) => enq.emit(...args)),
       log: (...args) => record((enq) => enq.log(...args)),
-      raise: (...args) => record((enq) => enq.raise(...args)),
+      raise: (event, options) => {
+        if (closed) {
+          return lateEnqueueCall();
+        }
+        assertRaiseEvent(event);
+        record((enq) => enq.raise(event, options));
+      },
       sendTo: (...args) => record((enq) => enq.sendTo(...args)),
       stop: (...args) => record((enq) => enq.stop(...args)),
-      spawn: requireReevaluation,
-      listen: requireReevaluation,
-      subscribeTo: requireReevaluation
+      spawn: abortRefProducingCall,
+      listen: abortRefProducingCall,
+      subscribeTo: abortRefProducingCall
     },
     (...args) => record((enq) => enq(...args))
   );

@@ -79,7 +79,7 @@ export function getPathsFromEvents<
     try {
       result = logic.transition(state, nextEvent, actorScope);
     } catch (cause) {
-      throw createTraversalError(stateSerial, serializeEvent(nextEvent), cause);
+      throw createTraversalError(stateSerial, eventSerial, cause);
     }
     const nextState = Array.isArray(result) ? result[0] : result;
     stateSerial = serializeState(nextState, event, state);

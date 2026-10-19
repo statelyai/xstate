@@ -713,6 +713,16 @@ export function takeSpawnAllocationCounters(
  */
 export const detachedScopes = new WeakSet<AnyActorScope>();
 
+export function assertRaiseEvent(event: unknown): void {
+  if (typeof event === 'string') {
+    throw new Error(
+      isDevelopment
+        ? `Only event objects may be used with raise; use raise({ type: "${event}" }) instead`
+        : `Only event objects may be used with raise`
+    );
+  }
+}
+
 export function createTransitionEnqueue(
   actorScope: AnyActorScope,
   actions: any[],
@@ -739,13 +749,7 @@ export function createTransitionEnqueue(
       pushBuiltInAction(actions, actorScope.logger, ...args);
     },
     raise: (raisedEvent, options) => {
-      if (typeof raisedEvent === 'string') {
-        throw new Error(
-          isDevelopment
-            ? `Only event objects may be used with raise; use raise({ type: "${raisedEvent}" }) instead`
-            : `Only event objects may be used with raise`
-        );
-      }
+      assertRaiseEvent(raisedEvent);
       if (options?.delay !== undefined) {
         pushBuiltInAction(
           actions,
