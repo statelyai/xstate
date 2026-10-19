@@ -48,7 +48,8 @@ import {
   AnyTransitionConfig,
   AnyActor,
   AnyActorScope,
-  DoneStateEvent
+  DoneStateEvent,
+  EnqueueObject
 } from './types.ts';
 import {
   resolveOutput,
@@ -61,17 +62,20 @@ import { builtInActions } from './actions.ts';
 import {
   assertChildIdFree,
   createEnqueueObject,
+  lateEnqueueCall,
   createTerminationEffect,
   closeTransitionEnqueue,
   createTransitionEnqueue,
-  lateEnqueueCall,
   createSendToEffect,
   deriveDeferredStarts,
   mergeContextPatch,
   resolveActionsWithContext
 } from './transitionActions.ts';
 import { parseDurationToMilliseconds } from './delay.ts';
-import { transitionEffectSignal, transitionEffectTargets } from './system.ts';
+import {
+  beginTransitionSelection,
+  transitionEffectSignal
+} from './transitionSelection.ts';
 import { isInertActorScope } from './inertActorScope.ts';
 import {
   getActorScopeParent,
@@ -902,11 +906,14 @@ export function getStateNodes(
   return allStateNodes;
 }
 
-export type TransitionSelectionResult = {
-  enabled: boolean;
-  result: unknown;
-  reusable: boolean;
-};
+export type TransitionSelectionResult =
+  | {
+      enabled: boolean;
+      result: unknown;
+      reusable: true;
+      operations: ReturnType<typeof createTransitionSelection>['operations'];
+    }
+  | { enabled: true; result: undefined; reusable: false };
 
 export type TransitionSelectionResults = Map<
   AnyTransitionDefinition,
@@ -2296,7 +2303,11 @@ export function getTransitionResult(
     const actions: AnyAction[] = [];
     const internalEvents: EventObject[] = [];
     let res;
-    if (options?.selectionResult?.reusable) {
+    if (
+      options?.selectionResult?.reusable &&
+      (options.resolveActions === false ||
+        options.selectionResult.operations.length === 0)
+    ) {
       res = options.selectionResult.result;
     } else {
       const enqueue = createTransitionEnqueue(
@@ -2306,9 +2317,27 @@ export function getTransitionResult(
         true,
         options?.resolveActions ?? true
       );
-      res = transition.to(getTransitionArgs(), enqueue);
-      closeTransitionEnqueue(enqueue);
-      assertSyncTransitionResult(res, event, transition.source.id);
+      const speculativeSelection =
+        options?.resolveActions === false
+          ? beginTransitionSelection(
+              getActorScopeParent(actorScope),
+              'suppress'
+            )
+          : undefined;
+      try {
+        if (options?.selectionResult?.reusable) {
+          res = options.selectionResult.result;
+          for (const operation of options.selectionResult.operations) {
+            operation(enqueue);
+          }
+        } else {
+          res = transition.to(getTransitionArgs(), enqueue);
+          assertSyncTransitionResult(res, event, transition.source.id);
+        }
+      } finally {
+        speculativeSelection?.close();
+        closeTransitionEnqueue(enqueue);
+      }
     }
 
     const targets = res?.target
@@ -2735,16 +2764,6 @@ export function hasEffect(
   return false;
 }
 
-// Depth of in-flight selection-phase transition function calls; the shared
-// selection enqueue is only valid while one runs.
-let selectionDepth = 0;
-const triggerTransitionEffect = (): any => {
-  if (!selectionDepth) {
-    return lateEnqueueCall();
-  }
-  throw transitionEffectSignal;
-};
-
 /**
  * Throws when a transition, entry, or exit function returned a promise. The promise's
  * rejection is observed so it is never reported as unhandled.
@@ -2765,22 +2784,50 @@ function assertSyncTransitionResult(
   }
 }
 
-let transitionEffectEnqueue: ReturnType<typeof createEnqueueObject> | undefined;
-function getTransitionEffectEnqueue() {
-  return (transitionEffectEnqueue ??= createEnqueueObject(
+type RecordedEnqueue = (enqueue: EnqueueObject<any, any>) => void;
+
+function createTransitionSelection(parent: AnyActor | undefined) {
+  const selection = beginTransitionSelection(parent);
+  const { frame } = selection;
+  const operations: RecordedEnqueue[] = [];
+  let closed = false;
+  const record = (operation: RecordedEnqueue) => {
+    if (closed) {
+      return lateEnqueueCall();
+    }
+    operations.push(operation);
+  };
+  const requireReevaluation = (): any => {
+    if (closed) {
+      return lateEnqueueCall();
+    }
+    // Ref-producing calls must stop before user code reads a speculative ref.
+    frame.requiresReevaluation = true;
+    throw transitionEffectSignal;
+  };
+  const enqueue = createEnqueueObject(
     {
-      emit: triggerTransitionEffect,
-      cancel: triggerTransitionEffect,
-      log: triggerTransitionEffect,
-      raise: triggerTransitionEffect,
-      spawn: triggerTransitionEffect,
-      sendTo: triggerTransitionEffect,
-      stop: triggerTransitionEffect,
-      listen: triggerTransitionEffect,
-      subscribeTo: triggerTransitionEffect
+      cancel: (...args) => record((enq) => enq.cancel(...args)),
+      emit: (...args) => record((enq) => enq.emit(...args)),
+      log: (...args) => record((enq) => enq.log(...args)),
+      raise: (...args) => record((enq) => enq.raise(...args)),
+      sendTo: (...args) => record((enq) => enq.sendTo(...args)),
+      stop: (...args) => record((enq) => enq.stop(...args)),
+      spawn: requireReevaluation,
+      listen: requireReevaluation,
+      subscribeTo: requireReevaluation
     },
-    triggerTransitionEffect
-  ));
+    (...args) => record((enq) => enq(...args))
+  );
+  return {
+    frame,
+    enqueue,
+    operations,
+    close() {
+      closed = true;
+      selection.close();
+    }
+  };
 }
 
 function evaluateTransitionFunction(
@@ -2793,12 +2840,7 @@ function evaluateTransitionFunction(
   sourceId: string
 ): TransitionSelectionResult {
   let res;
-  const parent = getActorScopeParent(actorScope);
-  if (parent) {
-    transitionEffectTargets.push(parent);
-  }
-
-  selectionDepth++;
+  const selection = createTransitionSelection(getActorScopeParent(actorScope));
   try {
     res = transitionTo(
       withActorScope(
@@ -2816,7 +2858,7 @@ function evaluateTransitionFunction(
         },
         actorScope
       ),
-      getTransitionEffectEnqueue()
+      selection.enqueue
     );
   } catch (err) {
     if (err === transitionEffectSignal) {
@@ -2824,14 +2866,19 @@ function evaluateTransitionFunction(
     }
     throw err;
   } finally {
-    selectionDepth--;
-    if (parent) {
-      transitionEffectTargets.pop();
-    }
+    selection.close();
   }
   assertSyncTransitionResult(res, event, sourceId);
 
-  return { enabled: res !== undefined, result: res, reusable: true };
+  if (selection.frame.requiresReevaluation) {
+    return { enabled: true, result: undefined, reusable: false };
+  }
+  return {
+    enabled: res !== undefined || selection.operations.length > 0,
+    result: res,
+    reusable: true,
+    operations: selection.operations
+  };
 }
 
 function stopChildren(
