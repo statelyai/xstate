@@ -1,4 +1,5 @@
 import isDevelopment from '#is-development';
+import { protectSelectionRelay } from './transitionSelection.ts';
 import type { InspectionEvent, SentRecord } from './inspection.ts';
 import type { StandardSchemaV1 } from './schema.types.ts';
 import type { InternalActorOptions } from './createActor.ts';
@@ -58,11 +59,6 @@ interface Scheduler {
 
 let executionIdPrefix: string | undefined;
 let nextExecutionId = 0;
-
-/** @internal */
-export const transitionEffectSignal = new Error('Transition effect');
-/** @internal */
-export const transitionEffectTargets: AnyActor[] = [];
 
 function createExecutionIdPrefix(): string {
   let crypto: Crypto | undefined;
@@ -898,9 +894,13 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
       ...event,
       rootId: this._rootActor.sessionId!
     };
-    this._inspectionObservers.forEach((observer) =>
-      observer.next?.(resolvedInspectionEvent)
-    );
+    this._inspectionObservers.forEach((observer) => {
+      try {
+        observer.next?.(resolvedInspectionEvent);
+      } catch (err) {
+        reportUnhandledError(err);
+      }
+    });
   }
 
   // Unlike the other operations, spawn has no local work: local actors
@@ -1100,11 +1100,8 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
     target: AnyActor,
     event: AnyEventObject
   ): void | PromiseLike<void> {
-    if (
-      transitionEffectTargets.length &&
-      transitionEffectTargets.includes(target)
-    ) {
-      throw transitionEffectSignal;
+    if (protectSelectionRelay(target)) {
+      return;
     }
     // Returned so callers that can observe a host runtime's asynchronous
     // delivery do; the built-in runtime delivers synchronously.
