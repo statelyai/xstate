@@ -1,4 +1,7 @@
 import { fireEvent, render } from '@testing-library/vue';
+import { effectScope } from 'vue';
+import { createActor, createMachine } from 'xstate';
+import { useSelector } from '../src/index.ts';
 import UseSelector from './UseSelector.vue';
 import useSelectorActorChange from './UseSelectorActorChange.vue';
 import useSelectorCustomFn from './UseSelectorCustomFn.vue';
@@ -72,5 +75,32 @@ describe('useSelector', () => {
     await fireEvent.click(getByTestId('changeActor'));
 
     expect(container.textContent).toEqual('foo');
+  });
+
+  it('should update the selected value when the actor errors', () => {
+    const actor = createActor(
+      createMachine({
+        on: {
+          FAIL: {
+            actions: () => {
+              throw new Error('failed');
+            }
+          }
+        }
+      })
+    ).start();
+
+    const scope = effectScope();
+    const status = scope.run(() => useSelector(actor, (s) => s.status))!;
+
+    try {
+      expect(status.value).toBe('active');
+
+      actor.send({ type: 'FAIL' });
+
+      expect(status.value).toBe('error');
+    } finally {
+      scope.stop();
+    }
   });
 });
