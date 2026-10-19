@@ -20,6 +20,7 @@ import {
 } from './types';
 import { resolveTraversalOptions } from './graph.ts';
 import { createMockActorScope } from './actorScope.ts';
+import { createTraversalError } from './traversalError.ts';
 
 function resolveTransitionSnapshot<TSnapshot>(
   result: TSnapshot | [TSnapshot, unknown[]]
@@ -122,21 +123,17 @@ export function getAdjacencyMap<
         continue;
       }
 
+      const serializedEvent = serializeEvent(nextEvent) as SerializedEvent;
       let nextSnapshot: TSnapshot;
       try {
         nextSnapshot = resolveTransitionSnapshot(
           transition(state, nextEvent, actorScope)
         );
       } catch (cause) {
-        throw new Error(
-          `Unable to traverse from ${serializedState} with ${serializeEvent(nextEvent)}: ${cause instanceof Error ? cause.message : String(cause)}`,
-          { cause }
-        );
+        throw createTraversalError(serializedState, serializedEvent, cause);
       }
 
-      adj[serializedState].transitions[
-        serializeEvent(nextEvent) as SerializedEvent
-      ] = {
+      adj[serializedState].transitions[serializedEvent] = {
         event: nextEvent,
         state: nextSnapshot
       };

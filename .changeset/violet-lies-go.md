@@ -13,3 +13,5 @@ getShortestPaths(machine, {
 ```
 
 Each map entry also accepts a snapshot callback returning nonempty payload cases. Event arrays and callbacks returning events still replace defaults, but their types must cover every required payload event. Fixed-sequence replay with `getPathsFromEvents` requires only the supplied events. Coverage remains sample-based.
+
+Unconfigured wildcard descriptors retain their default samples alongside concrete event cases. Use an event array to restrict traversal to supplied concrete events.

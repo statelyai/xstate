@@ -116,8 +116,7 @@ function resolveEventCases<TSnapshot>(
   return [
     ...events,
     ...(defaults?.filter(
-      (event) =>
-        !entries.some(([type]) => matchesEventDescriptor(type, event.type))
+      (event) => !entries.some(([type]) => type === event.type)
     ) ?? [])
   ];
 }

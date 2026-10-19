@@ -169,6 +169,7 @@ export type TraversalOptions<
     >
   >;
 
+/** @public */
 export type TraversalEvent<TSnapshot, TEvent> =
   | TEvent
   | (TSnapshot extends AnyMachineSnapshot
@@ -201,7 +202,11 @@ type EventCase<TSnapshot, TEvent> =
       state: TSnapshot
     ) => readonly [EventPayload<TEvent>, ...EventPayload<TEvent>[]]);
 
-/** Payload samples keyed by event type. Required payloads need at least one case. */
+/**
+ * Payload samples keyed by event type. Required payloads need at least one case.
+ *
+ * @public
+ */
 export type EventCases<TSnapshot, TEvent extends EventObject> = {
   [TType in TEvent['type']]?: EventCase<TSnapshot, TEvent & { type: TType }>;
 } & {
@@ -211,6 +216,7 @@ export type EventCases<TSnapshot, TEvent extends EventObject> = {
   >;
 };
 
+/** @public */
 export type EventCaseOptions<TLogic extends AnyActorLogic> = Omit<
   TraversalOptions<
     SnapshotFrom<TLogic>,
@@ -220,6 +226,7 @@ export type EventCaseOptions<TLogic extends AnyActorLogic> = Omit<
   'events'
 > & { events?: EventCases<SnapshotFrom<TLogic>, EventFromLogic<TLogic>> };
 
+/** @public */
 export type EventCaseOptionsArgs<TLogic extends AnyActorLogic> = [
   RequiredEventTypes<EventFromLogic<TLogic>>
 ] extends [never]
@@ -230,6 +237,7 @@ export type EventCaseOptionsArgs<TLogic extends AnyActorLogic> = [
       }
     ];
 
+/** @public */
 export type EventListOptions<
   TLogic extends AnyActorLogic,
   TEvents extends readonly TraversalEvent<

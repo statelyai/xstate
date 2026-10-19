@@ -132,6 +132,43 @@ it('uses concrete payload cases for wildcard transitions', () => {
   ).toEqual(['idle', 'added']);
 });
 
+describe.each(['*', 'item.*'] as const)('%s defaults', (descriptor) => {
+  it.each(['adjacency', 'shortest', 'simple'] as const)(
+    'keeps wildcard destinations reachable alongside exact cases with %s',
+    (mode) => {
+      const wildcard = createMachine({
+        schemas: { events: { 'item.add': z.object({ qty: z.number() }) } },
+        initial: 'idle',
+        states: {
+          idle: {
+            on: {
+              'item.add': ({ event }) =>
+                event.qty > 0 ? { target: 'added' } : undefined,
+              ...(descriptor === '*'
+                ? { '*': { target: 'other' } }
+                : { 'item.*': { target: 'other' } })
+            }
+          },
+          added: {},
+          other: {}
+        }
+      });
+      const options = { events: { 'item.add': [{ qty: 1 }] as const } };
+      const states =
+        mode === 'adjacency'
+          ? Object.values(getAdjacencyMap(wildcard, options)).map(
+              ({ state }) => state.value
+            )
+          : (mode === 'shortest' ? getShortestPaths : getSimplePaths)(
+              wildcard,
+              options
+            ).map(({ state }) => state.value);
+
+      expect(states).toEqual(['idle', 'added', 'other']);
+    }
+  );
+});
+
 it('keeps list and callback samples as complete replacements', () => {
   for (const events of [
     [{ type: 'item.add', item: { qty: 1 } }] as const,
@@ -176,7 +213,7 @@ it('propagates transition exceptions', () => {
     expect((failure as Error).cause).toBe(error);
     expect((failure as Error).message).toContain('idle');
     expect((failure as Error).message).toContain('GO');
-    expect((failure as Error).message).toContain('broken transition');
+    expect((failure as Error).message).toContain('"events" option');
   }
 });
 

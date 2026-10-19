@@ -9,6 +9,7 @@ import { StatePath, Steps, TraversalOptions, TraversalEvent } from './types.ts';
 import { resolveTraversalOptions } from './graph.ts';
 import { alterPath } from './alterPath.ts';
 import { createMockActorScope } from './actorScope.ts';
+import { createTraversalError } from './traversalError.ts';
 
 /** @public */
 export function getPathsFromEvents<
@@ -78,7 +79,12 @@ export function getPathsFromEvents<
       );
     }
     steps.push({ state, event });
-    const result = logic.transition(state, nextEvent, actorScope);
+    let result: ReturnType<typeof logic.transition>;
+    try {
+      result = logic.transition(state, nextEvent, actorScope);
+    } catch (cause) {
+      throw createTraversalError(stateSerial, eventSerial, cause);
+    }
     const nextState = Array.isArray(result) ? result[0] : result;
     stateSerial = serializeState(nextState, event, state);
     state = nextState;
