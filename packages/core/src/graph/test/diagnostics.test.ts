@@ -1,4 +1,5 @@
 import { setup, types } from '../../index.ts';
+import type { AnyStateMachine } from '../../index.ts';
 import {
   getAdjacencyMap,
   getPathsFromEvents,
@@ -31,30 +32,33 @@ describe.each([
         filled: {}
       }
     });
-    const traverse = (options: {
-      events?: Array<{ type: 'ADD'; quantity: number }>;
-    }) => {
+    const runtimeMachine: AnyStateMachine = machine;
+    const traverse = (events?: Array<{ type: 'ADD'; quantity: number }>) => {
       switch (method) {
         case 'getAdjacencyMap':
-          return getAdjacencyMap(machine, options);
+          return events
+            ? getAdjacencyMap(runtimeMachine, { events })
+            : getAdjacencyMap(runtimeMachine);
         case 'getShortestPaths':
-          return getShortestPaths(machine, options);
+          return events
+            ? getShortestPaths(runtimeMachine, { events })
+            : getShortestPaths(runtimeMachine);
         case 'getSimplePaths':
-          return getSimplePaths(machine, options);
+          return events
+            ? getSimplePaths(runtimeMachine, { events })
+            : getSimplePaths(runtimeMachine);
       }
     };
 
-    expect(() => traverse({})).toThrow(
+    expect(() => traverse()).toThrow(
       expect.objectContaining({
         message: expect.stringContaining('"value":"empty"'),
         cause
       })
     );
-    expect(() => traverse({})).toThrow(/"type":"ADD"/);
-    expect(() => traverse({})).toThrow(/events/);
-    expect(() =>
-      traverse({ events: [{ type: 'ADD', quantity: 2 }] })
-    ).not.toThrow();
+    expect(() => traverse()).toThrow(/"type":"ADD"/);
+    expect(() => traverse()).toThrow(/events/);
+    expect(() => traverse([{ type: 'ADD', quantity: 2 }])).not.toThrow();
   });
 });
 

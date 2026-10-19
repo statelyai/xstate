@@ -395,8 +395,10 @@ describe('createEffectActor with a persisted snapshot', () => {
         { type: 'NEXT' },
         { type: 'BACK' },
         { type: 'FETCH' },
-        { type: 'PING' }
+        { type: 'PING' },
+        { type: 'counted', count: 1 }
       ],
+      filterEvents: (_, event) => event.type !== 'counted',
       serializeState: (snapshot) =>
         JSON.stringify([snapshot.value, snapshot.context.sent])
     });

@@ -180,7 +180,10 @@ Use `testPaths()` when the reachable graph is finite and you want every path thr
 import { getShortestPaths } from 'xstate/graph';
 
 const paths = getShortestPaths(cartMachine, {
-  events: [{ type: 'ADD', sku: 'apple' }, { type: 'CHECKOUT' }],
+  events: {
+    ADD: [{ sku: 'apple' }, { sku: 'pear' }],
+    REMOVE: [{ sku: 'apple' }, { sku: 'pear' }]
+  },
   stopWhen: (snapshot) =>
     Object.values(snapshot.context.items).some((qty) => qty >= 2)
 });
@@ -190,18 +193,33 @@ await testPaths(cartMachine, { paths, sut: cartSut });
 
 `ADD` can be sent any number of times, so `stopWhen` bounds the traversal the same way it does for `testPaths()`.
 
-The `events` option replaces the machine's default events. To customize payloads while retaining invoke completions, errors, and delayed events, compose with `getAllOwnEvents(snapshot)`:
+For `getShortestPaths()`, `getSimplePaths()`, and `getAdjacencyMap()`, provide cases for every known event type with required payload fields. A keyed `events` map takes nonempty arrays of payloads, without `type`. Events without required payload fields retain their default samples. Map mode also retains invoke completions, errors, and delayed events.
+
+Unconfigured wildcard descriptors retain their default samples alongside concrete event cases. Use an event array to restrict traversal to supplied concrete events.
+
+A case generator receives the current snapshot and runs only where its event type matches an active transition. It must return at least one payload:
 
 ```ts
-import { getAllOwnEvents, getShortestPaths } from 'xstate/graph';
+import { getShortestPaths } from 'xstate/graph';
 
 const paths = getShortestPaths(cartMachine, {
-  events: (snapshot) => getAllOwnEvents(snapshot).map((event) =>
-    event.type === 'ADD' ? { ...event, sku: 'apple' } : event
-  ),
+  events: {
+    ADD: [{ sku: 'apple' }],
+    REMOVE: (snapshot) => [
+      { sku: Object.keys(snapshot.context.items)[0] ?? 'apple' }
+    ]
+  },
   stopWhen: (snapshot) => Object.values(snapshot.context.items).some((quantity) => quantity >= 2)
 });
 ```
+
+An event array or a callback returning events still replaces all defaults. Its element types must include every event type that requires a payload. Include synthetic events explicitly when using this mode, for example with `getAllOwnEvents(snapshot)`. A broadly annotated array can declare event variants it never returns; TypeScript cannot prove its runtime contents.
+
+`getPathsFromEvents()` replays the supplied typed sequence and does not require cases for unrelated events.
+
+Let discovery functions infer their type arguments when supplying event lists. Custom callbacks annotated as `PathGenerator` use the same required-case checks.
+
+Traversal covers the supplied samples, not every possible payload. TypeScript event types are erased at runtime; JavaScript callers must supply payload cases explicitly. Traversal does not infer required fields from erased types or validate payloads against schemas. Empty case arrays throw when their event type is applicable. Transition exceptions abort path discovery with the failing state, event, and original error as `cause`.
 
 Static directed graphs omit function transitions whose targets require execution. Microstep inspection records their resolved targets instead.
 

@@ -19,7 +19,6 @@ import {
   joinPaths,
   toDirectedGraph
 } from '../index.ts';
-import { createStateConfig } from '../../createMachine.ts';
 
 function getPathsSnapshot(
   paths: Array<StatePath<Snapshot<unknown>, EventObject>>
@@ -49,32 +48,6 @@ function getPathSnapshot(path: StatePath<Snapshot<unknown>, any>): {
 }
 
 describe('@xstate/graph', () => {
-  const pedestrianStates = createStateConfig({
-    initial: 'walk',
-    states: {
-      walk: {
-        on: {
-          // PED_COUNTDOWN: {
-          //   target: 'wait',
-          //   actions: ['startCountdown']
-          // }
-          PED_COUNTDOWN: (_, enq) => {
-            enq(function startCountdown() {});
-
-            return { target: 'wait' };
-          }
-        }
-      },
-      wait: {
-        on: {
-          PED_COUNTDOWN: { target: 'stop' }
-        }
-      },
-      stop: {},
-      flashing: {}
-    }
-  });
-
   const lightMachine = createMachine({
     id: 'light',
     initial: 'green',
@@ -112,8 +85,27 @@ describe('@xstate/graph', () => {
           TIMER: { target: 'green' },
           POWER_OUTAGE: { target: 'red.flashing' }
         },
-        ...pedestrianStates
-      } as any
+
+        initial: 'walk',
+        states: {
+          walk: {
+            on: {
+              PED_COUNTDOWN: (_, enq) => {
+                enq(function startCountdown() {});
+
+                return { target: 'wait' };
+              }
+            }
+          },
+          wait: {
+            on: {
+              PED_COUNTDOWN: { target: 'stop' }
+            }
+          },
+          stop: {},
+          flashing: {}
+        }
+      }
     }
   });
 
@@ -245,7 +237,9 @@ describe('@xstate/graph', () => {
     });
 
     it.skip('should not throw when a condition is present', () => {
-      expect(() => getShortestPaths(condMachine)).not.toThrow();
+      expect(() =>
+        getShortestPaths(condMachine, { events: { EVENT: [{ id: 'foo' }] } })
+      ).not.toThrow();
     });
 
     it.skip('should represent conditional paths based on context', () => {

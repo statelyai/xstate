@@ -6,7 +6,8 @@ import {
   EventFromLogic,
   Snapshot,
   InputFrom,
-  SnapshotFrom
+  SnapshotFrom,
+  isMachineSnapshot
 } from '../index.ts';
 import type {
   SerializedEvent,
@@ -19,7 +20,11 @@ import type {
   TraversalConfig
 } from './types.ts';
 import { createMockActorScope } from './actorScope.ts';
-import { getAllOwnEvents, matchesEvent } from '../utils.ts';
+import {
+  getAllOwnEvents,
+  matchesEvent,
+  matchesEventDescriptor
+} from '../utils.ts';
 
 /**
  * Returns all state nodes of the given `node`.
@@ -70,6 +75,52 @@ function serializeEvent<TEvent extends EventObject>(
   return JSON.stringify(event) as SerializedEvent;
 }
 
+function resolveEventCases<TSnapshot>(
+  cases: object,
+  state: TSnapshot,
+  defaults?: EventObject[]
+): EventObject[] {
+  const events: EventObject[] = [];
+  const sources = cases as Record<
+    string,
+    readonly object[] | ((state: TSnapshot) => readonly object[])
+  >;
+  const entries = Object.entries(sources).filter(
+    ([, source]) => source !== undefined
+  );
+  const applicable = (type: string) =>
+    !defaults ||
+    defaults.some((event) => matchesEventDescriptor(type, event.type));
+  for (const [type, source] of entries) {
+    if (!applicable(type)) {
+      continue;
+    }
+    const samples = typeof source === 'function' ? source(state) : source;
+    if (!Array.isArray(samples) || !samples.length) {
+      throw new Error(`Event cases for "${type}" must be a non-empty array`);
+    }
+    for (const payload of samples) {
+      const event = { ...payload, type };
+      if (
+        !defaults ||
+        defaults.some(
+          ({ type: descriptor, ...pattern }) =>
+            matchesEventDescriptor(type, descriptor) &&
+            matchesEvent(event, pattern)
+        )
+      ) {
+        events.push(event);
+      }
+    }
+  }
+  return [
+    ...events,
+    ...(defaults?.filter(
+      (event) => !entries.some(([type]) => type === event.type)
+    ) ?? [])
+  ];
+}
+
 function createDefaultMachineOptions<TMachine extends AnyStateMachine>(
   machine: TMachine,
   options?: TraversalOptions<
@@ -82,7 +133,6 @@ function createDefaultMachineOptions<TMachine extends AnyStateMachine>(
   EventFromLogic<TMachine>,
   InputFrom<TMachine>
 > {
-  const { events: getEvents, ...otherOptions } = options ?? {};
   const traversalOptions: TraversalOptions<
     SnapshotFrom<TMachine>,
     EventFromLogic<TMachine>,
@@ -90,20 +140,8 @@ function createDefaultMachineOptions<TMachine extends AnyStateMachine>(
   > = {
     serializeState: serializeSnapshot,
     serializeEvent,
-    events: (state) => {
-      const events =
-        typeof getEvents === 'function' ? getEvents(state) : (getEvents ?? []);
-      return getAllOwnEvents(state).flatMap((defaultEvent) => {
-        const matchingEvents = events.filter((event) =>
-          matchesEvent(event as EventObject, defaultEvent)
-        );
-        if (matchingEvents.length) {
-          return matchingEvents;
-        }
-        return [defaultEvent];
-      }) as any[];
-    },
-    ...otherOptions,
+    ...options,
+    events: (state) => getAllOwnEvents(state) as EventFromLogic<TMachine>[],
     fromState:
       options?.fromState ??
       (machine.getInitialSnapshot(
@@ -214,6 +252,8 @@ export function resolveTraversalOptions<TLogic extends AnyActorLogic>(
     traversalOptions?.serializeState ??
     resolvedDefaultOptions?.serializeState ??
     ((state) => JSON.stringify(state));
+  const eventSource =
+    traversalOptions?.events ?? resolvedDefaultOptions?.events ?? [];
   const traversalConfig: TraversalConfig<
     SnapshotFrom<TLogic>,
     EventFromLogic<TLogic>
@@ -229,9 +269,14 @@ export function resolveTraversalOptions<TLogic extends AnyActorLogic>(
     ...resolvedDefaultOptions,
     ...traversalOptions,
     // Synthetic completion/delay events are supported by the machine runtime.
-    events: (traversalOptions?.events ??
-      resolvedDefaultOptions?.events ??
-      []) as TraversalConfig<
+    events: (typeof eventSource === 'function' || Array.isArray(eventSource)
+      ? eventSource
+      : (state: SnapshotFrom<TLogic>) =>
+          resolveEventCases(
+            eventSource,
+            state,
+            isMachineSnapshot(state) ? getAllOwnEvents(state) : undefined
+          )) as TraversalConfig<
       SnapshotFrom<TLogic>,
       EventFromLogic<TLogic>
     >['events'],

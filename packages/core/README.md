@@ -120,7 +120,7 @@ The helper requires input for actors whose input excludes `undefined`, and check
 
 <!-- graph traversal events from packages/core/src/graph/index.ts -->
 
-`getAllOwnEvents(snapshot)` from `xstate/graph` includes invoke completions, errors, and delayed events. Compose it with custom traversal payloads: supplied `events` replace the defaults. See [model-based testing](https://github.com/statelyai/xstate/blob/next/docs/model-based-testing.md).
+Graph traversal requires samples for known event types with required payloads. Pass an `events` map such as `{ ADD: [{ value: 1 }, { value: 0 }] }`; each entry also accepts a snapshot callback returning nonempty payload cases. Maps preserve payload-free defaults, invoke completions, errors, and delayed events. Event arrays and callbacks returning events replace all defaults. Coverage remains sample-based. See [model-based testing](https://github.com/statelyai/xstate/blob/next/docs/model-based-testing.md).
 
 <!-- JSON loading and runtime validation from packages/core/src/machineFromJSON.ts -->
 
