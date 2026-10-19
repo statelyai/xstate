@@ -8,7 +8,6 @@ import {
 } from '../src/actors';
 import {
   ActorRefFrom,
-  ActorRefFromLogic,
   ActorOptions,
   AnyActorLogic,
   AnyActorRef,
@@ -588,7 +587,7 @@ describe('context', () => {
 
     const context = createActor(machine).getSnapshot().context;
     context.count satisfies number;
-    context.connection satisfies ActorRefFromLogic<typeof connection>;
+    context.connection satisfies ActorRefFrom<typeof connection>;
     // @ts-expect-error the spawned ref is typed, not `any`
     context.connection satisfies number;
 
@@ -806,7 +805,7 @@ describe('emitted', () => {
     // @ts-expect-error
     actor.on('unknown', () => {});
 
-    const actorRef: ActorRefFromLogic<typeof m> = actor;
+    const actorRef: ActorRefFrom<typeof m> = actor;
 
     actorRef.on('onClick', (ev) => {
       ev.y satisfies number;
@@ -1450,18 +1449,20 @@ describe('events', () => {
   });
 
   it('should reject string target shorthand in transition configs', () => {
-    createMachine({
-      initial: 'a',
-      // @ts-expect-error
-      states: {
-        a: {
-          on: {
-            NEXT: 'b'
-          }
-        },
-        b: {}
-      }
-    });
+    expect(() =>
+      createMachine({
+        initial: 'a',
+        // @ts-expect-error
+        states: {
+          a: {
+            on: {
+              NEXT: 'b'
+            }
+          },
+          b: {}
+        }
+      })
+    ).toThrow('is the string "b"');
   });
 
   it('should reject transition arrays in authored machine configs', () => {
@@ -2753,11 +2754,10 @@ describe('invoke', () => {
 
     createAsyncLogic({
       schemas: {
-        // @ts-expect-error output does not match the declared schema
         input: types<{ userId: string }>(),
-        // @ts-expect-error output does not match the declared schema
         output: types<{ name: string }>()
       },
+      // @ts-expect-error output does not match the declared schema
       run: async () => {
         return { age: 42 };
       }
@@ -3643,6 +3643,7 @@ describe('invoke', () => {
       //   };
       // },
       actors: { child },
+      // @ts-expect-error input is required by the resolved logic
       invoke: {
         src: ({ actors }) => actors.child
       }
@@ -4162,6 +4163,67 @@ describe('actor sources', () => {
         })
       }
     });
+  });
+});
+
+describe('ActorRefFrom', () => {
+  it('accepts actor logic', () => {
+    const machine = createMachine({ initial: 'a', states: { a: {} } });
+    const asyncLogic = createAsyncLogic({ run: async () => 42 });
+
+    type MachineRef = ActorRefFrom<typeof machine>;
+    type AsyncRef = ActorRefFrom<typeof asyncLogic>;
+
+    ((ref: MachineRef) => {
+      ref.getSnapshot().value satisfies string;
+    }) satisfies unknown;
+    ((ref: AsyncRef) => {
+      ref.getSnapshot().output satisfies number | undefined;
+    }) satisfies unknown;
+  });
+
+  it('types machine snapshots fully', () => {
+    const child = createMachine({
+      id: 'child',
+      schemas: { context: z.object({ count: z.number() }) },
+      context: { count: 0 },
+      initial: 'idle',
+      states: { idle: { id: 'known' }, busy: {} }
+    });
+    const parent = createMachine({
+      schemas: {
+        context: z.object({ ref: z.custom<ActorRefFrom<typeof child>>() })
+      },
+      context: ({ spawn }) => ({ ref: spawn(child) })
+    });
+
+    ((ref: ActorRefFrom<typeof child>) => {
+      const snapshot = ref.getSnapshot();
+      snapshot.context.count satisfies number;
+      // @ts-expect-error context is typed
+      snapshot.context.count satisfies string;
+      snapshot.matches('#known');
+      snapshot.matches('#child.busy');
+      // @ts-expect-error unknown state id
+      snapshot.matches('#nope');
+      snapshot.matches('busy');
+    }) satisfies unknown;
+    ((snapshot: SnapshotFrom<typeof parent>) => {
+      snapshot.context.ref.getSnapshot().matches('#known');
+      // @ts-expect-error unknown state id
+      snapshot.context.ref.getSnapshot().matches('#nope');
+    }) satisfies unknown;
+  });
+
+  it('rejects types that are not actor logic', () => {
+    const machine = createMachine({});
+
+    // @ts-expect-error a promise is not actor logic
+    type _PromiseRef = ActorRefFrom<Promise<number>>;
+    // @ts-expect-error an actor ref is not actor logic
+    type _RefRef = ActorRefFrom<ActorRefFrom<typeof machine>>;
+    // @ts-expect-error a function is not actor logic
+    type _FnRef = ActorRefFrom<() => typeof machine>;
   });
 });
 
@@ -5099,7 +5161,7 @@ describe('children schemas', () => {
     setup({}).createMachine({
       schemas: {
         children: {
-          someId: z.custom<ActorRefFromLogic<typeof child>>()
+          someId: z.custom<ActorRefFrom<typeof child>>()
         }
       },
       invoke: {
@@ -5130,7 +5192,7 @@ describe('children schemas', () => {
     createMachine({
       schemas: {
         children: {
-          someId: z.custom<ActorRefFromLogic<typeof child>>()
+          someId: z.custom<ActorRefFrom<typeof child>>()
         }
       },
       // @ts-expect-error
@@ -5143,7 +5205,7 @@ describe('children schemas', () => {
     setup({}).createMachine({
       schemas: {
         children: {
-          someId: z.custom<ActorRefFromLogic<typeof child>>()
+          someId: z.custom<ActorRefFrom<typeof child>>()
         }
       },
       // @ts-expect-error
@@ -5158,7 +5220,7 @@ describe('children schemas', () => {
     setup({}).createMachine({
       schemas: {
         children: {
-          someId: z.custom<ActorRefFromLogic<typeof child>>()
+          someId: z.custom<ActorRefFrom<typeof child>>()
         }
       },
       actors: {
@@ -6058,7 +6120,7 @@ describe('delays', () => {
     createMachine({
       schemas: {
         children: {
-          worker: z.custom<ActorRefFromLogic<typeof child>>()
+          worker: z.custom<ActorRefFrom<typeof child>>()
         }
       },
       invoke: {
@@ -6746,15 +6808,15 @@ it('UnknownActorRef should return a Snapshot-typed value from getSnapshot()', ()
   actor.getSnapshot().status === 'FOO';
 });
 
-it('Actor<T> should be assignable to ActorRefFromLogic<T>', () => {
+it('Actor<T> should be assignable to ActorRefFrom<T>', () => {
   const logic = createMachine({});
 
   class ActorThing<T extends AnyActorLogic> {
-    actorRef: ActorRefFromLogic<T>;
+    actorRef: ActorRefFrom<T>;
     constructor(actorLogic: T, options: ActorOptions<T>) {
       const actor = createActor(actorLogic, options);
 
-      actor satisfies ActorRefFromLogic<typeof actorLogic>;
+      actor satisfies ActorRefFrom<typeof actorLogic>;
       this.actorRef = actor;
     }
   }

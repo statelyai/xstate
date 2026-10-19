@@ -6,7 +6,7 @@ import {
   setup,
   types,
   type AnyActorLogic,
-  type ActorRefFromLogic,
+  type ActorRefFrom,
   type SnapshotFrom,
   type OutputFrom
 } from '../../../src/index.ts';
@@ -207,7 +207,7 @@ export function checkAsyncContracts() {
   const s = setup({
     schemas: {
       context: types<{ id: number }>(),
-      children: { job: types<ActorRefFromLogic<typeof child>>() }
+      children: { job: types<ActorRefFrom<typeof child>>() }
     },
     states: {
       loading: {},
@@ -326,7 +326,7 @@ export function checkRequiredInputAndMachineChildren() {
   s.createInvoke({ src: optionalJob, input: undefined });
   s.createInvoke({ src: optionalJob, input: () => undefined });
   const machine = s.createMachine({
-    schemas: { children: { job: types<ActorRefFromLogic<typeof job>>() } },
+    schemas: { children: { job: types<ActorRefFrom<typeof job>>() } },
     invoke: s.createInvoke({
       id: 'job',
       src: job,
@@ -346,17 +346,17 @@ export function checkRequiredInputAndMachineChildren() {
   // @ts-expect-error snapshot child keys are not widened
   type _MissingChild = SnapshotFrom<typeof machine>['children']['missing'];
   s.createMachine({
-    schemas: { children: { job: types<ActorRefFromLogic<typeof job>>() } },
+    schemas: { children: { job: types<ActorRefFrom<typeof job>>() } },
     // @ts-expect-error machine-local children require a matching id
     invoke: s.createInvoke({ src: job, input: { id: 1 } })
   });
   s.createMachine({
-    schemas: { children: { job: types<ActorRefFromLogic<typeof job>>() } },
+    schemas: { children: { job: types<ActorRefFrom<typeof job>>() } },
     // @ts-expect-error machine-local children reject unknown ids
     invoke: s.createInvoke({ id: 'missing', src: job, input: { id: 1 } })
   });
   s.createMachine({
-    schemas: { children: { job: types<ActorRefFromLogic<typeof job>>() } },
+    schemas: { children: { job: types<ActorRefFrom<typeof job>>() } },
     // @ts-expect-error machine-local children reject incompatible sources
     invoke: s.createInvoke({
       id: 'job',
@@ -364,7 +364,7 @@ export function checkRequiredInputAndMachineChildren() {
     })
   });
   s.createMachine({
-    schemas: { children: { job: types<ActorRefFromLogic<typeof job>>() } },
+    schemas: { children: { job: types<ActorRefFrom<typeof job>>() } },
     initial: 'parent',
     states: {
       parent: {
@@ -393,7 +393,7 @@ export function checkRequiredInputAndMachineChildren() {
     }
   });
   s.createMachine({
-    schemas: { children: { job: types<ActorRefFromLogic<typeof job>>() } },
+    schemas: { children: { job: types<ActorRefFrom<typeof job>>() } },
     initial: 'loading',
     states: {
       loading: {
@@ -409,8 +409,8 @@ export function checkRequiredInputAndMachineChildren() {
   s.createMachine({
     schemas: {
       children: {
-        job: types<ActorRefFromLogic<typeof job>>(),
-        other: types<ActorRefFromLogic<typeof other>>()
+        job: types<ActorRefFrom<typeof job>>(),
+        other: types<ActorRefFrom<typeof other>>()
       }
     },
     // @ts-expect-error source must match its chosen id, not another declared child
@@ -418,18 +418,18 @@ export function checkRequiredInputAndMachineChildren() {
   });
   const hoisted = s.createInvoke({ id: 'job', src: job, input: { id: 1 } });
   s.createMachine({
-    schemas: { children: { job: types<ActorRefFromLogic<typeof job>>() } },
+    schemas: { children: { job: types<ActorRefFrom<typeof job>>() } },
     invoke: hoisted
   });
   const missingId = s.createInvoke({ src: job, input: { id: 1 } });
   s.createMachine({
-    schemas: { children: { job: types<ActorRefFromLogic<typeof job>>() } },
+    schemas: { children: { job: types<ActorRefFrom<typeof job>>() } },
     // @ts-expect-error hoisted invokes also require a matching child id
     invoke: missingId
   });
   const wrongId = s.createInvoke({ id: 'missing', src: job, input: { id: 1 } });
   s.createMachine({
-    schemas: { children: { job: types<ActorRefFromLogic<typeof job>>() } },
+    schemas: { children: { job: types<ActorRefFrom<typeof job>>() } },
     // @ts-expect-error hoisted invokes cannot use undeclared ids
     invoke: wrongId
   });
@@ -438,7 +438,7 @@ export function checkRequiredInputAndMachineChildren() {
     src: createAsyncLogic({ run: async () => 'wrong' })
   });
   s.createMachine({
-    schemas: { children: { job: types<ActorRefFromLogic<typeof job>>() } },
+    schemas: { children: { job: types<ActorRefFrom<typeof job>>() } },
     // @ts-expect-error hoisted invokes check id/source compatibility
     invoke: wrongSource
   });

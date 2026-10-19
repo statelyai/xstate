@@ -79,8 +79,8 @@ const PROFILES = {
     const machine = createMachine({
       initial: 'inactive',
       states: {
-        inactive: { on: { toggle: 'active' } },
-        active: { on: { toggle: 'inactive' } }
+        inactive: { on: { toggle: { target: 'active' } } },
+        active: { on: { toggle: { target: 'inactive' } } }
       }
     });
     const actor = createActor(machine).start();
@@ -152,8 +152,8 @@ const PROFILES = {
     const machine = createMachine({
       initial: 'inactive',
       states: {
-        inactive: { on: { toggle: 'active' } },
-        active: { on: { toggle: 'inactive' } }
+        inactive: { on: { toggle: { target: 'active' } } },
+        active: { on: { toggle: { target: 'inactive' } } }
       }
     });
     console.log(machine.id);
@@ -166,8 +166,8 @@ const PROFILES = {
     const machine = createMachine({
       initial: 'inactive',
       states: {
-        inactive: { on: { toggle: 'active' } },
-        active: { on: { toggle: 'inactive' } }
+        inactive: { on: { toggle: { target: 'active' } } },
+        active: { on: { toggle: { target: 'inactive' } } }
       }
     });
     const [initialSnapshot] = initialTransition(machine);
@@ -187,7 +187,7 @@ const PROFILES = {
         parent: {
           initial: 'inactive',
           states: {
-            inactive: { on: { toggle: 'active' } },
+            inactive: { on: { toggle: { target: 'active' } } },
             active: {}
           }
         }
@@ -207,11 +207,11 @@ const PROFILES = {
       states: {
         left: {
           initial: 'inactive',
-          states: { inactive: { on: { left: 'active' } }, active: {} }
+          states: { inactive: { on: { left: { target: 'active' } } }, active: {} }
         },
         right: {
           initial: 'inactive',
-          states: { inactive: { on: { right: 'active' } }, active: {} }
+          states: { inactive: { on: { right: { target: 'active' } } }, active: {} }
         }
       }
     });
@@ -232,10 +232,10 @@ const PROFILES = {
           initial: 'first',
           states: {
             history: { type: 'history', target: 'first' },
-            first: { on: { next: 'second' } },
+            first: { on: { next: { target: 'second' } } },
             second: {}
           },
-          on: { leave: 'inactive' }
+          on: { leave: { target: 'inactive' } }
         },
         inactive: { on: { restore: '#history-machine.active.history' } }
       }
@@ -254,7 +254,7 @@ const PROFILES = {
     const machine = createMachine({
       initial: 'working',
       states: {
-        working: { on: { finish: 'done' } },
+        working: { on: { finish: { target: 'done' } } },
         done: { type: 'final', output: { result: 'ok' } }
       }
     });
@@ -336,7 +336,7 @@ const PROFILES = {
     const machine = createMachine({
       initial: 'waiting',
       states: {
-        waiting: { after: { 1000: 'done' } },
+        waiting: { after: { 1000: { target: 'done' } } },
         done: {}
       }
     });
@@ -354,7 +354,7 @@ const PROFILES = {
     const machine = createMachine({
       initial: 'inactive',
       states: {
-        inactive: { on: { toggle: 'active' } },
+        inactive: { on: { toggle: { target: 'active' } } },
         active: {}
       }
     });
@@ -372,7 +372,7 @@ const PROFILES = {
     const machine = createMachine({
       initial: 'inactive',
       states: {
-        inactive: { on: { toggle: 'active' } },
+        inactive: { on: { toggle: { target: 'active' } } },
         active: {}
       }
     });
@@ -394,7 +394,7 @@ const PROFILES = {
       context: { user: null },
       initial: 'idle',
       states: {
-        idle: { on: { load: 'loading' } },
+        idle: { on: { load: { target: 'loading' } } },
         loading: {
           invoke: {
             src: fetchUser,
@@ -528,7 +528,7 @@ const EXPECTED_LOGS = {
   'minimal-fsm': [['active']],
   'fsm-setup': [['active']],
   'custom-logic-actor': [[1]],
-  'machine-construction': [['(machine)']],
+  'machine-construction': [['']],
   'pure-machine': [['active']],
   compound: [[{ parent: 'active' }]],
   parallel: [[{ left: 'active', right: 'inactive' }]],

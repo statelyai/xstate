@@ -1,13 +1,13 @@
 import { AnyActorSystem } from '../system.ts';
 import {
   ActorLogic,
-  ActorRefFromLogic,
+  ActorRefFrom,
   AnyActorRef,
   AnyEventObject,
   EventObject,
-  NonReducibleUnknown,
   Snapshot
 } from '../types';
+import type { NonReducibleUnknown } from '../typeUtils.ts';
 import { StandardSchemaV1 } from '../schema.types.ts';
 import type { ActorLogicValidator } from '../validation.types.ts';
 import { createStepLogic as createBaseLogic } from './logic.ts';
@@ -86,7 +86,7 @@ export type CallbackActorLogic<
 export type CallbackActorRef<
   TEvent extends EventObject,
   TInput = NonReducibleUnknown
-> = ActorRefFromLogic<CallbackActorLogic<TEvent, TInput>>;
+> = ActorRefFrom<CallbackActorLogic<TEvent, TInput>>;
 
 type Receiver<TEvent extends EventObject> = (
   listener: {

@@ -63,9 +63,7 @@ describe("snapshot.matches('#id')", () => {
       .start()
       .getSnapshot();
 
-    expect(() => snapshot.matches('#nope')).toThrow(
-      "Child state node '#nope' does not exist on machine 'root'"
-    );
+    expect(() => snapshot.matches('#nope')).toThrow('No state has id "nope".');
   });
 
   it('accepts only known ids when the ids are statically known', () => {

@@ -25,6 +25,7 @@ import {
   XSTATE_TIMER
 } from './constants.ts';
 import {
+  describeMachine,
   getEventOutput,
   isErrorEvent,
   matchesEvent,
@@ -54,7 +55,6 @@ import {
   normalizeTarget,
   toArray,
   toStatePath,
-  resolveReferencedActor,
   toTransitionConfigArray
 } from './utils.ts';
 import { builtInActions } from './actions.ts';
@@ -409,6 +409,8 @@ export function getDelayedTransitions(
     delay: any;
     transitions: unknown;
     fromDelaysMap: boolean;
+    /** Where the transitions are authored, for error messages. */
+    name: string;
   }> = [];
 
   if (afterConfig) {
@@ -418,7 +420,8 @@ export function getDelayedTransitions(
         event: createAfterEvent(delay, stateNode.id),
         delay,
         transitions: afterConfig[key],
-        fromDelaysMap: true
+        fromDelaysMap: true,
+        name: `after.${key}`
       });
     }
   }
@@ -428,7 +431,8 @@ export function getDelayedTransitions(
       event: createTimeoutEvent(stateNode.id),
       delay: timeoutConfig,
       transitions: onTimeoutConfig,
-      fromDelaysMap: true
+      fromDelaysMap: true,
+      name: 'onTimeout'
     });
   }
 
@@ -444,7 +448,8 @@ export function getDelayedTransitions(
         matchesActorSession(event, snapshot, invokeDef.id),
       delay: invokeDef.timeout!,
       transitions: invokeDef.onTimeout,
-      fromDelaysMap: false
+      fromDelaysMap: false,
+      name: 'invoke.onTimeout'
     });
   }
 
@@ -468,7 +473,8 @@ export function getDelayedTransitions(
     eventMatcher,
     delay,
     transitions,
-    fromDelaysMap
+    fromDelaysMap,
+    name
   } of sources) {
     scheduleDelayedEvent(stateNode, event, resolveEvent ?? (() => event), (x) =>
       resolveDelay(delay, fromDelaysMap ? x.delays : {}, {
@@ -479,7 +485,11 @@ export function getDelayedTransitions(
       })
     );
     const { type: eventType, ...eventPattern } = event;
-    for (const transition of toTransitionConfigArray(transitions as any)) {
+    for (const transition of toTransitionConfigArray(
+      transitions as any,
+      name,
+      stateNode.id
+    )) {
       delayedTransitions.push({
         ...transition,
         matches: {
@@ -814,9 +824,6 @@ function getInitialStateNodes(stateNode: AnyStateNode) {
 
 /** Returns the child state node from its relative `stateKey`, or throws. */
 function getStateNode(stateNode: AnyStateNode, stateKey: string): AnyStateNode {
-  if (isStateId(stateKey)) {
-    return stateNode.machine.getStateNodeById(stateKey);
-  }
   const result = stateNode.states?.[stateKey];
   if (!result) {
     throw new Error(
@@ -833,17 +840,13 @@ function getStateNode(stateNode: AnyStateNode, stateKey: string): AnyStateNode {
  *
  * @param statePath The string or string array relative path to the state node.
  */
-export function getStateNodeByPath(
+function getStateNodeByPath(
   stateNode: AnyStateNode,
   statePath: string | string[]
 ): AnyStateNode {
+  // `#id` is an exact id lookup, never an id followed by a path.
   if (typeof statePath === 'string' && isStateId(statePath)) {
-    try {
-      return stateNode.machine.getStateNodeById(statePath);
-    } catch {
-      // try individual paths
-      // throw e;
-    }
+    return stateNode.machine.getStateNodeById(statePath);
   }
   const arrayStatePath = toStatePath(statePath).slice();
   let currentStateNode: AnyStateNode = stateNode;
@@ -1889,13 +1892,13 @@ function microstep(
 
           const logic =
             typeof src === 'string'
-              ? resolveReferencedActor(currentSnapshot.machine, src)
+              ? currentSnapshot.machine.sources.actors[src]
               : src;
 
           if (!logic) {
             throw new Error(
               isDevelopment
-                ? `Actor logic '${typeof src === 'string' ? src : 'inline'}' not implemented in machine '${currentSnapshot.machine.id}'`
+                ? `Actor logic '${typeof src === 'string' ? src : 'inline'}' not implemented in ${describeMachine(currentSnapshot.machine.id)}`
                 : `Actor logic '${typeof src === 'string' ? src : 'inline'}' not implemented`
             );
           }
@@ -1914,10 +1917,15 @@ function microstep(
           assertChildIdFree(actorScope, invokeDef.id);
           const actor = actorScope.system.createActorRef(logic, {
             ...invokeDef,
+            // A `src` function may return a registered key, which persists.
+            src: typeof src === 'string' ? src : undefined,
             input,
             parent: actorScope.self,
             syncSnapshot: !!invokeDef.onSnapshot
           });
+          // Persistence restores a source-less child through its invoke
+          // definition only when the invoke created it.
+          (actor as { _invoked?: boolean })._invoked = true;
 
           actions.push({
             action: builtInActions['@xstate.spawn'],

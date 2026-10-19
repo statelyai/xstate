@@ -7,7 +7,7 @@ import {
   createInitEvent,
   createInvokeTimeoutEvent
 } from './eventUtils.ts';
-import { XSTATE_TIMER } from './constants.ts';
+import { STATE_DELIMITER, XSTATE_TIMER } from './constants.ts';
 import { parseGeneratedActorId } from './system.ts';
 import {
   createRemoteActorRef,
@@ -34,7 +34,6 @@ import { StateNode } from './StateNode.ts';
 import {
   formatRouteTransitions,
   getAllStateNodes,
-  getStateNodeByPath,
   getStateNodes,
   getTransitionResult,
   hasEffect,
@@ -51,6 +50,7 @@ import {
   createDeadLetterEffect,
   createSpawnEffect,
   createStartEffect,
+  detachedScopes,
   resolveActionsWithContext,
   mergeActorIdCounters,
   takeSpawnAllocationCounters
@@ -68,7 +68,6 @@ import type {
   AnyStateMachine,
   AnyMachineSnapshot,
   AnyTransitionDefinition,
-  Equals,
   EventDescriptor,
   EmittedFrom,
   EventObject,
@@ -77,7 +76,6 @@ import type {
   ExecutableEffectFrom,
   HistoryValue,
   InputFrom,
-  IsAny,
   LogicalTimer,
   MachineContext,
   MetaObject,
@@ -89,6 +87,7 @@ import type {
   SnapshotStatus,
   AnyStateNode
 } from './types.ts';
+import type { Equals, IsAny } from './typeUtils.ts';
 import {
   AnyMachineSchemas,
   DelaySourceMap,
@@ -98,9 +97,10 @@ import {
   MachineOptions
 } from './types.v6.ts';
 import {
+  describeMachine,
   assertUnreservedSourceName,
   matchesEventDescriptor,
-  resolveReferencedActor,
+  resolveInvokedActorLogic,
   toStatePath
 } from './utils.ts';
 import { assertValid } from './validation.ts';
@@ -167,6 +167,7 @@ function getEmptyCanActorScope(): AnyActorScope {
     emit: () => {},
     actionExecutor: () => {}
   };
+  detachedScopes.add(emptyCanActorScope);
   return emptyCanActorScope;
 }
 
@@ -256,6 +257,21 @@ export type ProvidedActionContracts<T> = {
 type ProvidedActionResult<TResult> = void extends TResult
   ? void
   : Extract<TResult, ReturnType<Sources['actions'][string]>>;
+
+/**
+ * The error a machine reports when a persisted snapshot cannot represent one
+ * of its states: the snapshot is not an object, has no valid state value, or
+ * its state value does not resolve on the machine. `createActor(machine, {
+ * snapshot })` reports it as an `'error'` snapshot instead of starting.
+ *
+ * @public
+ */
+export class InvalidSnapshotError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'InvalidSnapshotError';
+  }
+}
 
 /** @public */
 export class StateMachine<
@@ -351,9 +367,11 @@ export class StateMachine<
 
   public root: StateNode<TContext, TEvent, TMeta, TTransitionMeta>;
 
-  public id: TConfig extends { id: infer TId extends string }
-    ? TId
-    : '(machine)';
+  /**
+   * The machine's `id`, or the empty string when the config declares none.
+   * The root state node has this id; a machine without one has no `#id` root.
+   */
+  public id: TConfig extends { id: infer TId extends string } ? TId : '';
 
   public states: StateNode<TContext, TEvent, TMeta, TTransitionMeta>['states'];
   public events: Array<EventDescriptor<TEvent>>;
@@ -391,7 +409,13 @@ export class StateMachine<
     sources?: Sources,
     public validator?: ActorLogicValidator
   ) {
-    this.id = (config.id || '(machine)') as typeof this.id;
+    if (config.version !== undefined && !config.id) {
+      // Persisted snapshots record `{ id, version }`; a version needs an id.
+      throw new Error(
+        `Machine with version '${config.version}' must declare an id.`
+      );
+    }
+    this.id = (config.id ?? '') as typeof this.id;
     this.sources = {
       actors: config.actors ?? {},
       actions: config.actions ?? {},
@@ -1538,24 +1562,47 @@ export class StateMachine<
   public getStateNodeById(
     stateId: string
   ): StateNode<TContext, TEvent, TMeta, TTransitionMeta> {
-    const fullPath = toStatePath(stateId);
-    const relativePath = fullPath.slice(1);
-    const resolvedStateId = isStateId(fullPath[0])
-      ? fullPath[0].slice(STATE_IDENTIFIER.length)
-      : fullPath[0];
+    // `#id` is an exact id lookup: the text after `#` is never split into a
+    // path. It names a state's explicit `id` or its implicit id.
+    const hasPrefix = isStateId(stateId);
+    const id = hasPrefix ? stateId.slice(STATE_IDENTIFIER.length) : stateId;
 
-    const stateNode = this.idMap.get(resolvedStateId);
-    if (!stateNode) {
+    if (id === '' && hasPrefix) {
       throw new Error(
-        `Child state node '#${resolvedStateId}' does not exist on machine '${this.id}'`
+        this.id
+          ? `State id '#' is empty. Target the root of ${describeMachine(this.id)} with '#${this.id}'.`
+          : "State id '#' is empty: the root of a machine without an `id` cannot be referenced by id. Give the machine an `id` to reference its root as '#<id>'."
       );
     }
-    return getStateNodeByPath(stateNode, relativePath) as StateNode<
-      TContext,
-      TEvent,
-      TMeta,
-      TTransitionMeta
-    >;
+    const stateNode = this.idMap.get(id);
+    if (stateNode) {
+      return stateNode as StateNode<TContext, TEvent, TMeta, TTransitionMeta>;
+    }
+    throw new Error(this._describeUnknownStateId(id));
+  }
+
+  /**
+   * The error message for an id that matches no state. When a prefix of the
+   * id is a state id and the rest resolves beneath it as a relative path,
+   * suggests the target's own id.
+   */
+  private _describeUnknownStateId(id: string): string {
+    const message = `No state has id "${id}".`;
+    const segments = toStatePath(id);
+    for (let i = segments.length - 1; i > 0; i--) {
+      let node: AnyStateNode | undefined = this.idMap.get(
+        segments.slice(0, i).join(STATE_DELIMITER)
+      );
+      for (let j = i; node && j < segments.length; j++) {
+        node = node.states?.[segments[j]];
+      }
+      if (node) {
+        return node.config.id
+          ? `${message} Use "#${node.id}".`
+          : `${message} Use "#${node.id}", or give that state an id.`;
+      }
+    }
+    return message;
   }
 
   public getPersistedSnapshot(
@@ -1619,6 +1666,51 @@ export class StateMachine<
     ) as any;
   }
 
+  private _validatePersistedStateValue(
+    stateValue: unknown,
+    node: AnyStateNode,
+    path: string[]
+  ): void {
+    if (typeof stateValue === 'string') {
+      if (!node.states[stateValue]) {
+        throw new InvalidSnapshotError(
+          `Persisted snapshot references state '${path.concat(stateValue).join('.')}' which does not exist on ${describeMachine(this.id)}.`
+        );
+      }
+      return;
+    }
+    const invalidValue = (reason: string) =>
+      new InvalidSnapshotError(
+        `Persisted snapshot for ${describeMachine(this.id)} has an invalid state value${path.length ? ` at '${path.join('.')}'` : ''}: ${reason}.`
+      );
+    if (
+      !stateValue ||
+      typeof stateValue !== 'object' ||
+      Array.isArray(stateValue)
+    ) {
+      throw invalidValue('expected a state name or an object of state values');
+    }
+    const keys = Object.keys(stateValue);
+    if (keys.length > 1 && node.type !== 'parallel') {
+      throw invalidValue(
+        `state '${path.length ? path.join('.') : node.key}' is not parallel, so only one child state can be active`
+      );
+    }
+    for (const key of keys) {
+      const childNode = node.states[key];
+      if (!childNode) {
+        throw new InvalidSnapshotError(
+          `Persisted snapshot references state '${path.concat(key).join('.')}' which does not exist on ${describeMachine(this.id)}.`
+        );
+      }
+      this._validatePersistedStateValue(
+        (stateValue as Record<string, unknown>)[key],
+        childNode,
+        path.concat(key)
+      );
+    }
+  }
+
   public restoreSnapshot(
     snapshot: Snapshot<unknown>,
     actorScope?: ActorScope<
@@ -1649,6 +1741,11 @@ export class StateMachine<
     const usesInertScope = !actorScope;
     const resolvedActorScope = (actorScope ??
       createInertActorScope(this)) as NonNullable<typeof actorScope>;
+    if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) {
+      throw new InvalidSnapshotError(
+        `Persisted snapshot for ${describeMachine(this.id)} must be an object.`
+      );
+    }
     const snapshotMachine = (snapshot as any).machine;
     // A live machine snapshot carries its producing machine so helpers such as
     // `matches()` can resolve state nodes. That runtime association is not the
@@ -1699,11 +1796,28 @@ export class StateMachine<
     }
 
     const snapshotData = snapshot as any;
+    // Validate the state value before restoring children: a snapshot that
+    // cannot represent a state must not construct (and later start) them.
+    if (!snapshotData || typeof snapshotData !== 'object') {
+      throw new InvalidSnapshotError(
+        `Persisted snapshot for ${describeMachine(this.id)} must be an object.`
+      );
+    }
+    if (snapshotData.value === undefined) {
+      throw new InvalidSnapshotError(
+        `Persisted snapshot for ${describeMachine(this.id)} has no state value.`
+      );
+    }
+    this._validatePersistedStateValue(snapshotData.value, this.root, []);
+
+    const nodes = Array.from(
+      getAllStateNodes(getStateNodes(this.root, snapshotData.value))
+    );
     const children: Record<string, AnyActor> = {};
     const snapshotChildren: Record<
       string,
       {
-        src: string | AnyActorLogic;
+        src?: string | AnyActorLogic;
         snapshot?: Snapshot<unknown>;
         address?: string;
         remote?: boolean;
@@ -1747,13 +1861,18 @@ export class StateMachine<
       const childState = actorData.snapshot;
       const src = actorData.src;
 
+      // A child without a source key is an inline invoke: resolve it through
+      // the invoke definitions of the restored active states.
       const logic =
-        typeof src === 'string' ? resolveReferencedActor(this, src) : src;
+        src === undefined
+          ? resolveInvokedActorLogic(this, nodes, actorId)
+          : typeof src === 'string'
+            ? this.sources.actors[src]
+            : src;
 
       if (!logic) {
-        const sourceId = typeof src === 'string' ? src : '<unknown>';
         throw new Error(
-          `Unable to restore child actor '${actorId}': child source '${sourceId}' is not provided in machine '${this.id}'.`
+          `Unable to restore child actor '${actorId}': child source '${typeof src === 'string' ? src : '<inline>'}' is not provided in ${describeMachine(this.id)}.`
         );
       }
 
@@ -1768,6 +1887,9 @@ export class StateMachine<
       // Mark so `start()` knows to start this child (freshly invoked/spawned
       // children are started via deferred `@xstate.start` actions instead).
       (actor as any)._rehydrated = true;
+      if (src === undefined) {
+        (actor as any)._invoked = true;
+      }
 
       children[actorId] = actor;
     }
@@ -1851,38 +1973,6 @@ export class StateMachine<
     };
 
     const revivedHistoryValue = reviveHistoryValue(snapshotData.historyValue);
-
-    const validateStateValue = (
-      stateValue: StateValue,
-      node: AnyStateNode,
-      path: string[]
-    ): void => {
-      const missingStateError = (statePath: string[]) =>
-        new Error(
-          `Persisted snapshot references state '${statePath.join('.')}' which does not exist on machine '${this.id}'.`
-        );
-      if (typeof stateValue === 'string') {
-        if (!node.states[stateValue]) {
-          throw missingStateError(path.concat(stateValue));
-        }
-        return;
-      }
-      if (!stateValue || typeof stateValue !== 'object') {
-        return;
-      }
-      for (const key of Object.keys(stateValue)) {
-        const childNode = node.states[key];
-        if (!childNode) {
-          throw missingStateError(path.concat(key));
-        }
-        validateStateValue(stateValue[key]!, childNode, path.concat(key));
-      }
-    };
-    validateStateValue(snapshotData.value, this.root, []);
-
-    const nodes = Array.from(
-      getAllStateNodes(getStateNodes(this.root, snapshotData.value))
-    );
 
     if (isDevelopment && snapshotData.status === 'active') {
       // Restored snapshots are opaque: eventless transitions are not
@@ -1983,7 +2073,10 @@ export class StateMachine<
         timers,
         _nextActorIds: restoredCounters,
         _nodes: nodes,
-        value: snapshotData.value,
+        // Derived from the resolved configuration, so a partial value such as
+        // `{ active: {} }` is completed with initial states and agrees with
+        // `nodes`.
+        value: undefined,
         historyValue: revivedHistoryValue,
         // Inputs only belong to active states; drop any others.
         _stateInputs: Object.fromEntries(

@@ -22,7 +22,7 @@ The root of a machine is a state node. It accepts everything a [state node](#sta
 
 | Property | Type | Description |
 | --- | --- | --- |
-| `id` | `string` | Stable identifier for the root state node. Used by `#id` targets and in state node ids. |
+| `id` | `string` | Stable identifier for the root state node. Prefixes implicit state node ids (`shop.checkout`) and lets `#shop` target the root. Without it, implicit ids are plain paths (`checkout`) and the root has no `#id`. |
 | `description` | `string` | Human-readable description. |
 | `context` | value or `({ input, spawn, actors, self }) => value` | Initial [context](context.md). Required when the context type is not `never`. |
 | `initial` | `string` or `{ target, input }` | Initial child state. The object form passes [state input](state-input.md). |
@@ -43,7 +43,7 @@ The root of a machine is a state node. It accepts everything a [state node](#sta
 | `guards` | `Record<string, (...params) => boolean>` | Named guard sources. See [guards](guards.md). |
 | `actors` | `Record<string, ActorLogic>` | Named actor logic sources. See [invoke](invoke.md). |
 | `delays` | `Record<string, number \| (args) => number>` | Named delay sources. See [delays](delays.md). |
-| `version` | `string` | The machine's own version, stamped onto persisted snapshots. See [persistence](persistence.md). |
+| `version` | `string` | The machine's own version, stamped onto persisted snapshots with the machine `id`. Requires `id`. See [persistence](persistence.md). |
 | `migrate` | `(persistedSnapshot, fromVersion) => unknown` | Upgrades a persisted snapshot whose `version` does not match. Restoring a mismatched snapshot without it throws. |
 | `meta` | `object` | Metadata for the root state node. Must match `schemas.meta`. |
 | `tags` | `string[]` | Tags for the root state node. Must match `schemas.tags`. |
@@ -92,7 +92,7 @@ Every non-root state node accepts the following. All are optional.
 | `onDone` | transition | Taken when a final child state is reached. |
 | `onError` | transition | Taken on an error raised at or below this state. |
 | `output` | value or mapper | [Output](input-output.md) of a final state node. |
-| `id` | `string` | Unique id, targetable as `#id`. |
+| `id` | `string` | Unique id, targetable as `#id`. `#` targets match the whole id exactly; dots in an explicit id need no escaping. Defaults to the state's path from the root joined by `.`, prefixed by the machine `id` when there is one. An explicit id that equals another state's id throws. |
 | `route` | `RouteConfig` | Enables `{ type: 'xstate.route', to: '#id' }`. Requires an explicit `id`. See [route states](route-states.md). |
 | `meta` | `object` | Metadata read with `snapshot.getMeta()`. See [states](states.md). |
 | `tags` | `string[]` | Tags read with `snapshot.hasTag(...)`. |

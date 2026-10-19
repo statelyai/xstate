@@ -15,6 +15,7 @@ import {
   ScxmlContentJSON,
   ScxmlDataJSON,
   ScxmlDonedataJSON,
+  ScxmlEventDescriptor,
   ScxmlForeachJSON,
   ScxmlLogJSON,
   ScxmlRaiseJSON,
@@ -696,15 +697,32 @@ function toStateNodeJSON(
     const targets = getAttribute(value, 'target');
     const internal = getAttribute(value, 'type') === 'internal';
     const hasTarget = targets !== undefined;
-    const eventDescriptors = eventTypes.filter(Boolean).map((eventType) => {
-      if (/^(error|done\.state)(\.|$)/.test(eventType)) {
-        return `xstate.${eventType}`;
-      }
-      if (/^done\.invoke(\.|$)/.test(eventType)) {
-        return eventType.replace(/^done\.invoke/, 'xstate.done.actor');
-      }
-      return eventType;
-    });
+    const eventDescriptors = eventTypes
+      .filter(Boolean)
+      .map((eventType): ScxmlEventDescriptor => {
+        const done = /^done\.(invoke|state)(?:\.(.+?))?(?:\.\*)?$/.exec(
+          eventType
+        );
+        if (done) {
+          const [, kind, id] = done;
+          const type =
+            kind === 'invoke' ? 'xstate.done.actor' : 'xstate.done.state';
+          if (!id || id === '*') {
+            return type;
+          }
+          return {
+            type,
+            matches:
+              kind === 'invoke'
+                ? { actorId: id }
+                : { stateId: sanitizeStateId(id) }
+          };
+        }
+        if (/^error(\.|$)/.test(eventType)) {
+          return `xstate.${eventType}`;
+        }
+        return eventType;
+      });
     const transitionConfig: TransitionJSON = {
       target: getTargets(targets),
       _scxml: {
@@ -968,7 +986,8 @@ function compileScxmlElement(
   const binding =
     machineElement.attributes?.binding === 'late' ? 'late' : 'early';
   const data = collectDataDescriptors(machineElement, options);
-  const machineId = (machineElement.attributes?.name as string) || '(machine)';
+  // Without a `name`, the machine has no id (the empty id).
+  const machineId = (machineElement.attributes?.name as string) || '';
   const stateNodeJSON = toStateNodeJSON(
     machineElement,
     machineId,

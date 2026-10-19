@@ -38,11 +38,6 @@
     "svelte": "^3.24.1 || ^4 || ^5",
     "xstate": "workspace:^"
   },
-  "peerDependenciesMeta": {
-    "xstate": {
-      "optional": true
-    }
-  },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^5.1.1",
     "@testing-library/svelte": "^5.2.6",

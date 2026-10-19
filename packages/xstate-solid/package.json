@@ -45,11 +45,6 @@
     "solid-js": "^1.6.0",
     "xstate": "workspace:^"
   },
-  "peerDependenciesMeta": {
-    "xstate": {
-      "optional": true
-    }
-  },
   "devDependencies": {
     "@solidjs/testing-library": "^0.8.10",
     "solid-js": "^1.9.12",

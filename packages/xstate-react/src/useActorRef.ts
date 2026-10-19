@@ -16,6 +16,22 @@ import {
   type RequiredActorOptionsKeys,
   type RequiredActorOptionsFor
 } from 'xstate';
+
+function isStateMachine(logic: AnyActorLogic): logic is AnyStateMachine {
+  return (
+    typeof (logic as any).provide === 'function' &&
+    !!(logic as any).config &&
+    !!(logic as any).sources
+  );
+}
+
+// The hook updates the sources of its machine on later renders. A per-hook
+// copy keeps those updates from reaching the caller's machine, which may be
+// shared by other actors.
+function ownLogic<TLogic extends AnyActorLogic>(logic: TLogic): TLogic {
+  return isStateMachine(logic) ? (logic.provide({}) as any) : logic;
+}
+
 export function useIdleActorRef<TLogic extends AnyActorLogic>(
   logic: TLogic,
   ...[options]: ConditionalRequired<
@@ -24,7 +40,7 @@ export function useIdleActorRef<TLogic extends AnyActorLogic>(
   >
 ): [Actor<TLogic>, (actorRef: Actor<TLogic>) => void] {
   const [actorRef, setActorRef] = useState(() => {
-    return createActor(logic, options as ActorOptions<TLogic>);
+    return createActor(ownLogic(logic), options as ActorOptions<TLogic>);
   });
   // An object whose identity changes only when React Fast Refresh re-renders
   // this component. Fast Refresh ignores dependency lists while it applies an
@@ -38,12 +54,14 @@ export function useIdleActorRef<TLogic extends AnyActorLogic>(
   // `machine.provide()` for the same machine config.
   // TODO: consider using `useAsapEffect` that would do this in `useInsertionEffect` is that's available
   useIsomorphicLayoutEffect(() => {
-    const currentLogic = actorRef.logic as any as AnyStateMachine;
+    const currentLogic = actorRef.logic;
     const refreshed = refreshSignalRef.current !== refreshSignal;
     refreshSignalRef.current = refreshSignal;
 
-    if (logic.config === currentLogic.config) {
-      currentLogic.sources = (logic as any as AnyStateMachine).sources;
+    if ((logic as any).config === (currentLogic as any).config) {
+      if (isStateMachine(logic) && isStateMachine(currentLogic)) {
+        currentLogic.sources = logic.sources;
+      }
       return;
     }
 
@@ -51,8 +69,9 @@ export function useIdleActorRef<TLogic extends AnyActorLogic>(
     // defines the machine. Keep the running actor and carry its live snapshot
     // over to the new machine; start a fresh actor if it cannot be carried.
     if (isDevelopment && refreshed) {
-      if (!hotSwapActorLogic(actorRef, logic as any as AnyStateMachine)) {
-        setActorRef(createActor(logic, options as ActorOptions<TLogic>));
+      const nextLogic = ownLogic(logic);
+      if (!hotSwapActorLogic(actorRef, nextLogic as any as AnyStateMachine)) {
+        setActorRef(createActor(nextLogic, options as ActorOptions<TLogic>));
       }
     }
   });

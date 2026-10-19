@@ -7,6 +7,7 @@ import {
 import { createMachine } from 'xstate';
 
 const releaseMachine = createMachine({
+  id: 'release',
   type: 'parallel',
   states: {
     review: { initial: 'pending', states: { pending: {}, approved: {} } },
@@ -15,7 +16,7 @@ const releaseMachine = createMachine({
 });
 
 const describe = Match.type<TaggedState<typeof releaseMachine>>().pipe(
-  Match.tag('(machine)', ({ snapshot }) =>
+  Match.tag('release', ({ snapshot }) =>
     snapshot.matches({ build: 'running' })
       ? 'Build in progress'
       : 'Build finished'

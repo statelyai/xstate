@@ -111,9 +111,19 @@ function executeExecutableEffects(
   }
 }
 
+/**
+ * Options core passes when it creates actors: the public {@link ActorOptions}
+ * plus the parent of a child actor. Not exported from the package entry.
+ */
+export interface InternalActorOptions<
+  TLogic extends AnyActorLogic
+> extends ActorOptions<TLogic> {
+  parent?: AnyActor;
+}
+
 function createActorRef(
   logic: AnyActorLogic,
-  options: ActorOptions<AnyActorLogic>
+  options: InternalActorOptions<AnyActorLogic>
 ): AnyActor {
   return new Actor(logic, options);
 }
@@ -269,7 +279,7 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
     }
     const resolvedOptions = (
       options ? { ...defaultOptions, ...options } : defaultOptions
-    ) as ActorOptions<TLogic> & typeof defaultOptions;
+    ) as InternalActorOptions<TLogic> & typeof defaultOptions;
 
     const { clock, logger, parent, syncSnapshot, id, registryKey, inspect } =
       resolvedOptions;
@@ -326,7 +336,12 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
     const persistedState = options?.snapshot;
     this._restored = persistedState !== undefined;
     try {
-      if (persistedState) {
+      // Only `undefined` means "no snapshot": an explicit `null` (or another
+      // non-object) is a malformed snapshot the logic reports.
+      if (persistedState !== undefined) {
+        if (!this.logic.restoreSnapshot && persistedState === null) {
+          throw new Error('Persisted snapshot must be an object.');
+        }
         this._setSnapshot(
           this.logic.restoreSnapshot
             ? this.logic.restoreSnapshot(persistedState, this._actorScope)
@@ -347,15 +362,16 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
       }
     } catch (err) {
       const restoreErrorSnapshot =
-        persistedState &&
-        (
-          this.logic as {
-            _createRestoreErrorSnapshot?: (
-              persisted: unknown,
-              error: unknown
-            ) => SnapshotFrom<TLogic>;
-          }
-        )._createRestoreErrorSnapshot?.(persistedState, err);
+        persistedState === undefined
+          ? undefined
+          : (
+              this.logic as {
+                _createRestoreErrorSnapshot?: (
+                  persisted: unknown,
+                  error: unknown
+                ) => SnapshotFrom<TLogic>;
+              }
+            )._createRestoreErrorSnapshot?.(persistedState, err);
       // Machine logic keeps its snapshot shape on restore failures. Otherwise
       // we can't get the true `TSnapshot & { status: 'error'; }`, so this is a
       // lie of sorts.

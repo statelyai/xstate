@@ -12,7 +12,8 @@ const RENAMES: Record<string, string> = {
   ExecutableActionsFrom: 'ExecutableEffectFrom',
   ExecutableSpawnAction: 'SpawnExecutableEffect',
   SpecialExecutableAction: 'SpecialExecutableEffect',
-  ToExecutableAction: 'ToExecutableEffect'
+  ToExecutableAction: 'ToExecutableEffect',
+  ActorRefFromLogic: 'ActorRefFrom'
 };
 
 /**
@@ -23,7 +24,7 @@ const RENAMES: Record<string, string> = {
 export const renameImports: Transform = {
   name: 'rename-imports',
   description:
-    "Rename renamed 'xstate' imports (interpret→createActor, Interpreter→Actor, fromCallback/fromObservable/fromEventObservable→create*Logic, executable action types→executable effect types) and their usages.",
+    "Rename renamed 'xstate' imports (interpret→createActor, Interpreter→Actor, fromCallback/fromObservable/fromEventObservable→create*Logic, executable action types→executable effect types, ActorRefFromLogic→ActorRefFrom) and their usages.",
   apply(sourceFile: SourceFile): TransformResult {
     const notes: string[] = [];
     let changed = false;
@@ -59,7 +60,19 @@ export const renameImports: Transform = {
               ref.replaceWithText(replacement);
             }
           }
-          nameNode.replaceWithText(replacement);
+          const alreadyImported = imp
+            .getNamedImports()
+            .some(
+              (other) =>
+                other !== spec &&
+                !other.getAliasNode() &&
+                other.getNameNode().getText() === replacement
+            );
+          if (alreadyImported) {
+            spec.remove();
+          } else {
+            nameNode.replaceWithText(replacement);
+          }
           notes.push(
             `renamed '${importedName}' → '${replacement}'${
               refs.length ? ` and ${refs.length} usage(s)` : ''

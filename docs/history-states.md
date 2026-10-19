@@ -28,7 +28,7 @@ Disconnecting while `playing` and then reconnecting returns to `playing`. Reconn
 Every history state must declare a non-empty `target`. A machine with a history state and no target throws when it is created:
 
 ```
-History state "(machine).player.hist" must declare a non-empty `target`.
+History state "player.hist" must declare a non-empty `target`.
 ```
 
 > **Warning:** The default target is used whenever nothing has been recorded, including an internal self-transition to `.hist` before the parent has ever been exited. A history state does not keep the currently active child.
@@ -55,7 +55,7 @@ Leaving from `details.address` and returning through `form.hist` lands on `detai
 
 ## Targeting a history state
 
-A history state is targeted like any other state: by relative key, by dotted path, by `#id`, or by a leading dot for a transition inside the same parent.
+A history state is targeted like any other state: by relative key, by dotted path, by its whole `#id`, or by a leading dot for a transition inside the same parent.
 
 ```ts
 on: {
@@ -96,7 +96,7 @@ Multi-target defaults must form a legal configuration: the targets must live in 
 
 ```ts
 const persisted = actor.getPersistedSnapshot();
-// persisted.historyValue === { '(machine).player.hist': [{ id: '(machine).player.playing' }] }
+// persisted.historyValue === { 'player.hist': [{ id: 'player.playing' }] }
 
 const restored = createActor(machine, { snapshot: persisted }).start();
 restored.send({ type: 'reconnect' }); // back to 'playing'

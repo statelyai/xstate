@@ -129,7 +129,7 @@ describe('spawnChild action', () => {
         const child = createActor(childMachine, {
           id: context.childId,
           parent: self
-        });
+        } as {});
         enq(() => {
           child.start();
         });

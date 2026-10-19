@@ -6,15 +6,15 @@ import type { ActorLogicValidator } from '../validation.types.ts';
 import {
   ActorLogic,
   ActorFromLogic,
-  ActorRefFromLogic,
+  ActorRefFrom,
   AnyActor,
   AnyEventObject,
   EventObject,
-  NonReducibleUnknown,
   Snapshot,
   Subscribable,
   Subscription
 } from '../types';
+import type { NonReducibleUnknown } from '../typeUtils.ts';
 import { createStepLogic as createBaseLogic } from './logic.ts';
 import { finalizeTransitionResult } from '../transitionActions.ts';
 
@@ -87,7 +87,7 @@ export type ObservableActorLogic<
  * @see {@link createEventObservableLogic}
  * @public
  */
-export type ObservableActorRef<TContext> = ActorRefFromLogic<
+export type ObservableActorRef<TContext> = ActorRefFrom<
   ObservableActorLogic<TContext, any>
 >;
 

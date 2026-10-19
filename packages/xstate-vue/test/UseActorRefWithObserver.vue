@@ -14,12 +14,12 @@ const machine = createMachine({
   states: {
     inactive: {
       on: {
-        TOGGLE: 'active'
+        TOGGLE: { target: 'active' }
       }
     },
     active: {
       on: {
-        TOGGLE: 'inactive'
+        TOGGLE: { target: 'inactive' }
       }
     }
   }

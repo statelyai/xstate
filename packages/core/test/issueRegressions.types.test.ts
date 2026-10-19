@@ -9,7 +9,7 @@ import {
   createMachine,
   setup,
   types,
-  type ActorRefFromLogic,
+  type ActorRefFrom,
   type AnyActorLogic
 } from '../src/index.ts';
 
@@ -123,8 +123,8 @@ describe('types', () => {
       actors: { childA, childB },
       schemas: {
         children: {
-          a: types<ActorRefFromLogic<typeof childA>>(),
-          b: types<ActorRefFromLogic<typeof childB>>()
+          a: types<ActorRefFrom<typeof childA>>(),
+          b: types<ActorRefFrom<typeof childB>>()
         }
       }
     }).createMachine({

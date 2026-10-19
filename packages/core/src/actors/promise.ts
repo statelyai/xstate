@@ -8,13 +8,13 @@ import { systemLogicMetadata } from '../systemLogicMetadata.ts';
 import {
   ActorLogic,
   ActorFromLogic,
-  ActorRefFromLogic,
+  ActorRefFrom,
   AnyActor,
   AnyEventObject,
   EventObject,
-  NonReducibleUnknown,
   Snapshot
 } from '../types.ts';
+import type { NonReducibleUnknown } from '../typeUtils.ts';
 import { createStepLogic as createBaseLogic } from './logic.ts';
 
 /** @public */
@@ -49,7 +49,7 @@ export type AsyncActorLogic<
 >;
 
 /** @public */
-export type AsyncActorRef<TOutput> = ActorRefFromLogic<
+export type AsyncActorRef<TOutput> = ActorRefFrom<
   AsyncActorLogic<TOutput, unknown>
 >;
 
@@ -151,6 +151,42 @@ export type AsyncLogicError<TErrorSchema extends StandardSchemaV1, TTimeout> = [
 ] extends [undefined]
   ? StandardSchemaV1.InferOutput<TErrorSchema>
   : StandardSchemaV1.InferOutput<TErrorSchema> | TimeoutError;
+
+type AsyncLogicLiteralOutput<T> =
+  | string
+  | number
+  | bigint
+  | boolean
+  | null
+  | undefined
+  | { [key: string]: T }
+  | readonly T[];
+
+/**
+ * Contextual typing aid for the schema-free `createAsyncLogic` overload. It
+ * never matches a call (`schemas: never`).
+ *
+ * TypeScript fixes the return type of a parameterless `run` the first time an
+ * overload contextually types it, and the schema-free overload is checked
+ * first. Configs without `schemas` are discriminated to the schema-free member,
+ * so their output widens as usual. Configs with `schemas` see this member too:
+ * its `TLiteralOutput` return keeps literals such as `{ kind: 'a' }` from
+ * widening to `{ kind: string }` before the schema overloads check `run`
+ * against `schemas.output`. The member cannot tell which schemas are present,
+ * so input-only and error-only configs keep those literals as well.
+ */
+type AsyncLogicSchemaContext<
+  TOutput,
+  TInput,
+  TEmitted extends EventObject,
+  TLiteralOutput
+> = {
+  schemas: never;
+  run: (
+    args: AsyncLogicArgs<TOutput, TInput>,
+    enq: AsyncLogicEnqueue<TEmitted>
+  ) => PromiseLike<TLiteralOutput>;
+};
 
 /**
  * Represents an actor created by `createAsyncLogic`.
@@ -254,39 +290,15 @@ export type AsyncLogicError<TErrorSchema extends StandardSchemaV1, TTimeout> = [
 export function createAsyncLogic<
   TOutput,
   TInput = NonReducibleUnknown,
-  TEmitted extends EventObject = EventObject
->(
-  asyncLogic: Omit<AsyncLogicConfig<TOutput, TInput, TEmitted>, 'schemas'> & {
-    schemas?: undefined;
-  }
-): AsyncActorLogic<TOutput, TInput, TEmitted> & { id?: string };
-export function createAsyncLogic<
-  const TInputSchema extends StandardSchemaV1,
-  const TOutputSchema extends StandardSchemaV1,
   TEmitted extends EventObject = EventObject,
-  const TErrorSchema extends StandardSchemaV1 = StandardSchemaV1,
-  TTimeout extends number | string | undefined = undefined
+  TLiteralOutput extends AsyncLogicLiteralOutput<TLiteralOutput> = never
 >(
-  asyncLogic: AsyncLogicConfig<
-    StandardSchemaV1.InferOutput<TOutputSchema>,
-    StandardSchemaV1.InferOutput<TInputSchema>,
-    TEmitted,
-    TInputSchema,
-    TOutputSchema,
-    TErrorSchema
-  > & {
-    schemas: {
-      input: TInputSchema;
-      output: TOutputSchema;
-      error?: TErrorSchema;
-    };
-  } & { timeout?: TTimeout }
-): AsyncActorLogic<
-  StandardSchemaV1.InferOutput<TOutputSchema>,
-  StandardSchemaV1.InferOutput<TInputSchema>,
-  TEmitted,
-  AsyncLogicError<TErrorSchema, TTimeout>
-> & { id?: string };
+  asyncLogic:
+    | (Omit<AsyncLogicConfig<TOutput, TInput, TEmitted>, 'schemas'> & {
+        schemas?: undefined;
+      })
+    | AsyncLogicSchemaContext<TOutput, TInput, TEmitted, TLiteralOutput>
+): AsyncActorLogic<TOutput, TInput, TEmitted> & { id?: string };
 export function createAsyncLogic<
   const TInputSchema extends StandardSchemaV1,
   TEmitted extends EventObject = EventObject,
@@ -356,6 +368,36 @@ export function createAsyncLogic<
 ): AsyncActorLogic<
   TOutput,
   TInput,
+  TEmitted,
+  AsyncLogicError<TErrorSchema, TTimeout>
+> & { id?: string };
+// Last so that a `run` that does not match `schemas.output` reports the
+// output mismatch. `input` is optional here only for that report: output-only
+// configs match the output-only overload above first.
+export function createAsyncLogic<
+  const TInputSchema extends StandardSchemaV1,
+  const TOutputSchema extends StandardSchemaV1,
+  TEmitted extends EventObject = EventObject,
+  const TErrorSchema extends StandardSchemaV1 = StandardSchemaV1,
+  TTimeout extends number | string | undefined = undefined
+>(
+  asyncLogic: AsyncLogicConfig<
+    StandardSchemaV1.InferOutput<TOutputSchema>,
+    StandardSchemaV1.InferOutput<TInputSchema>,
+    TEmitted,
+    TInputSchema,
+    TOutputSchema,
+    TErrorSchema
+  > & {
+    schemas: {
+      input?: TInputSchema;
+      output: TOutputSchema;
+      error?: TErrorSchema;
+    };
+  } & { timeout?: TTimeout }
+): AsyncActorLogic<
+  StandardSchemaV1.InferOutput<TOutputSchema>,
+  StandardSchemaV1.InferOutput<TInputSchema>,
   TEmitted,
   AsyncLogicError<TErrorSchema, TTimeout>
 > & { id?: string };

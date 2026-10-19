@@ -23,14 +23,14 @@ import {
 } from '../transitionActions.ts';
 import {
   ActorLogic,
-  ActorRefFromLogic,
+  ActorRefFrom,
   ActorScope,
   AnyActorRef,
   EventObject,
   ExecutableEffect,
-  NonReducibleUnknown,
   Snapshot
 } from '../types.ts';
+import type { NonReducibleUnknown } from '../typeUtils.ts';
 
 /** @public */
 export type StepSnapshot<TContext, TOutput, TInput> = Snapshot<TOutput> & {
@@ -171,7 +171,7 @@ export type StepActorRef<
   TOutput,
   TEvent extends EventObject,
   TInput
-> = ActorRefFromLogic<StepActorLogic<TContext, TOutput, TEvent, TInput>>;
+> = ActorRefFrom<StepActorLogic<TContext, TOutput, TEvent, TInput>>;
 
 const effectStates = new WeakMap<
   AnyActorRef,

@@ -108,7 +108,7 @@ describe('system', () => {
     const child = createActor(createMachine({}), {
       parent: actor,
       registryKey: 'child'
-    });
+    } as {});
 
     actor.start();
     transition(machine, actor.getSnapshot(), { type: 'CHECK' });

@@ -17,9 +17,7 @@ describe('history states', () => {
           }
         }
       })
-    ).toThrow(
-      'History state "(machine).on.history" must declare a non-empty `target`.'
-    );
+    ).toThrow('History state "on.history" must declare a non-empty `target`.');
   });
 
   it('should go to the most recently visited state (explicit shallow history type)', () => {
@@ -1585,7 +1583,7 @@ describe('revive history states', () => {
     const consoleSpy = vi.spyOn(console, 'warn');
     const fakeSnapshot = {
       ...persistedSnapshot,
-      historyValue: { ['(machine).on.hist']: [{ id: 'nonexistent' }] }
+      historyValue: { ['on.hist']: [{ id: 'nonexistent' }] }
     };
     expect(fakeSnapshot.value).toBe('off');
 
@@ -1604,9 +1602,7 @@ describe('revive history states', () => {
 
   it('should not re-resolve already-instantiated StateNode', () => {
     expect(snapshot.value).toBe('off');
-    expect(snapshot.historyValue['(machine).on.hist'][0]).toBeInstanceOf(
-      StateNode
-    );
+    expect(snapshot.historyValue['on.hist'][0]).toBeInstanceOf(StateNode);
 
     const actorRef = createActor(machine, {
       snapshot

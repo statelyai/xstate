@@ -55,6 +55,7 @@ These values are omitted rather than serialized:
 import { machineFromJSON, type MachineJSON } from 'xstate';
 
 const definition: MachineJSON = {
+  id: 'job',
   initial: 'idle',
   version: '1.0.0',
   states: {

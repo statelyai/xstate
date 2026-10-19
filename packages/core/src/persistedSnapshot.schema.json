@@ -75,14 +75,13 @@
     },
     "child": {
       "type": "object",
-      "required": ["src"],
       "properties": {
         "address": {
           "description": "Logical address, stable across incarnations.",
           "type": "string"
         },
         "src": {
-          "description": "Registered source key the child is restored from.",
+          "description": "Registered source key the child is restored from. Omitted for an inline invoke, which restores through the invoke definition with the child's id among the active states. Required for a remote child.",
           "type": "string"
         },
         "registryKey": { "type": "string" },
@@ -102,7 +101,7 @@
       "dependentSchemas": {
         "remote": { "not": { "required": ["snapshot"] } }
       },
-      "dependentRequired": { "incarnation": ["remote"] }
+      "dependentRequired": { "incarnation": ["remote"], "remote": ["src"] }
     },
     "timer": {
       "description": "A pending timer. A delayed raise or send carries its `id`, or its `seq` when scheduled without one. A built-in timer (after, state or invoke timeout) has neither; its event identifies it.",

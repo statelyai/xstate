@@ -79,7 +79,7 @@ Declare per-state context with `setupEffect({ states })`. See [schemas and actio
 
 ## Parallel states
 
-A parallel workflow can wait for review while building a release. Its `_tag` stops at the parallel state; when the root is parallel, the tag is `'(machine)'`. Inspect `value` or use `snapshot.matches` to read individual regions:
+A parallel workflow can wait for review while building a release. Its `_tag` stops at the parallel state; when the root is parallel, the tag is the machine `id` (`'release'` here), or `''` for a machine without an id. Inspect `value` or use `snapshot.matches` to read individual regions:
 
 <!-- example from examples/effect-workflows/src/parallel.ts -->
 
@@ -93,6 +93,7 @@ import {
 import { createMachine } from 'xstate';
 
 const releaseMachine = createMachine({
+  id: 'release',
   type: 'parallel',
   states: {
     review: { initial: 'pending', states: { pending: {}, approved: {} } },
@@ -101,7 +102,7 @@ const releaseMachine = createMachine({
 });
 
 const describe = Match.type<TaggedState<typeof releaseMachine>>().pipe(
-  Match.tag('(machine)', ({ snapshot }) =>
+  Match.tag('release', ({ snapshot }) =>
     snapshot.matches({ build: 'running' })
       ? 'Build in progress'
       : 'Build finished'

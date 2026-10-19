@@ -22,7 +22,7 @@ import {
   AnyActorRef,
   AnyStateMachine,
   AnyActorLogic,
-  ActorRefFromLogic,
+  ActorRefFrom,
   AnyStateNode,
   EventObject,
   AnyEventObject,
@@ -38,8 +38,6 @@ import {
   StateValueFromStateSchema,
   ToChildren,
   MetaObject,
-  Cast,
-  Compute,
   EnqueueObject,
   DoneActorEvent,
   DoneStateEvent,
@@ -52,7 +50,6 @@ import {
   Subscription,
   OutputArg,
   SnapshotEvent,
-  SingleOrArray,
   AfterEvent,
   TimeoutEvent,
   ErrorEvent,
@@ -60,9 +57,14 @@ import {
   InputFrom,
   OutputFrom,
   SnapshotFrom,
-  ActorTimeoutEvent,
-  NonReducibleUnknown
+  ActorTimeoutEvent
 } from './types.ts';
+import type {
+  Cast,
+  Compute,
+  SingleOrArray,
+  NonReducibleUnknown
+} from './typeUtils.ts';
 import { AnyActorSystem } from './system.ts';
 import { InspectionEvent } from './inspection.ts';
 import {
@@ -99,6 +101,8 @@ import {
   ValidateDelayNames,
   ValidateEventDescriptors,
   ValidateHistoryDefaults,
+  ValidateInvokeInputs,
+  ValidateVersionedMachineId,
   ValidateStateTargets,
   WithDefault
 } from './types.v6.ts';
@@ -442,13 +446,11 @@ export type SystemConfig<TSystemRegistry extends SystemRegistry> = {
 
 /** @public */
 export type SystemActorMap<TSystemRegistry extends SystemRegistry> = {
-  [K in keyof TSystemRegistry & string]: ActorRefFromLogic<TSystemRegistry[K]>;
+  [K in keyof TSystemRegistry & string]: ActorRefFrom<TSystemRegistry[K]>;
 };
 
 type MachineIdentity<TConfig> = {
-  readonly id: TConfig extends { id: infer TId extends string }
-    ? TId
-    : '(machine)';
+  readonly id: TConfig extends { id: infer TId extends string } ? TId : '';
   readonly version: TConfig extends { version: infer TVersion extends string }
     ? TVersion
     : undefined;
@@ -472,7 +474,7 @@ type LogicMatchesRegistryKey<TLogic, TSystemLogic> =
         ? true
         : [TSystemLogic] extends [TLogic]
           ? true
-          : ActorRefFromLogic<TLogic> extends ActorRefFromLogic<TSystemLogic>
+          : ActorRefFrom<TLogic> extends ActorRefFrom<TSystemLogic>
             ? true
             : false
       : false
@@ -872,34 +874,8 @@ type SetupStateIds<TStateSchemas extends Record<string, SetupStateSchema>> =
         : never;
     }[keyof TStateSchemas & string];
 
-type SetupStateIdTarget<TId extends string> =
-  `#${EscapeSetupStatePathDots<TId>}`;
-
-type SetupStateIdTargets<
-  TStateSchemas extends Record<string, SetupStateSchema>
-> =
-  string extends SetupStateKeys<TStateSchemas>
-    ? never
-    :
-        | {
-            [K in keyof TStateSchemas & string]: TStateSchemas[K] extends {
-              id: infer TId extends string;
-            }
-              ? TStateSchemas[K]['states'] extends infer TChildStateSchemas extends
-                  Record<string, SetupStateSchema>
-                ? string extends SetupStateKeys<TChildStateSchemas>
-                  ? never
-                  : `${SetupStateIdTarget<TId>}.${StatePaths<TChildStateSchemas> & string}`
-                : never
-              : never;
-          }[keyof TStateSchemas & string]
-        | {
-            [K in keyof TStateSchemas &
-              string]: TStateSchemas[K]['states'] extends infer TChildStateSchemas extends
-              Record<string, SetupStateSchema>
-              ? SetupStateIdTargets<TChildStateSchemas>
-              : never;
-          }[keyof TStateSchemas & string];
+// `#id` names a state by its whole id; it is never followed by a path.
+type SetupStateIdTarget<TId extends string> = `#${TId}`;
 
 type RootSetupStateIdTarget<
   TStateSchemas extends Record<string, SetupStateSchema>
@@ -907,7 +883,7 @@ type RootSetupStateIdTarget<
   SetupStateIds<TStateSchemas> extends infer TIds extends string
     ? [TIds] extends [never]
       ? never
-      : SetupStateIdTarget<TIds> | SetupStateIdTargets<TStateSchemas>
+      : SetupStateIdTarget<TIds>
     : never;
 
 type SetupStateSchemaAtTarget<
@@ -946,24 +922,8 @@ type SetupStateSchemaAtId<
 type SetupStateSchemaAtIdTarget<
   TStateSchemas extends Record<string, SetupStateSchema>,
   TTarget extends string
-> = TTarget extends `#${infer TPath}`
-  ? SplitSetupStatePath<TPath> extends [
-      infer TId extends string,
-      ...infer TDescendant extends string[]
-    ]
-    ? SetupStateSchemaAtId<TStateSchemas, TId> extends infer TStateSchema
-      ? TDescendant extends []
-        ? TStateSchema
-        : TStateSchema extends {
-              states: infer TChildStateSchemas extends Record<
-                string,
-                SetupStateSchema
-              >;
-            }
-          ? ResolveStatePathSegments<TChildStateSchemas, TDescendant>
-          : never
-      : never
-    : never
+> = TTarget extends `#${infer TId}`
+  ? SetupStateSchemaAtId<TStateSchemas, TId>
   : never;
 
 type StateSchemasWithKeys<
@@ -973,11 +933,6 @@ type StateSchemasWithKeys<
   [K in Exclude<TStateKeys, keyof TStateSchemas>]: {};
 };
 
-type EscapeSetupStatePathDots<TValue extends string> =
-  TValue extends `${infer THead}.${infer TTail}`
-    ? `${THead}\\.${EscapeSetupStatePathDots<TTail>}`
-    : TValue;
-
 type ProtectSetupStatePathDots<TValue extends string> =
   TValue extends `${infer THead}\\.${infer TTail}`
     ? `${THead}__XSTATE_ESCAPED_DOT__${ProtectSetupStatePathDots<TTail>}`
@@ -985,7 +940,7 @@ type ProtectSetupStatePathDots<TValue extends string> =
 
 type RestoreSetupStatePathDots<TValue extends string> =
   TValue extends `${infer THead}__XSTATE_ESCAPED_DOT__${infer TTail}`
-    ? `${THead}.${RestoreSetupStatePathDots<TTail>}`
+    ? `${THead}\\.${RestoreSetupStatePathDots<TTail>}`
     : TValue;
 
 type SplitSetupStatePath<TPath extends string> =
@@ -1069,9 +1024,9 @@ type SetupStateParentAtPath<
 /** Union of every addressable dotted path into a setup states tree */
 type StatePathsInner<TStates extends Record<string, SetupStateSchema>> = {
   [K in SetupStateKeys<TStates>]:
-    | EscapeSetupStatePathDots<K>
+    | K
     | (TStates[K]['states'] extends Record<string, SetupStateSchema>
-        ? `${EscapeSetupStatePathDots<K>}.${StatePathsInner<TStates[K]['states']>}`
+        ? `${K}.${StatePathsInner<TStates[K]['states']>}`
         : never);
 }[SetupStateKeys<TStates>];
 
@@ -1105,17 +1060,8 @@ type SetupResolvedStatePath<
   TRootStateSchemas extends Record<string, SetupStateSchema>,
   TSourcePath extends string,
   TTarget extends string
-> = TTarget extends `#${infer TIdPath}`
-  ? SplitSetupStatePath<TIdPath> extends [
-      infer TId extends string,
-      ...infer TDescendant extends string[]
-    ]
-    ? SetupStatePathAtId<TRootStateSchemas, TId> extends infer TIdStatePath
-      ? TIdStatePath extends SetupStatePath
-        ? [...TIdStatePath, ...TDescendant]
-        : never
-      : never
-    : never
+> = TTarget extends `#${infer TId}`
+  ? SetupStatePathAtId<TRootStateSchemas, TId>
   : TTarget extends '.'
     ? SplitSetupStatePath<TSourcePath>
     : TTarget extends `.${infer TDescendant}`
@@ -3687,7 +3633,7 @@ export interface CreatedInvoke<
     input: TStateInput;
     child: NoInfer<{
       id: TConfig extends { id: infer TId } ? TId : undefined;
-      ref: ActorRefFromLogic<TLogic>;
+      ref: ActorRefFrom<TLogic>;
     }>;
   };
   readonly [createdInvokeConfig]: NoInfer<TConfig>;
@@ -3735,7 +3681,7 @@ type CreatedInvokeId<
     : {
         id: {
           [K in keyof TChildren &
-            string]: ActorRefFromLogic<TLogic> extends NonNullable<TChildren[K]>
+            string]: ActorRefFrom<TLogic> extends NonNullable<TChildren[K]>
             ? K
             : never;
         }[keyof TChildren & string];
@@ -5050,7 +4996,12 @@ export interface SetupReturn<
         TConfig,
         TSystemRegistry,
         MergeSourceMaps<TSetupActorMap, TActorMap>
-      >
+      > &
+      ValidateInvokeInputs<
+        TConfig,
+        MergeSourceMaps<TSetupActorMap, TActorMap>
+      > &
+      ValidateVersionedMachineId<TConfig>
   ): [TConfig] extends [never]
     ? AnyStateMachine
     : StateMachine<
@@ -5145,7 +5096,8 @@ export interface SetupReturn<
           ResolveStateSiblingsForPath<TStates, TPath>,
           TStates
         >
-      >
+      > &
+      ValidateInvokeInputs<TConfig, TSetupActorMap>
   ): TConfig;
 
   /** Creates a state node config with the setup configuration */
@@ -5165,7 +5117,8 @@ export interface SetupReturn<
       ValidateEventDescriptors<
         TConfig,
         NoInfer<SetupEvents<TSchemas, Record<string, StandardSchemaV1>>>
-      >
+      > &
+      ValidateInvokeInputs<TConfig, TSetupActorMap>
   ): TConfig;
 
   /** State input schemas from setup config */

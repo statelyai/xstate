@@ -62,7 +62,7 @@ describe('machineFromJSON ', () => {
         }
       })
     ).toThrow(
-      "Invalid transition definition for state node '(machine).idle': target set is not a legal SCXML configuration."
+      "Invalid transition definition for state node 'idle': target set is not a legal SCXML configuration."
     );
   });
 
