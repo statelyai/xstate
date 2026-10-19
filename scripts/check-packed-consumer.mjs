@@ -31,7 +31,7 @@ import {
   writeFileSync
 } from 'node:fs';
 import { createRequire } from 'node:module';
-import { dirname, join } from 'node:path';
+import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -110,6 +110,36 @@ function exportTargets(value) {
 }
 
 try {
+  step('source README links resolve to tracked files', () => {
+    const tracked = new Set(run('git', ['ls-files', '-z'], root).split('\0'));
+    const file = 'packages/core/README.md';
+    const source = readFileSync(join(root, file), 'utf8');
+    for (const [, link] of source.matchAll(/(?:\]\(|href=["'])([^\s)"']+)/g)) {
+      const github = link.match(
+        /^https:\/\/github\.com\/statelyai\/xstate\/(blob|tree)\/next\/([^?#]+)/
+      );
+      let target;
+      if (github) {
+        target = decodeURIComponent(github[2]);
+        if (
+          github[1] === 'tree' &&
+          [...tracked].some((path) => path.startsWith(`${target}/`))
+        ) {
+          continue;
+        }
+      } else {
+        if (/^(?:[a-z][a-z\d+.-]*:|#|\/)/i.test(link)) continue;
+        target = relative(
+          root,
+          join(root, dirname(file), link.split(/[?#]/)[0])
+        );
+      }
+      if (!tracked.has(target)) {
+        throw new Error(`${file}: documentation link is not tracked: ${link}`);
+      }
+    }
+  });
+
   step('pack + unpack tarballs', () => {
     for (const { name, dir } of PACKAGES) {
       const packageDir = join(root, 'packages', dir);
@@ -193,7 +223,9 @@ try {
         ...pages.map((page) => `docs/${page}.md`)
       ]) {
         const source = readFileSync(join(packageDir, file), 'utf8');
-        for (const [, link] of source.matchAll(/\]\(([^\s)]+)\)/g)) {
+        for (const [, link] of source.matchAll(
+          /(?:\]\(|href=["'])([^\s)"']+)/g
+        )) {
           if (/^(?:[a-z][a-z\d+.-]*:|#|\/)/i.test(link)) continue;
           const target = join(packageDir, dirname(file), link.split(/[?#]/)[0]);
           if (!existsSync(target)) {

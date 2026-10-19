@@ -20,7 +20,9 @@ for (const dir of readdirSync(packagesDir)) {
   for (const entry of pkg.files) {
     const name = normalize(entry).replace(/\/$/, '');
     const fullPath = join(packagesDir, dir, name);
-    if (!/[*?[\]{}!]/.test(name) && name !== 'dist' && !existsSync(fullPath)) {
+    const generated =
+      name === 'dist' || (pkg.name === 'xstate' && name === 'docs');
+    if (!/[*?[\]{}!]/.test(name) && !generated && !existsSync(fullPath)) {
       errors.push(
         `${pkg.name}: "files" includes "${name}" but it does not exist`
       );
