@@ -7,10 +7,10 @@ import {
 } from '../index.ts';
 
 describe.each([
-  ['getAdjacencyMap', getAdjacencyMap],
-  ['getShortestPaths', getShortestPaths],
-  ['getSimplePaths', getSimplePaths]
-] as const)('%s diagnostics', (_, traverse) => {
+  'getAdjacencyMap',
+  'getShortestPaths',
+  'getSimplePaths'
+] as const)('%s diagnostics', (method) => {
   it('identifies the state and event that failed and preserves the cause', () => {
     const cause = new Error('Quantity is required');
     const machine = setup({
@@ -31,17 +31,29 @@ describe.each([
         filled: {}
       }
     });
+    const traverse = (options: {
+      events?: Array<{ type: 'ADD'; quantity: number }>;
+    }) => {
+      switch (method) {
+        case 'getAdjacencyMap':
+          return getAdjacencyMap(machine, options);
+        case 'getShortestPaths':
+          return getShortestPaths(machine, options);
+        case 'getSimplePaths':
+          return getSimplePaths(machine, options);
+      }
+    };
 
-    expect(() => traverse(machine, {})).toThrow(
+    expect(() => traverse({})).toThrow(
       expect.objectContaining({
         message: expect.stringContaining('"value":"empty"'),
         cause
       })
     );
-    expect(() => traverse(machine, {})).toThrow(/"type":"ADD"/);
-    expect(() => traverse(machine, {})).toThrow(/events/);
+    expect(() => traverse({})).toThrow(/"type":"ADD"/);
+    expect(() => traverse({})).toThrow(/events/);
     expect(() =>
-      traverse(machine, { events: [{ type: 'ADD', quantity: 2 }] })
+      traverse({ events: [{ type: 'ADD', quantity: 2 }] })
     ).not.toThrow();
   });
 });

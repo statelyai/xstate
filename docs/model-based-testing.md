@@ -205,6 +205,8 @@ const paths = getShortestPaths(cartMachine, {
 
 Static directed graphs omit function transitions whose targets require execution. Microstep inspection records their resolved targets instead.
 
+Graph traversal executes transition functions. If one throws, `getAdjacencyMap()`, `getShortestPaths()`, `getSimplePaths()` and `getPathsFromEvents()` throw an error that identifies the serialized source state and event. The original thrown value is available as `error.cause`. Payload-dependent transitions need representative events through the `events` option. A transition that returns `undefined` for a sample is refused; the returned paths only describe states reachable with the supplied samples.
+
 `xstate/graph` in v5 also exported `createTestModel` and `TestModel`. v6 removes them; `testPaths()` replaces `path.test()`.
 
 ## Read a failure
