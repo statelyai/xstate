@@ -1182,6 +1182,10 @@ export interface AnyStateMachine extends AnyActorLogic {
     | {
         begin(self: AnyActor): void;
         drain(self: AnyActor): AnyEventObject[];
+        transitionContent?(
+          transitions: readonly AnyTransitionDefinition[],
+          activeStates: readonly AnyStateNode[]
+        ): AnyStateNode['entry'];
       }
     | undefined;
   /** @internal */
