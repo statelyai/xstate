@@ -1428,7 +1428,7 @@ function microstep(
       context: MachineContext,
       children: AnyMachineSnapshot['children'],
       input: Record<string, unknown> | undefined,
-      kind: 'entry' | 'exit',
+      kind: 'entry' | 'exit' | 'transition',
       stateNode: AnyStateNode
     ): [
       actions: any[],
@@ -2145,6 +2145,41 @@ function microstep(
       nextState = cloneMachineSnapshot(nextState, { context });
     }
 
+    const transitionContent =
+      nextState.machine._microstepHooks?.transitionContent?.(
+        filteredTransitions,
+        [...mutStateNodeSet]
+      );
+    if (transitionContent) {
+      const source = filteredTransitions[0].source;
+      const [actions, nextContext, raisedEvents, nextChildren] =
+        getStateActionsAndContext(
+          transitionContent,
+          nextState.context,
+          nextState.children,
+          getStateInput(nextState, source.id),
+          'transition',
+          source
+        );
+      if (raisedEvents?.length) {
+        internalQueue.push(...raisedEvents);
+      }
+      if (nextContext || nextChildren) {
+        nextState = cloneMachineSnapshot(nextState, {
+          ...(nextContext ? { context: nextContext } : {}),
+          ...(nextChildren ? { children: nextChildren } : {})
+        });
+      }
+      const [resolvedState, effects] = resolveActionsWithContext(
+        nextState,
+        event,
+        actorScope,
+        actions
+      );
+      nextState = resolvedState;
+      executableActions.push(...effects);
+    }
+
     // Enter states
     if (isInitial || changesState) {
       enterStates();
@@ -2773,12 +2808,12 @@ function assertSyncTransitionResult(
   res: unknown,
   event: EventObject,
   sourceId: string,
-  kind?: 'entry' | 'exit'
+  kind?: 'entry' | 'exit' | 'transition'
 ): void {
   if (res && typeof (res as PromiseLike<unknown>).then === 'function') {
     void Promise.resolve(res as PromiseLike<unknown>).catch(() => {});
     throw new Error(
-      kind
+      kind && kind !== 'transition'
         ? `${kind === 'entry' ? 'Entry' : 'Exit'} functions must be synchronous. The ${kind} function of state "${sourceId}" returned a promise (event "${event.type}"). Move async work into an invoked or spawned actor, or enq.effect.`
         : `Transition functions must be synchronous. Transition for event "${event.type}" in state "${sourceId}" returned a promise. Move async work into an invoked or spawned actor, or enq.effect.`
     );
