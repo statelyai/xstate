@@ -1,5 +1,11 @@
 import { render } from '@testing-library/react';
-import { ActorRefFrom, assign, createMachine, setup } from 'xstate';
+import {
+  ActorRefFrom,
+  assign,
+  createActor,
+  createMachine,
+  setup
+} from 'xstate';
 import {
   useActor,
   useActorRef,
@@ -217,4 +223,30 @@ it('useMachine types work for machines with a specified id and state with an aft
 
     return state.matches('enabled');
   }
+});
+
+// https://github.com/statelyai/xstate/issues/5480
+it('useMachine accepts a rehydrated snapshot from getPersistedSnapshot #5480', () => {
+  const counterMachine = setup({}).createMachine({
+    initial: 'idle',
+    states: {
+      idle: {},
+      active: {}
+    }
+  });
+
+  // Round-trip: getPersistedSnapshot() -> useMachine(machine, { snapshot })
+  // Both sides must typecheck without `as any` casts or @ts-expect-error.
+  function App() {
+    const actorRef = createActor(counterMachine).start();
+    const persistedState = actorRef.getPersistedSnapshot();
+
+    const [, , restoredRef] = useMachine(counterMachine, {
+      snapshot: persistedState
+    });
+
+    return <span data-testid="value">{restoredRef.getSnapshot().value}</span>;
+  }
+
+  render(<App />);
 });

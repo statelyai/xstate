@@ -3,6 +3,7 @@ import {
   assign,
   fromPromise,
   Snapshot,
+  SnapshotFrom,
   InspectionEvent
 } from 'xstate';
 import { fireEvent, screen, render, waitFor } from '@testing-library/react';
@@ -374,7 +375,7 @@ describe('createActorContext', () => {
       }
     });
     const SomeContext = createActorContext(machine);
-    let persistedState: Snapshot<unknown> | undefined = undefined;
+    let persistedState: SnapshotFrom<typeof machine> | undefined = undefined;
 
     const Component = () => {
       const actorRef = SomeContext.useActorRef();
