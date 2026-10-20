@@ -28,6 +28,19 @@ const emittingMachine = createMachine({
   entry: (_, enq) => enq.emit(emitted),
   on: { EMIT: (_, enq) => enq.emit(emitted) }
 });
+const constructorEmittingLogic: ActorLogic<Snapshot<undefined>, EventObject> = {
+  initialTransition: (_, scope) => {
+    scope.emit(emitted);
+    return [{ status: 'active', output: undefined, error: undefined }, []];
+  },
+  getInitialSnapshot: () => ({
+    status: 'active',
+    output: undefined,
+    error: undefined
+  }),
+  transition: (snapshot) => [snapshot, []],
+  getPersistedSnapshot: (snapshot) => snapshot
+};
 
 beforeEach(() => {
   reported.length = 0;
@@ -81,26 +94,44 @@ it('keeps contextual invocation IDs when shared logic enters different app state
 
 it('attaches config and pending listeners before constructor-time emissions, once', () => {
   const calls: string[] = [];
-  const logic: ActorLogic<Snapshot<undefined>, EventObject> = {
-    initialTransition: (_, scope) => {
-      scope.emit(emitted);
-      return [{ status: 'active', output: undefined, error: undefined }, []];
-    },
-    getInitialSnapshot: () => ({
-      status: 'active',
-      output: undefined,
-      error: undefined
-    }),
-    transition: (snapshot) => [snapshot, []],
-    getPersistedSnapshot: (snapshot) => snapshot
-  };
   const system = createSystem({ onEmitted: () => calls.push('config') });
   system.onEmitted(() => calls.push('pending'));
   const canceled = system.onEmitted(() => calls.push('canceled'));
   canceled.unsubscribe();
-  system.createActor(logic);
-  system.createActor(logic);
+  system.createActor(constructorEmittingLogic);
+  system.createActor(constructorEmittingLogic);
   expect(calls).toEqual(['config', 'pending', 'config', 'pending']);
+});
+
+it('allows cancellation during the first constructor emission without affecting later roots', () => {
+  const calls: string[] = [];
+  const system = createSystem();
+  const subscription = system.onEmitted(() => {
+    calls.push('self');
+    subscription.unsubscribe();
+  });
+  system.onEmitted(() => calls.push('other'));
+
+  system.createActor(constructorEmittingLogic);
+  system.createActor(constructorEmittingLogic);
+
+  expect(calls).toEqual(['self', 'other', 'other']);
+});
+
+it('cancels a pending listener after construction but before start', () => {
+  const calls: string[] = [];
+  const system = createSystem();
+  const canceled = system.onEmitted(() => calls.push('canceled'));
+  const first = system.createActor(emittingMachine);
+  canceled.unsubscribe();
+  system.onEmitted(() => calls.push('active'));
+
+  first.start();
+  const second = system.createActor(emittingMachine).start();
+
+  expect(calls).toEqual(['active', 'active']);
+  first.stop();
+  second.stop();
 });
 
 it('shares observation across builder roots and isolates unrelated systems', () => {

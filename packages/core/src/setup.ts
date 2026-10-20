@@ -5486,11 +5486,11 @@ export function createSystem<const TSystemRegistry extends SystemRegistry = {}>(
   const runtimeRef: NonNullable<ActorOptions<AnyActorLogic>['_systemRef']> = {
     initialize: () => flushObservers()
   };
-  const pending: Array<{
+  type PendingSubscription = {
     subscribe: (system: AnyActorSystem) => Subscription;
     subscription?: Subscription;
-    active: boolean;
-  }> = [];
+  };
+  const pending = new Set<PendingSubscription>();
 
   const flushObservers = () => {
     const runtime = runtimeRef.current;
@@ -5499,8 +5499,11 @@ export function createSystem<const TSystemRegistry extends SystemRegistry = {}>(
     }
 
     for (const entry of pending) {
-      if (entry.active && !entry.subscription) {
-        entry.subscription = entry.subscribe(runtime);
+      const subscription = entry.subscribe(runtime);
+      if (pending.delete(entry)) {
+        entry.subscription = subscription;
+      } else {
+        subscription.unsubscribe();
       }
     }
   };
@@ -5516,12 +5519,12 @@ export function createSystem<const TSystemRegistry extends SystemRegistry = {}>(
       return subscribe(runtime);
     }
 
-    const entry: (typeof pending)[number] = { subscribe, active: true };
-    pending.push(entry);
+    const entry: PendingSubscription = { subscribe };
+    pending.add(entry);
 
     return {
       unsubscribe() {
-        entry.active = false;
+        pending.delete(entry);
         entry.subscription?.unsubscribe();
       }
     };
