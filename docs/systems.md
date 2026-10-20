@@ -93,7 +93,7 @@ const actor = system.createActor(machine).start();
 
 `createSystem(...).setup(...)` chains into the usual [setup](setup-and-provide.md) API and carries the registry types into every machine built from it. `registryKey` is then checked against the declared registry, and the `system` argument inside transition functions is typed the same way, so no `ActorSystem<...>` cast is needed.
 
-The system builder also owns the runtime system before any actor exists. `system.get(...)`, `system.getAll()`, `system.inspect(...)` and `system.onRejectedEvent(...)` work on the builder and forward to the running system once the root actor is created.
+The system builder also owns the runtime system before any actor exists. `system.get(...)`, `system.getAll()`, `system.inspect(...)`, `system.onEmitted(...)` and `system.onRejectedEvent(...)` work on the builder and forward to the running system once the root actor is created.
 
 ```ts
 const system = createSystem({ registry: { root: machine } });
@@ -102,6 +102,37 @@ system.get('root'); // undefined before createActor
 const actor = system.createActor(machine, { registryKey: 'root' });
 system.get('root'); // the root actor
 ```
+
+## Observe emitted events across a system
+
+Pass `onEmitted` to `createSystem(...)` to observe emissions from every actor created by that system, including invoked and spawned descendants:
+
+```ts
+const system = createSystem({
+  onEmitted: ({ actorRef, event }) => {
+    analytics.track(`${actorRef.id}.${event.type}`, event);
+  }
+});
+
+const root = system.createActor(applicationMachine);
+root.start();
+```
+
+The callback is registered before the first actor is created, so it receives synchronous initialization and startup emissions. Each `ActorEmission` contains the source `actorRef` and the original `event`. Give invocations explicit IDs to distinguish uses of the same actor logic. Use `actorRef.address` to distinguish actors with the same ID under different parents.
+
+`system.onEmitted(listener)` adds a listener and returns a subscription. You can subscribe before or after creating actors:
+
+```ts
+const subscription = system.onEmitted(({ actorRef, event }) => {
+  console.log(actorRef.address, event);
+});
+
+subscription.unsubscribe();
+```
+
+Listeners run in registration order before runtime delivery. A listener that throws does not prevent other listeners or delivery. Notifications describe actor emission attempts, including those handled by custom runtimes; they do not confirm successful delivery. Calling the low-level runtime operation `system.emitEvent(...)` directly performs delivery only.
+
+Listeners apply to all roots created by the same system and remain subscribed when an actor stops. `actor.on(...)` continues to observe only that actor's emissions. Emitted events are not sent into a parent machine's business logic.
 
 ## Dead letters
 
@@ -128,6 +159,7 @@ const child = enq.spawn(logic, { registryKey: 'service' });
 const service = system.get('service');
 const all = system.getAll();
 const subscription = system.onRejectedEvent((rejection) => {});
+const emissions = system.onEmitted(({ actorRef, event }) => {});
 
 const system = createSystem({ registry: { service: logic, root: machine } });
 const actor = system.createActor(machine, { registryKey: 'root' }).start();

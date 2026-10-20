@@ -1,4 +1,5 @@
 import isDevelopment from '#is-development';
+import { publishEmittedEvent } from './runtimeHelpers.ts';
 import { assertSendToEvent, builtInActions } from './actions.ts';
 import { resolveRegisteredActorSource } from './actorSource.ts';
 import { listenerLogic, type ListenerInput } from './actors/listener.ts';
@@ -113,7 +114,7 @@ function execEmitEffect(
   this: EmitExecutableEffect,
   runtime: EffectRuntime = this.source.system
 ): void | PromiseLike<void> {
-  return runtime.emitEvent!(this.source, this.event);
+  return publishEmittedEvent(this.source, this.event, runtime);
 }
 
 /** @internal Creates an emitted-event effect. */

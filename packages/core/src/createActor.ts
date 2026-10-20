@@ -1,4 +1,5 @@
 import isDevelopment from '#is-development';
+import { publishEmittedEvent } from './runtimeHelpers.ts';
 import type { ActionRecord, SentRecord } from './inspection.ts';
 import { Mailbox } from './Mailbox.ts';
 import { XSTATE_STOP } from './constants.ts';
@@ -307,6 +308,7 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
       !resolvedOptions._systemRef.current
     ) {
       resolvedOptions._systemRef.current = this.system;
+      resolvedOptions._systemRef.initialize?.();
     }
 
     if (inspect && !parent) {
@@ -450,7 +452,7 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
 
   private get emit(): (event: EmittedFrom<TLogic>) => void | PromiseLike<void> {
     const emit = (event: EmittedFrom<TLogic>) =>
-      this.system.emitEvent(this, event);
+      publishEmittedEvent(this, event, this.system);
     Object.defineProperty(this, 'emit', { value: emit });
     return emit;
   }

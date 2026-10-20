@@ -1,5 +1,5 @@
 import { parseDelayToMilliseconds } from '../delay.ts';
-import { runStep } from '../runtimeHelpers.ts';
+import { publishEmittedEvent, runStep } from '../runtimeHelpers.ts';
 import { XSTATE_INIT } from '../constants.ts';
 import { StandardSchemaV1 } from '../schema.types.ts';
 import { AnyActorSystem } from '../system.ts';
@@ -496,7 +496,8 @@ export function createAsyncLogic<
                   signal: controller.signal
                 },
                 {
-                  emit: (event) => void runtime.emitEvent!(actorSelf, event),
+                  emit: (event) =>
+                    void publishEmittedEvent(actorSelf, event, runtime),
                   // Steps route through the runtime: a durable host that
                   // implements `runStep` owns the step journal; otherwise the
                   // built-in behavior memoizes into this actor's own snapshot,

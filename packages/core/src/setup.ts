@@ -444,6 +444,7 @@ type MachineConfigSchemas<TConfig> = TConfig extends {
 /** @public */
 export type SystemConfig<TSystemRegistry extends SystemRegistry> = {
   registry?: TSystemRegistry;
+  onEmitted?: Parameters<AnyActorSystem['onEmitted']>[0];
 };
 
 /** @public */
@@ -5474,19 +5475,22 @@ type SystemBuilder<TSystemRegistry extends SystemRegistry> = {
       | ((inspectionEvent: InspectionEvent) => void)
   ): Subscription;
   onRejectedEvent: AnyActorSystem['onRejectedEvent'];
+  onEmitted: AnyActorSystem['onEmitted'];
   setup: SetupFunction<TSystemRegistry>;
 };
 
 /** @public */
 export function createSystem<const TSystemRegistry extends SystemRegistry = {}>(
-  _config: SystemConfig<TSystemRegistry> = {}
+  config: SystemConfig<TSystemRegistry> = {}
 ): SystemBuilder<TSystemRegistry> {
-  const runtimeRef: { current?: AnyActorSystem } = {};
-  const pending: Array<{
+  const runtimeRef: NonNullable<ActorOptions<AnyActorLogic>['_systemRef']> = {
+    initialize: () => flushObservers()
+  };
+  type PendingSubscription = {
     subscribe: (system: AnyActorSystem) => Subscription;
     subscription?: Subscription;
-    active: boolean;
-  }> = [];
+  };
+  const pending = new Set<PendingSubscription>();
 
   const flushObservers = () => {
     const runtime = runtimeRef.current;
@@ -5495,8 +5499,11 @@ export function createSystem<const TSystemRegistry extends SystemRegistry = {}>(
     }
 
     for (const entry of pending) {
-      if (entry.active && !entry.subscription) {
-        entry.subscription = entry.subscribe(runtime);
+      const subscription = entry.subscribe(runtime);
+      if (pending.delete(entry)) {
+        entry.subscription = subscription;
+      } else {
+        subscription.unsubscribe();
       }
     }
   };
@@ -5512,16 +5519,21 @@ export function createSystem<const TSystemRegistry extends SystemRegistry = {}>(
       return subscribe(runtime);
     }
 
-    const entry: (typeof pending)[number] = { subscribe, active: true };
-    pending.push(entry);
+    const entry: PendingSubscription = { subscribe };
+    pending.add(entry);
 
     return {
       unsubscribe() {
-        entry.active = false;
+        pending.delete(entry);
         entry.subscription?.unsubscribe();
       }
     };
   };
+
+  if (config.onEmitted) {
+    const listener = config.onEmitted;
+    subscribeToSystem((system) => system.onEmitted(listener));
+  }
 
   return {
     createActor(logic, ...[options]) {
@@ -5529,7 +5541,6 @@ export function createSystem<const TSystemRegistry extends SystemRegistry = {}>(
         ...options,
         _systemRef: runtimeRef
       } as any);
-      flushObservers();
       return actor as any;
     },
     get(key) {
@@ -5544,6 +5555,9 @@ export function createSystem<const TSystemRegistry extends SystemRegistry = {}>(
       return subscribeToSystem((system) =>
         system.inspect(observer as Parameters<AnyActorSystem['inspect']>[0])
       );
+    },
+    onEmitted(listener) {
+      return subscribeToSystem((system) => system.onEmitted(listener));
     },
     onRejectedEvent(listener) {
       return subscribeToSystem((system) => system.onRejectedEvent(listener));

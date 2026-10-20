@@ -77,7 +77,7 @@ const subscription = actor.on('played', (event) => toast(event.trackId));
 subscription.unsubscribe();
 ```
 
-Use `'*'` to handle every emitted event, which is useful for logging and analytics:
+Use `'*'` to handle every event emitted by that actor:
 
 ```ts
 actor.on('*', (event) => analytics.track(event.type, event));
@@ -86,6 +86,25 @@ actor.on('*', (event) => analytics.track(event.type, event));
 > **Warning:** `actor.on(...)` matches an exact event type or `'*'`. Prefix wildcards such as `'upload.*'` do not match anything here. Use [`enq.listen(...)`](listen-and-subscribe.md) when a parent machine needs prefix matching.
 
 An error thrown inside a handler is reported but does not stop the actor. Handlers are removed when the actor stops.
+
+## Observe a whole system
+
+Use `createSystem({ onEmitted })` to centralize analytics for root and child actors:
+
+```ts
+const system = createSystem({
+  onEmitted: ({ actorRef, event }) => {
+    analytics.track(`${actorRef.id}.${event.type}`, event);
+  }
+});
+
+const root = system.createActor(applicationMachine);
+root.start();
+```
+
+The observer receives emissions from machines, async actors, callback actors, and observable actors. `actor.on(...)` stays local to the actor. Child emissions do not bubble to the root's handlers or enter its business event handlers.
+
+For a removable subscription, call `system.onEmitted(listener)` and then `subscription.unsubscribe()`. System listeners run before runtime delivery and remain subscribed when individual actors stop. See [system-wide emission observation](systems.md#observe-emitted-events-across-a-system) for source identity, lifecycle, and custom runtime behavior.
 
 ## Emitted events, snapshots or sent events
 
