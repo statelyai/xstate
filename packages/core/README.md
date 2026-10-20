@@ -87,6 +87,29 @@ XState is a state management and orchestration solution for JavaScript and TypeS
 
 It uses event-driven programming, state machines, statecharts, and the actor model to handle complex logic in predictable, robust, and visual ways. XState provides a powerful and flexible way to manage application and workflow state by allowing developers to model logic as actors and state machines.
 
+<!-- system-wide emission observation from packages/core/src/setup.ts and packages/core/src/system.ts -->
+
+Observe emitted events from root and child actors with `createSystem({ onEmitted })`:
+
+```ts
+import { createMachine, createSystem } from 'xstate';
+
+const machine = createMachine({
+  entry: (_, enq) => enq.emit({ type: 'started' })
+});
+
+const system = createSystem({
+  onEmitted: ({ actorRef, event }) => {
+    console.log(actorRef.id, event);
+  }
+});
+
+const root = system.createActor(machine).start();
+```
+
+Use `system.onEmitted(listener)` for a removable subscription. `actor.on(...)`
+observes only that actor. See [actor systems](https://github.com/statelyai/xstate/blob/next/docs/systems.md#observe-emitted-events-across-a-system).
+
 <!-- experimental whole-system transitions from packages/core/src/systemTransition.ts -->
 
 For pure actor-system simulation, `initialSystemTransition`, `systemTransition`

@@ -444,6 +444,7 @@ type MachineConfigSchemas<TConfig> = TConfig extends {
 /** @public */
 export type SystemConfig<TSystemRegistry extends SystemRegistry> = {
   registry?: TSystemRegistry;
+  onEmitted?: Parameters<AnyActorSystem['onEmitted']>[0];
 };
 
 /** @public */
@@ -5474,14 +5475,17 @@ type SystemBuilder<TSystemRegistry extends SystemRegistry> = {
       | ((inspectionEvent: InspectionEvent) => void)
   ): Subscription;
   onRejectedEvent: AnyActorSystem['onRejectedEvent'];
+  onEmitted: AnyActorSystem['onEmitted'];
   setup: SetupFunction<TSystemRegistry>;
 };
 
 /** @public */
 export function createSystem<const TSystemRegistry extends SystemRegistry = {}>(
-  _config: SystemConfig<TSystemRegistry> = {}
+  config: SystemConfig<TSystemRegistry> = {}
 ): SystemBuilder<TSystemRegistry> {
-  const runtimeRef: { current?: AnyActorSystem } = {};
+  const runtimeRef: NonNullable<ActorOptions<AnyActorLogic>['_systemRef']> = {
+    initialize: () => flushObservers()
+  };
   const pending: Array<{
     subscribe: (system: AnyActorSystem) => Subscription;
     subscription?: Subscription;
@@ -5523,13 +5527,17 @@ export function createSystem<const TSystemRegistry extends SystemRegistry = {}>(
     };
   };
 
+  if (config.onEmitted) {
+    const listener = config.onEmitted;
+    subscribeToSystem((system) => system.onEmitted(listener));
+  }
+
   return {
     createActor(logic, ...[options]) {
       const actor = createActorFromLogic(logic, {
         ...options,
         _systemRef: runtimeRef
       } as any);
-      flushObservers();
       return actor as any;
     },
     get(key) {
@@ -5544,6 +5552,9 @@ export function createSystem<const TSystemRegistry extends SystemRegistry = {}>(
       return subscribeToSystem((system) =>
         system.inspect(observer as Parameters<AnyActorSystem['inspect']>[0])
       );
+    },
+    onEmitted(listener) {
+      return subscribeToSystem((system) => system.onEmitted(listener));
     },
     onRejectedEvent(listener) {
       return subscribeToSystem((system) => system.onRejectedEvent(listener));

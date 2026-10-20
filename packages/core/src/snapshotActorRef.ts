@@ -132,6 +132,12 @@ export function createSnapshotSystem(
     },
     get: (registryKey: PropertyKey) => keyedActors.get(registryKey),
     getAll: () => Object.fromEntries(keyedActors),
+    onEmitted: (listener: Parameters<AnyActor['system']['onEmitted']>[0]) =>
+      baseSystem.onEmitted(listener),
+    _notifyEmitted: (
+      actorRef: AnyActor,
+      event: Parameters<AnyActor['system']['_notifyEmitted']>[1]
+    ) => baseSystem._notifyEmitted(actorRef, event),
     // Pure transition resolution must not leak topology inspection events
     // into a live runtime system — planning branches stay silent. The one
     // exception is a durable execution's own transitions (marked by the

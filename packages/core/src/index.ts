@@ -168,6 +168,7 @@ export type {
   ActorSystem,
   ActorSystemRuntime,
   AnyActorSystem,
+  ActorEmission,
   DeadLetterDetail,
   EventRejection,
   EventRejectionReason

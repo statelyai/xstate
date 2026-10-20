@@ -1958,7 +1958,10 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
   /** @internal */
   syncSnapshot?: boolean;
   /** @internal */
-  _systemRef?: { current?: AnyActorSystem };
+  _systemRef?: {
+    current?: AnyActorSystem;
+    initialize?: () => void;
+  };
   /** @internal */
   _sessionId?: string;
   /** @internal */

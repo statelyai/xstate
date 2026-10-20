@@ -335,6 +335,12 @@ export interface EventRejection extends DeadLetterDetail {
   reason: EventRejectionReason;
 }
 
+/** @public */
+export interface ActorEmission {
+  actorRef: AnyActor;
+  event: AnyEventObject;
+}
+
 /** @experimental */
 export interface ActorSystemRuntime {
   /** Publishes a newly created actor to the runtime. */
@@ -357,7 +363,7 @@ export interface ActorSystemRuntime {
     target: AnyActor,
     event: AnyEventObject
   ): void | PromiseLike<void>;
-  /** Publishes an emitted event. */
+  /** Delivers an emitted event, after system emission observers have run. */
   emitEvent(source: AnyActor, event: EventObject): void | PromiseLike<void>;
   /**
    * Schedules a logical timer. `source.address` and `timer` identify it; when
@@ -512,6 +518,16 @@ export interface ActorSystem<
   onRejectedEvent: (
     listener: (rejection: EventRejection) => void
   ) => Subscription;
+  /**
+   * Observes emitted events from every actor in this system, before runtime
+   * delivery. Listeners run in registration order; errors do not prevent
+   * other listeners or delivery. Unsubscribe to stop observing.
+   *
+   * @public
+   */
+  onEmitted: (listener: (emission: ActorEmission) => void) => Subscription;
+  /** @internal */
+  _notifyEmitted: (actorRef: AnyActor, event: AnyEventObject) => void;
   /** @internal Avoids collecting inspection-only transition metadata. */
   _hasInspectionObservers?: () => boolean;
   /** @internal */
@@ -580,6 +596,7 @@ interface RuntimeSystem<T extends ActorSystemInfo> {
   _inspectionObservers?: Set<Observer<InspectionEvent>>;
   _timerMap?: { [id: ScheduledTimerId]: number };
   _rejectionListeners?: Set<(rejection: EventRejection) => void>;
+  _emissionListeners?: Set<(emission: ActorEmission) => void>;
 }
 
 class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
@@ -878,6 +895,31 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
         this._rejectionListeners?.delete(entry);
       }
     };
+  }
+
+  public onEmitted(listener: (emission: ActorEmission) => void): Subscription {
+    const entry = (emission: ActorEmission) => listener(emission);
+    (this._emissionListeners ??= new Set()).add(entry);
+    return {
+      unsubscribe: () => {
+        this._emissionListeners?.delete(entry);
+      }
+    };
+  }
+
+  public _notifyEmitted(actorRef: AnyActor, event: AnyEventObject): void {
+    const listeners = this._emissionListeners;
+    if (!listeners?.size) {
+      return;
+    }
+    const emission: ActorEmission = { actorRef, event };
+    for (const listener of Array.from(listeners)) {
+      try {
+        listener(emission);
+      } catch (err) {
+        reportUnhandledError(err);
+      }
+    }
   }
 
   public _hasInspectionObservers(): boolean {
