@@ -1,10 +1,40 @@
 # @xstate/store-react
 
-## 2.1.0
+## 2.1.0-alpha.4
+
+### Patch Changes
+
+- 698f1c4: `flushStorage(store)` now also waits for writes queued by `onDone`. With `strategy: 'event'`, events sent after `clearStorage(store)` start a new history. Calling `store.can` or `store.transition` preserves the history reset, and changes made before hydration are included in the new checkpoint when rehydrating from empty storage.
+  
+  `useStore`'s `inspect` option only changes after a render commits; a suspended or discarded render no longer redirects inspection events.
+- Updated dependencies [698f1c4]
+  - @xstate/store@5.0.0-alpha.7
+
+## 2.1.0-alpha.3
+
+### Patch Changes
+
+- Updated dependencies [c27b509]
+  - @xstate/store@5.0.0-alpha.5
+
+## 2.1.0-alpha.2
+
+### Patch Changes
+
+- 69b6663: Keep selected values current when subscriptions start or resume. Vue and Solid now expose terminal error snapshots, and Solid preserves array/object context changes without changing the actor's source data. Vue uses one snapshot subscription per `useActor` call.
+  
+  React store selectors now honor custom comparisons when the selector argument is omitted.
+- Updated dependencies [69b6663]
+- Updated dependencies [69b6663]
+- Updated dependencies [69b6663]
+- Updated dependencies [69b6663]
+  - @xstate/store@4.3.0-alpha.3
+
+## 2.1.0-alpha.1
 
 ### Minor Changes
 
-- [#5760](https://github.com/statelyai/xstate/pull/5760) [`38dcaff`](https://github.com/statelyai/xstate/commit/38dcaffb20ec7f3cbb10e6161d8f0ebacca33701) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `useStore` hook now accepts an `inspect` option for wiring up inspectors to component-local stores. The inspector is subscribed while the option is provided and stays stable across re-renders. A render that suspends or is discarded does not change the active inspector.
+- c57f80e: The `useStore` hook now accepts an `inspect` option for wiring up inspectors to component-local stores. The inspector is subscribed while the option is provided and stays stable across re-renders.
   
   ```tsx
   import { useStore, useSelector } from '@xstate/store-react';
@@ -28,11 +58,14 @@
   }
   ```
 
+## 2.0.1-alpha.0
+
 ### Patch Changes
 
-- [#5760](https://github.com/statelyai/xstate/pull/5760) [`38dcaff`](https://github.com/statelyai/xstate/commit/38dcaffb20ec7f3cbb10e6161d8f0ebacca33701) Thanks [@davidkpiano](https://github.com/davidkpiano)! - `useSelector` now honors a custom `compare` function when the selector argument is omitted.
-- Updated dependencies [[`6dc2adf`](https://github.com/statelyai/xstate/commit/6dc2adf46b4f6a96f7607dff0cdbdcd5933136f8), [`38dcaff`](https://github.com/statelyai/xstate/commit/38dcaffb20ec7f3cbb10e6161d8f0ebacca33701), [`38dcaff`](https://github.com/statelyai/xstate/commit/38dcaffb20ec7f3cbb10e6161d8f0ebacca33701), [`38dcaff`](https://github.com/statelyai/xstate/commit/38dcaffb20ec7f3cbb10e6161d8f0ebacca33701)]:
-  - @xstate/store@4.3.0
+- [#5543](https://github.com/statelyai/xstate/pull/5543) [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `compare` function passed to `useSelector` is now typed as `(a: T, b: T)` instead of `(a: T | undefined, b: T)`, so the previous value is no longer typed as possibly `undefined`.
+
+- Updated dependencies [[`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925)]:
+  - @xstate/store@4.3.0-alpha.0
 
 ## 2.0.0
 

@@ -187,10 +187,10 @@ describe('@xstate/store-react', () => {
       const { unmount } = render(<Counter />);
 
       // the inspector immediately receives the current snapshot
-      expect(events).toEqual(['@xstate.init']);
+      expect(events).toEqual(['xstate.init']);
 
       fireEvent.click(screen.getByTestId('count'));
-      expect(events).toEqual(['@xstate.init', 'inc']);
+      expect(events).toEqual(['xstate.init', 'inc']);
 
       const countBeforeUnmount = events.length;
       unmount();
@@ -227,7 +227,7 @@ describe('@xstate/store-react', () => {
 
       // 1 init event on subscribe + 1 per transition; no duplicates from
       // re-render resubscription
-      expect(snapshotEvents).toEqual(['@xstate.init', 'inc', 'inc']);
+      expect(snapshotEvents).toEqual(['xstate.init', 'inc', 'inc']);
     });
 
     it('should subscribe an inspector enabled after mount', () => {
@@ -254,10 +254,10 @@ describe('@xstate/store-react', () => {
       const { rerender } = render(<Counter />);
       rerender(<Counter inspect={(event) => events.push(event.event.type)} />);
 
-      expect(events).toEqual(['@xstate.init']);
+      expect(events).toEqual(['xstate.init']);
 
       fireEvent.click(screen.getByRole('button'));
-      expect(events).toEqual(['@xstate.init', 'inc']);
+      expect(events).toEqual(['xstate.init', 'inc']);
     });
 
     it('should keep the committed inspector while an update suspends', async () => {
@@ -310,7 +310,7 @@ describe('@xstate/store-react', () => {
 
       act(() => send({ type: 'inc' }));
 
-      expect(committed).toEqual(['@xstate.init', 'inc']);
+      expect(committed).toEqual(['xstate.init', 'inc']);
       expect(uncommitted).toEqual([]);
     });
 
@@ -343,7 +343,7 @@ describe('@xstate/store-react', () => {
       render(<Counter />);
 
       expect(screen.getByTestId('count').textContent).toBe('10');
-      expect(events).toEqual(['@xstate.init']);
+      expect(events).toEqual(['xstate.init']);
     });
   });
 

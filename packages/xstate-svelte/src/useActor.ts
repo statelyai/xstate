@@ -3,27 +3,23 @@ import {
   Actor,
   ActorOptions,
   AnyActorLogic,
-  EventFromLogic,
   SnapshotFrom,
   type ConditionalRequired,
   type IsNotNever,
-  type RequiredActorOptionsKeys
+  type RequiredActorOptionsKeys,
+  type RequiredActorOptionsFor
 } from 'xstate';
 import { useActorRef } from './useActorRef.ts';
 
 export function useActor<TLogic extends AnyActorLogic>(
   logic: TLogic,
   ...[options]: ConditionalRequired<
-    [
-      options?: ActorOptions<TLogic> & {
-        [K in RequiredActorOptionsKeys<TLogic>]: unknown;
-      }
-    ],
+    [options?: ActorOptions<TLogic> & RequiredActorOptionsFor<TLogic>],
     IsNotNever<RequiredActorOptionsKeys<TLogic>>
   >
 ): {
   snapshot: Readable<SnapshotFrom<TLogic>>;
-  send: (event: EventFromLogic<TLogic>) => void;
+  send: Actor<TLogic>['send'];
   actorRef: Actor<TLogic>;
 } {
   const actorRef = useActorRef(logic, options);
@@ -31,13 +27,8 @@ export function useActor<TLogic extends AnyActorLogic>(
   let currentSnapshot = actorRef.getSnapshot();
 
   const snapshot = readable(currentSnapshot, (set) => {
-    // The actor might have transitioned while nothing was subscribed to this
-    // store, so make sure it's up to date when a subscription (re)starts.
-    const latestSnapshot = actorRef.getSnapshot();
-    if (currentSnapshot !== latestSnapshot) {
-      currentSnapshot = latestSnapshot;
-      set(currentSnapshot);
-    }
+    currentSnapshot = actorRef.getSnapshot();
+    set(currentSnapshot);
     return actorRef.subscribe((nextSnapshot) => {
       if (currentSnapshot !== nextSnapshot) {
         currentSnapshot = nextSnapshot;

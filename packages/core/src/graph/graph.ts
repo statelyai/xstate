@@ -1,12 +1,13 @@
 import {
   EventObject,
   AnyStateMachine,
-  StateMachine,
+  StateNode,
   AnyActorLogic,
   EventFromLogic,
   Snapshot,
-  __unsafe_getAllOwnEventDescriptors,
-  InputFrom
+  InputFrom,
+  SnapshotFrom,
+  isMachineSnapshot
 } from '../index.ts';
 import type {
   SerializedEvent,
@@ -19,19 +20,26 @@ import type {
   TraversalConfig
 } from './types.ts';
 import { createMockActorScope } from './actorScope.ts';
+import {
+  getAllOwnEvents,
+  matchesEvent,
+  matchesEventDescriptor
+} from '../utils.ts';
 
 /**
  * Returns all state nodes of the given `node`.
  *
+ * @public
  * @param stateNode State node to recursively get child state nodes from
+ * @public
  */
-export function getStateNodes(
-  stateNode: AnyStateNode | AnyStateMachine
-): AnyStateNode[] {
+export function getDescendantStateNodes(stateNode: {
+  states: Record<string, AnyStateNode | StateNode<never, EventObject>>;
+}): AnyStateNode[] {
   const { states } = stateNode;
   const nodes = Object.keys(states).reduce((accNodes, stateKey) => {
-    const childStateNode = states[stateKey];
-    const childStateNodes = getStateNodes(childStateNode);
+    const childStateNode = states[stateKey] as AnyStateNode;
+    const childStateNodes = getDescendantStateNodes(childStateNode);
 
     accNodes.push(childStateNode, ...childStateNodes);
     return accNodes;
@@ -52,6 +60,7 @@ function getChildren(stateNode: AnyStateNode): AnyStateNode[] {
   return children;
 }
 
+/** @public */
 export function serializeSnapshot(snapshot: Snapshot<any>): SerializedSnapshot {
   const { value, context } = snapshot as any;
   return JSON.stringify({
@@ -66,64 +75,98 @@ function serializeEvent<TEvent extends EventObject>(
   return JSON.stringify(event) as SerializedEvent;
 }
 
-export function createDefaultMachineOptions<TMachine extends AnyStateMachine>(
+function resolveEventCases<TSnapshot>(
+  cases: object,
+  state: TSnapshot,
+  defaults?: EventObject[]
+): EventObject[] {
+  const events: EventObject[] = [];
+  const sources = cases as Record<
+    string,
+    readonly object[] | ((state: TSnapshot) => readonly object[])
+  >;
+  const entries = Object.entries(sources).filter(
+    ([, source]) => source !== undefined
+  );
+  const applicable = (type: string) =>
+    !defaults ||
+    defaults.some((event) => matchesEventDescriptor(type, event.type));
+  for (const [type, source] of entries) {
+    if (!applicable(type)) {
+      continue;
+    }
+    const samples = typeof source === 'function' ? source(state) : source;
+    if (!Array.isArray(samples) || !samples.length) {
+      throw new Error(`Event cases for "${type}" must be a non-empty array`);
+    }
+    for (const payload of samples) {
+      const event = { ...payload, type };
+      if (
+        !defaults ||
+        defaults.some(
+          ({ type: descriptor, ...pattern }) =>
+            matchesEventDescriptor(type, descriptor) &&
+            matchesEvent(event, pattern)
+        )
+      ) {
+        events.push(event);
+      }
+    }
+  }
+  return [
+    ...events,
+    ...(defaults?.filter(
+      (event) => !entries.some(([type]) => type === event.type)
+    ) ?? [])
+  ];
+}
+
+function createDefaultMachineOptions<TMachine extends AnyStateMachine>(
   machine: TMachine,
   options?: TraversalOptions<
-    ReturnType<TMachine['transition']>,
+    SnapshotFrom<TMachine>,
     EventFromLogic<TMachine>,
     InputFrom<TMachine>
   >
 ): TraversalOptions<
-  ReturnType<TMachine['transition']>,
+  SnapshotFrom<TMachine>,
   EventFromLogic<TMachine>,
   InputFrom<TMachine>
 > {
-  const { events: getEvents, ...otherOptions } = options ?? {};
   const traversalOptions: TraversalOptions<
-    ReturnType<TMachine['transition']>,
+    SnapshotFrom<TMachine>,
     EventFromLogic<TMachine>,
     InputFrom<TMachine>
   > = {
     serializeState: serializeSnapshot,
     serializeEvent,
-    events: (state) => {
-      const events =
-        typeof getEvents === 'function' ? getEvents(state) : (getEvents ?? []);
-      return __unsafe_getAllOwnEventDescriptors(state).flatMap((type) => {
-        const matchingEvents = events.filter((ev) => (ev as any).type === type);
-        if (matchingEvents.length) {
-          return matchingEvents;
-        }
-        return [{ type }];
-      }) as any[];
-    },
-    fromState: machine.getInitialSnapshot(
-      createMockActorScope(),
-      options?.input
-    ) as ReturnType<TMachine['transition']>,
-    ...otherOptions
+    ...options,
+    events: (state) => getAllOwnEvents(state) as EventFromLogic<TMachine>[],
+    fromState:
+      options?.fromState ??
+      (machine.getInitialSnapshot(
+        createMockActorScope(),
+        options?.input
+      ) as SnapshotFrom<TMachine>)
   };
 
   return traversalOptions;
 }
 
-export function createDefaultLogicOptions(): TraversalOptions<any, any, any> {
-  return {
-    serializeState: (state) => JSON.stringify(state),
-    serializeEvent
-  };
-}
-
+/** @public */
 export function toDirectedGraph(
   stateMachine: AnyStateNode | AnyStateMachine
 ): DirectedGraphNode {
-  const stateNode =
-    stateMachine instanceof StateMachine ? stateMachine.root : stateMachine; // TODO: accept only machines
+  const stateNode = (
+    isMachineLogic(stateMachine) ? stateMachine.root : stateMachine
+  ) as AnyStateNode; // TODO: accept only machines
 
   const edges: DirectedGraphEdge[] = [...stateNode.transitions.values()]
     .flat()
     .flatMap((t, transitionIndex) => {
-      const targets = t.target ? t.target : [stateNode];
+      // A transition function computes its target when it runs, so there is
+      // no static edge to draw; a targetless transition stays in its state.
+      const targets = t.target ?? (t.to ? [] : [stateNode]);
 
       return targets.map((target, targetIndex) => {
         const edge: DirectedGraphEdge = {
@@ -160,23 +203,39 @@ export function toDirectedGraph(
   return graph;
 }
 
-function isMachineLogic(logic: AnyActorLogic): logic is AnyStateMachine {
-  return 'getStateNodeById' in logic;
+function isMachineLogic(logic: unknown): logic is AnyStateMachine {
+  if (!logic || typeof logic !== 'object') {
+    return false;
+  }
+
+  const machine = logic as Partial<AnyStateMachine>;
+  const root = machine.root as Partial<AnyStateNode> | undefined;
+
+  return (
+    !!root &&
+    typeof root === 'object' &&
+    typeof root.id === 'string' &&
+    typeof root.states === 'object' &&
+    typeof root.transitions?.values === 'function' &&
+    typeof machine.getStateNodeById === 'function' &&
+    typeof machine.resolveState === 'function' &&
+    typeof machine.getTransitionData === 'function'
+  );
 }
 
 export function resolveTraversalOptions<TLogic extends AnyActorLogic>(
   logic: TLogic,
   traversalOptions?: TraversalOptions<
-    ReturnType<TLogic['transition']>,
+    SnapshotFrom<TLogic>,
     EventFromLogic<TLogic>,
     InputFrom<TLogic>
   >,
   defaultOptions?: TraversalOptions<
-    ReturnType<TLogic['transition']>,
+    SnapshotFrom<TLogic>,
     EventFromLogic<TLogic>,
     InputFrom<TLogic>
   >
-): TraversalConfig<ReturnType<TLogic['transition']>, EventFromLogic<TLogic>> {
+): TraversalConfig<SnapshotFrom<TLogic>, EventFromLogic<TLogic>> {
   const resolvedDefaultOptions =
     defaultOptions ??
     (isMachineLogic(logic)
@@ -184,7 +243,7 @@ export function resolveTraversalOptions<TLogic extends AnyActorLogic>(
           logic,
           traversalOptions as any
         ) as TraversalOptions<
-          ReturnType<TLogic['transition']>,
+          SnapshotFrom<TLogic>,
           EventFromLogic<TLogic>,
           InputFrom<TLogic>
         >)
@@ -193,27 +252,41 @@ export function resolveTraversalOptions<TLogic extends AnyActorLogic>(
     traversalOptions?.serializeState ??
     resolvedDefaultOptions?.serializeState ??
     ((state) => JSON.stringify(state));
+  const eventSource =
+    traversalOptions?.events ?? resolvedDefaultOptions?.events ?? [];
   const traversalConfig: TraversalConfig<
-    ReturnType<TLogic['transition']>,
+    SnapshotFrom<TLogic>,
     EventFromLogic<TLogic>
   > = {
     serializeState,
     serializeEvent,
-    events: [],
     filterEvents: undefined,
     limit: Infinity,
-    fromState: undefined,
     toState: undefined,
     // Traversal should not continue past the `toState` predicate
     // since the target state has already been reached at that point
     stopWhen: traversalOptions?.toState,
     ...resolvedDefaultOptions,
-    ...traversalOptions
+    ...traversalOptions,
+    // Synthetic completion/delay events are supported by the machine runtime.
+    events: (typeof eventSource === 'function' || Array.isArray(eventSource)
+      ? eventSource
+      : (state: SnapshotFrom<TLogic>) =>
+          resolveEventCases(
+            eventSource,
+            state,
+            isMachineSnapshot(state) ? getAllOwnEvents(state) : undefined
+          )) as TraversalConfig<
+      SnapshotFrom<TLogic>,
+      EventFromLogic<TLogic>
+    >['events'],
+    fromState: traversalOptions?.fromState ?? resolvedDefaultOptions?.fromState
   };
 
   return traversalConfig;
 }
 
+/** @public */
 export function joinPaths<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject

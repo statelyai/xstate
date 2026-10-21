@@ -1,0 +1,460 @@
+#!/usr/bin/env node
+
+import { performance } from 'node:perf_hooks';
+import { createRequire } from 'node:module';
+import { existsSync, readFileSync } from 'node:fs';
+import { basename, dirname, join, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
+
+const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+const require = createRequire(import.meta.url);
+const args = process.argv.slice(2);
+const xstateArg = args.find((arg) => arg.startsWith('--xstate='));
+const xstatePath = xstateArg
+  ? resolve(xstateArg.slice('--xstate='.length))
+  : join(root, 'packages/core/dist/xstate.development.cjs.js');
+const xstateFsmArg = args.find((arg) => arg.startsWith('--xstate-fsm='));
+const { createActor, createMachine, initialTransition, transition } = require(
+  xstatePath
+);
+
+// Resolves a conditional `exports` target, preferring the development build
+// when the root bundle is one.
+function resolveExportTarget(target, conditions) {
+  if (typeof target === 'string') return target;
+  if (!target || typeof target !== 'object') return undefined;
+  for (const [key, value] of Object.entries(target)) {
+    if (key === 'types' || !conditions.includes(key)) continue;
+    const resolved = resolveExportTarget(value, conditions);
+    if (resolved) return resolved;
+  }
+  return undefined;
+}
+
+// `createFSM` is only exported from the `xstate/fsm` entry. Resolve it from
+// the package that owns `--xstate`, falling back to filename rewriting.
+function resolveFsmPath() {
+  if (xstateFsmArg) return resolve(xstateFsmArg.slice('--xstate-fsm='.length));
+  for (let dir = dirname(xstatePath); ; dir = dirname(dir)) {
+    const pkgPath = join(dir, 'package.json');
+    if (existsSync(pkgPath)) {
+      const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'));
+      const conditions = basename(xstatePath).includes('.development.')
+        ? ['development', 'require', 'node', 'default']
+        : ['require', 'node', 'default'];
+      const target = resolveExportTarget(pkg.exports?.['./fsm'], conditions);
+      if (target) return join(dir, target);
+      break;
+    }
+    if (dirname(dir) === dir) break;
+  }
+  const rewritten = xstatePath.replace(/xstate(\.[^/\\]*)$/, 'xstate-fsm$1');
+  return rewritten === xstatePath ? undefined : rewritten;
+}
+
+const xstateFsmPath = resolveFsmPath();
+let createFSM;
+try {
+  ({ createFSM } = xstateFsmPath ? require(xstateFsmPath) : {});
+} catch (err) {
+  throw new Error(
+    `Unable to load the xstate/fsm bundle from "${xstateFsmPath}". Pass --xstate-fsm=<path>.\n${err.message}`
+  );
+}
+if (typeof createFSM !== 'function') {
+  throw new Error(
+    `createFSM not found${xstateFsmPath ? ` in "${xstateFsmPath}"` : ''}. Pass --xstate-fsm=<path> pointing at the xstate/fsm bundle.`
+  );
+}
+
+const timeArg = args.find((arg) => arg.startsWith('--time='));
+const warmupArg = args.find((arg) => arg.startsWith('--warmup='));
+const dunkyArg = args.find((arg) => arg.startsWith('--dunky='));
+const filterArg = args.find((arg) => arg.startsWith('--filter='));
+const json = args.includes('--json');
+const measureMemory = args.includes('--memory');
+
+const measureMs = timeArg ? Number(timeArg.slice('--time='.length)) : 500;
+const warmupMs = warmupArg ? Number(warmupArg.slice('--warmup='.length)) : 100;
+const batchSize = 1_000;
+const dunkySpecifier = dunkyArg?.slice('--dunky='.length);
+const filter = filterArg
+  ? new RegExp(filterArg.slice('--filter='.length))
+  : undefined;
+
+if (!Number.isFinite(measureMs) || measureMs <= 0) {
+  throw new Error('--time must be a positive number of milliseconds');
+}
+
+if (!Number.isFinite(warmupMs) || warmupMs < 0) {
+  throw new Error('--warmup must be a non-negative number of milliseconds');
+}
+
+const noop = () => {};
+
+async function importOptional(specifier) {
+  if (!specifier) {
+    return undefined;
+  }
+  try {
+    if (
+      specifier.startsWith('.') ||
+      specifier.startsWith('/') ||
+      specifier.startsWith('..')
+    ) {
+      return await import(pathToFileURL(specifier).href);
+    }
+    return await import(specifier);
+  } catch (err) {
+    throw new Error(
+      `Unable to import Dunky package from "${specifier}". Build it first or pass a built entry file, e.g. --dunky=/tmp/dunky-state-machine/packages/core/dist/index.js\n${err.message}`
+    );
+  }
+}
+
+function runFor(ms, fn) {
+  const start = performance.now();
+  let count = 0;
+  while (performance.now() - start < ms) {
+    for (let i = 0; i < batchSize; i++) {
+      fn();
+    }
+    count += batchSize;
+  }
+  return [performance.now() - start, count];
+}
+
+function bench(name, setup) {
+  if (filter && !filter.test(name)) {
+    return undefined;
+  }
+  const fn = setup();
+  runFor(warmupMs, fn);
+  const [elapsedMs, count] = runFor(measureMs, fn);
+  return {
+    name,
+    opsPerSecond: Math.round(count / (elapsedMs / 1000)),
+    elapsedMs: Math.round(elapsedMs),
+    count
+  };
+}
+
+function makeFSMTarget() {
+  return createFSM({
+    initial: 'a',
+    states: {
+      a: { on: { next: { target: 'b' } } },
+      b: { on: { next: { target: 'a' } } }
+    }
+  });
+}
+
+function makeMachineTarget() {
+  return createMachine({
+    initial: 'a',
+    states: {
+      a: { on: { next: { target: 'b' } } },
+      b: { on: { next: { target: 'a' } } }
+    }
+  });
+}
+
+function makeFSMContext() {
+  return createFSM({
+    initial: 'idle',
+    context: { value: 0 },
+    states: {
+      idle: {
+        on: {
+          hit: { context: { value: 1 } }
+        }
+      }
+    }
+  });
+}
+
+function makeMachineContext() {
+  return createMachine({
+    initial: 'idle',
+    context: { value: 0 },
+    states: {
+      idle: {
+        on: {
+          hit: { context: { value: 1 } }
+        }
+      }
+    }
+  });
+}
+
+function makeFSMFunctionContext() {
+  return createFSM({
+    initial: 'idle',
+    context: { value: 0 },
+    states: {
+      idle: {
+        on: {
+          hit: ({ context }) => ({ context: { value: context.value + 1 } })
+        }
+      }
+    }
+  });
+}
+
+function makeMachineFunctionContext() {
+  return createMachine({
+    initial: 'idle',
+    context: { value: 0 },
+    states: {
+      idle: {
+        on: {
+          hit: {
+            to: ({ context }) => ({ context: { value: context.value + 1 } })
+          }
+        }
+      }
+    }
+  });
+}
+
+function makeMachineEnq() {
+  return createMachine({
+    initial: 'idle',
+    states: {
+      idle: {
+        on: {
+          hit: {
+            to: (_, enq) => {
+              enq(noop);
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+function makeDunkyTarget(machine) {
+  return machine({
+    initial: 'a',
+    states: {
+      a: { on: { next: { target: 'b' } } },
+      b: { on: { next: { target: 'a' } } }
+    }
+  });
+}
+
+function makeDunkyStaticContext(machine, act) {
+  return machine({
+    initial: 'idle',
+    context: { value: 0 },
+    states: {
+      idle: {
+        on: {
+          hit: { actions: [act({ value: 1 })] }
+        }
+      }
+    }
+  });
+}
+
+function makeDunkyFunctionContext(machine, act) {
+  return machine({
+    initial: 'idle',
+    context: { value: 0 },
+    states: {
+      idle: {
+        on: {
+          hit: {
+            actions: [act(({ context }) => ({ value: context.value + 1 }))]
+          }
+        }
+      }
+    }
+  });
+}
+
+function makeDunkyFunctionAction(machine) {
+  return machine({
+    initial: 'idle',
+    states: {
+      idle: {
+        on: {
+          hit: { actions: [noop] }
+        }
+      }
+    }
+  });
+}
+
+function makeDunkySendBench(makeLogic, event) {
+  const logic = makeLogic();
+  logic.start();
+  return () => {
+    logic.send(event);
+  };
+}
+
+function makeRawTransitionBench(makeLogic, event) {
+  const logic = makeLogic();
+  const actor = createActor(logic).start();
+  const actorScope = actor._actorScope;
+  let snapshot = logic.getInitialSnapshot(actorScope, undefined);
+  return () => {
+    [snapshot] = logic.transition(snapshot, event, actorScope);
+  };
+}
+
+function makePublicTransitionBench(makeLogic, event) {
+  const logic = makeLogic();
+  let [snapshot] = initialTransition(logic);
+  return () => {
+    [snapshot] = transition(logic, snapshot, event);
+  };
+}
+
+function makeFSMTransitionBench(makeFSM, event) {
+  const fsm = makeFSM();
+  let snapshot = fsm.initialState;
+  return () => {
+    [snapshot] = fsm.transition(snapshot, event);
+  };
+}
+
+function makeActorSendBench(makeLogic, event) {
+  const actor = createActor(makeLogic()).start();
+  return () => {
+    actor.send(event);
+  };
+}
+
+function benchConstruction(name, makeLogic) {
+  return bench(name, () => makeLogic);
+}
+
+function memoryPerInstance(name, makeLogic, count = 10_000) {
+  if (typeof global.gc !== 'function') {
+    return {
+      name,
+      skipped:
+        'run with: node --expose-gc scripts/bench-core-runtime.mjs --memory'
+    };
+  }
+
+  global.gc();
+  const before = process.memoryUsage().heapUsed;
+  const instances = new Array(count);
+  for (let i = 0; i < count; i++) {
+    instances[i] = makeLogic();
+  }
+  global.gc();
+  const after = process.memoryUsage().heapUsed;
+  instances.length = 0;
+  global.gc();
+
+  return {
+    name,
+    bytesPerInstance: Math.round((after - before) / count),
+    count
+  };
+}
+
+const dunkyModule = await importOptional(dunkySpecifier);
+const dunkyResults = [];
+
+if (dunkyModule) {
+  const { machine, act } = dunkyModule;
+  if (typeof machine !== 'function' || typeof act !== 'function') {
+    throw new Error(
+      `Dunky package must export machine() and act(); got machine=${typeof machine}, act=${typeof act}`
+    );
+  }
+  dunkyResults.push(
+    bench('Dunky send: { target }', () =>
+      makeDunkySendBench(() => makeDunkyTarget(machine), { type: 'next' })),
+    bench('Dunky send: static context action', () =>
+      makeDunkySendBench(() => makeDunkyStaticContext(machine, act), {
+        type: 'hit'
+      })),
+    bench('Dunky send: function context action', () =>
+      makeDunkySendBench(() => makeDunkyFunctionContext(machine, act), {
+        type: 'hit'
+      })),
+    bench('Dunky send: function action', () =>
+      makeDunkySendBench(() => makeDunkyFunctionAction(machine), {
+        type: 'hit'
+      })),
+    benchConstruction('construct Dunky', () => makeDunkyTarget(machine))
+  );
+}
+
+const results = [
+  bench('createFSM public transition: { target }', () =>
+    makeFSMTransitionBench(makeFSMTarget, { type: 'next' })),
+  bench('createMachine public transition: { target }', () =>
+    makePublicTransitionBench(makeMachineTarget, { type: 'next' })),
+  bench('createFSM public transition: { context }', () =>
+    makeFSMTransitionBench(makeFSMContext, { type: 'hit' })),
+  bench('createMachine public transition: { context }', () =>
+    makePublicTransitionBench(makeMachineContext, { type: 'hit' })),
+  bench('createFSM public transition: function context', () =>
+    makeFSMTransitionBench(makeFSMFunctionContext, { type: 'hit' })),
+  bench('createMachine public transition: function context', () =>
+    makePublicTransitionBench(makeMachineFunctionContext, { type: 'hit' })),
+  bench('createMachine raw transition: { target }', () =>
+    makeRawTransitionBench(makeMachineTarget, { type: 'next' })),
+  bench('createMachine actor.send: { target }', () =>
+    makeActorSendBench(makeMachineTarget, { type: 'next' })),
+  bench('createMachine actor.send: { context }', () =>
+    makeActorSendBench(makeMachineContext, { type: 'hit' })),
+  bench('createMachine actor.send: function context', () =>
+    makeActorSendBench(makeMachineFunctionContext, { type: 'hit' })),
+  bench('createMachine actor.send: function enq', () =>
+    makeActorSendBench(makeMachineEnq, { type: 'hit' })),
+  benchConstruction('construct createFSM', makeFSMTarget),
+  benchConstruction('construct createMachine', makeMachineTarget),
+  ...dunkyResults
+].filter(Boolean);
+
+const memoryResults = measureMemory
+  ? [
+      memoryPerInstance('memory createFSM', makeFSMTarget),
+      memoryPerInstance('memory createMachine', makeMachineTarget)
+    ]
+  : [];
+
+if (json) {
+  console.log(
+    JSON.stringify(
+      {
+        measureMs,
+        warmupMs,
+        results,
+        memory: memoryResults
+      },
+      null,
+      2
+    )
+  );
+} else {
+  console.log(`Runtime benchmark (${measureMs}ms each, ${warmupMs}ms warmup)`);
+  console.log('');
+  for (const result of results) {
+    console.log(
+      `${result.name.padEnd(48)} ${result.opsPerSecond.toLocaleString()} ops/s`
+    );
+  }
+  if (memoryResults.length) {
+    console.log('');
+    for (const result of memoryResults) {
+      if ('skipped' in result) {
+        console.log(`${result.name.padEnd(48)} ${result.skipped}`);
+      } else {
+        console.log(
+          `${result.name.padEnd(48)} ${result.bytesPerInstance.toLocaleString()} bytes/instance`
+        );
+      }
+    }
+  }
+}

@@ -1,5 +1,99 @@
 # Changelog
 
+## 7.0.0-alpha.6
+
+### Patch Changes
+
+- 5b6df81: `xstate` is now a required peer dependency of `@xstate/react`, `@xstate/vue`, `@xstate/svelte`, and `@xstate/solid`. Package managers now warn when `xstate` is missing instead of letting the adapter fail at runtime.
+  
+  `useActorRef()`, `useActor()`, and `useMachine()` in `@xstate/react` no longer write implementations provided on a later render onto the machine passed on the first render. A module-level machine shared by several components keeps its own implementations:
+  
+  ```tsx
+  const machine = createMachine({
+    actions: { notify: () => {} },
+    on: { DO: ({ actions }, enq) => enq(actions.notify) }
+  });
+  
+  function Custom({ onNotify }) {
+    // Only this component's actor uses `onNotify`.
+    useActorRef(machine.provide({ actions: { notify: onNotify } }));
+    return null;
+  }
+  
+  function Plain() {
+    // Still uses the original `notify`.
+    useActorRef(machine);
+    return null;
+  }
+  ```
+
+## 7.0.0-alpha.5
+
+### Major Changes
+
+- d2c518b: The `Provider` returned by `createActorContext` no longer declares the deprecated `machine` prop. Pass `logic` instead.
+
+## 7.0.0-alpha.4
+
+### Minor Changes
+
+- 0fe9afe: `useActorRef()`, `useActor()` and `useMachine()` now use the machine passed on the first render for the lifetime of the component, like a `useState` initializer. Passing a different machine object on a later render no longer stops the actor and starts a new one from its persisted snapshot.
+  
+  Creating the machine inside the component no longer resets state or causes render loops, so wrapping it in `useMemo` is no longer needed:
+  
+  ```tsx
+  function Toggle() {
+    // Created on every render; only the first one is used.
+    const [snapshot, send] = useMachine(createMachine({ /* ... */ }));
+    // ...
+  }
+  ```
+  
+  Vary a running machine with `input` or `machine.provide()` (provided implementations are still picked up on every render). To switch to a different machine, change the component's `key`:
+  
+  ```tsx
+  <Editor key={mode} machine={mode === 'draft' ? draftMachine : reviewMachine} />
+  ```
+
+### Patch Changes
+
+- 0fe9afe: React Fast Refresh keeps the running actor and its state when you edit a machine. In development builds, `useActorRef()`, `useActor()` and `useMachine()` switch the running actor to the edited machine, so the current state and context are kept, including context that holds DOM elements or cyclic objects. If the edited machine cannot represent the current state, the actor restarts from the edited machine. Production builds are unaffected.
+- 73fa80b: `useActor`, `useActorRef` and `useMachine` now require `input` for machines that declare a required input schema, matching `createActor`. Passing a persisted `snapshot` instead of `input` is allowed.
+
+## 7.0.0-alpha.3
+
+### Patch Changes
+
+- 69b6663: Stop child actors and their timers and subscriptions when an unhandled parent error occurs, including when a stop action has not executed yet.
+  
+  Keep `useActorRef` observers subscribed when the actor is replaced, and subscribe before the replacement starts.
+
+## 7.0.0-alpha.2
+
+### Patch Changes
+
+- 069aadf: Fixed delayed transitions and other built-in effects in minified bundles, preserved hook-owned actors across React StrictMode effect reconnects, and allowed graph utilities to accept machines from duplicate XState package copies.
+
+## 7.0.0-alpha.1
+
+### Major Changes
+
+- [#5543](https://github.com/statelyai/xstate/pull/5543) [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Updated `@xstate/react` for XState v6. The internal Strict-Mode rehydration mechanism (`stopRootWithRehydration`) has been removed: on a Strict-Mode (or Offscreen/Activity) remount, the actor is now recreated and restarted rather than rehydrated, consistent with v6 actors no longer auto-starting children on `start()`.
+
+  In production this changes nothing — there's no throwaway double-mount, so the actor is created once and runs normally. In development, the recreated actor starts from the same logic and `input`, so it lands on the same initial snapshot; the only observable difference is for actors that accumulated child state during Strict Mode's discarded first mount, which was itself a dev-only artifact. In exchange, the package sheds a fragile, hard-to-reason-about mechanism (root-stop-with-child-snapshot-preservation plus observer muting) that existed solely to paper over Strict Mode.
+
+### Patch Changes
+
+- Updated dependencies [[`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925), [`021cc56`](https://github.com/statelyai/xstate/commit/021cc563e75d2e4d130c34e2d274565c2df6ec76), [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925), [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925), [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925), [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925), [`d9079cd`](https://github.com/statelyai/xstate/commit/d9079cd8586b4be4154dbfc296219b391f1cd85c), [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925), [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925), [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925), [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925), [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925), [`96aee67`](https://github.com/statelyai/xstate/commit/96aee679d4bd8041eb25df6bda2d9eef2ab7169f), [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925), [`021cc56`](https://github.com/statelyai/xstate/commit/021cc563e75d2e4d130c34e2d274565c2df6ec76), [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925)]:
+  - xstate@6.0.0-alpha.1
+
+## 7.0.0-alpha.0
+
+### Patch Changes
+
+- Updated dependencies [[`54b0f8b`](https://github.com/statelyai/xstate/commit/54b0f8b22679721d567ca7e2b7074e86a41de6ef), [`8b309a1`](https://github.com/statelyai/xstate/commit/8b309a17415b4522a99a374753731471b8784dd5), [`6031736`](https://github.com/statelyai/xstate/commit/6031736fb13fee88439cdbbc329f7b23f7387a63), [`54b0f8b`](https://github.com/statelyai/xstate/commit/54b0f8b22679721d567ca7e2b7074e86a41de6ef), [`8b309a1`](https://github.com/statelyai/xstate/commit/8b309a17415b4522a99a374753731471b8784dd5), [`d11c72d`](https://github.com/statelyai/xstate/commit/d11c72df0d83cfa5fc4445995b85e79a601c1c9e), [`46692e3`](https://github.com/statelyai/xstate/commit/46692e3c51ed6c830a01361ef74653949d5259d6), [`46692e3`](https://github.com/statelyai/xstate/commit/46692e3c51ed6c830a01361ef74653949d5259d6)]:
+  - xstate@6.0.0-alpha.0
+
 ## 6.1.0
 
 ### Minor Changes

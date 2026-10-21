@@ -1,6 +1,6 @@
-const { babel } = require('svelte-preprocess');
+import { babel } from 'svelte-preprocess';
 
-module.exports = {
+export default {
   preprocess: [
     babel({
       rootMode: 'upward'

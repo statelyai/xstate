@@ -37,9 +37,7 @@ const App = () => {
 <!-- selector subscription semantics from src/index.ts -->
 ### `useSelector(store, selector, compare?)`
 
-The accessor reconciles updates made during component setup before its subscription starts.
-
-Creates a signal that subscribes to a store and returns a selected value.
+Returns a read-only signal of the selected value from the store's current snapshot. The signal updates when the selected value changes.
 
 ```tsx
 import { createStore, useSelector } from '@xstate/store-solid';

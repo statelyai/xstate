@@ -24,10 +24,10 @@ const toggleMachine = createMachine({
   initial: 'inactive',
   states: {
     inactive: {
-      on: { TOGGLE: 'active' }
+      on: { TOGGLE: { target: 'active' } }
     },
     active: {
-      on: { TOGGLE: 'inactive' }
+      on: { TOGGLE: { target: 'inactive' } }
     }
   }
 });
@@ -44,3 +44,9 @@ export const Toggler = () => {
   );
 };
 ```
+
+## Observing an actor
+
+<!-- observer lifecycle from src/useActorRef.ts -->
+
+Pass a snapshot listener or observer as the third argument to `useActorRef(logic, options, observer)`. It subscribes before the actor starts. When the hook replaces the actor (after an external stop, or a Fast Refresh that cannot keep it), the observer follows the replacement, even when the callback identity stays the same. Unmounting unsubscribes the observer and stops the actor.

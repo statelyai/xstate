@@ -1,14 +1,21 @@
 import {
-  AnyStateNode,
   EventObject,
-  AnyTransitionDefinition,
+  StateNode,
+  TransitionDefinition,
   Snapshot,
-  MachineContext,
   ActorLogic,
-  MachineSnapshot
+  AnyMachineSnapshot,
+  DoneActorEvent,
+  ErrorActorEvent,
+  AfterEvent,
+  AnyActorLogic,
+  SnapshotFrom,
+  EventFromLogic,
+  InputFrom
 } from '..';
 
-export type { AnyStateNode };
+/** @public */
+export type AnyStateNode = StateNode<any, any>;
 
 type JSONSerializable<T extends object, U> = T & {
   toJSON: () => U;
@@ -23,13 +30,14 @@ type DirectedGraphLabel = JSONSerializable<
   }
 >;
 
+/** @public */
 export type DirectedGraphEdge = JSONSerializable<
   {
     id: string;
     source: AnyStateNode;
     target: AnyStateNode;
     label: DirectedGraphLabel;
-    transition: AnyTransitionDefinition;
+    transition: TransitionDefinition<any, any>;
   },
   {
     source: string;
@@ -39,10 +47,11 @@ export type DirectedGraphEdge = JSONSerializable<
 >;
 
 // Based on https://www.eclipse.org/elk/documentation/tooldevelopers/graphdatastructure/jsonformat.html
+/** @public */
 export type DirectedGraphNode = JSONSerializable<
   {
     id: string;
-    stateNode: AnyStateNode;
+    stateNode: StateNode;
     children: DirectedGraphNode[];
     /** The edges representing all transitions from this `stateNode`. */
     edges: DirectedGraphEdge[];
@@ -63,6 +72,7 @@ interface StatePlan<
   paths: Array<StatePath<TSnapshot, TEvent>>;
 }
 
+/** @public */
 export interface StatePath<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
@@ -78,6 +88,7 @@ export interface StatePath<
   weight: number;
 }
 
+/** @public */
 export interface StatePlanMap<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
@@ -85,6 +96,7 @@ export interface StatePlanMap<
   [key: string]: StatePlan<TSnapshot, TEvent>;
 }
 
+/** @public */
 export interface Step<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
@@ -95,22 +107,20 @@ export interface Step<
   state: TSnapshot;
 }
 
+/** @public */
 export type Steps<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
 > = Array<Step<TSnapshot, TEvent>>;
 
-type ExtractEvent<
-  TEvent extends EventObject,
-  TType extends TEvent['type']
-> = TEvent extends { type: TType } ? TEvent : never;
-
+/** @public */
 export interface VisitedContext<TState, TEvent> {
   vertices: Set<SerializedSnapshot>;
   edges: Set<SerializedEvent>;
   a?: TState | TEvent; // TODO: remove
 }
 
+/** @public */
 export interface SerializationConfig<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
@@ -133,24 +143,141 @@ type SerializationOptions<
   >
 >;
 
+/** @public */
 export type TraversalOptions<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
   TInput
 > = {
   input?: TInput;
+  /**
+   * Payload cases keyed by event type augment the machine's own events.
+   * Each configured type needs a nonempty array, or a snapshot callback
+   * returning one. Omit `type` from payloads. Unconfigured payload-free
+   * events and synthetic invoke/delay events retain their defaults.
+   * An event array or callback returning events replaces all defaults.
+   */
+  events?:
+    | EventCases<TSnapshot, TEvent>
+    | readonly TraversalEvent<TSnapshot, TEvent>[]
+    | ((state: TSnapshot) => readonly TraversalEvent<TSnapshot, TEvent>[]);
 } & SerializationOptions<TSnapshot, TEvent> &
   Partial<
     Pick<
       TraversalConfig<TSnapshot, TEvent>,
-      'events' | 'filterEvents' | 'limit' | 'fromState' | 'stopWhen' | 'toState'
+      'filterEvents' | 'limit' | 'fromState' | 'stopWhen' | 'toState'
     >
   >;
 
+/** @public */
+export type TraversalEvent<TSnapshot, TEvent> =
+  | TEvent
+  | (TSnapshot extends AnyMachineSnapshot
+      ?
+          | (Omit<DoneActorEvent, 'output' | 'sessionId'> &
+              Partial<Pick<DoneActorEvent, 'output' | 'sessionId'>>)
+          | (Omit<ErrorActorEvent, 'error' | 'sessionId'> &
+              Partial<Pick<ErrorActorEvent, 'error' | 'sessionId'>>)
+          | AfterEvent
+      : never);
+
+type RequiredEventTypes<TEvent extends EventObject> =
+  string extends TEvent['type']
+    ? never
+    : {
+        [TType in TEvent['type']]: { type: TType } extends TEvent & {
+          type: TType;
+        }
+          ? never
+          : TType;
+      }[TEvent['type']];
+
+type EventPayload<TEvent> = TEvent extends EventObject
+  ? Omit<TEvent, 'type'>
+  : never;
+
+type EventCase<TSnapshot, TEvent> =
+  | readonly [EventPayload<TEvent>, ...EventPayload<TEvent>[]]
+  | ((
+      state: TSnapshot
+    ) => readonly [EventPayload<TEvent>, ...EventPayload<TEvent>[]]);
+
+/**
+ * Payload samples keyed by event type. Required payloads need at least one case.
+ *
+ * @public
+ */
+export type EventCases<TSnapshot, TEvent extends EventObject> = {
+  [TType in TEvent['type']]?: EventCase<TSnapshot, TEvent & { type: TType }>;
+} & {
+  [TType in RequiredEventTypes<TEvent>]-?: EventCase<
+    TSnapshot,
+    TEvent & { type: TType }
+  >;
+};
+
+/** @public */
+export type EventCaseOptions<TLogic extends AnyActorLogic> = Omit<
+  TraversalOptions<
+    SnapshotFrom<TLogic>,
+    EventFromLogic<TLogic>,
+    InputFrom<TLogic>
+  >,
+  'events'
+> & { events?: EventCases<SnapshotFrom<TLogic>, EventFromLogic<TLogic>> };
+
+/** @public */
+export type EventCaseOptionsArgs<TLogic extends AnyActorLogic> = [
+  RequiredEventTypes<EventFromLogic<TLogic>>
+] extends [never]
+  ? [options?: EventCaseOptions<TLogic>]
+  : [
+      options: EventCaseOptions<TLogic> & {
+        events: EventCases<SnapshotFrom<TLogic>, EventFromLogic<TLogic>>;
+      }
+    ];
+
+/** @public */
+export type EventListOptions<
+  TLogic extends AnyActorLogic,
+  TEvents extends readonly TraversalEvent<
+    SnapshotFrom<TLogic>,
+    EventFromLogic<TLogic>
+  >[]
+> = Omit<EventCaseOptions<TLogic>, 'events'> & {
+  events: TEvents | ((state: SnapshotFrom<TLogic>) => TEvents);
+} & ([
+    Exclude<RequiredEventTypes<EventFromLogic<TLogic>>, TEvents[number]['type']>
+  ] extends [never]
+    ? unknown
+    : {
+        [TType in Exclude<
+          RequiredEventTypes<EventFromLogic<TLogic>>,
+          TEvents[number]['type']
+        > as `Missing event cases: ${TType}`]: never;
+      });
+
+/** @public */
 export interface TraversalConfig<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
 > extends SerializationConfig<TSnapshot, TEvent> {
+  /**
+   * The events to send from each state, as a list or as a function of the
+   * state. Defaults to the machine's own events for that state (see
+   * `getAllOwnEvents`). A given value replaces the default, so invoke results
+   * (`xstate.done.actor`, `xstate.error.actor`) and delays (`xstate.after`)
+   * are traversed only if it includes them:
+   *
+   * ```ts
+   * getShortestPaths(machine, {
+   *   events: (snapshot) =>
+   *     getAllOwnEvents(snapshot).map((event) =>
+   *       event.type === 'SUBMIT' ? { type: 'SUBMIT', value: 'hello' } : event
+   *     )
+   * });
+   * ```
+   */
   events: readonly TEvent[] | ((state: TSnapshot) => readonly TEvent[]);
   filterEvents: ((snapshot: TSnapshot, event: TEvent) => boolean) | undefined;
   /**
@@ -168,116 +295,42 @@ export interface TraversalConfig<
 
 type Brand<T, Tag extends string> = T & { __tag: Tag };
 
+/** @public */
 export type SerializedSnapshot = Brand<string, 'state'>;
+/** @public */
 export type SerializedEvent = Brand<string, 'event'>;
 
-export interface TestMeta<T, TContext extends MachineContext> {
-  test?: (
-    testContext: T,
-    state: MachineSnapshot<
-      TContext,
-      any,
-      any,
-      any,
-      any,
-      any,
-      any, // TMeta
-      any // TStateSchema
-    >
-  ) => Promise<void> | void;
-  description?:
-    | string
-    | ((
-        state: MachineSnapshot<
-          TContext,
-          any,
-          any,
-          any,
-          any,
-          any,
-          any, // TMeta
-          any // TStateSchema
-        >
-      ) => string);
-  skip?: boolean;
-}
-interface TestStateResult {
-  error: null | Error;
-}
-export interface TestStepResult {
-  step: Step<any, any>;
-  state: TestStateResult;
-  event: {
-    error: null | Error;
-  };
-}
-
-export interface TestParam<
-  TSnapshot extends Snapshot<unknown>,
-  TEvent extends EventObject
-> {
-  states?: {
-    [key: string]: (state: TSnapshot) => void | Promise<void>;
-  };
-  events?: {
-    [TEventType in TEvent['type']]?: EventExecutor<
-      TSnapshot,
-      { type: ExtractEvent<TEvent, TEventType>['type'] }
-    >;
-  };
-}
-
-export interface TestPath<
-  TSnapshot extends Snapshot<unknown>,
-  TEvent extends EventObject
-> extends StatePath<TSnapshot, TEvent> {
-  description: string;
-  /**
-   * Tests and executes each step in `steps` sequentially, and then tests the
-   * postcondition that the `state` is reached.
-   */
-  test: (params: TestParam<TSnapshot, TEvent>) => Promise<TestPathResult>;
-}
-export interface TestPathResult {
-  steps: TestStepResult[];
-  state: TestStateResult;
-}
-
-/**
- * Executes an effect using the `testContext` and `event` that triggers the
- * represented `event`.
- */
-export type EventExecutor<
-  TSnapshot extends Snapshot<unknown>,
-  TEvent extends EventObject
-> = (step: Step<TSnapshot, TEvent>) => Promise<any> | void;
-
-export interface TestModelOptions<
-  TSnapshot extends Snapshot<unknown>,
-  TEvent extends EventObject,
-  TInput
-> extends TraversalOptions<TSnapshot, TEvent, TInput> {
-  stateMatcher: (state: TSnapshot, stateKey: string) => boolean;
-  logger: {
-    log: (msg: string) => void;
-    error: (msg: string) => void;
-  };
-  serializeTransition: (
-    state: TSnapshot,
-    event: TEvent | undefined,
-    prevState?: TSnapshot
-  ) => string;
-}
-
+/** @public */
 export type PathGenerator<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
   TInput
-> = (
-  behavior: ActorLogic<TSnapshot, TEvent, TInput>,
-  options: TraversalOptions<TSnapshot, TEvent, TInput>
-) => Array<StatePath<TSnapshot, TEvent>>;
+> = {
+  <
+    TLogic extends ActorLogic<TSnapshot, TEvent, TInput>,
+    const _TEvents extends readonly TraversalEvent<
+      SnapshotFrom<NoInfer<TLogic>>,
+      EventFromLogic<NoInfer<TLogic>>
+    >[]
+  >(
+    behavior: TLogic,
+    options: Exclude<EventCaseOptionsArgs<NoInfer<TLogic>>[0], undefined> &
+      TraversalOptions<TSnapshot, TEvent, TInput>
+  ): Array<StatePath<SnapshotFrom<TLogic>, EventFromLogic<TLogic>>>;
+  <
+    TLogic extends ActorLogic<TSnapshot, TEvent, TInput>,
+    const TEvents extends readonly TraversalEvent<
+      SnapshotFrom<NoInfer<TLogic>>,
+      EventFromLogic<NoInfer<TLogic>>
+    >[]
+  >(
+    behavior: TLogic,
+    options: EventListOptions<NoInfer<TLogic>, TEvents> &
+      TraversalOptions<TSnapshot, TEvent, TInput>
+  ): Array<StatePath<SnapshotFrom<TLogic>, EventFromLogic<TLogic>>>;
+};
 
+/** @public */
 export interface AdjacencyValue<TState, TEvent> {
   state: TState;
   transitions: {
@@ -288,6 +341,7 @@ export interface AdjacencyValue<TState, TEvent> {
   };
 }
 
+/** @public */
 export interface AdjacencyMap<TState, TEvent> {
   [key: SerializedSnapshot]: AdjacencyValue<TState, TEvent>;
 }

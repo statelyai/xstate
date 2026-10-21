@@ -15,6 +15,6 @@ export default defineProject({
     }
   },
   resolve: {
-    conditions: ['development', 'browser']
+    conditions: ['module', 'development', 'browser']
   }
 });

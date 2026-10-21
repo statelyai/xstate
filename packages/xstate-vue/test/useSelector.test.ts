@@ -1,16 +1,16 @@
-import { fireEvent, render } from '@testing-library/vue';
 import { effectScope } from 'vue';
 import { createActor, createMachine } from 'xstate';
-import { useSelector } from '../src/index.ts';
+import { useSelector } from '../src/useSelector.ts';
+import { fireEvent, render } from '@testing-library/vue';
 import UseSelector from './UseSelector.vue';
 import useSelectorActorChange from './UseSelectorActorChange.vue';
 import useSelectorCustomFn from './UseSelectorCustomFn.vue';
-import UseSelectorWithTransitionLogic from './UseSelectorWithTransitionLogic.vue';
+import UseSelectorWithCustomLogic from './UseSelectorWithCustomLogic.vue';
 import useSelectorMaybe from './UseSelectorMaybe.vue';
 
 describe('useSelector', () => {
   it('actor should provide snapshot value immediately', () => {
-    const { getByTestId } = render(UseSelectorWithTransitionLogic);
+    const { getByTestId } = render(UseSelectorWithCustomLogic);
 
     expect(getByTestId('selected').textContent).toEqual('42');
   });
@@ -76,31 +76,30 @@ describe('useSelector', () => {
 
     expect(container.textContent).toEqual('foo');
   });
+});
 
-  it('should update the selected value when the actor errors', () => {
+it.each([false, true])(
+  'exposes terminal error snapshots, initially errored: %s',
+  (initiallyErrored) => {
     const actor = createActor(
       createMachine({
         on: {
-          FAIL: {
-            actions: () => {
-              throw new Error('failed');
-            }
+          FAIL: () => {
+            throw new Error('failed');
           }
         }
       })
-    ).start();
-
+    );
+    actor.subscribe({ error: () => {} });
+    actor.start();
+    if (initiallyErrored) actor.send({ type: 'FAIL' });
     const scope = effectScope();
-    const status = scope.run(() => useSelector(actor, (s) => s.status))!;
-
     try {
-      expect(status.value).toBe('active');
-
-      actor.send({ type: 'FAIL' });
-
-      expect(status.value).toBe('error');
+      const selected = scope.run(() => useSelector(actor, (s) => s.status))!;
+      if (!initiallyErrored) actor.send({ type: 'FAIL' });
+      expect(selected.value).toBe('error');
     } finally {
       scope.stop();
     }
-  });
-});
+  }
+);

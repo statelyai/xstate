@@ -745,7 +745,7 @@ exports[`@xstate/graph > toDirectedGraph > should represent a statechart as a di
       "edges": [
         {
           "label": {
-            "text": "xstate.done.state.light.red",
+            "text": "xstate.done.state",
           },
           "source": "light.red",
           "target": "light.green",

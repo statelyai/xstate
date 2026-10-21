@@ -3,6 +3,7 @@ import { svelteTesting } from '@testing-library/svelte/vite';
 import { defineProject } from 'vitest/config';
 
 export default defineProject({
+  resolve: { conditions: ['module', 'development', 'browser'] },
   plugins: [svelte(), svelteTesting()],
   test: {
     globals: true,

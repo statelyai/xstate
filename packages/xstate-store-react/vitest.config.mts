@@ -7,6 +7,6 @@ export default defineProject({
     environment: 'happy-dom'
   },
   resolve: {
-    conditions: ['development', 'browser']
+    conditions: ['module', 'development', 'browser']
   }
 });

@@ -1,8 +1,11 @@
 {
   "name": "xstate",
-  "version": "5.33.3",
+  "version": "6.0.0-alpha.70",
   "description": "Finite State Machines and Statecharts for the Modern Web.",
   "main": "dist/xstate.cjs.js",
+  "bin": {
+    "xstate": "./bin/xstate.js"
+  },
   "module": "dist/xstate.esm.js",
   "umd:main": "dist/xstate.umd.min.js",
   "exports": {
@@ -20,47 +23,19 @@
       "import": "./dist/xstate.cjs.mjs",
       "default": "./dist/xstate.cjs.js"
     },
-    "./guards": {
+    "./fsm": {
       "types": {
-        "import": "./dist/xstate-guards.cjs.mjs",
-        "default": "./dist/xstate-guards.cjs.js"
+        "import": "./dist/xstate-fsm.cjs.mjs",
+        "default": "./dist/xstate-fsm.cjs.js"
       },
       "development": {
-        "module": "./dist/xstate-guards.development.esm.js",
-        "import": "./dist/xstate-guards.development.cjs.mjs",
-        "default": "./dist/xstate-guards.development.cjs.js"
+        "module": "./dist/xstate-fsm.development.esm.js",
+        "import": "./dist/xstate-fsm.development.cjs.mjs",
+        "default": "./dist/xstate-fsm.development.cjs.js"
       },
-      "module": "./dist/xstate-guards.esm.js",
-      "import": "./dist/xstate-guards.cjs.mjs",
-      "default": "./dist/xstate-guards.cjs.js"
-    },
-    "./actions": {
-      "types": {
-        "import": "./dist/xstate-actions.cjs.mjs",
-        "default": "./dist/xstate-actions.cjs.js"
-      },
-      "development": {
-        "module": "./dist/xstate-actions.development.esm.js",
-        "import": "./dist/xstate-actions.development.cjs.mjs",
-        "default": "./dist/xstate-actions.development.cjs.js"
-      },
-      "module": "./dist/xstate-actions.esm.js",
-      "import": "./dist/xstate-actions.cjs.mjs",
-      "default": "./dist/xstate-actions.cjs.js"
-    },
-    "./dev": {
-      "types": {
-        "import": "./dist/xstate-dev.cjs.mjs",
-        "default": "./dist/xstate-dev.cjs.js"
-      },
-      "development": {
-        "module": "./dist/xstate-dev.development.esm.js",
-        "import": "./dist/xstate-dev.development.cjs.mjs",
-        "default": "./dist/xstate-dev.development.cjs.js"
-      },
-      "module": "./dist/xstate-dev.esm.js",
-      "import": "./dist/xstate-dev.cjs.mjs",
-      "default": "./dist/xstate-dev.cjs.js"
+      "module": "./dist/xstate-fsm.esm.js",
+      "import": "./dist/xstate-fsm.cjs.mjs",
+      "default": "./dist/xstate-fsm.cjs.js"
     },
     "./graph": {
       "types": {
@@ -90,6 +65,34 @@
       "import": "./dist/xstate-actors.cjs.mjs",
       "default": "./dist/xstate-actors.cjs.js"
     },
+    "./durable": {
+      "types": {
+        "import": "./dist/xstate-durable.cjs.mjs",
+        "default": "./dist/xstate-durable.cjs.js"
+      },
+      "development": {
+        "module": "./dist/xstate-durable.development.esm.js",
+        "import": "./dist/xstate-durable.development.cjs.mjs",
+        "default": "./dist/xstate-durable.development.cjs.js"
+      },
+      "module": "./dist/xstate-durable.esm.js",
+      "import": "./dist/xstate-durable.cjs.mjs",
+      "default": "./dist/xstate-durable.cjs.js"
+    },
+    "./validation": {
+      "types": {
+        "import": "./dist/xstate-validation.cjs.mjs",
+        "default": "./dist/xstate-validation.cjs.js"
+      },
+      "development": {
+        "module": "./dist/xstate-validation.development.esm.js",
+        "import": "./dist/xstate-validation.development.cjs.mjs",
+        "default": "./dist/xstate-validation.development.cjs.js"
+      },
+      "module": "./dist/xstate-validation.esm.js",
+      "import": "./dist/xstate-validation.cjs.mjs",
+      "default": "./dist/xstate-validation.cjs.js"
+    },
     "./package.json": "./package.json"
   },
   "imports": {
@@ -105,12 +108,13 @@
   },
   "files": [
     "dist",
+    "docs",
     "actors",
-    "actions",
-    "invoke",
-    "guards",
-    "dev",
-    "graph"
+    "graph",
+    "validation",
+    "durable",
+    "fsm",
+    "bin"
   ],
   "keywords": [
     "statechart",
@@ -134,21 +138,19 @@
   },
   "homepage": "https://github.com/statelyai/xstate/tree/main/packages/core#readme",
   "devDependencies": {
-    "@scion-scxml/test-framework": "^2.0.15",
     "ajv": "^8.12.0",
-    "pkg-up": "^3.1.0",
     "rxjs": "^7.8.1",
-    "xml-js": "^1.6.11"
+    "zod": "^3.25.51"
   },
   "preconstruct": {
     "umdName": "XState",
     "entrypoints": [
       "./index.ts",
-      "./actions.ts",
       "./actors/index.ts",
-      "./guards.ts",
-      "./dev/index.ts",
-      "./graph/index.ts"
+      "./graph/index.ts",
+      "./validation/index.ts",
+      "./durable/index.ts",
+      "./fsm/index.ts"
     ]
   }
 }

@@ -2,30 +2,16 @@ import {
   ActorScope,
   ActorLogic,
   ActorSystem,
-  AnyStateMachine,
   EventObject,
   Snapshot
 } from '../index.ts';
-import { getAdjacencyMap } from './adjacency.ts';
-import {
-  SerializedEvent,
-  SerializedSnapshot,
-  StatePath,
-  Steps,
-  TraversalOptions
-} from './types.ts';
-import {
-  resolveTraversalOptions,
-  createDefaultMachineOptions,
-  createDefaultLogicOptions
-} from './graph.ts';
+import { StatePath, Steps, TraversalOptions, TraversalEvent } from './types.ts';
+import { resolveTraversalOptions } from './graph.ts';
 import { alterPath } from './alterPath.ts';
 import { createMockActorScope } from './actorScope.ts';
+import { createTraversalError } from './traversalError.ts';
 
-function isMachine(value: any): value is AnyStateMachine {
-  return !!value && '__xstatenode' in value;
-}
-
+/** @public */
 export function getPathsFromEvents<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
@@ -34,22 +20,16 @@ export function getPathsFromEvents<
 >(
   logic: ActorLogic<TSnapshot, TEvent, TInput, TSystem>,
   events: TEvent[],
-  options?: TraversalOptions<TSnapshot, TEvent, TInput>
+  options?: Omit<TraversalOptions<TSnapshot, TEvent, TInput>, 'events'> & {
+    events?:
+      | readonly TraversalEvent<TSnapshot, TEvent>[]
+      | ((state: TSnapshot) => readonly TraversalEvent<TSnapshot, TEvent>[]);
+  }
 ): Array<StatePath<TSnapshot, TEvent>> {
-  const resolvedOptions = resolveTraversalOptions(
-    logic,
-    {
-      events,
-      ...options
-    },
-    (isMachine(logic)
-      ? createDefaultMachineOptions(logic)
-      : createDefaultLogicOptions()) as TraversalOptions<
-      TSnapshot,
-      TEvent,
-      TInput
-    >
-  );
+  const resolvedOptions = resolveTraversalOptions(logic, {
+    events,
+    ...options
+  });
   const actorScope = createMockActorScope() as ActorScope<
     TSnapshot,
     TEvent,
@@ -63,46 +43,50 @@ export function getPathsFromEvents<
       options?.input as TInput
     );
 
-  const { serializeState, serializeEvent } = resolvedOptions;
-
-  const adjacency = getAdjacencyMap(logic, resolvedOptions);
-
-  const stateMap = new Map<SerializedSnapshot, TSnapshot>();
+  const { serializeState, serializeEvent, filterEvents, stopWhen, limit } =
+    resolvedOptions;
   const steps: Steps<TSnapshot, TEvent> = [];
-
-  const serializedFromState = serializeState(
-    fromState,
-    undefined,
-    undefined
-  ) as SerializedSnapshot;
-  stateMap.set(serializedFromState, fromState);
-
-  let stateSerial = serializedFromState;
   let state = fromState;
+  let stateSerial = serializeState(state, undefined, undefined);
   for (const event of events) {
-    steps.push({
-      state: stateMap.get(stateSerial)!,
-      event
-    });
-
-    const eventSerial = serializeEvent(event) as SerializedEvent;
-    const { state: nextState, event: _nextEvent } =
-      adjacency[stateSerial].transitions[eventSerial];
-
-    if (!nextState) {
+    if (steps.length >= limit) {
+      throw new Error('Traversal limit exceeded');
+    }
+    const eventSerial = serializeEvent(event);
+    let nextEvent: TEvent | undefined = event;
+    if (options?.events !== undefined) {
+      const candidates =
+        typeof options.events === 'function'
+          ? options.events(state)
+          : options.events;
+      nextEvent = undefined;
+      for (let index = candidates.length - 1; index >= 0; index--) {
+        const candidate = candidates[index] as TEvent;
+        if (
+          (!filterEvents || filterEvents(state, candidate)) &&
+          serializeEvent(candidate) === eventSerial
+        ) {
+          nextEvent = candidate;
+          break;
+        }
+      }
+    } else if (filterEvents && !filterEvents(state, event)) {
+      nextEvent = undefined;
+    }
+    if (!nextEvent || stopWhen?.(state)) {
       throw new Error(
         `Invalid transition from ${stateSerial} with ${eventSerial}`
       );
     }
-    const prevState = stateMap.get(stateSerial);
-    const nextStateSerial = serializeState(
-      nextState,
-      event,
-      prevState
-    ) as SerializedSnapshot;
-    stateMap.set(nextStateSerial, nextState);
-
-    stateSerial = nextStateSerial;
+    steps.push({ state, event });
+    let result: ReturnType<typeof logic.transition>;
+    try {
+      result = logic.transition(state, nextEvent, actorScope);
+    } catch (cause) {
+      throw createTraversalError(stateSerial, eventSerial, cause);
+    }
+    const nextState = Array.isArray(result) ? result[0] : result;
+    stateSerial = serializeState(nextState, event, state);
     state = nextState;
   }
 

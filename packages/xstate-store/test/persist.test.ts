@@ -122,6 +122,165 @@ describe('persistence lifecycle regressions', () => {
     expect(restored.getSnapshot().context.count).toBe(2);
   });
 
+  it('preserves restarted history through rehydration and repeated clears', async () => {
+    const storage = createMockStorage();
+    const makeStore = () =>
+      createStore({
+        context: { count: 0 },
+        on: { inc: (context) => ({ count: context.count + 1 }) }
+      }).with(persist({ name: 'counter', storage, strategy: 'event' }));
+    const store = makeStore();
+    store.trigger.inc();
+    clearStorage(store);
+    store.trigger.inc();
+    await rehydrateStore(store);
+    store.trigger.inc();
+
+    let stored = JSON.parse(storage.getItem('counter') as string);
+    expect(stored.events).toEqual([{ type: 'inc' }, { type: 'inc' }]);
+    expect(stored.checkpoint).toEqual({ count: 1 });
+    expect(makeStore().getSnapshot().context.count).toBe(3);
+
+    clearStorage(store);
+    clearStorage(store);
+    store.trigger.inc();
+    stored = JSON.parse(storage.getItem('counter') as string);
+    expect(stored.events).toEqual([{ type: 'inc' }]);
+    expect(stored.checkpoint).toEqual({ count: 3 });
+    expect(makeStore().getSnapshot().context.count).toBe(4);
+  });
+
+  it('does not restore old history when a subscriber clears storage', async () => {
+    const storage = createMockStorage();
+    const store = createStore({
+      context: { count: 0 },
+      on: { inc: (context) => ({ count: context.count + 1 }) }
+    }).with(persist({ name: 'counter', storage, strategy: 'event' }));
+    store.trigger.inc();
+    const subscription = store.subscribe(() => clearStorage(store));
+    store.trigger.inc();
+    subscription.unsubscribe();
+    await flushStorage(store);
+    expect(storage.getItem('counter')).toBeNull();
+
+    store.trigger.inc();
+    const stored = JSON.parse(storage.getItem('counter') as string);
+    expect(stored.events).toEqual([{ type: 'inc' }]);
+    expect(stored.checkpoint).toEqual({ count: 2 });
+  });
+
+  it.each(['effect', 'subscriber'] as const)(
+    'keeps nested events in the new history after clearing (%s)',
+    async (nestedFrom) => {
+      const storage = createMockStorage();
+      const makeStore = () =>
+        createStore({
+          context: { count: 0 },
+          on: {
+            inc: (context) => ({ count: context.count + 1 }),
+            outer: (context, _event, enqueue) => {
+              if (nestedFrom === 'effect') {
+                enqueue.effect(({ trigger }) => trigger.inc());
+              }
+              return { count: context.count + 1 };
+            }
+          }
+        }).with(persist({ name: 'counter', storage, strategy: 'event' }));
+      const store = makeStore();
+      store.trigger.inc();
+      clearStorage(store);
+      store.subscribe((snapshot) => {
+        if (nestedFrom === 'subscriber' && snapshot.context.count === 2) {
+          store.trigger.inc();
+        }
+      });
+      store.trigger.outer();
+      await flushStorage(store);
+
+      const stored = JSON.parse(storage.getItem('counter') as string);
+      expect(stored.events).toEqual([{ type: 'outer' }, { type: 'inc' }]);
+      expect(stored.checkpoint).toEqual({ count: 1 });
+      expect(makeStore().getSnapshot().context.count).toBe(3);
+    }
+  );
+
+  it.each(['can', 'transition'] as const)(
+    'preserves cleared event history across %s evaluations',
+    (evaluation) => {
+      const storage = createMockStorage();
+      const makeStore = () =>
+        createStore({
+          context: { count: 0 },
+          on: { inc: (context) => ({ count: context.count + 1 }) }
+        }).with(persist({ name: 'counter', storage, strategy: 'event' }));
+      const store = makeStore();
+
+      store.trigger.inc();
+      clearStorage(store);
+      if (evaluation === 'can') {
+        expect(store.can.inc()).toBe(true);
+      } else {
+        store.transition(store.getSnapshot(), { type: 'inc' });
+      }
+      expect(store.getSnapshot().context.count).toBe(1);
+      expect(storage.getItem('counter')).toBeNull();
+      store.trigger.inc();
+
+      const stored = JSON.parse(storage.getItem('counter') as string);
+      expect(stored.events).toEqual([{ type: 'inc' }]);
+      expect(stored.checkpoint).toEqual({ count: 1 });
+      expect(makeStore().getSnapshot().context.count).toBe(2);
+    }
+  );
+
+  it.each(['skipHydration', 'async'] as const)(
+    'preserves events sent after clearing before hydration (%s)',
+    async (hydration) => {
+      const syncStorage = createMockStorage();
+      const storage =
+        hydration === 'async'
+          ? {
+              ...syncStorage,
+              getItem: async (name: string) => syncStorage.getItem(name)
+            }
+          : syncStorage;
+      const definition = {
+        context: { count: 0 },
+        on: {
+          inc: (context: { count: number }) => ({ count: context.count + 1 })
+        }
+      };
+      const store = createStore(definition).with(
+        persist({
+          name: 'counter',
+          storage,
+          strategy: 'event',
+          skipHydration: hydration === 'skipHydration'
+        })
+      );
+
+      expect(isHydrated(store)).toBe(false);
+      await clearStorage(store);
+      store.trigger.inc();
+      store.trigger.inc();
+      expect(store.getSnapshot().context.count).toBe(2);
+      expect(syncStorage.getItem('counter')).toBeNull();
+      await rehydrateStore(store);
+      expect(isHydrated(store)).toBe(true);
+      store.trigger.inc();
+      await flushStorage(store);
+
+      const stored = JSON.parse(syncStorage.getItem('counter') as string);
+      expect(stored.events).toEqual([{ type: 'inc' }]);
+      expect(stored.checkpoint).toEqual({ count: 2 });
+      const restored = createStore(definition).with(
+        persist({ name: 'counter', storage, strategy: 'event' })
+      );
+      await rehydrateStore(restored);
+      expect(restored.getSnapshot().context.count).toBe(3);
+    }
+  );
+
   it.each(['snapshot', 'event'] as const)(
     'reports a rejected initial async read (%s)',
     async (strategy) => {

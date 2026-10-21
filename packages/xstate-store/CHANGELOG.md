@@ -1,10 +1,33 @@
 # @xstate/store
 
-## 4.3.0
+## 5.0.0-alpha.8
+
+### Major Changes
+
+- d2c518b: The event in the initial `@xstate.transition` inspection record is `{ type: 'xstate.init' }` (previously `{ type: '@xstate.init' }`). Events use the `xstate.` prefix; `@xstate.` is reserved for inspection record and effect types.
+  
+  ```diff
+    store.inspect((inspectionEvent) => {
+  -   if (inspectionEvent.event.type === '@xstate.init') {
+  +   if (inspectionEvent.event.type === 'xstate.init') {
+        // initial snapshot
+      }
+    });
+  ```
+
+## 5.0.0-alpha.7
+
+### Patch Changes
+
+- 698f1c4: `flushStorage(store)` now also waits for writes queued by `onDone`. With `strategy: 'event'`, events sent after `clearStorage(store)` start a new history. Calling `store.can` or `store.transition` preserves the history reset, and changes made before hydration are included in the new checkpoint when rehydrating from empty storage.
+  
+  `useStore`'s `inspect` option only changes after a render commits; a suspended or discarded render no longer redirects inspection events.
+
+## 5.0.0-alpha.6
 
 ### Minor Changes
 
-- [#5782](https://github.com/statelyai/xstate/pull/5782) [`6dc2adf`](https://github.com/statelyai/xstate/commit/6dc2adf46b4f6a96f7607dff0cdbdcd5933136f8) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add `createSourceAtom` for read-only external snapshots. Direct and derived subscribers share one listener, released when the last consumer leaves. Plain reads do not subscribe; reconnecting refreshes the snapshot. The source adapter can return a cleanup function or a `{ unsubscribe() }` subscription. Public atom subscriptions always return `{ unsubscribe() }`, matching existing XState subscriptions.
+- 73cff29: Add `createSourceAtom` for read-only external snapshots. Direct and derived subscribers share one listener, released when the last consumer leaves. Plain reads do not subscribe; reconnecting refreshes the snapshot. The source adapter can return a cleanup function or a `{ unsubscribe() }` subscription. Public atom subscriptions always return `{ unsubscribe() }`, matching existing XState subscriptions.
   
   Failed activation remains eligible for a later atom operation. Errors delivering an async atom result are exposed through its `error` state.
   
@@ -18,27 +41,112 @@
   });
   ```
 
+## 5.0.0-alpha.5
+
+### Major Changes
+
+- c27b509: `fromStore()` now returns XState v6 actor logic and requires `xstate@6`. `xstate` is declared as an optional peer dependency; it is only needed if you use `fromStore()`. Use `@xstate/store@4` with XState v5.
+  
+  ```ts
+  import { createActor } from 'xstate';
+  import { fromStore } from '@xstate/store';
+  
+  const logic = fromStore({ context: { count: 0 }, on: { inc: (ctx) => ({ count: ctx.count + 1 }) } });
+  const actor = createActor(logic).start();
+  actor.send({ type: 'inc' });
+  ```
+
+## 4.3.0-alpha.4
+
 ### Patch Changes
 
-- [#5760](https://github.com/statelyai/xstate/pull/5760) [`38dcaff`](https://github.com/statelyai/xstate/commit/38dcaffb20ec7f3cbb10e6161d8f0ebacca33701) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Preserve cleared event history when checking event capabilities or evaluating transitions without committing them. Clearing storage from a subscriber no longer allows the current update to write the cleared data back.
-  
-  Keep newly hydrated event history after clearing an earlier log.
-  
-  Persistence effects from uncommitted `store.transition(...)` calls no longer write snapshot data after `clearStorage(store)`. A `rehydrateStore(store)` read that started before `clearStorage(store)` no longer restores the cleared data.
+- aa49aee: Removed nonexistent `undo`, `persist`, `reset`, and `validate` entries from the package's `files` field. Subpath imports such as `@xstate/store/undo` are unaffected; they resolve through `exports`.
 
-- [#5760](https://github.com/statelyai/xstate/pull/5760) [`38dcaff`](https://github.com/statelyai/xstate/commit/38dcaffb20ec7f3cbb10e6161d8f0ebacca33701) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fix async atoms losing their dependencies after a request succeeds or fails. Changing a dependency now reloads the value after settlement, including when a custom comparator suppresses an equivalent result.
-  
-  Fix writable atom updaters accidentally tracking other atoms, and deliver queued subscriber notifications before rethrowing subscriber errors.
-  
-  Persist only committed updates when throttling writes. Capability checks, pure transitions, and rejected updates no longer change pending persisted data. Async storage writes now complete in event order per store. `flushStorage(store)` also waits for already queued writes, including writes queued by `onDone`; synchronous storage remains synchronous.
-  
-  Preserve the latest persisted state when effects or subscriptions synchronously trigger another event. Snapshot and event persistence now retain commit order with immediate or throttled writes.
-  
-  Preserve live extension state through snapshot undo/redo and custom restore events. Fix throttled persistence applying `pick` twice or losing changes sent from `onDone`. Report initial async storage read failures through `onError`, and make `clearStorage` cancel buffered writes and wait for queued writes before removing data. With `strategy: 'event'`, events sent after `clearStorage` start a new history instead of rewriting the cleared one.
-  
-  Improve large batches of triggered events while preserving their processing and effect order.
+## 4.3.0-alpha.3
 
-- [#5760](https://github.com/statelyai/xstate/pull/5760) [`38dcaff`](https://github.com/statelyai/xstate/commit/38dcaffb20ec7f3cbb10e6161d8f0ebacca33701) Thanks [@davidkpiano](https://github.com/davidkpiano)! - `xstate` is now declared as an optional peer dependency; it is only needed for `fromStore()`.
+### Patch Changes
+
+- 69b6663: Fix async atoms losing their dependencies after a request succeeds or fails.
+  Changing a dependency now reloads the value after settlement, including when a
+  custom comparator suppresses an equivalent result.
+- 69b6663: Persist only committed updates when throttling writes. Capability checks, pure transitions, and rejected updates no longer change pending persisted data.
+  
+  Async storage writes now complete in event order per store. `flushStorage(store)` also waits for already queued writes; synchronous storage remains synchronous.
+- 69b6663: Fix writable atom updaters accidentally tracking other atoms, and deliver queued
+  subscriber notifications before rethrowing subscriber errors.
+  
+  Preserve live extension state through snapshot undo/redo and custom restore
+  events. Fix throttled persistence applying `pick` twice or losing changes sent
+  from `onDone`. Report initial async storage read failures through `onError`, and
+  make `clearStorage` cancel buffered writes and wait for queued writes before
+  removing data.
+  
+  Improve large batches of triggered events while preserving their processing and
+  effect order.
+- 69b6663: Preserve the latest persisted state when effects or subscriptions synchronously trigger another event. Snapshot and event persistence now retain commit order with immediate or throttled writes.
+
+## 4.3.0-alpha.2
+
+### Patch Changes
+
+- 0f0d6e2: Fixed `fromStore` actor logic so that emitted events and enqueued effects run again. Previously, `enq.emit(...)` and `enq.effect(...)` inside a transition were silently dropped.
+
+  ```ts
+  const storeLogic = fromStore({
+    context: (count: number) => ({ count }),
+    schemas: {
+      emitted: {
+        increased: z.object({ upBy: z.number() })
+      }
+    },
+    on: {
+      inc: (ctx, ev: { by: number }, enq) => {
+        enq.emit.increased({ upBy: ev.by }); // now emitted
+        return { ...ctx, count: ctx.count + ev.by };
+      }
+    }
+  });
+
+  const actor = createActor(storeLogic, { input: 42 });
+  actor.on('increased', (e) => console.log(e.upBy));
+  actor.start();
+  actor.send({ type: 'inc', by: 8 }); // logs: 8
+  ```
+
+## 4.3.0-alpha.1
+
+### Patch Changes
+
+- c3f7a9d: Actor logic now returns effects from both regular and initial transitions.
+
+  Hand-written actor logic should return `[snapshot, effects]` from `transition(...)` and provide `initialTransition(...)` for creating the initial `[snapshot, effects]` tuple. `getInitialSnapshot(...)` remains available for snapshot-only reads.
+
+  ```ts
+  const logic = {
+    transition: (snapshot, event) => [snapshot, []],
+    initialTransition: (input, _scope) => [
+      {
+        status: 'active',
+        output: undefined,
+        error: undefined,
+        input
+      },
+      []
+    ],
+    getInitialSnapshot: (scope, input) =>
+      logic.initialTransition(input, scope)[0]
+  };
+  ```
+
+  `transition(...)` and `initialTransition(...)` continue to return `[snapshot, actions]` for machine logic.
+
+  `fromStore(...)` effects now run after the actor snapshot is committed, so effect callbacks read the updated snapshot from `enqueue.getSnapshot()`.
+
+## 4.3.0-alpha.0
+
+### Minor Changes
+
+- [#5543](https://github.com/statelyai/xstate/pull/5543) [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Export a new `isAtom(value)` helper that returns `true` when a value is an atom (i.e. has `get` and `subscribe` methods).
 
 ## 4.2.3
 

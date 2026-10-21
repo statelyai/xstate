@@ -3,18 +3,46 @@ import {
   ActorLogic,
   ActorSystem,
   EventObject,
-  Snapshot
+  Snapshot,
+  AnyActorLogic,
+  SnapshotFrom,
+  EventFromLogic
 } from '../index.ts';
 import {
   SerializedEvent,
   SerializedSnapshot,
   TraversalOptions,
   AdjacencyMap,
-  AdjacencyValue
+  AdjacencyValue,
+  EventCaseOptionsArgs,
+  EventListOptions,
+  TraversalEvent
 } from './types';
 import { resolveTraversalOptions } from './graph.ts';
 import { createMockActorScope } from './actorScope.ts';
+import { createTraversalError } from './traversalError.ts';
 
+function resolveTransitionSnapshot<TSnapshot>(
+  result: TSnapshot | [TSnapshot, unknown[]]
+): TSnapshot {
+  return Array.isArray(result) ? result[0] : result;
+}
+
+/** @public */
+export function getAdjacencyMap<TLogic extends AnyActorLogic>(
+  logic: TLogic,
+  ...[options]: EventCaseOptionsArgs<NoInfer<TLogic>>
+): AdjacencyMap<SnapshotFrom<TLogic>, EventFromLogic<TLogic>>;
+export function getAdjacencyMap<
+  TLogic extends AnyActorLogic,
+  const TEvents extends readonly TraversalEvent<
+    SnapshotFrom<NoInfer<TLogic>>,
+    EventFromLogic<NoInfer<TLogic>>
+  >[]
+>(
+  logic: TLogic,
+  options: EventListOptions<NoInfer<TLogic>, TEvents>
+): AdjacencyMap<SnapshotFrom<TLogic>, EventFromLogic<TLogic>>;
 export function getAdjacencyMap<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
@@ -22,8 +50,9 @@ export function getAdjacencyMap<
   TSystem extends ActorSystem<any> = ActorSystem<any>
 >(
   logic: ActorLogic<TSnapshot, TEvent, TInput, TSystem>,
-  options: TraversalOptions<TSnapshot, TEvent, TInput>
+  options?: TraversalOptions<TSnapshot, TEvent, TInput>
 ): AdjacencyMap<TSnapshot, TEvent> {
+  'use strict';
   const { transition } = logic;
   const {
     serializeEvent,
@@ -44,9 +73,10 @@ export function getAdjacencyMap<
     logic.getInitialSnapshot(
       actorScope,
       // TODO: fix this
-      options.input as TInput
+      options?.input as TInput
     );
-  const adj: AdjacencyMap<TSnapshot, TEvent> = {};
+
+  const adj: AdjacencyMap<TSnapshot, TEvent> = Object.create(null);
 
   let iterations = 0;
   const queue: Array<{
@@ -54,10 +84,14 @@ export function getAdjacencyMap<
     event: TEvent | undefined;
     prevState: TSnapshot | undefined;
   }> = [{ nextState: fromState, event: undefined, prevState: undefined }];
-  const stateMap = new Map<SerializedSnapshot, TSnapshot>();
 
-  while (queue.length) {
-    const { nextState: state, event, prevState } = queue.shift()!;
+  for (let head = 0; head < queue.length; head++) {
+    const { nextState: state, event, prevState } = queue[head];
+    // Release processed entries without shifting the remaining frontier.
+    if (head > 4096 && head * 2 > queue.length) {
+      queue.splice(0, head + 1);
+      head = -1;
+    }
 
     if (iterations++ > limit) {
       throw new Error('Traversal limit exceeded');
@@ -71,11 +105,10 @@ export function getAdjacencyMap<
     if (adj[serializedState]) {
       continue;
     }
-    stateMap.set(serializedState, state);
 
     adj[serializedState] = {
       state,
-      transitions: {}
+      transitions: Object.create(null)
     };
 
     if (stopWhen && stopWhen(state)) {
@@ -90,11 +123,17 @@ export function getAdjacencyMap<
         continue;
       }
 
-      const nextSnapshot = transition(state, nextEvent, actorScope);
+      const serializedEvent = serializeEvent(nextEvent) as SerializedEvent;
+      let nextSnapshot: TSnapshot;
+      try {
+        nextSnapshot = resolveTransitionSnapshot(
+          transition(state, nextEvent, actorScope)
+        );
+      } catch (cause) {
+        throw createTraversalError(serializedState, serializedEvent, cause);
+      }
 
-      adj[serializedState].transitions[
-        serializeEvent(nextEvent) as SerializedEvent
-      ] = {
+      adj[serializedState].transitions[serializedEvent] = {
         event: nextEvent,
         state: nextSnapshot
       };
@@ -109,6 +148,7 @@ export function getAdjacencyMap<
   return adj;
 }
 
+/** @public */
 export function adjacencyMapToArray<TSnapshot, TEvent>(
   adjMap: AdjacencyMap<TSnapshot, TEvent>
 ): Array<{

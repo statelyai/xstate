@@ -1,0 +1,12 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  // Second `pnpm lint` pass, for `templates/` only. The templates are not
+  // installed into this workspace, so their dependencies and `extends` targets
+  // do not resolve; `options.typeAware` is root-config-only in oxlint, which is
+  // why turning it off needs a separate config rather than an override.
+  "extends": ["./.oxlintrc.json"],
+  "options": {
+    "typeAware": false
+  },
+  "ignorePatterns": ["**/dist"]
+}

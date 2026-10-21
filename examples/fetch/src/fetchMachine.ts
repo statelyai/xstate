@@ -1,21 +1,27 @@
-import { assign, fromPromise, setup } from 'xstate';
-import { getGreeting } from '.';
+import { createAsyncLogic, setup, types } from 'xstate';
+import { getGreeting } from './getGreeting';
 
 export const fetchMachine = setup({
-  types: {
-    context: {} as {
+  schemas: {
+    context: types<{
       name: string;
-      data: {
-        greeting: string;
-      } | null;
+      data: { greeting: string } | null;
+    }>(),
+    events: {
+      FETCH: types<{}>(),
+      RETRY: types<{}>()
     }
   },
   actors: {
-    fetchUser: fromPromise(({ input }: { input: { name: string } }) =>
-      getGreeting(input.name)
-    )
+    fetchGreeting: createAsyncLogic({
+      schemas: {
+        input: types<{ name: string }>()
+      },
+      run: ({ input }) => getGreeting(input.name)
+    })
   }
 }).createMachine({
+  id: 'fetch',
   initial: 'idle',
   context: {
     name: 'World',
@@ -24,29 +30,27 @@ export const fetchMachine = setup({
   states: {
     idle: {
       on: {
-        FETCH: 'loading'
+        FETCH: { target: 'loading' }
       }
     },
     loading: {
       invoke: {
-        src: 'fetchUser',
+        src: 'fetchGreeting',
         input: ({ context }) => ({ name: context.name }),
-        onDone: {
+        onDone: ({ context, event }) => ({
           target: 'success',
-          actions: assign({
-            data: ({ event }) => event.output
-          })
-        },
-        onError: 'failure'
+          context: { ...context, data: event.output }
+        }),
+        onError: { target: 'failure' }
       }
     },
     success: {},
     failure: {
       after: {
-        1000: 'loading'
+        1000: { target: 'loading' }
       },
       on: {
-        RETRY: 'loading'
+        RETRY: { target: 'loading' }
       }
     }
   }

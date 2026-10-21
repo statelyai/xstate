@@ -12,7 +12,7 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue';
-import { assign, createMachine } from 'xstate';
+import { createMachine } from 'xstate';
 import { useActorRef, useSelector } from '../src/index.ts';
 
 const machine = createMachine({
@@ -24,9 +24,9 @@ const machine = createMachine({
     active: {}
   },
   on: {
-    CHANGE: {
-      actions: assign({ name: ({ event }) => event.value })
-    }
+    CHANGE: ({ event }) => ({
+      context: { name: event.value }
+    })
   }
 });
 

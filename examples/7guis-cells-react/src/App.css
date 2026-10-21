@@ -1,0 +1,66 @@
+*,
+*:before,
+*:after {
+  box-sizing: border-box;
+  position: relative;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  width: 100%;
+}
+
+#root {
+  display: grid;
+  place-items: center;
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+h1 {
+  font-size: 1.25rem;
+  margin: 0;
+}
+
+.hint {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #4a4f63;
+}
+
+table {
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+th,
+td {
+  border: 1px solid #dce0ea;
+  width: 5.5rem;
+  height: 1.6rem;
+  padding: 0 0.25rem;
+  text-align: right;
+}
+
+thead th,
+tbody th {
+  background: #f2f4f9;
+  color: #4a4f63;
+  text-align: center;
+  width: 2rem;
+}
+
+td input {
+  width: 100%;
+  border: none;
+  outline: 2px solid #311bf6;
+  font: inherit;
+  text-align: right;
+  padding: 0;
+}

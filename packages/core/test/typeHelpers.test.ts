@@ -1,23 +1,33 @@
+import z from 'zod';
 import {
   ActorLogic,
   ActorRefFrom,
   ContextFrom,
+  EmittedFrom,
+  ErrorFrom,
   EventFrom,
-  MachineImplementationsFrom,
+  MachineSourcesFrom,
+  OutputFrom,
   Snapshot,
   SnapshotFrom,
+  StateSchemaFrom,
   StateValueFrom,
   TagsFrom,
-  assign,
   createActor,
-  createMachine
+  createMachine,
+  setup
 } from '../src/index.ts';
 
 describe('ContextFrom', () => {
   it('should return context of a machine', () => {
     const machine = createMachine({
-      types: {
-        context: {} as { counter: number }
+      // types: {
+      //   context: {} as { counter: number }
+      // },
+      schemas: {
+        context: z.object({
+          counter: z.number()
+        })
       },
       context: {
         counter: 0
@@ -43,11 +53,18 @@ describe('ContextFrom', () => {
 describe('EventFrom', () => {
   it('should return events for a machine', () => {
     const machine = createMachine({
-      types: {
-        events: {} as
-          | { type: 'UPDATE_NAME'; value: string }
-          | { type: 'UPDATE_AGE'; value: number }
-          | { type: 'ANOTHER_EVENT' }
+      // types: {
+      //   events: {} as
+      //     | { type: 'UPDATE_NAME'; value: string }
+      //     | { type: 'UPDATE_AGE'; value: number }
+      //     | { type: 'ANOTHER_EVENT' }
+      // }
+      schemas: {
+        events: {
+          UPDATE_NAME: z.object({ value: z.string() }),
+          UPDATE_AGE: z.object({ value: z.number() }),
+          ANOTHER_EVENT: z.object({})
+        }
       }
     });
 
@@ -64,75 +81,77 @@ describe('EventFrom', () => {
     });
   });
 
-  it('should return events for an interpreter', () => {
+  it('should return events for an actor', () => {
     const machine = createMachine({
-      types: {
-        events: {} as
-          | { type: 'UPDATE_NAME'; value: string }
-          | { type: 'UPDATE_AGE'; value: number }
-          | { type: 'ANOTHER_EVENT' }
+      schemas: {
+        events: {
+          UPDATE_NAME: z.object({ value: z.string() }),
+          UPDATE_AGE: z.object({ value: z.number() }),
+          ANOTHER_EVENT: z.object({})
+        }
       }
     });
 
-    const service = createActor(machine);
+    const actor = createActor(machine);
 
-    type InterpreterEvent = EventFrom<typeof service>;
+    type ActorEvent = EventFrom<typeof actor>;
 
-    const acceptInterpreterEvent = (_event: InterpreterEvent) => {};
+    const acceptActorEvent = (_event: ActorEvent) => {};
 
-    acceptInterpreterEvent({ type: 'UPDATE_NAME', value: 'test' });
-    acceptInterpreterEvent({ type: 'UPDATE_AGE', value: 12 });
-    acceptInterpreterEvent({ type: 'ANOTHER_EVENT' });
-    acceptInterpreterEvent({
+    acceptActorEvent({ type: 'UPDATE_NAME', value: 'test' });
+    acceptActorEvent({ type: 'UPDATE_AGE', value: 12 });
+    acceptActorEvent({ type: 'ANOTHER_EVENT' });
+    acceptActorEvent({
       // @ts-expect-error
       type: 'UNKNOWN_EVENT'
     });
   });
 });
 
-describe('MachineImplementationsFrom', () => {
-  it('should return implementations for a machine', () => {
+describe('MachineSourcesFrom', () => {
+  it('should return sources for a machine', () => {
     const machine = createMachine({
       context: {
         count: 100
       },
-      types: {
-        events: {} as { type: 'FOO' } | { type: 'BAR'; value: string }
-      }
-    });
-
-    const acceptMachineImplementations = (
-      _options: MachineImplementationsFrom<typeof machine>
-    ) => {};
-
-    acceptMachineImplementations({
+      schemas: {
+        context: z.object({
+          count: z.number()
+        }),
+        events: {
+          FOO: z.object({}),
+          BAR: z.object({ value: z.string() })
+        }
+      },
       actions: {
         foo: () => {}
       }
     });
-    acceptMachineImplementations({
+
+    const acceptMachineSources = (
+      _options: MachineSourcesFrom<typeof machine>
+    ) => {};
+
+    acceptMachineSources({
       actions: {
-        foo: assign(() => ({}))
-      }
+        foo: () => {}
+      },
+      actors: {},
+      guards: {},
+      delays: {}
     });
-    acceptMachineImplementations({
-      actions: {
-        foo: assign(({ context }) => {
-          ((_accept: number) => {})(context.count);
-          return {};
-        })
-      }
-    });
-    acceptMachineImplementations({
-      actions: {
-        foo: assign(({ event }) => {
-          ((_accept: 'FOO' | 'BAR') => {})(event.type);
-          return {};
-        })
-      }
-    });
+
     // @ts-expect-error
-    acceptMachineImplementations(100);
+    acceptMachineSources(100);
+  });
+
+  it('should reject an action that returns an arbitrary (non-void/assignment) value', () => {
+    createMachine({
+      actions: {
+        // @ts-expect-error an action must return void or { context?, children? }
+        foo: () => 'hello'
+      }
+    });
   });
 });
 
@@ -150,8 +169,13 @@ describe('SnapshotFrom', () => {
   it('should return state type from a service that has concrete event type', () => {
     const service = createActor(
       createMachine({
-        types: {
-          events: {} as { type: 'FOO' }
+        // types: {
+        //   events: {} as { type: 'FOO' }
+        // }
+        schemas: {
+          events: {
+            FOO: z.object({})
+          }
         }
       })
     );
@@ -175,6 +199,11 @@ describe('SnapshotFrom', () => {
 
   it('should return state from a machine with context', () => {
     const machine = createMachine({
+      schemas: {
+        context: z.object({
+          counter: z.number()
+        })
+      },
       context: {
         counter: 0
       }
@@ -191,12 +220,20 @@ describe('SnapshotFrom', () => {
 describe('ActorRefFrom', () => {
   it('should return `ActorRef` based on actor logic', () => {
     const logic: ActorLogic<Snapshot<undefined>, { type: 'TEST' }> = {
-      transition: (state) => state,
+      transition: (state) => [state, []],
       getInitialSnapshot: () => ({
         status: 'active',
         output: undefined,
         error: undefined
       }),
+      initialTransition: () => [
+        {
+          status: 'active',
+          output: undefined,
+          error: undefined
+        },
+        []
+      ],
       getPersistedSnapshot: (s) => s
     };
 
@@ -207,6 +244,88 @@ describe('ActorRefFrom', () => {
     acceptActorRef(createActor(logic).start());
   });
 });
+
+describe('helpers for a machine with internal events', () => {
+  type IsNever<T> = [T] extends [never] ? true : false;
+
+  const machine = setup({
+    schemas: {
+      context: z.object({ count: z.number() }),
+      events: { inc: z.object({ by: z.number() }) },
+      internalEvents: { tick: z.object({}) },
+      emitted: { saved: z.object({ count: z.number() }) },
+      output: z.object({ count: z.number() })
+    },
+    actions: { log: () => {} }
+  }).createMachine({
+    context: { count: 0 },
+    initial: 'counting',
+    states: {
+      counting: {
+        on: {
+          inc: ({ context, event }) => ({
+            context: { count: context.count + event.by }
+          }),
+          tick: ({ context }) => ({ context: { count: context.count + 1 } })
+        }
+      }
+    },
+    output: ({ context }) => ({ count: context.count })
+  });
+  const actor = createActor(machine);
+  type Ref = ActorRefFrom<typeof machine>;
+
+  it('EventFrom returns the events of the machine', () => {
+    const acceptEvent = (_event: EventFrom<typeof machine>) => {};
+    acceptEvent({ type: 'inc', by: 1 });
+    acceptEvent({ type: 'tick' });
+    acceptEvent({
+      // @ts-expect-error
+      type: 'other'
+    });
+
+    const inc: EventFrom<typeof machine, 'inc'> = { type: 'inc', by: 1 };
+    const refEvent: EventFrom<Ref> = { type: 'inc', by: 1 };
+    noop(inc, refEvent);
+  });
+
+  it('ContextFrom returns the context of the machine and of its actor', () => {
+    const acceptContext = (_context: ContextFrom<typeof machine>) => {};
+    acceptContext({ count: 0 });
+    acceptContext({
+      // @ts-expect-error
+      count: 'x'
+    });
+
+    const acceptActorContext = (_context: ContextFrom<typeof actor>) => {};
+    acceptActorContext({ count: 0 });
+    acceptActorContext({
+      // @ts-expect-error
+      count: 'x'
+    });
+  });
+
+  it('helpers resolve through ActorRefFrom', () => {
+    const context: SnapshotFrom<Ref>['context'] = { count: 0 };
+    const output: OutputFrom<Ref> = { count: 0 };
+    const error: ErrorFrom<Ref> = new Error('failed');
+    noop(context, output, error);
+  });
+
+  it('machine helpers keep the machine types', () => {
+    const stateSchemaIsNever: IsNever<StateSchemaFrom<typeof machine>> = false;
+    const action: keyof MachineSourcesFrom<typeof machine>['actions'] = 'log';
+    // @ts-expect-error
+    const otherAction: keyof MachineSourcesFrom<typeof machine>['actions'] =
+      'other';
+    const emitted: EmittedFrom<typeof machine> = { type: 'saved', count: 1 };
+    // @ts-expect-error
+    const otherEmitted: EmittedFrom<typeof machine> = { type: 'other' };
+    noop(stateSchemaIsNever, action, otherAction, emitted, otherEmitted);
+  });
+});
+
+function noop(..._values: unknown[]) {}
 
 describe('tags', () => {
   it('derives string from StateMachine', () => {

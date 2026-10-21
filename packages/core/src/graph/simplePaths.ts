@@ -1,9 +1,17 @@
-import { AnyActorLogic, EventFromLogic, InputFrom } from '../index.ts';
+import {
+  AnyActorLogic,
+  EventFromLogic,
+  InputFrom,
+  SnapshotFrom
+} from '../index.ts';
 import {
   SerializedEvent,
   SerializedSnapshot,
   StatePath,
   Steps,
+  EventCaseOptionsArgs,
+  EventListOptions,
+  TraversalEvent,
   TraversalOptions,
   VisitedContext
 } from './types.ts';
@@ -12,15 +20,30 @@ import { getAdjacencyMap } from './adjacency.ts';
 import { alterPath } from './alterPath.ts';
 import { createMockActorScope } from './actorScope.ts';
 
+/** @public */
+export function getSimplePaths<TLogic extends AnyActorLogic>(
+  logic: TLogic,
+  ...[options]: EventCaseOptionsArgs<NoInfer<TLogic>>
+): Array<StatePath<SnapshotFrom<TLogic>, EventFromLogic<TLogic>>>;
+export function getSimplePaths<
+  TLogic extends AnyActorLogic,
+  const TEvents extends readonly TraversalEvent<
+    SnapshotFrom<NoInfer<TLogic>>,
+    EventFromLogic<NoInfer<TLogic>>
+  >[]
+>(
+  logic: TLogic,
+  options: EventListOptions<NoInfer<TLogic>, TEvents>
+): Array<StatePath<SnapshotFrom<TLogic>, EventFromLogic<TLogic>>>;
 export function getSimplePaths<TLogic extends AnyActorLogic>(
   logic: TLogic,
   options?: TraversalOptions<
-    ReturnType<TLogic['transition']>,
+    SnapshotFrom<TLogic>,
     EventFromLogic<TLogic>,
     InputFrom<TLogic>
   >
-): Array<StatePath<ReturnType<TLogic['transition']>, EventFromLogic<TLogic>>> {
-  type TState = ReturnType<TLogic['transition']>;
+): Array<StatePath<SnapshotFrom<TLogic>, EventFromLogic<TLogic>>> {
+  type TState = SnapshotFrom<TLogic>;
   type TEvent = EventFromLogic<TLogic>;
 
   const resolvedOptions = resolveTraversalOptions(logic, options);
@@ -31,7 +54,7 @@ export function getSimplePaths<TLogic extends AnyActorLogic>(
   const serializeState = resolvedOptions.serializeState as (
     ...args: Parameters<typeof resolvedOptions.serializeState>
   ) => SerializedSnapshot;
-  const adjacency = getAdjacencyMap(logic, resolvedOptions);
+  const adjacency = getAdjacencyMap(logic, { ...resolvedOptions, fromState });
   const stateMap = new Map<SerializedSnapshot, TState>();
   const visitCtx: VisitedContext<TState, TEvent> = {
     vertices: new Set(),
@@ -41,7 +64,7 @@ export function getSimplePaths<TLogic extends AnyActorLogic>(
   const pathMap: Record<
     SerializedSnapshot,
     { state: TState; paths: Array<StatePath<TState, TEvent>> }
-  > = {};
+  > = Object.create(null);
 
   function util(
     fromStateSerial: SerializedSnapshot,
@@ -68,6 +91,9 @@ export function getSimplePaths<TLogic extends AnyActorLogic>(
 
       toStatePlan.paths.push(path2);
     } else {
+      if (!adjacency[fromStateSerial]) {
+        return;
+      }
       for (const serializedEvent of Object.keys(
         adjacency[fromStateSerial].transitions
       ) as SerializedEvent[]) {

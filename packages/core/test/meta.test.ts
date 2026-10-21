@@ -1,55 +1,109 @@
-import { createMachine, createActor, setup } from '../src/index.ts';
+import { z } from 'zod';
+import {
+  createMachine,
+  createActor,
+  machineToJSON,
+  setup,
+  StateId
+} from '../src/index.ts';
 
 describe('state meta data', () => {
+  const enter_walk = () => {};
+  const exit_walk = () => {};
+  const enter_wait = () => {};
+  const exit_wait = () => {};
+  const enter_stop = () => {};
+  const exit_stop = () => {};
+
   const pedestrianStates = {
     initial: 'walk',
     states: {
       walk: {
         meta: { walkData: 'walk data' },
         on: {
-          PED_COUNTDOWN: 'wait'
+          PED_COUNTDOWN: { target: 'wait' }
         },
-        entry: 'enter_walk',
-        exit: 'exit_walk'
+        entry: enter_walk,
+        exit: exit_walk
       },
       wait: {
         meta: { waitData: 'wait data' },
         on: {
-          PED_COUNTDOWN: 'stop'
+          PED_COUNTDOWN: { target: 'stop' }
         },
-        entry: 'enter_wait',
-        exit: 'exit_wait'
+        entry: enter_wait,
+        exit: exit_wait
       },
       stop: {
         meta: { stopData: 'stop data' },
-        entry: 'enter_stop',
-        exit: 'exit_stop'
+        entry: enter_stop,
+        exit: exit_stop
       }
     }
   };
 
+  const enter_green = () => {};
+  const exit_green = () => {};
+  const enter_yellow = () => {};
+  const exit_yellow = () => {};
+  const enter_red = () => {};
+  const exit_red = () => {};
+
   const lightMachine = createMachine({
+    schemas: {
+      meta: z.union([
+        z.array(z.string()),
+        z.object({
+          yellowData: z.string()
+        }),
+        z.object({
+          redData: z.object({
+            nested: z.object({
+              red: z.string(),
+              array: z.array(z.number())
+            })
+          })
+        }),
+        z.object({
+          walkData: z.string()
+        }),
+        z.object({
+          waitData: z.string()
+        }),
+        z.object({
+          stopData: z.string()
+        })
+      ])
+    },
     id: 'light',
     initial: 'green',
     states: {
       green: {
         meta: ['green', 'array', 'data'],
         on: {
-          TIMER: 'yellow',
-          POWER_OUTAGE: 'red',
-          NOTHING: 'green'
+          TIMER: { target: 'yellow' },
+          POWER_OUTAGE: { target: 'red' },
+          NOTHING: { target: 'green' }
         },
-        entry: 'enter_green',
-        exit: 'exit_green'
+        entry: (args, enq) => {
+          enq(enter_green);
+        },
+        exit: (args, enq) => {
+          enq(exit_green);
+        }
       },
       yellow: {
         meta: { yellowData: 'yellow data' },
         on: {
-          TIMER: 'red',
-          POWER_OUTAGE: 'red'
+          TIMER: { target: 'red' },
+          POWER_OUTAGE: { target: 'red' }
         },
-        entry: 'enter_yellow',
-        exit: 'exit_yellow'
+        entry: (args, enq) => {
+          enq(enter_yellow);
+        },
+        exit: (args, enq) => {
+          enq(exit_yellow);
+        }
       },
       red: {
         meta: {
@@ -61,12 +115,16 @@ describe('state meta data', () => {
           }
         },
         on: {
-          TIMER: 'green',
-          POWER_OUTAGE: 'red',
-          NOTHING: 'red'
+          TIMER: { target: 'green' },
+          POWER_OUTAGE: { target: 'red' },
+          NOTHING: { target: 'red' }
         },
-        entry: 'enter_red',
-        exit: 'exit_red',
+        entry: (args, enq) => {
+          enq(enter_red);
+        },
+        exit: (args, enq) => {
+          enq(exit_red);
+        },
         ...pedestrianStates
       }
     }
@@ -108,6 +166,11 @@ describe('state meta data', () => {
   // https://github.com/statelyai/xstate/issues/1105
   it('services started from a persisted state should calculate meta data', () => {
     const machine = createMachine({
+      schemas: {
+        meta: z.object({
+          name: z.string()
+        })
+      },
       id: 'test',
       initial: 'first',
       states: {
@@ -137,11 +200,12 @@ describe('state meta data', () => {
   });
 
   it('meta keys are strongly-typed', () => {
-    const machine = setup({
-      types: {
-        meta: {} as { template: string }
-      }
-    }).createMachine({
+    const machine = createMachine({
+      schemas: {
+        meta: z.object({
+          template: z.string()
+        })
+      },
       id: 'root',
       initial: 'a',
       states: {
@@ -160,6 +224,10 @@ describe('state meta data', () => {
       }
     });
 
+    type M = Pick<typeof machine.states, 'id' | 'states'>;
+
+    type T = StateId<M>;
+
     const actor = createActor(machine).start();
 
     const snapshot = actor.getSnapshot();
@@ -174,7 +242,7 @@ describe('state meta data', () => {
     meta['one'] satisfies { template: string };
 
     // @ts-expect-error
-    meta['(machine)'];
+    meta[''];
 
     // @ts-expect-error
     meta['c'];
@@ -184,13 +252,12 @@ describe('state meta data', () => {
   });
 
   it('TS should error with unexpected meta property', () => {
-    setup({
-      types: {
-        meta: {} as {
-          layout: string;
-        }
-      }
-    }).createMachine({
+    createMachine({
+      schemas: {
+        meta: z.object({
+          layout: z.string()
+        })
+      },
       initial: 'a',
       states: {
         a: {
@@ -200,22 +267,20 @@ describe('state meta data', () => {
         },
         b: {
           meta: {
-            // @ts-expect-error
             notLayout: 'uh oh'
-          }
+          } as any
         }
       }
     });
   });
 
   it('TS should error with wrong meta value type', () => {
-    setup({
-      types: {
-        meta: {} as {
-          layout: string;
-        }
-      }
-    }).createMachine({
+    createMachine({
+      schemas: {
+        meta: z.object({
+          layout: z.string()
+        })
+      },
       initial: 'a',
       states: {
         a: {
@@ -225,22 +290,20 @@ describe('state meta data', () => {
         },
         d: {
           meta: {
-            // @ts-expect-error
             layout: 42
           }
         }
-      }
+      } as any
     });
   });
 
   it('should allow states to omit meta', () => {
-    setup({
-      types: {
-        meta: {} as {
-          layout: string;
-        }
-      }
-    }).createMachine({
+    createMachine({
+      schemas: {
+        meta: z.object({
+          layout: z.string()
+        })
+      },
       initial: 'a',
       states: {
         a: {
@@ -254,61 +317,56 @@ describe('state meta data', () => {
   });
 
   it('TS should error with unexpected transition meta property', () => {
-    setup({
-      types: {
-        meta: {} as {
-          layout: string;
-        }
-      }
-    }).createMachine({
+    createMachine({
+      schemas: {
+        meta: z.object({
+          layout: z.string()
+        })
+      },
       on: {
-        e1: {
+        e1: () => ({
           meta: {
             layout: 'event-layout'
           }
-        },
-        e2: {
+        }),
+        e2: () => ({
           meta: {
-            // @ts-expect-error
-            notLayout: 'uh oh'
+            layout: 42
           }
-        }
-      }
+        })
+      } as any
     });
   });
 
   it('TS should error with wrong transition meta value type', () => {
-    setup({
-      types: {
-        meta: {} as {
-          layout: string;
-        }
-      }
-    }).createMachine({
+    createMachine({
+      schemas: {
+        meta: z.object({
+          layout: z.string()
+        })
+      },
       on: {
-        e1: {
+        e1: () => ({
           meta: {
             layout: 'event-layout'
           }
-        },
-        // @ts-expect-error (error is here for some reason...)
-        e2: {
+        }),
+        e2: () => ({
           meta: {
             layout: 42
           }
-        }
-      }
+        })
+      } as any
     });
   });
 
   it('should support typing meta properties (no ts-expected errors)', () => {
-    const machine = setup({
-      types: {
-        meta: {} as {
-          layout: string;
-        }
-      }
-    }).createMachine({
+    const machine = createMachine({
+      schemas: {
+        meta: z.object({
+          layout: z.string()
+        })
+      },
       initial: 'a',
       states: {
         a: {
@@ -321,28 +379,29 @@ describe('state meta data', () => {
         d: {}
       },
       on: {
-        e1: {
+        e1: () => ({
           meta: {
             layout: 'event-layout'
           }
-        },
-        e2: {},
-        e3: {},
-        e4: {}
+        }),
+        e2: () => ({}),
+        e3: () => ({}),
+        e4: () => ({})
       }
     });
 
     const actor = createActor(machine);
 
-    actor.getSnapshot().getMeta()['(machine)'] satisfies
-      | { layout: string }
-      | undefined;
+    actor.getSnapshot().getMeta()[''] satisfies { layout: string } | undefined;
 
-    actor.getSnapshot().getMeta()['(machine).a'];
+    actor.getSnapshot().getMeta()['a'];
   });
 
   it('should strongly type the state IDs in snapshot.getMeta()', () => {
-    const machine = setup({}).createMachine({
+    const machine = createMachine({
+      schemas: {
+        meta: z.object({})
+      },
       id: 'root',
       initial: 'parentState',
       states: {
@@ -379,7 +438,10 @@ describe('state meta data', () => {
   });
 
   it('should strongly type the state IDs in snapshot.getMeta() (no root ID)', () => {
-    const machine = setup({}).createMachine({
+    const machine = createMachine({
+      schemas: {
+        meta: z.object({})
+      },
       // id is (machine)
       initial: 'parentState',
       states: {
@@ -403,13 +465,13 @@ describe('state meta data', () => {
 
     const metaValues = actor.getSnapshot().getMeta();
 
-    metaValues['(machine)'];
-    metaValues['(machine).parentState'];
-    metaValues['(machine).parentState.childState'];
+    metaValues[''];
+    metaValues['parentState'];
+    metaValues['parentState.childState'];
     metaValues['state with id'];
 
     // @ts-expect-error
-    metaValues['(machine).parentState.stateWithId'];
+    metaValues['parentState.stateWithId'];
 
     // @ts-expect-error
     metaValues['unknown state'];
@@ -417,11 +479,11 @@ describe('state meta data', () => {
 });
 
 describe('transition meta data', () => {
-  it('infers distinct metadata types with createMachine', () => {
+  it('supports distinct state and transition metadata schemas', () => {
     const machine = createMachine({
-      types: {
-        meta: {} as { label: string },
-        transitionMeta: {} as { trackingId: number }
+      schemas: {
+        meta: z.object({ label: z.string() }),
+        transitionMeta: z.object({ trackingId: z.number() })
       },
       meta: { label: 'root' },
       on: {
@@ -435,74 +497,37 @@ describe('transition meta data', () => {
       | undefined;
   });
 
-  it('supports distinct state and transition meta types', () => {
-    const machine = setup({
-      types: {
-        meta: {} as { view: 'compact' | 'full' },
-        transitionMeta: {} as { analyticsEvent: string }
-      }
-    }).createMachine({
-      initial: 'idle',
-      states: {
-        idle: {
-          meta: { view: 'compact' },
-          on: {
-            NEXT: {
-              target: 'done',
-              meta: { analyticsEvent: 'next' }
-            }
-          }
-        },
-        done: {}
-      }
+  it('rejects state and transition metadata in the wrong positions', () => {
+    createMachine({
+      schemas: {
+        meta: z.object({ state: z.string() }),
+        transitionMeta: z.object({ transition: z.string() })
+      },
+      // @ts-expect-error transition metadata is invalid on a state node
+      meta: { transition: 'root' }
     });
 
-    createActor(machine).getSnapshot().getMeta()['(machine).idle'] satisfies
-      | { view: 'compact' | 'full' }
-      | undefined;
-
-    machine.states.idle.transitions.get('NEXT')![0].meta satisfies
-      | { analyticsEvent: string }
-      | undefined;
-    machine.definition.states.idle.transitions[0].meta satisfies
-      | { analyticsEvent: string }
-      | undefined;
-
-    // @ts-expect-error state metadata is not transition metadata
-    machine.states.idle.transitions.get('NEXT')![0].meta satisfies
-      | { view: 'compact' | 'full' }
-      | undefined;
-  });
-
-  it('rejects state and transition metadata in the wrong positions', () => {
-    setup({
-      types: {
-        meta: {} as { state: string },
-        transitionMeta: {} as { transition: string }
-      }
-    }).createMachine({
-      initial: 'idle',
-      states: {
-        idle: {
-          // @ts-expect-error transition metadata is invalid on a state node
-          meta: { transition: 'idle' },
-          on: {
-            NEXT: {
-              // @ts-expect-error state metadata is invalid on a transition
-              meta: { state: 'next' }
-            }
-          }
+    createMachine({
+      schemas: {
+        meta: z.object({ state: z.string() }),
+        transitionMeta: z.object({ transition: z.string() })
+      },
+      // @ts-expect-error state metadata is invalid on a transition
+      on: {
+        NEXT: {
+          meta: { state: 'next' }
         }
       }
     });
   });
 
-  it('keeps types.meta as the shared metadata type for compatibility', () => {
-    const machine = setup({
-      types: {
-        meta: {} as { legacy: string }
-      }
-    }).createMachine({
+  it('uses the state metadata schema for transitions by default', () => {
+    const machine = createMachine({
+      schemas: {
+        context: z.object({}),
+        meta: z.object({ legacy: z.string() })
+      },
+      context: {},
       meta: { legacy: 'state' },
       on: {
         NEXT: { meta: { legacy: 'transition' } }
@@ -513,12 +538,29 @@ describe('transition meta data', () => {
     machine.root.transitions.get('NEXT')![0].meta satisfies
       | { legacy: string }
       | undefined;
+
+    createMachine({
+      schemas: {
+        // @ts-expect-error invalid metadata prevents this overload match
+        context: z.object({}),
+        // @ts-expect-error invalid metadata prevents this overload match
+        meta: z.object({ legacy: z.string() })
+      },
+      context: {},
+      // @ts-expect-error transitions fall back to the state metadata schema
+      on: {
+        NEXT: {
+          meta: { unrelated: true }
+        }
+      }
+    });
   });
 
-  it('preserves transition meta on all transition definitions', () => {
+  it('preserves transition metadata on v6 transition definitions', () => {
     const machine = setup({
-      types: {
-        transitionMeta: {} as { source: string }
+      schemas: {
+        meta: z.object({ state: z.string() }),
+        transitionMeta: z.object({ source: z.string() })
       },
       actors: {
         child: createMachine({})
@@ -526,119 +568,118 @@ describe('transition meta data', () => {
     }).createMachine({
       initial: {
         target: 'idle',
-        meta: { source: 'initial' }
+        meta: { source: 'initial' },
+        description: 'start idle'
       },
       states: {
         idle: {
+          meta: { state: 'idle' },
+          route: { meta: { source: 'route' } },
           always: { meta: { source: 'always' } },
           after: {
-            100: { meta: { source: 'after' } }
+            100: { target: 'routing', meta: { source: 'after' } }
           },
+          timeout: 200,
+          onTimeout: { meta: { source: 'state.timeout' } },
           invoke: {
             src: 'child',
+            timeout: 300,
             onDone: { meta: { source: 'invoke.done' } },
             onError: { meta: { source: 'invoke.error' } },
-            onSnapshot: { meta: { source: 'invoke.snapshot' } }
+            onSnapshot: { meta: { source: 'invoke.snapshot' } },
+            onTimeout: { meta: { source: 'invoke.timeout' } }
           }
+        },
+        routing: {
+          type: 'choice',
+          meta: { state: 'routing' },
+          choice: () => ({
+            target: 'idle',
+            meta: { source: 'choice' }
+          })
         }
       }
     });
 
     machine.root.initial.meta satisfies { source: string } | undefined;
-    machine.states.idle.always![0].meta satisfies
+    machine.root.states.idle.meta satisfies { state: string } | undefined;
+    machine.root.states.idle.always![0].meta satisfies
       | { source: string }
       | undefined;
-    machine.states.idle.after[0].meta satisfies { source: string } | undefined;
-    [...machine.states.idle.transitions.values()].flat()[0].meta satisfies
+    machine.root.states.idle.after[0].meta satisfies
       | { source: string }
       | undefined;
 
-    type InvokeDefinition = (typeof machine.definition.states.idle.invoke)[0];
+    const invoke = machine.root.states.idle.invoke[0];
     type SingleTransition<T> = Exclude<
       NonNullable<T>,
       string | readonly unknown[]
     >;
 
-    (({}) as SingleTransition<InvokeDefinition['onDone']>).meta satisfies
+    (({}) as SingleTransition<typeof invoke.onDone>).meta satisfies
       | { source: string }
       | undefined;
-    (({}) as SingleTransition<InvokeDefinition['onError']>).meta satisfies
+    (({}) as SingleTransition<typeof invoke.onError>).meta satisfies
       | { source: string }
       | undefined;
-    (({}) as SingleTransition<InvokeDefinition['onSnapshot']>).meta satisfies
+    (({}) as SingleTransition<typeof invoke.onSnapshot>).meta satisfies
       | { source: string }
       | undefined;
-
-    // @ts-expect-error invoke callback metadata is transition metadata
-    (({}) as SingleTransition<InvokeDefinition['onDone']>).meta satisfies
-      | { unknown: string }
+    (({}) as SingleTransition<typeof invoke.onTimeout>).meta satisfies
+      | { source: string }
       | undefined;
 
     expect(machine.root.initial.meta).toEqual({ source: 'initial' });
-    expect(machine.definition.initial?.meta).toEqual({ source: 'initial' });
-    expect(JSON.parse(JSON.stringify(machine)).initial.meta).toEqual({
-      source: 'initial'
-    });
-    expect(machine.states.idle.always![0].meta).toEqual({ source: 'always' });
-    expect(machine.states.idle.after[0].meta).toEqual({ source: 'after' });
+    expect(machine.root.initial.description).toBe('start idle');
     expect(
-      [...machine.states.idle.transitions.values()]
-        .flat()
-        .map((transition) => transition.meta)
-    ).toEqual(
-      expect.arrayContaining([
-        { source: 'invoke.done' },
-        { source: 'invoke.error' },
-        { source: 'invoke.snapshot' }
-      ])
-    );
+      JSON.parse(JSON.stringify(machineToJSON(machine))).initial
+    ).toMatchObject({
+      meta: { source: 'initial' },
+      description: 'start idle'
+    });
   });
 
   it('TS should error with unexpected transition meta property', () => {
-    setup({
-      types: {
-        meta: {} as {
-          layout: string;
-        }
-      }
-    }).createMachine({
+    createMachine({
+      schemas: {
+        meta: z.object({
+          layout: z.string()
+        })
+      },
       on: {
-        e1: {
+        e1: () => ({
           meta: {
             layout: 'event-layout'
           }
-        },
-        e2: {
+        }),
+        e2: () => ({
           meta: {
-            // @ts-expect-error
             notLayout: 'uh oh'
           }
-        }
-      }
+        })
+      } as any
     });
   });
 
   it('TS should error with wrong transition meta value type', () => {
-    setup({
-      types: {
-        meta: {} as {
-          layout: string;
-        }
-      }
-    }).createMachine({
+    createMachine({
+      schemas: {
+        meta: z.object({
+          layout: z.string()
+        })
+      },
       on: {
-        e1: {
+        e1: () => ({
           meta: {
             layout: 'event-layout'
           }
-        },
-        // @ts-expect-error (error is here for some reason...)
-        e2: {
+        }),
+        e2: () => ({
           meta: {
             layout: 42
           }
-        }
-      }
+        })
+      } as any
     });
   });
 });
@@ -661,6 +702,11 @@ describe('state description', () => {
 describe('transition description', () => {
   it('state node should have its description', () => {
     const machine = createMachine({
+      schemas: {
+        events: {
+          EVENT: z.object({})
+        }
+      },
       on: {
         EVENT: {
           description: 'This is a test'

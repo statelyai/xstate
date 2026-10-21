@@ -24,4 +24,4 @@ I also strongly encourage you to [create a pull request](https://github.com/stat
 
 ## Link to reproduction or proof-of-concept:
 
-You can use [CodePen](https://codepen.io) or [CodeSandbox template](https://codesandbox.io/s/6dsws) to create a reproduction/POC.
+You can use [CodePen](https://codepen.io/) or [CodeSandbox template](https://codesandbox.io/s/6dsws) to create a reproduction/POC.

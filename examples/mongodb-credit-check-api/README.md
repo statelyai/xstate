@@ -1,68 +1,54 @@
-# Express Credit Check Workflow
+# mongodb-credit-check-api
 
-This is a simple workflow engine built with:
+## What it teaches
 
-- XState v5
-- TypeScript
-- Express
+Running a long-lived workflow behind an HTTP API, where every transition persists the actor snapshot to MongoDB so the workflow can be restored on the next request.
 
-This is a modified version of the express-workflow project that shows how to implement state hydration in the `actorService.ts` file.
-It also uses a more complex machine with guards, actions, and parallel states configured.
+## XState features used
 
-**NOTE**: This project is _not_ production-ready and is intended for educational purposes.
+- `setup()` with schemas, named actors, actions and guards
+- `createAsyncLogic` for the bureau and database calls
+- Parallel states with `onDone` to wait for three credit bureaus
+- Persistence: `actor.getPersistedSnapshot()` and the `snapshot` actor option
 
-## Usage
+## Run it
 
-[MongoDB](https://www.mongodb.com/docs/manual/administration/install-community/) should be configured with a database named `creditCheck`.
+Start MongoDB (any 6.x/7.x server works):
 
-We recommend installing the [MongoDB Compass app](https://www.mongodb.com/products/tools/compass) to view the contents of your database while you run this project.
-
-Add the connection string to the DB client in the `actorService.ts` file by updating this line:
-
-```typescript
-const uri = '<your mongo uri here>/creditCheck';
+```bash
+docker run --rm -d -p 27017:27017 --name xstate-mongo mongo:7
 ```
+
+Then:
 
 ```bash
 pnpm install
-pnpm start
+MONGODB_URI=mongodb://localhost:27017 pnpm start
 ```
 
-## Endpoints
+`MONGODB_URI` defaults to `mongodb://localhost:27017`. The `creditCheck` database and its `machineStates`, `creditReports` and `creditProfiles` collections are created on first write.
 
-### POST `/workflows`
+The `start` script uses `vite-node` so that `xstate` resolves to this repo's source.
 
-Creates a new workflow instance.
+### Endpoints
 
 ```bash
+# Create a workflow instance
 curl -X POST http://localhost:4242/workflows
+
+# Submit an application (replace :id with the returned workflowId)
+curl -X POST http://localhost:4242/workflows/:id \
+  -H 'Content-Type: application/json' \
+  -d '{"type":"Submit","SSN":"123456789","firstName":"Gavin","lastName":"Bauman"}'
+
+# Read the persisted snapshot
+curl http://localhost:4242/workflows/:id
 ```
 
-Example response:
-`201 - Created`
+The bureau calls sleep for 1-10 seconds each, so poll the GET endpoint to watch the parallel regions finish.
 
-```json
-{
-  {"message":"New workflow created successfully","workflowId":"uzkjyy"}
-}
-```
+This example is for learning, not production: there is no authentication, no error taxonomy, and credentials are logged.
 
-### POST `/workflows/:id`
+## Inspect it
 
-`200 - OK`
-
-Sends an event to a workflow instance.
-
-```bash
-# Replace :id with the workflow ID; e.g. http://localhost:4242/workflows/7ky252
-# the body should be JSON
-curl -X POST http://localhost:4242/workflows/:id -d '{"type": "Submit", "SSN": "123456789", "lastName": "Bauman", "firstName": "Gavin"}' -H "Content-Type: application/json"
-```
-
-### GET `/workflows/:id`
-
-Gets the current state of a workflow instance.
-
-```bash
-curl -X GET http://localhost:4242/workflows/:id
-```
+Run it with `INSPECT=1 pnpm start` to stream this example's actors to the [Stately Inspector](https://stately.ai/docs/inspector). `@statelyai/sdk` opens Stately's hosted inspector in your browser; machine definitions and snapshots are sent to Stately's hosted relay. Without `INSPECT`, the example runs offline and prints to stdout.

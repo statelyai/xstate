@@ -15,30 +15,37 @@
 <script lang="ts">
 import { defineComponent, PropType } from 'vue';
 import { useMachine } from '../src/index.ts';
-import { createMachine, assign, AnyState } from 'xstate';
-import { fromPromise } from 'xstate/actors';
+import { createMachine, AnyState } from 'xstate';
+import { createAsyncLogic } from 'xstate/actors';
 
 const context = {
   data: undefined
 };
 const fetchMachine = createMachine({
   id: 'fetch',
+  actors: {
+    fetchData: createAsyncLogic({ run: async (): Promise<string> => '' })
+  },
   initial: 'idle',
-  context,
+  context: context as any,
   states: {
     idle: {
-      on: { FETCH: 'loading' }
+      on: { FETCH: { target: 'loading' } }
     },
     loading: {
       invoke: {
         id: 'fetchData',
         src: 'fetchData',
-        onDone: {
-          target: 'success',
-          actions: assign({
-            data: ({ event }) => event.output
-          }),
-          guard: ({ event }) => event.output.length
+        onDone: ({ event }) => {
+          if (!event.output.length) {
+            return;
+          }
+          return {
+            target: 'success',
+            context: {
+              data: event.output
+            }
+          };
         }
       }
     },
@@ -61,7 +68,7 @@ export default defineComponent({
     const { snapshot, send, actorRef } = useMachine(
       fetchMachine.provide({
         actors: {
-          fetchData: fromPromise(onFetch)
+          fetchData: createAsyncLogic({ run: onFetch })
         }
       }),
       {

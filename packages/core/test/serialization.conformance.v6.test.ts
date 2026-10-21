@@ -1,0 +1,561 @@
+/**
+ * Serializability conformance (see V6_REVIEW.md §3.4).
+ *
+ * Machine-as-data is a load-bearing property: machines must be storable,
+ * diffable, and revivable as JSON, and the boundary between serializable
+ * structure and runtime sources must be explicit — never silent.
+ *
+ * Contract:
+ *
+ * 1. `machineToJSON(machine)` never throws and is JSON-safe.
+ * 2. Serializable structure (states, transitions, targets, serialized actions,
+ *    guard refs, string actor srcs, delays, meta, context values) survives a
+ *    JSON round-trip through `machineFromJSON`.
+ * 3. Inline runtime functions appear as code expressions. Root source maps, actor
+ *    logic, and runtime schemas are omitted.
+ * 4. A machine created from JSON round-trips losslessly (byte-stable).
+ */
+import {
+  _createMachineFromCompiledConfig,
+  createActor,
+  createAsyncLogic,
+  createMachine,
+  type AnyStateMachine,
+  type EventRejection,
+  machineToJSON,
+  setup,
+  types
+} from '../src/index.ts';
+import { machineFromJSON } from '../src/machineFromJSON';
+import { z } from 'zod';
+
+function findCodeExpressions(json: unknown, path = '$'): string[] {
+  if (json === null || typeof json !== 'object') {
+    return [];
+  }
+  if ('@code' in (json as object)) {
+    return [path];
+  }
+  return Object.entries(json as Record<string, unknown>).flatMap(([k, v]) =>
+    findCodeExpressions(v, `${path}.${k}`)
+  );
+}
+
+describe('serializability conformance', () => {
+  it('a fully-serializable definition round-trips losslessly', () => {
+    const definition = {
+      id: 'machine',
+      initial: 'idle',
+      version: '1.0.0',
+      context: { retries: 0 },
+      states: {
+        idle: {
+          on: {
+            START: { target: 'running' }
+          }
+        },
+        running: {
+          entry: [{ type: '@xstate.raise', event: { type: 'kick' } }],
+          invoke: { src: 'worker', onDone: { target: 'done' } },
+          on: {
+            kick: [
+              {
+                target: 'done',
+                guard: { type: 'canFinish', params: { limit: 3 } }
+              }
+            ]
+          },
+          after: {
+            1000: { target: 'done' }
+          }
+        },
+        done: { type: 'final', output: { ok: true } }
+      }
+    };
+
+    const sources = {
+      actors: {
+        worker: createAsyncLogic({
+          run: async () => undefined
+        })
+      },
+      guards: {
+        canFinish: () => true
+      }
+    };
+    const machine = machineFromJSON(definition as any, sources);
+    const json = JSON.parse(JSON.stringify(machineToJSON(machine)));
+
+    expect(json).toEqual(definition);
+    expect(findCodeExpressions(json)).toEqual([]);
+
+    // Revive and serialize again: byte-stable.
+    const revived = machineFromJSON(json, sources);
+    expect(JSON.stringify(machineToJSON(revived))).toBe(
+      JSON.stringify(machineToJSON(machine))
+    );
+  });
+
+  it('a machine created from JSON does not share its definition', () => {
+    const definition = {
+      id: 'counter',
+      context: { count: 0 },
+      actions: {
+        bump: { type: '@xstate.assign', context: { count: 1 } }
+      },
+      initial: 'idle',
+      states: {
+        idle: {
+          meta: { label: 'Idle' },
+          on: { inc: { actions: [{ type: 'bump' }] } }
+        }
+      }
+    };
+    const original = JSON.parse(JSON.stringify(definition));
+    const machine = machineFromJSON(definition as any);
+    const json = machineToJSON(machine) as any;
+
+    expect(json).toEqual(original);
+    expect(json).not.toBe(definition);
+
+    // neither the caller's definition nor the serialized copy reaches the
+    // running machine
+    definition.context.count = 10;
+    json.context.count = 42;
+    json.actions.bump.context.count = 7;
+    json.states.idle.meta.label = 'Edited';
+
+    const actor = createActor(machine).start();
+    expect(actor.getSnapshot().context).toEqual({ count: 0 });
+    expect(actor.getSnapshot().getMeta()).toEqual({
+      'counter.idle': { label: 'Idle' }
+    });
+    actor.send({ type: 'inc' });
+    expect(actor.getSnapshot().context).toEqual({ count: 1 });
+    expect(machineToJSON(machine)).toEqual(original);
+  });
+
+  it('JSON.stringify never throws on an inline-authored machine', () => {
+    const machine = createMachine({
+      schemas: {
+        context: z.object({ count: z.number() }),
+        events: { INC: z.object({ by: z.number() }) }
+      },
+      context: { count: 0 },
+      actors: {},
+      actions: {
+        track: () => {}
+      },
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            INC: ({ context, event }) => ({
+              context: { count: context.count + event.by }
+            })
+          }
+        }
+      }
+    });
+
+    expect(() => JSON.stringify(machineToJSON(machine))).not.toThrow();
+  });
+
+  it('setup/createMachine root sources are omitted', () => {
+    function track() {}
+    function isReady() {
+      return true;
+    }
+    function shortDelay() {
+      return 10;
+    }
+
+    const machine = setup({
+      schemas: {
+        context: types<{ ok: boolean }>()
+      }
+    }).createMachine({
+      context: { ok: true },
+      actions: {
+        track
+      },
+      guards: {
+        isReady
+      },
+      delays: {
+        shortDelay
+      },
+      initial: 'idle',
+      states: {
+        idle: {
+          entry: ({ actions }, enq) => {
+            enq(actions.track);
+          },
+          after: {
+            shortDelay: ({ guards }) => {
+              if (guards.isReady()) {
+                return { target: 'done' };
+              }
+            }
+          }
+        },
+        done: {}
+      }
+    });
+
+    const json = JSON.parse(JSON.stringify(machineToJSON(machine)));
+
+    expect(json.actions).toBeUndefined();
+    expect(json.guards).toBeUndefined();
+    expect(json.delays).toBeUndefined();
+    expect(json.states.idle).toMatchInlineSnapshot(`
+      {
+        "after": {
+          "shortDelay": {
+            "@code": "({ guards }) => {
+                    if (guards.isReady()) {
+                      return { target: "done" };
+                    }
+                  }",
+            "@lang": "ts",
+          },
+        },
+        "entry": {
+          "@code": "({ actions }, enq) => {
+                  enq(actions.track);
+                }",
+          "@lang": "ts",
+        },
+      }
+    `);
+  });
+
+  it('inline guards/actions serialize to code directives', () => {
+    const entry = (_: any) => undefined;
+    const guard = ({ context }: any) => context.ok;
+    const transition = (args: any, enq: any) => {
+      if (guard(args)) {
+        enq(entry);
+        return { target: 'b' };
+      }
+    };
+
+    const machine = createMachine({
+      context: { ok: true },
+      initial: 'a',
+      states: {
+        a: {
+          entry,
+          on: {
+            GO: transition
+          }
+        },
+        b: {}
+      }
+    });
+
+    const json = JSON.parse(JSON.stringify(machineToJSON(machine)));
+
+    expect(json.states.a).toMatchInlineSnapshot(`
+      {
+        "entry": {
+          "@code": "(_) => void 0",
+          "@lang": "ts",
+        },
+        "on": {
+          "GO": {
+            "@code": "(args, enq) => {
+            if (guard(args)) {
+              enq(entry);
+              return { target: "b" };
+            }
+          }",
+            "@lang": "ts",
+          },
+        },
+      }
+    `);
+  });
+
+  it('actors and schemas are omitted instead of marked', () => {
+    const worker = createAsyncLogic({
+      run: async () => undefined
+    });
+    const machine = createMachine({
+      context: { ok: true },
+      schemas: {
+        context: z.object({ ok: z.boolean() }),
+        events: {
+          GO: z.object({})
+        }
+      },
+      actors: {
+        worker
+      },
+      initial: 'a',
+      states: {
+        a: {
+          invoke: {
+            src: worker
+          },
+          on: {
+            GO: { target: 'b' }
+          }
+        },
+        b: {}
+      }
+    });
+
+    const json = JSON.parse(JSON.stringify(machineToJSON(machine)));
+
+    expect(findCodeExpressions(json)).toEqual([]);
+    expect(json.actors).toBeUndefined();
+    expect(json.schemas.context).toBeUndefined();
+    expect(json.schemas.events.GO).toBeUndefined();
+    expect(json.states.a.invoke).toBeUndefined();
+    // Structure survives.
+    expect(json).toMatchInlineSnapshot(`
+      {
+        "context": {
+          "ok": true,
+        },
+        "initial": "a",
+        "schemas": {
+          "events": {},
+        },
+        "states": {
+          "a": {
+            "on": {
+              "GO": {
+                "target": "b",
+              },
+            },
+          },
+          "b": {},
+        },
+      }
+    `);
+  });
+
+  it('drops nonportable values from objects and arrays', () => {
+    const machine = createMachine({
+      context: {
+        kept: 'value',
+        dropped: new Date(0),
+        list: ['a', new Date(0), 'b']
+      },
+      initial: 'idle',
+      states: {
+        idle: {}
+      }
+    } as any);
+
+    const directJSON = machineToJSON(machine);
+    const json = JSON.parse(JSON.stringify(directJSON));
+
+    expect((directJSON as any).context.dropped).toBeUndefined();
+    expect((directJSON as any).context).not.toHaveProperty('dropped');
+    expect(json).toMatchInlineSnapshot(`
+      {
+        "context": {
+          "kept": "value",
+          "list": [
+            "a",
+            "b",
+          ],
+        },
+        "initial": "idle",
+        "states": {
+          "idle": {},
+        },
+      }
+    `);
+  });
+
+  it('serializable structure survives even when sources do not', () => {
+    const machine = createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          timeout: '5s',
+          onTimeout: { target: 'expired' },
+          on: { NEXT: { target: 'expired' } }
+        },
+        expired: { type: 'final' }
+      }
+    });
+
+    const json = JSON.parse(JSON.stringify(machineToJSON(machine)));
+
+    expect(json).toMatchInlineSnapshot(`
+      {
+        "initial": "idle",
+        "states": {
+          "expired": {
+            "type": "final",
+          },
+          "idle": {
+            "on": {
+              "NEXT": {
+                "target": "expired",
+              },
+            },
+            "onTimeout": {
+              "target": "expired",
+            },
+            "timeout": "5s",
+          },
+        },
+      }
+    `);
+  });
+
+  it('internal event names survive and stay internal after revival', () => {
+    const machine = createMachine({
+      schemas: {
+        internalEvents: { tick: types<{}>() }
+      },
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            start: { target: 'raising' },
+            tick: { target: 'failed' }
+          }
+        },
+        raising: {
+          entry: (_, enq) => {
+            enq.raise({ type: 'tick' });
+          },
+          on: { tick: { target: 'done' } }
+        },
+        done: {},
+        failed: {}
+      }
+    });
+
+    const json = JSON.parse(JSON.stringify(machineToJSON(machine)));
+    expect(json.internalEvents).toEqual(['tick']);
+
+    const revived = machineFromJSON(json, {
+      evaluators: {
+        ts: ({ source, scope }: any) =>
+          Function(`return (${source});`)()(scope, scope.enq)
+      }
+    });
+    expect(machineToJSON(revived)).toEqual(json);
+
+    // a stray top-level `internalEvents` config key (removed author API) is
+    // not serialized
+    const stray = _createMachineFromCompiledConfig({
+      internalEvents: ['stray'],
+      schemas: { internalEvents: { tick: types<{}>() } },
+      initial: 'idle',
+      states: { idle: {} }
+    });
+    expect(machineToJSON(stray).internalEvents).toEqual(['tick']);
+    expect(
+      machineToJSON(
+        _createMachineFromCompiledConfig({
+          internalEvents: ['stray'],
+          initial: 'idle',
+          states: { idle: {} }
+        })
+      )
+    ).not.toHaveProperty('internalEvents');
+
+    for (const logic of [machine, revived] as AnyStateMachine[]) {
+      const rejections: EventRejection[] = [];
+      const actor = createActor(logic, {
+        onRejectedEvent: (rejection) => rejections.push(rejection)
+      }).start();
+
+      // external senders are rejected
+      actor.send({ type: 'tick' });
+      expect(actor.getSnapshot().value).toBe('idle');
+      expect(rejections.map((r) => [r.event.type, r.reason])).toEqual([
+        ['tick', 'internalEvent']
+      ]);
+
+      // raised internal events are accepted
+      actor.send({ type: 'start' });
+      expect(actor.getSnapshot().value).toBe('done');
+      expect(rejections).toHaveLength(1);
+    }
+  });
+
+  it('JSON-safe unknown data is preserved', () => {
+    const machine = createMachine({
+      initial: 'idle',
+      customData: {
+        label: 'Portable',
+        values: [1, true, null]
+      },
+      states: {
+        idle: {
+          'x-viz': {
+            x: 10,
+            y: 20
+          }
+        }
+      }
+    } as any);
+
+    const json = JSON.parse(JSON.stringify(machineToJSON(machine)));
+
+    expect(json).toMatchInlineSnapshot(`
+      {
+        "customData": {
+          "label": "Portable",
+          "values": [
+            1,
+            true,
+            null,
+          ],
+        },
+        "initial": "idle",
+        "states": {
+          "idle": {
+            "x-viz": {
+              "x": 10,
+              "y": 20,
+            },
+          },
+        },
+      }
+    `);
+  });
+
+  it('revived machines run: structure + provided sources', () => {
+    const definition = JSON.parse(
+      JSON.stringify(
+        machineToJSON(
+          machineFromJSON({
+            initial: 'inactive',
+            states: {
+              inactive: { on: { toggle: { target: 'active' } } },
+              active: { on: { toggle: { target: 'inactive' } } }
+            }
+          } as any)
+        )
+      )
+    );
+
+    const machine = machineFromJSON(definition);
+    const actor = createActor(machine).start();
+    actor.send({ type: 'toggle' });
+    expect(actor.getSnapshot().value).toBe('active');
+  });
+});
+
+it('preserves constructor and __proto__ JSON keys without sharing context', () => {
+  const definition = JSON.parse(
+    '{"context":{"constructor":"value","__proto__":{"count":1}}}'
+  );
+  const machine = machineFromJSON(definition);
+  const serialized = machineToJSON(machine);
+  expect(serialized).toEqual(definition);
+  expect(Object.getPrototypeOf(serialized.context)).toBe(Object.prototype);
+  (serialized.context as any).__proto__.count = 2;
+  expect(machineToJSON(machine)).toEqual(definition);
+});

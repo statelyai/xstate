@@ -1,3 +1,6 @@
+# eslint
+.eslintcache
+
 # Coverage directory used by tools like istanbul
 coverage
 .nyc_output
@@ -21,6 +24,7 @@ __examples/
 .fleet
 
 # Documentation
+packages/core/docs/
 docs-src/
 netlify/
 docs/.cache
@@ -36,5 +40,12 @@ api/
 # pnpm
 .pnpm-lock.yaml
 
+# Scratch
+xstate_discussions.json
+ideas.md
 .claude
+CONVERT_SPEC.md
+TODO.md
+V6_CHANGES.md
+V6_REVIEW.mdCODEMOD_SPEC.md
 .scratch

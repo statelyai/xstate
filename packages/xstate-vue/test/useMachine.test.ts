@@ -1,5 +1,5 @@
 import { fireEvent, render, waitFor } from '@testing-library/vue';
-import { PromiseActorLogic, assign, createActor, createMachine } from 'xstate';
+import { createActor, createMachine } from 'xstate';
 import UseMachineNoExtraOptions from './UseMachine-no-extra-options.vue';
 import UseMachine from './UseMachine.vue';
 
@@ -9,28 +9,28 @@ describe('useMachine', () => {
   };
   const fetchMachine = createMachine({
     id: 'fetch',
-    types: {} as {
-      actors: {
-        src: 'fetchData';
-        logic: PromiseActorLogic<string>;
-      };
-    },
     initial: 'idle',
-    context,
+    context: context as any,
     states: {
       idle: {
-        on: { FETCH: 'loading' }
+        on: { FETCH: { target: 'loading' } }
       },
       loading: {
         invoke: {
           id: 'fetchData',
           src: 'fetchData',
-          onDone: {
-            target: 'success',
-            actions: assign({
-              data: ({ event }) => event.output
-            }),
-            guard: ({ event }) => !!event.output.length
+          onDone: ({ context, event, guards, actions }, enq) => {
+            if (
+              !(({ event }: any) => !!event.output.length)({ context, event })
+            ) {
+              return;
+            }
+            return {
+              target: 'success',
+              context: {
+                data: event.output
+              }
+            };
           }
         }
       },

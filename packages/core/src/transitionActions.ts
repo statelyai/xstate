@@ -1,0 +1,1397 @@
+import isDevelopment from '#is-development';
+import { publishEmittedEvent } from './runtimeHelpers.ts';
+import { assertSendToEvent, builtInActions } from './actions.ts';
+import { resolveRegisteredActorSource } from './actorSource.ts';
+import { listenerLogic, type ListenerInput } from './actors/listener.ts';
+import {
+  subscriptionLogic,
+  type SubscriptionInput,
+  type SubscriptionMappers
+} from './actors/subscription.ts';
+import { XSTATE_SPAWN, XSTATE_START, XSTATE_TERMINATE } from './constants.ts';
+import {
+  getBuiltInTimerIdentity,
+  getTimerKey,
+  matchesTimerKey,
+  readTimerKey
+} from './timerKey.ts';
+import { createInertActorRef } from './remoteActorRef.ts';
+import {
+  encodeAddressSegment,
+  getActorIdPrefix,
+  parseGeneratedActorId,
+  type ActorSystemRuntime,
+  type DeadLetterDetail,
+  type EventRejectionReason
+} from './system.ts';
+import type {
+  ActorTermination,
+  AnyAction,
+  AnyActor,
+  AnyActorLogic,
+  AnyActorScope,
+  AnyEventObject,
+  AnyMachineSnapshot,
+  CancelExecutableEffect,
+  CustomExecutableEffect,
+  EmitExecutableEffect,
+  EnqueueObject,
+  EventObject,
+  ExecutableEffect,
+  MachineContext,
+  LogicalTimer,
+  RaiseExecutableEffect,
+  DeadLetterExecutableEffect,
+  SendToExecutableEffect,
+  Snapshot,
+  SpecialExecutableEffect,
+  SpawnExecutableEffect,
+  StartExecutableEffect,
+  StopExecutableEffect,
+  TerminateExecutableEffect,
+  TimerKey
+} from './types.ts';
+
+type TransitionActionRecord = {
+  action: (...args: any[]) => any;
+  args: any[];
+  childUpdate?:
+    | {
+        type: 'add';
+        actor: AnyActor;
+        id: string;
+        counters?: Record<string, number>;
+      }
+    | { type: 'remove'; actor: AnyActor };
+};
+
+type EffectRuntime = Partial<ActorSystemRuntime>;
+
+function execCustomEffect(
+  this: CustomExecutableEffect
+): void | PromiseLike<void> | undefined {
+  const result = this.action?.(...this.args);
+  if (isDevelopment) {
+    warnOnIgnoredEffectResult(this, result);
+  }
+  return result;
+}
+
+const warnedEffectResults = new WeakSet<object>();
+
+/**
+ * A function passed to `enq(...)` runs as an effect after the transition is
+ * computed, so a `{ context }` or `{ children }` it returns is never applied.
+ * Development builds say so, once per function.
+ */
+function warnOnIgnoredEffectResult(
+  effect: CustomExecutableEffect,
+  result: unknown
+): void {
+  if (
+    !effect.action ||
+    result === null ||
+    typeof result !== 'object' ||
+    warnedEffectResults.has(effect.action)
+  ) {
+    return;
+  }
+  const prototype = Object.getPrototypeOf(result);
+  if (prototype !== Object.prototype && prototype !== null) {
+    return;
+  }
+  const keys = ['context', 'children'].filter((key) => key in result);
+  if (!keys.length) {
+    return;
+  }
+  warnedEffectResults.add(effect.action);
+  console.warn(
+    `Action "${effect.type || '(anonymous)'}" returned { ${keys.join(', ')} }, which is ignored: functions passed to enq(...) run as effects after the transition. Return the patch from the transition, entry or exit function instead; a named action can be called there directly and its result returned.`
+  );
+}
+
+function execEmitEffect(
+  this: EmitExecutableEffect,
+  runtime: EffectRuntime = this.source.system
+): void | PromiseLike<void> {
+  return publishEmittedEvent(this.source, this.event, runtime);
+}
+
+/** @internal Creates an emitted-event effect. */
+export function createEmitEffect(
+  actorScope: AnyActorScope,
+  event: EventObject
+): EmitExecutableEffect {
+  return {
+    kind: 'emit',
+    exec: execEmitEffect,
+    type: event.type,
+    source: actorScope.self,
+    event,
+    params: undefined,
+    args: []
+  };
+}
+
+function execDeadLetterEffect(
+  this: DeadLetterExecutableEffect,
+  runtime: EffectRuntime = (this.target ?? this.source)!.system
+): void | PromiseLike<void> {
+  return runtime.deadLetter!(
+    this.source,
+    this.target,
+    this.event,
+    this.reason,
+    this.detail
+  );
+}
+
+/** @internal Creates a dead-letter effect for a boundary-rejected event. */
+export function createDeadLetterEffect(
+  actorScope: AnyActorScope,
+  source: AnyActor | undefined,
+  event: AnyEventObject,
+  reason: EventRejectionReason,
+  detail?: DeadLetterDetail
+): DeadLetterExecutableEffect {
+  return {
+    kind: 'builtin',
+    type: '@xstate.deadLetter',
+    exec: execDeadLetterEffect,
+    source,
+    target: actorScope.self,
+    event,
+    reason,
+    detail,
+    params: undefined,
+    args: []
+  };
+}
+
+/**
+ * @internal Creates a dead-letter effect for an `enq.sendTo` whose target is
+ * an undefined ref, an unknown child id, or the parent of a root actor.
+ */
+function createMissingTargetEffect(
+  actorScope: AnyActorScope,
+  event: AnyEventObject,
+  targetId: string | undefined
+): DeadLetterExecutableEffect {
+  return {
+    kind: 'builtin',
+    type: '@xstate.deadLetter',
+    exec: execDeadLetterEffect,
+    source: actorScope.self,
+    target: undefined,
+    event,
+    reason: 'missingTarget',
+    detail: {
+      targetId,
+      error: new Error(
+        targetId !== undefined
+          ? `Unable to send event to unknown child '${targetId}'`
+          : 'Unable to send event to an undefined actor'
+      )
+    },
+    params: undefined,
+    args: []
+  };
+}
+
+/** @internal Creates a directly executable user effect. */
+export function createCustomEffect(
+  type: string,
+  action: (runtime?: EffectRuntime) => void | PromiseLike<void> | undefined,
+  params?: unknown
+): CustomExecutableEffect {
+  return {
+    kind: 'action',
+    exec: action,
+    type,
+    action: action as () => void | PromiseLike<void>,
+    params,
+    args: []
+  };
+}
+
+function execSpawnEffect(
+  this: SpawnExecutableEffect,
+  runtime: EffectRuntime = this.actor.system
+): void | PromiseLike<void> {
+  return runtime.spawnActor!(this.source, this.actor);
+}
+
+function execStartEffect(
+  this: StartExecutableEffect,
+  runtime: EffectRuntime = this.actor.system
+): void | PromiseLike<void> {
+  // A child stopped before its deferred start (spawned and stopped in the
+  // same transition) stays stopped; actors cannot be restarted.
+  if (
+    (this.actor as { _processingStatus?: number })._processingStatus ===
+    2 /* ProcessingStatus.Stopped */
+  ) {
+    return;
+  }
+  return runtime.startActor!(this.actor);
+}
+
+function execStopEffect(
+  this: StopExecutableEffect,
+  runtime: EffectRuntime = this.source.system
+): void | PromiseLike<void> {
+  return runtime.stopActor!(this.actor);
+}
+
+function execTerminateEffect(
+  this: TerminateExecutableEffect,
+  runtime: EffectRuntime = this.actor.system
+): void | PromiseLike<void> {
+  const termination: ActorTermination =
+    this.status === 'done'
+      ? { status: 'done', output: this.output, error: undefined }
+      : { status: 'error', output: undefined, error: this.error };
+  return runtime.terminateActor!(this.actor, termination);
+}
+
+function execRaiseEffect(
+  this: RaiseExecutableEffect,
+  runtime: EffectRuntime = this.source.system
+): void | PromiseLike<void> {
+  return runtime.scheduleTimer!(
+    this.source,
+    getTimerKey(this),
+    this.delay ?? 0
+  );
+}
+
+function execSendToEffect(
+  this: SendToExecutableEffect,
+  runtime: EffectRuntime = this.source.system
+): void | PromiseLike<void> {
+  assertSendToEvent(this.event);
+  if (this.delay !== undefined) {
+    return runtime.scheduleTimer!(this.source, getTimerKey(this), this.delay);
+  }
+  return runtime.sendEvent!(this.source, this.target, this.event);
+}
+
+function execCancelEffect(
+  this: CancelExecutableEffect,
+  runtime: EffectRuntime = this.source.system
+): void | PromiseLike<void> {
+  return runtime.cancelTimer!(this.source, readTimerKey(this)!);
+}
+
+function updateLogicalTimers(
+  snapshot: AnyMachineSnapshot,
+  effect: ExecutableEffect,
+  actorScope: AnyActorScope
+): AnyMachineSnapshot {
+  if (!isBuiltInExecutableEffect(effect)) {
+    return snapshot;
+  }
+
+  if (effect.type === '@xstate.cancel') {
+    const key = readTimerKey(effect)!;
+    if (!snapshot.timers?.some((timer) => matchesTimerKey(timer, key))) {
+      return snapshot;
+    }
+    return {
+      ...snapshot,
+      timers: snapshot.timers.filter((timer) => !matchesTimerKey(timer, key))
+    };
+  }
+
+  if (
+    (effect.type !== '@xstate.raise' && effect.type !== '@xstate.sendTo') ||
+    effect.delay === undefined
+  ) {
+    return snapshot;
+  }
+
+  // A delayed raise or send without an `id` is numbered by the actor's
+  // timer sequence. Built-in timers (`after`, `timeout`) have neither; their
+  // event identifies them.
+  let nextTimerId = snapshot._nextTimerId ?? 0;
+  if (effect.id === undefined && !getBuiltInTimerIdentity(effect.event)) {
+    effect.seq = nextTimerId++;
+    const args = effect.args as unknown[];
+    args[args.length - 1] = {
+      ...(args[args.length - 1] as object),
+      seq: effect.seq
+    };
+  }
+  const target =
+    effect.type === '@xstate.raise' || effect.target === actorScope.self
+      ? 'self'
+      : effect.target;
+  const timer: LogicalTimer = {
+    ...(effect.id !== undefined && { id: effect.id }),
+    ...(effect.seq !== undefined && { seq: effect.seq }),
+    delay: effect.delay,
+    type: effect.type,
+    event: effect.event,
+    target
+  };
+  // Scheduling a timer that is already pending replaces it in place.
+  const key = getTimerKey(timer);
+  const timers = snapshot.timers ?? [];
+  const index = timers.findIndex((pending) => matchesTimerKey(pending, key));
+
+  return {
+    ...snapshot,
+    timers:
+      index === -1
+        ? [...timers, timer]
+        : timers.map((pending, i) => (i === index ? timer : pending)),
+    _nextTimerId: nextTimerId
+  };
+}
+
+export function mergeContextPatch(
+  context: MachineContext,
+  patch: MachineContext
+): MachineContext {
+  return { ...context, ...patch };
+}
+
+function pushBuiltInAction(actions: any[], action: any, ...args: any[]) {
+  const actionRecord: TransitionActionRecord = { action, args };
+  actions.push(actionRecord as AnyAction);
+  return actionRecord;
+}
+
+/** @internal Max-merges generated-id counter records, copy-on-write. */
+export function mergeActorIdCounters(
+  current: Record<string, number> | undefined,
+  update: Record<string, number>
+): Record<string, number> {
+  const merged = { ...current };
+  for (const key of Object.keys(update)) {
+    merged[key] = Math.max(merged[key] ?? 0, update[key]);
+  }
+  return merged;
+}
+
+function applyChildUpdate(
+  snapshot: AnyMachineSnapshot,
+  update: NonNullable<TransitionActionRecord['childUpdate']>,
+  actorScope: AnyActorScope
+): AnyMachineSnapshot {
+  if (update.type === 'add') {
+    return {
+      ...snapshot,
+      children: { ...snapshot.children, [update.id]: update.actor },
+      ...(update.counters && {
+        _nextActorIds: mergeActorIdCounters(
+          snapshot._nextActorIds,
+          update.counters
+        )
+      })
+    };
+  }
+
+  const children = { ...snapshot.children };
+  let owned = update.actor._parent === actorScope.self;
+  for (const key of Object.keys(children)) {
+    if (children[key] === update.actor) {
+      owned = true;
+      delete children[key];
+    }
+  }
+  if (!owned) {
+    throw new Error(
+      isDevelopment
+        ? `Cannot stop child actor ${update.actor.id} of ${actorScope.self.id} because it is not a child`
+        : `Cannot stop non-child actor ${update.actor.id}`
+    );
+  }
+  actorScope.system._unregister(update.actor);
+  return { ...snapshot, children };
+}
+
+function getTransitionActionRecord(
+  action: AnyAction
+): TransitionActionRecord | undefined {
+  if (
+    typeof action === 'object' &&
+    action !== null &&
+    'action' in action &&
+    typeof action.action === 'function'
+  ) {
+    return action as TransitionActionRecord;
+  }
+  return undefined;
+}
+
+function pushSpawnedChild(
+  actions: any[],
+  actor: AnyActor,
+  id: string,
+  counters?: Record<string, number>
+) {
+  const action = pushBuiltInAction(
+    actions,
+    builtInActions['@xstate.spawn'],
+    actor
+  );
+  action.childUpdate = { type: 'add', actor, id, counters };
+}
+
+/**
+ * Spawn-allocation state shared by every enqueue object of one transition, so
+ * generated ids stay unique and resolvable across action functions and
+ * microsteps of the same event.
+ */
+interface SpawnAllocation {
+  counters: Map<string, number>;
+  /** Explicit child ids claimed by spawns/invokes of this transition. */
+  explicitIds: Set<string>;
+  /** Ids of children stopped by this transition, freeing them for reuse. */
+  stoppedIds: Set<string>;
+}
+
+const spawnAllocations = new WeakMap<object, SpawnAllocation>();
+
+const createSpawnAllocation = (): SpawnAllocation => ({
+  counters: new Map(),
+  explicitIds: new Set(),
+  stoppedIds: new Set()
+});
+
+/**
+ * Starts a fresh spawn-allocation transaction for one logical transition.
+ * Called at every transition boundary so pure replays from the same snapshot
+ * allocate identical ids.
+ *
+ * @internal
+ */
+export function beginSpawnAllocation(actorScope: AnyActorScope): void {
+  spawnAllocations.set(actorScope, createSpawnAllocation());
+}
+
+// Read the raw snapshot: getSnapshot() throws while the actor initializes,
+// and entry actions run before any snapshot exists.
+function getWorkingSnapshotOf(actorScope: AnyActorScope):
+  | {
+      _nextActorIds?: Record<string, number>;
+      children?: Record<string, AnyActor | undefined>;
+    }
+  | undefined {
+  return (
+    actorScope.self as {
+      _snapshot?: {
+        _nextActorIds?: Record<string, number>;
+        children?: Record<string, AnyActor | undefined>;
+      };
+    }
+  )._snapshot;
+}
+
+function getRegisteredActors(
+  actorScope: AnyActorScope
+): Record<string, AnyActorLogic> | undefined {
+  return (
+    actorScope.self as {
+      logic?: { sources?: { actors?: Record<string, AnyActorLogic> } };
+    }
+  ).logic?.sources?.actors;
+}
+
+function resolveTransitionSpawnSource(
+  actorScope: AnyActorScope,
+  source: string | AnyActorLogic
+): { logic: AnyActorLogic; src: string | undefined } {
+  const registeredActors = getRegisteredActors(actorScope);
+  if (typeof source === 'string') {
+    const logic = registeredActors?.[source];
+    if (!logic) {
+      throw new Error(`Actor source '${source}' is not provided`);
+    }
+    return { logic, src: source };
+  }
+  if (!registeredActors) {
+    return { logic: source, src: undefined };
+  }
+  return {
+    logic: source,
+    src: resolveRegisteredActorSource(registeredActors, source)
+  };
+}
+
+/**
+ * Internal helper actors (listeners, subscriptions) number their ids from
+ * system-level counters under `@xstate.`-prefixed names; snapshot-owned
+ * children number from per-snapshot counters. The two spaces only stay
+ * collision-free because their prefixes are disjoint, so user sources must
+ * not enter the reserved `xstate.` / `@xstate.` namespaces.
+ */
+function assertUnreservedPrefix(prefix: string): void {
+  if (
+    isDevelopment &&
+    (prefix.startsWith('xstate.') || prefix.startsWith('@xstate.'))
+  ) {
+    throw new Error(
+      `Child actor ids with the "xstate." or "@xstate." prefix are reserved for internal actors; rename the "${prefix}" source or logic id.`
+    );
+  }
+}
+
+/**
+ * The next free index for a prefix. The parent snapshot's persisted counter
+ * is always a floor, so a freed id is never handed out again — not even when
+ * an explicit id reserved a lower one earlier in the transition.
+ */
+function nextChildIndex(
+  actorScope: AnyActorScope,
+  allocation: SpawnAllocation,
+  prefix: string
+): number {
+  return Math.max(
+    allocation.counters.get(prefix) ?? 0,
+    getWorkingSnapshotOf(actorScope)?._nextActorIds?.[prefix] ?? 0
+  );
+}
+
+/**
+ * The next generated index for a prefix that is not claimed in this
+ * transition or held by a live child, such as an implicit invoke id
+ * (`worker:0` for an invoke in state `worker`). Does not allocate.
+ */
+function nextFreeChildIndex(
+  actorScope: AnyActorScope,
+  allocation: SpawnAllocation,
+  prefix: string
+): number {
+  let next = nextChildIndex(actorScope, allocation, prefix);
+  const children = getWorkingSnapshotOf(actorScope)?.children;
+  while (
+    allocation.explicitIds.has(`${prefix}:${next}`) ||
+    children?.[`${prefix}:${next}`]
+  ) {
+    next++;
+  }
+  return next;
+}
+
+/**
+ * Allocates the next generated child id for the transition's allocation
+ * transaction, seeded from the parent snapshot's own persisted counters. This
+ * is the single allocator for snapshot-owned children (`enq.spawn` and
+ * context-factory spawns); a correct allocation cannot collide.
+ *
+ * @internal
+ */
+export function allocateChildId(
+  actorScope: AnyActorScope,
+  src: string | AnyActorLogic,
+  localAllocation?: SpawnAllocation
+): { id: string; counters: Record<string, number> } {
+  if (isDevelopment && !spawnAllocations.get(actorScope)) {
+    console.warn(
+      'A child id was generated outside a spawn-allocation transaction; ids may repeat across enqueue objects. Transition entry points must call beginSpawnAllocation().'
+    );
+  }
+  const allocation =
+    spawnAllocations.get(actorScope) ??
+    localAllocation ??
+    createSpawnAllocation();
+  const prefix = getActorIdPrefix(src);
+  assertUnreservedPrefix(prefix);
+  const next = nextFreeChildIndex(actorScope, allocation, prefix);
+  allocation.counters.set(prefix, next + 1);
+  return { id: `${prefix}:${next}`, counters: { [prefix]: next + 1 } };
+}
+
+/**
+ * Requires an explicit child id to be unoccupied before a spawn or invoke
+ * claims it: an address must name at most one live actor. An id is occupied
+ * when a child of this parent already holds it and this transition has not
+ * stopped that child, or when an earlier spawn of this transition claimed it.
+ *
+ * @internal
+ */
+export function assertChildIdFree(
+  actorScope: AnyActorScope,
+  id: string,
+  localAllocation?: SpawnAllocation
+): void {
+  const allocation =
+    spawnAllocations.get(actorScope) ??
+    localAllocation ??
+    createSpawnAllocation();
+  const existing = getWorkingSnapshotOf(actorScope)?.children?.[id] as
+    | AnyActor
+    | undefined;
+  // A terminated child no longer occupies its id: it relayed its completion
+  // and is removed from `children` right after the transition handling it,
+  // so the supervisor pattern — respawn under the same name while handling
+  // the child's done/error event — must not conflict with the outgoing
+  // entry. Remote handles never expose a terminal status locally; the
+  // completion event that removes one is the owning runtime's business.
+  const occupied =
+    existing !== undefined &&
+    !allocation.stoppedIds.has(id) &&
+    existing.getSnapshot().status === 'active';
+  if (allocation.explicitIds.has(id) || occupied) {
+    throw new Error(
+      isDevelopment
+        ? `Cannot spawn child actor with id '${id}': the id is already in use by another child of '${actorScope.self.id}'. Stop the existing child before reusing its id.`
+        : `Child actor id '${id}' is already in use`
+    );
+  }
+  allocation.explicitIds.add(id);
+}
+
+/**
+ * Records that this transition stopped a child, freeing its id for a later
+ * spawn or invoke of the same transition (the invoke restart pattern).
+ *
+ * @internal
+ */
+function recordStoppedChild(actorScope: AnyActorScope, actor: AnyActor): void {
+  const allocation = spawnAllocations.get(actorScope);
+  if (allocation) {
+    allocation.stoppedIds.add(actor.id);
+    allocation.explicitIds.delete(actor.id);
+  }
+}
+
+/**
+ * Reserves an explicit generated-shaped id (`worker:5`) in the transaction
+ * and the parent snapshot, so live runs and pure replays allocate the same
+ * later ids even after this child is removed.
+ *
+ * @internal
+ */
+export function reserveChildId(
+  actorScope: AnyActorScope,
+  id: string,
+  localAllocation?: SpawnAllocation
+): Record<string, number> | undefined {
+  const generated = parseGeneratedActorId(id);
+  if (!generated) {
+    return undefined;
+  }
+  assertUnreservedPrefix(generated.prefix);
+  const allocation =
+    spawnAllocations.get(actorScope) ??
+    localAllocation ??
+    createSpawnAllocation();
+  // The requested id is used as asked, but numbering continues from the
+  // highest reservation: an explicit low id never rewinds the counter.
+  const next = Math.max(
+    nextChildIndex(actorScope, allocation, generated.prefix),
+    generated.index + 1
+  );
+  allocation.counters.set(generated.prefix, next);
+  return { [generated.prefix]: next };
+}
+
+/**
+ * The counters allocated so far in the transition's transaction, for
+ * committing into a snapshot built outside `applyChildUpdate` (the
+ * pre-initial snapshot with context-factory spawns).
+ *
+ * @internal
+ */
+export function takeSpawnAllocationCounters(
+  actorScope: AnyActorScope
+): Record<string, number> | undefined {
+  const counters = spawnAllocations.get(actorScope)?.counters;
+  if (!counters?.size) {
+    return undefined;
+  }
+  return Object.fromEntries(counters);
+}
+
+/**
+ * Scopes whose `self` is not the evaluated snapshot's actor (the shared
+ * `snapshot.can(...)` scope), so spawned inert refs have no address.
+ *
+ * @internal
+ */
+export const detachedScopes = new WeakSet<AnyActorScope>();
+
+export function assertRaiseEvent(event: unknown): void {
+  if (typeof event === 'string') {
+    throw new Error(
+      isDevelopment
+        ? `Only event objects may be used with raise; use raise({ type: "${event}" }) instead`
+        : `Only event objects may be used with raise`
+    );
+  }
+}
+
+export function createTransitionEnqueue(
+  actorScope: AnyActorScope,
+  actions: any[],
+  internalEvents: EventObject[],
+  actorSubscriptions = false,
+  createActors = true
+) {
+  // Paths that never begin a transaction keep a per-enqueue scope.
+  const localAllocation =
+    spawnAllocations.get(actorScope) ?? createSpawnAllocation();
+  const props: Partial<EnqueueObject<any, any>> = {
+    cancel: (id: string | TimerKey) => {
+      pushBuiltInAction(
+        actions,
+        builtInActions['@xstate.cancel'],
+        actorScope,
+        typeof id === 'string' ? { id } : id
+      );
+    },
+    emit: (emittedEvent) => {
+      actions.push(emittedEvent);
+    },
+    log: (...args) => {
+      pushBuiltInAction(actions, actorScope.logger, ...args);
+    },
+    raise: (raisedEvent, options) => {
+      assertRaiseEvent(raisedEvent);
+      if (options?.delay !== undefined) {
+        pushBuiltInAction(
+          actions,
+          builtInActions['@xstate.raise'],
+          actorScope,
+          raisedEvent,
+          options
+        );
+      } else {
+        internalEvents.push(raisedEvent);
+      }
+    },
+    spawn: (source: string | AnyActorLogic, options?: any) => {
+      const { logic, src } = resolveTransitionSpawnSource(actorScope, source);
+      if (!createActors) {
+        // Speculative evaluation creates no actor and allocates no id: return
+        // an inert ref with the id this spawn would get.
+        const prefix = getActorIdPrefix(src ?? logic);
+        const id =
+          options?.id ??
+          `${prefix}:${nextFreeChildIndex(actorScope, spawnAllocations.get(actorScope) ?? localAllocation, prefix)}`;
+        return createInertActorRef({
+          id,
+          address: detachedScopes.has(actorScope)
+            ? undefined
+            : `${actorScope.self.address}/${encodeAddressSegment(id)}`,
+          src
+        });
+      }
+      // Generated ids allocate from the parent snapshot's own counters
+      // through the transition's allocation transaction; explicit
+      // generated-shaped ids reserve their numbering the same way.
+      let id = options?.id;
+      let counters: Record<string, number> | undefined;
+      if (id === undefined) {
+        ({ id, counters } = allocateChildId(
+          actorScope,
+          src ?? logic,
+          localAllocation
+        ));
+      } else {
+        assertChildIdFree(actorScope, id, localAllocation);
+        counters = reserveChildId(actorScope, id, localAllocation);
+      }
+      const actor = actorScope.system.createActorRef(logic, {
+        ...options,
+        ...(src !== undefined && { src }),
+        id,
+        parent: actorScope.self
+      });
+      pushSpawnedChild(actions, actor, id, counters);
+      return actor;
+    },
+    sendTo: (actor, event, options) => {
+      // A missing target (undefined ref, unknown child id, or `parent` of a
+      // root actor) resolves to a dead letter in `resolveActionsWithContext`.
+      pushBuiltInAction(
+        actions,
+        builtInActions['@xstate.sendTo'],
+        actorScope,
+        actor,
+        event,
+        options
+      );
+    },
+    stop: (actor) => {
+      if (actor) {
+        // enq.stop accepts the consumer ActorRef contract; refs handed to
+        // machine code are always full actor instances at runtime.
+        const actorInstance = actor as AnyActor;
+        const action = pushBuiltInAction(
+          actions,
+          builtInActions['@xstate.stop'],
+          actorScope,
+          actorInstance
+        );
+        action.childUpdate = { type: 'remove', actor: actorInstance };
+        recordStoppedChild(actorScope, actorInstance);
+      }
+    }
+  };
+
+  if (actorSubscriptions) {
+    Object.assign(props, {
+      listen: (actor: any, eventType: string, mapper: any) => {
+        if (!createActors) {
+          return { id: undefined } as unknown as AnyActor;
+        }
+        const input: ListenerInput<any, any> = {
+          actor,
+          eventType,
+          mapper
+        };
+        const listenerActor = actorScope.system.createActorRef(listenerLogic, {
+          input,
+          parent: actorScope.self
+        });
+        pushBuiltInAction(
+          actions,
+          builtInActions['@xstate.spawn'],
+          listenerActor
+        );
+        return listenerActor;
+      },
+      subscribeTo: (actor: any, mappers: any) => {
+        if (!createActors) {
+          return { id: undefined } as unknown as AnyActor;
+        }
+        const normalizedMappers: SubscriptionMappers<any, any, any> =
+          typeof mappers === 'function' ? { snapshot: mappers } : mappers;
+
+        const input: SubscriptionInput<any, any, any, any> = {
+          actor,
+          mappers: normalizedMappers
+        };
+        const subscriptionActor = actorScope.system.createActorRef(
+          subscriptionLogic,
+          {
+            input,
+            parent: actorScope.self
+          }
+        );
+        pushBuiltInAction(
+          actions,
+          builtInActions['@xstate.spawn'],
+          subscriptionActor
+        );
+        return subscriptionActor;
+      }
+    });
+  }
+
+  // The handle is only valid while its function runs; `closeTransitionEnqueue`
+  // invalidates it once the function returns.
+  let closed = false;
+  const guard =
+    <T extends (...args: any[]) => any>(fn: T) =>
+    (...args: Parameters<T>) =>
+      closed ? lateEnqueueCall() : fn(...args);
+  for (const key of Object.keys(props) as (keyof typeof props)[]) {
+    (props as any)[key] = guard((props as any)[key]);
+  }
+  const enqueue = createEnqueueObject(
+    props,
+    guard((action, ...args) => {
+      // A named action is `undefined` when it has no implementation. Skip it:
+      // an `{ action, args }` record without a function would be emitted as
+      // an event. Speculative passes (`can()`, conflict resolution) run with
+      // `createActors: false`; warn only when the transition really runs.
+      if (typeof action !== 'function') {
+        if (isDevelopment && createActors) {
+          warnNotAFunction(action);
+        }
+        return;
+      }
+      pushBuiltInAction(actions, action, ...args);
+    })
+  );
+  enqueueClosers.set(enqueue, () => {
+    closed = true;
+  });
+  return enqueue;
+}
+
+const enqueueClosers = new WeakMap<object, () => void>();
+
+/**
+ * @internal Invalidates an enqueue handle after the function it was passed
+ * to returned. Later `enq.*` calls throw in development and no-op in
+ * production.
+ */
+export function closeTransitionEnqueue(enqueue: object): void {
+  enqueueClosers.get(enqueue)?.();
+}
+
+/** @internal Handles an `enq.*` call made after its function returned. */
+export function lateEnqueueCall(): any {
+  if (isDevelopment) {
+    throw new Error('enq.* called after the transition function returned');
+  }
+  return undefined;
+}
+
+function warnNotAFunction(value: unknown): void {
+  const received =
+    typeof value === 'string'
+      ? `the string "${value}"`
+      : value !== null && typeof value === 'object'
+        ? 'an object'
+        : String(value);
+  console.warn(
+    `enq(...) received ${received} instead of a function, so nothing was enqueued. A named action is undefined when it has no implementation: implement it in setup({ actions }) or the machine config, or pass it to machine.provide({ actions }).`
+  );
+}
+
+function getBuiltInActionFields(
+  action: (...args: any[]) => void,
+  args: unknown[]
+): Partial<SpecialExecutableEffect> | undefined {
+  switch (action) {
+    case builtInActions['@xstate.spawn']: {
+      const [actor] = args as Parameters<
+        (typeof builtInActions)['@xstate.spawn']
+      >;
+      return {
+        type: '@xstate.spawn',
+        kind: 'builtin',
+        exec: execSpawnEffect,
+        source: actor._parent,
+        actor,
+        id: actor.id,
+        logic: (actor as any).logic,
+        src: actor.src,
+        input: (actor as any).options?.input
+      };
+    }
+    case builtInActions['@xstate.raise']: {
+      const [, event, options] = args as Parameters<
+        (typeof builtInActions)['@xstate.raise']
+      >;
+      return {
+        type: '@xstate.raise',
+        kind: 'builtin',
+        exec: execRaiseEffect,
+        source: (
+          args as Parameters<(typeof builtInActions)['@xstate.raise']>
+        )[0].self,
+        event,
+        id: options?.id,
+        delay: options?.delay
+      };
+    }
+    case builtInActions['@xstate.sendTo']: {
+      const [, target, event, options] = args as Parameters<
+        (typeof builtInActions)['@xstate.sendTo']
+      >;
+      return {
+        type: '@xstate.sendTo',
+        kind: 'builtin',
+        exec: execSendToEffect,
+        source: (
+          args as Parameters<(typeof builtInActions)['@xstate.sendTo']>
+        )[0].self,
+        target,
+        event,
+        id: options?.id,
+        delay: options?.delay
+      };
+    }
+    case builtInActions['@xstate.cancel']: {
+      const [, key] = args as Parameters<
+        (typeof builtInActions)['@xstate.cancel']
+      >;
+      return {
+        type: '@xstate.cancel',
+        kind: 'builtin',
+        exec: execCancelEffect,
+        source: (
+          args as Parameters<(typeof builtInActions)['@xstate.cancel']>
+        )[0].self,
+        ...key
+      };
+    }
+    case builtInActions['@xstate.stop']: {
+      const [, actor] = args as Parameters<
+        (typeof builtInActions)['@xstate.stop']
+      >;
+      return {
+        type: '@xstate.stop',
+        kind: 'builtin',
+        exec: execStopEffect,
+        source: (args as Parameters<(typeof builtInActions)['@xstate.stop']>)[0]
+          .self,
+        actor,
+        id: actor.id
+      };
+    }
+    default:
+      return undefined;
+  }
+}
+
+/** @internal Creates an actor-start effect, including for restored children. */
+export function createStartEffect(actor: AnyActor): StartExecutableEffect {
+  const args: Parameters<(typeof builtInActions)['@xstate.start']> = [actor];
+  return {
+    kind: 'builtin',
+    exec: execStartEffect,
+    type: XSTATE_START,
+    source: actor._parent,
+    params: undefined,
+    args,
+    actor,
+    id: actor.id
+  };
+}
+
+/** @internal Recreates a pending logical timer without re-entering its state. */
+export function createTimerEffect(
+  actorScope: AnyActorScope,
+  timer: LogicalTimer,
+  delay: number
+): RaiseExecutableEffect | SendToExecutableEffect {
+  const source = actorScope.self;
+  const options = { id: timer.id, seq: timer.seq, delay };
+  if (timer.type === '@xstate.raise') {
+    return {
+      kind: 'builtin',
+      type: timer.type,
+      source,
+      event: timer.event,
+      id: timer.id,
+      ...(timer.seq !== undefined && { seq: timer.seq }),
+      delay,
+      params: undefined,
+      args: [actorScope, timer.event, options],
+      exec: execRaiseEffect
+    };
+  }
+  const target = timer.target === 'self' ? source : timer.target;
+  return {
+    kind: 'builtin',
+    type: timer.type,
+    source,
+    target,
+    event: timer.event,
+    id: timer.id,
+    ...(timer.seq !== undefined && { seq: timer.seq }),
+    delay,
+    params: undefined,
+    args: [actorScope, target, timer.event, options],
+    exec: execSendToEffect
+  };
+}
+
+export function createSpawnEffect(actor: AnyActor): SpawnExecutableEffect {
+  const args: Parameters<(typeof builtInActions)['@xstate.spawn']> = [actor];
+  return {
+    kind: 'builtin',
+    exec: execSpawnEffect,
+    type: XSTATE_SPAWN,
+    source: actor._parent,
+    params: undefined,
+    args,
+    actor,
+    id: actor.id,
+    logic: (actor as any).logic,
+    src: actor.src,
+    input: (actor as any).options?.input
+  };
+}
+
+/** @internal Creates an immediate actor-to-actor delivery effect. */
+export function createSendToEffect(
+  actorScope: AnyActorScope,
+  target: AnyActor,
+  event: EventObject
+): SendToExecutableEffect {
+  const args: Parameters<(typeof builtInActions)['@xstate.sendTo']> = [
+    actorScope,
+    target,
+    event,
+    {}
+  ];
+  return {
+    kind: 'builtin',
+    exec: execSendToEffect,
+    type: '@xstate.sendTo',
+    source: actorScope.self,
+    target,
+    event,
+    id: undefined,
+    delay: undefined,
+    params: undefined,
+    args
+  };
+}
+
+/** @internal Creates the terminal lifecycle effect for an actor. */
+export function createTerminationEffect(
+  actorScope: AnyActorScope,
+  snapshot: Snapshot<unknown>
+): TerminateExecutableEffect {
+  if (snapshot.status !== 'done' && snapshot.status !== 'error') {
+    throw new Error('Cannot terminate an active or stopped actor');
+  }
+  const termination: ActorTermination =
+    snapshot.status === 'done'
+      ? { status: 'done', output: snapshot.output, error: undefined }
+      : { status: 'error', output: undefined, error: snapshot.error };
+  const args: Parameters<(typeof builtInActions)['@xstate.terminate']> = [
+    actorScope.self,
+    termination
+  ];
+  return {
+    kind: 'builtin',
+    exec: execTerminateEffect,
+    type: XSTATE_TERMINATE,
+    source: actorScope.self,
+    actor: actorScope.self,
+    id: actorScope.self.id,
+    ...termination,
+    params: undefined,
+    args
+  };
+}
+
+/**
+ * Ensures that a newly terminal snapshot has exactly one ordered actor
+ * termination effect.
+ *
+ * @internal
+ */
+export function finalizeTransitionResult<
+  TSnapshot extends Snapshot<unknown>,
+  TEffect
+>(
+  actorScope: AnyActorScope,
+  previousSnapshot: TSnapshot | undefined,
+  [nextSnapshot, effects]: [TSnapshot, TEffect[]]
+): [TSnapshot, Array<TEffect | TerminateExecutableEffect>] {
+  const becameTerminal =
+    nextSnapshot.status === 'done' || nextSnapshot.status === 'error';
+  const wasTerminal =
+    previousSnapshot?.status === 'done' || previousSnapshot?.status === 'error';
+  const hasTerminationEffect = effects.some(
+    (effect) =>
+      typeof effect === 'object' &&
+      effect !== null &&
+      'type' in effect &&
+      effect.type === XSTATE_TERMINATE
+  );
+
+  return becameTerminal && !wasTerminal && !hasTerminationEffect
+    ? [
+        nextSnapshot,
+        [...effects, createTerminationEffect(actorScope, nextSnapshot)]
+      ]
+    : [nextSnapshot, effects];
+}
+
+/**
+ * Attached (listener/subscription) starts are ordered before child starts so
+ * that a listener/subscription captures events emitted synchronously as its
+ * target actor starts.
+ */
+export function deriveDeferredStarts(
+  effects: ReadonlyArray<ExecutableEffect>
+): StartExecutableEffect[] {
+  const attachedStarts: StartExecutableEffect[] = [];
+  const childStarts: StartExecutableEffect[] = [];
+
+  for (const effect of effects) {
+    if (!isBuiltInExecutableEffect(effect) || effect.type !== XSTATE_SPAWN) {
+      continue;
+    }
+    const { actor, logic } = effect;
+    const start = createStartEffect(actor);
+    if (logic === listenerLogic || logic === subscriptionLogic) {
+      attachedStarts.push(start);
+    } else {
+      childStarts.push(start);
+    }
+  }
+
+  return [...attachedStarts, ...childStarts];
+}
+
+/** @public */
+export function isBuiltInExecutableEffect(
+  action: ExecutableEffect
+): action is SpecialExecutableEffect {
+  return action.kind === 'builtin';
+}
+
+/**
+ * Executes transition effects sequentially, awaiting each runtime operation.
+ *
+ * @public
+ */
+export async function executeEffects(
+  effects: readonly ExecutableEffect[],
+  runtime?: Partial<ActorSystemRuntime>
+): Promise<void> {
+  for (const effect of effects) {
+    await effect.exec(runtime);
+  }
+}
+
+export function resolveActionsWithContext(
+  currentSnapshot: AnyMachineSnapshot,
+  _event: AnyEventObject,
+  actorScope: AnyActorScope,
+  actions: AnyAction[]
+): [AnyMachineSnapshot, ExecutableEffect[]] {
+  let intermediateSnapshot = currentSnapshot;
+  const executableActions: ExecutableEffect[] = [];
+
+  for (const action of actions) {
+    const isInline = typeof action === 'function';
+    const actionRecord = getTransitionActionRecord(action);
+    let resolvedActionArgs = actionRecord?.args;
+
+    if (
+      actionRecord?.action === builtInActions['@xstate.sendTo'] &&
+      (actionRecord.args[1] === undefined ||
+        typeof actionRecord.args[1] === 'string')
+    ) {
+      const childId: string | undefined = actionRecord.args[1];
+      const target =
+        childId !== undefined &&
+        Object.hasOwn(intermediateSnapshot.children, childId)
+          ? intermediateSnapshot.children[childId]
+          : undefined;
+      if (!target) {
+        // Boundary fault: the event is dead-lettered and the sender keeps
+        // running; a missing target is never an actor error.
+        executableActions.push(
+          createMissingTargetEffect(actorScope, actionRecord.args[2], childId)
+        );
+        continue;
+      }
+      resolvedActionArgs = [
+        actionRecord.args[0],
+        target,
+        ...actionRecord.args.slice(2)
+      ];
+    }
+    // A ref that went through JSON stays address-backed through effects and
+    // timers: delivery resolves it to whichever actor is live at the address
+    // then, routes it through a host runtime, or reports a dead letter.
+
+    const resolvedAction = isInline
+      ? action
+      : actionRecord
+        ? actionRecord.action.bind(null, ...resolvedActionArgs!)
+        : false;
+
+    let actionParams = undefined;
+
+    if (typeof action === 'object' && action !== null) {
+      const {
+        type: _,
+        childUpdate: _childUpdate,
+        ...emittedEventParams
+      } = action as any;
+      actionParams = emittedEventParams;
+    }
+
+    if (actionRecord?.childUpdate) {
+      intermediateSnapshot = applyChildUpdate(
+        intermediateSnapshot,
+        actionRecord.childUpdate,
+        actorScope
+      );
+    }
+
+    if (!resolvedAction || !('resolve' in resolvedAction)) {
+      const builtInFields =
+        typeof action === 'object' &&
+        action !== null &&
+        'action' in action &&
+        typeof action.action === 'function'
+          ? getBuiltInActionFields(action.action, resolvedActionArgs!)
+          : undefined;
+      const isEmittedEvent =
+        typeof action === 'object' && action !== null && !actionRecord;
+
+      const executableAction = {
+        kind: builtInFields
+          ? ('builtin' as const)
+          : isEmittedEvent
+            ? ('emit' as const)
+            : ('action' as const),
+        type:
+          typeof action === 'object'
+            ? 'action' in action && typeof action.action === 'function'
+              ? (action.action.name ?? '(anonymous)')
+              : (action as AnyEventObject).type
+            : action.name || '(anonymous)',
+        params: builtInFields ? undefined : actionParams,
+        args:
+          typeof action === 'object' && 'action' in action
+            ? resolvedActionArgs!
+            : [],
+        ...(builtInFields
+          ? {}
+          : isEmittedEvent
+            ? { source: actorScope.self, event: action }
+            : {
+                action: actionRecord?.action ?? (isInline ? action : undefined)
+              }),
+        ...(!builtInFields
+          ? { exec: isEmittedEvent ? execEmitEffect : execCustomEffect }
+          : {}),
+        ...builtInFields
+      };
+
+      const typedExecutableEffect = executableAction as ExecutableEffect;
+      intermediateSnapshot = updateLogicalTimers(
+        intermediateSnapshot,
+        typedExecutableEffect,
+        actorScope
+      );
+      executableActions.push(typedExecutableEffect);
+      continue;
+    }
+  }
+
+  return [intermediateSnapshot, executableActions];
+}
+
+export function createEnqueueObject(
+  props: Partial<EnqueueObject<any, any>>,
+  action: <T extends (...args: any[]) => any>(
+    fn: T,
+    ...args: Parameters<T>
+  ) => void
+): EnqueueObject<any, any> {
+  const enqueueFn = (
+    fn: (...args: any[]) => any,
+    ...args: Parameters<typeof fn>
+  ) => {
+    action(fn, ...args);
+  };
+
+  Object.assign(enqueueFn, {
+    cancel: noop,
+    emit: noop,
+    log: noop,
+    raise: noop,
+    spawn: emptyActor,
+    sendTo: noop,
+    stop: noop,
+    listen: emptyActor,
+    subscribeTo: emptyActor,
+    ...props
+  });
+
+  return enqueueFn as any;
+}
+
+const noop = () => {};
+const emptyActor = () => ({}) as any;

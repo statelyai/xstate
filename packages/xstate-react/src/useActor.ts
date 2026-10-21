@@ -1,5 +1,5 @@
 import isDevelopment from '#is-development';
-import { useCallback, useEffect } from 'react';
+import { useCallback } from 'react';
 import { useSyncExternalStore } from 'use-sync-external-store/shim';
 import {
   Actor,
@@ -7,21 +7,18 @@ import {
   AnyActorLogic,
   Snapshot,
   SnapshotFrom,
+  createActor,
   type ConditionalRequired,
   type IsNotNever,
-  type RequiredActorOptionsKeys
+  type RequiredActorOptionsKeys,
+  type RequiredActorOptionsFor
 } from 'xstate';
-import { stopRootWithRehydration } from './stopRootWithRehydration.ts';
-import { useIdleActorRef } from './useActorRef.ts';
+import { useActorLifecycle, useIdleActorRef } from './useActorRef.ts';
 
 export function useActor<TLogic extends AnyActorLogic>(
   logic: TLogic,
   ...[options]: ConditionalRequired<
-    [
-      options?: ActorOptions<TLogic> & {
-        [K in RequiredActorOptionsKeys<TLogic>]: unknown;
-      }
-    ],
+    [options?: ActorOptions<TLogic> & RequiredActorOptionsFor<TLogic>],
     IsNotNever<RequiredActorOptionsKeys<TLogic>>
   >
 ): [SnapshotFrom<TLogic>, Actor<TLogic>['send'], Actor<TLogic>] {
@@ -36,7 +33,7 @@ export function useActor<TLogic extends AnyActorLogic>(
     );
   }
 
-  const actorRef = useIdleActorRef(logic, options);
+  const [actorRef, setActorRef] = useIdleActorRef(logic, options);
 
   const getSnapshot = useCallback(() => {
     return actorRef.getSnapshot();
@@ -67,13 +64,9 @@ export function useActor<TLogic extends AnyActorLogic>(
     throw snapshotWithStatus.error;
   }
 
-  useEffect(() => {
-    actorRef.start();
-
-    return () => {
-      stopRootWithRehydration(actorRef);
-    };
-  }, [actorRef]);
+  useActorLifecycle(actorRef, setActorRef, () =>
+    createActor(actorRef.logic, options as ActorOptions<TLogic>)
+  );
 
   return [actorSnapshot, actorRef.send, actorRef];
 }

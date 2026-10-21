@@ -12,7 +12,7 @@ describe('useActorRef', () => {
       states: {
         inactive: {
           on: {
-            ACTIVATE: 'active'
+            ACTIVATE: { target: 'active' }
           }
         },
         active: {}
@@ -55,7 +55,7 @@ describe('useActorRef', () => {
       states: {
         inactive: {
           on: {
-            ACTIVATE: 'active'
+            ACTIVATE: { target: 'active' }
           }
         },
         active: {}

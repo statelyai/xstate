@@ -24,13 +24,14 @@ import {
   type ContextFromStoreConfig,
   type Observer,
   type StoreInspectionEvent,
-  createStore
+  createStore,
+  isAtom
 } from '@xstate/store';
 
 const useIsomorphicLayoutEffect =
   typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
-function defaultCompare<T>(a: T | undefined, b: T) {
+function defaultCompare<T>(a: T, b: T) {
   return a === b;
 }
 
@@ -40,7 +41,7 @@ function identity<T>(snapshot: T): T {
 
 function useSelectorWithCompare<TSnapshot, T>(
   selector: (snapshot: TSnapshot) => T,
-  compare: (a: T | undefined, b: T) => boolean
+  compare: (a: T, b: T) => boolean
 ): (snapshot: TSnapshot) => T {
   const previous = useRef<T | undefined>(undefined);
 
@@ -117,15 +118,6 @@ type AtomConfigInput<TInput> = undefined extends TInput
   ? [input?: TInput]
   : [input: TInput];
 
-function isAtom(value: unknown): value is AnyAtom {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    typeof (value as any).get === 'function' &&
-    typeof (value as any).subscribe === 'function'
-  );
-}
-
 /**
  * A React hook that subscribes to the `store` and selects a value from the
  * store's snapshot via a selector function, with an optional compare function.
@@ -150,7 +142,7 @@ function isAtom(value: unknown): value is AnyAtom {
 export function useSelector<TSnapshot, T>(
   store: Readable<TSnapshot>,
   selector: (snapshot: TSnapshot) => T,
-  compare?: (a: T | undefined, b: T) => boolean
+  compare?: (a: T, b: T) => boolean
 ): T;
 /**
  * A React hook that subscribes to the `store` and selects a value from the
@@ -182,7 +174,7 @@ export function useSelector<TSnapshot>(
 export function useSelector<TSnapshot, T>(
   store: Readable<TSnapshot>,
   selector?: (snapshot: TSnapshot) => T,
-  compare: (a: T | undefined, b: T) => boolean = defaultCompare
+  compare: (a: T, b: T) => boolean = defaultCompare
 ): T | TSnapshot {
   const subscribe = useCallback(
     (handleStoreChange: () => void) =>
@@ -388,11 +380,11 @@ export function createStoreHook<TDefinition extends AnyStoreConfig>(
   function useStoreHook(): [TSnapshot, TStore];
   function useStoreHook<T>(
     selector: (snapshot: TSnapshot) => T,
-    compare?: (a: T | undefined, b: T) => boolean
+    compare?: (a: T, b: T) => boolean
   ): [T, TStore];
   function useStoreHook<T>(
     selector?: (snapshot: TSnapshot) => T,
-    compare: (a: T | undefined, b: T) => boolean = defaultCompare
+    compare: (a: T, b: T) => boolean = defaultCompare
   ) {
     if (!selector) {
       const snapshot = useSelector(store);

@@ -6,7 +6,7 @@ There are several ways you can contribute to XState:
 
 - 📥 [Submit an issue](#submit-an-issue)
 - ✨ [Solve an issue or make a change](#making-changes)
-- 🖊️ [Write documentation](https://github.com/statelyai/docs)
+- 🖊️ [Write documentation](#contributing-to-our-docs)
 - 💬 [Respond to support questions in the GitHub discussions](https://github.com/statelyai/xstate/discussions)
 - 🛟 [Respond to questions in the Help channel on Discord](https://discord.gg/xstate)
 
@@ -14,22 +14,18 @@ Please read [our code of conduct](https://github.com/statelyai/xstate/blob/main/
 
 ## Environment
 
-<!-- runtime and package manager versions matching .node-version and package.json#packageManager -->
-
-- Use Node 24.16.0.
-- Enable Corepack and run `pnpm install`. The repository pins pnpm 10.34.5.
+- Use Node 22.18 or newer (CI uses Node 24).
+- Run `corepack enable` once so the pnpm version pinned in `packageManager` is used automatically.
+- Run `pnpm i` to install all needed dev dependencies.
 
 ## Making changes
 
 Pull requests are encouraged. If you want to add a feature or fix a bug:
 
-<!-- contributor verification commands matching package.json#scripts -->
-
 1. [Fork](https://docs.github.com/en/github/getting-started-with-github/fork-a-repo) and [clone](https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/cloning-a-repository) the [repository](https://github.com/statelyai/xstate).
 1. [Create a separate branch](https://docs.github.com/en/desktop/contributing-and-collaborating-using-github-desktop/managing-branches) for your changes.
 1. Make your changes, and write tests that validate your change and/or fix.
 1. Run `pnpm test` (for all packages) or `pnpm test:core` (for only changes to core XState).
-1. Run `pnpm lint` and `pnpm format:check`.
 1. Run `pnpm typecheck` to make sure that there are no type errors.
 1. Create a changeset by running `pnpm changeset`. [More about changesets](https://github.com/atlassian/changesets).
 1. Push your branch and open a PR 🚀
@@ -38,9 +34,9 @@ PRs are reviewed promptly and merged in within a day or two (or even within an h
 
 ## Contributing an example
 
-Our [examples](https://github.com/statelyai/xstate/tree/main/examples) are self-contained apps that show how to solve a common problem, integrate another framework (like Vue or Svelte) or build something fun with XState.
+Our [examples](https://github.com/statelyai/xstate/tree/next/examples) are self-contained apps that show how to solve a common problem, integrate another framework (like Vue or Svelte) or build something fun with XState.
 
-To contribute an example, please read the [`readme`](https://github.com/statelyai/xstate/blob/main/examples/readme.md) in the `/examples` folder.
+To contribute an example, please read the [`readme`](https://github.com/statelyai/xstate/blob/next/examples/readme.md) in the `/examples` folder.
 
 ## Submit an issue
 
@@ -54,13 +50,11 @@ We’ll try to respond promptly and address your issue as soon as possible.
 
 ## Contributing to our docs
 
-Our [new docs](https://stately.ai/docs) are now in their own [docs repo](https://github.com/statelyai/docs). [Read the contribution guide for our Stately Studio and XState docs](https://github.com/statelyai/docs/blob/main/CONTRIBUTING.md).
+XState v6 documentation lives in this repository, next to what it describes: guides and reference pages in `docs/`, package pages in `packages/*/docs/` and package READMEs. The [stately.ai docs site](https://github.com/statelyai/docs) renders these pages from this repository, so edit them here. The docs site repository holds the site itself, the XState v5 documentation and other Stately content; contribute to those there. Add every page to the nearest `meta.json`. These pages cover only how to use the libraries; contributor material belongs in this file or `examples/CONTRIBUTING.md`.
 
-### Legacy docs and xstate.js.org
-
-The docs at `/docs` in this repo are legacy XState docs. They are built using [Vuepress](https://vuepress.vuejs.org) and deployed to [xstate.js.org/docs](https://xstate.js.org/docs) using GitHub pages from the `gh-pages` branch using the `pages build and deployment` workflow.
-
-The [xstate.js.org](https://xstate.js.org) landing page is currently stored at `index.html` and deployed from the `gh-pages` branch using the `pages build and deployment` workflow.
+- Start with working code and explain the behavior the reader can observe. Introduce one concept at a time.
+- Use TypeScript unless JavaScript behavior is the subject. Keep examples complete enough to copy and run, and verify them against the current package source and types.
+- Check local links and `meta.json` navigation, format Markdown and JSON, and run focused type checks or tests for changed examples.
 
 ## Setup
 
@@ -68,6 +62,53 @@ The [xstate.js.org](https://xstate.js.org) landing page is currently stored at `
 
 We are using [preconstruct](https://preconstruct.tools/) to build our packages. It comes with a handy trick which allows us to always use source files of packages contained in this monorepo. It creates hook/redirecting files in place of dist files during development. This always happens after installing packages (during `postinstall` step) and you shouldn't be worried about it, but if you actually build packages you destroy those redirecting files and to run tests, typechecking etc correctly you need to bring them back by running `pnpm postinstall`.
 
+One check reads the built output on purpose: `pnpm typecheck:adapter-consumers` compiles a consumer against the adapters' generated declarations with `exactOptionalPropertyTypes: true`, which is how it catches type problems that only published types expose. It needs `pnpm build` first and tells you so if the declarations are missing or older than the sources. It is not part of `pnpm typecheck` for that reason; CI runs it directly after the build. Run `pnpm postinstall` afterwards to restore the redirecting files.
+
+### Bundle measurements
+
+CI does not check bundle size. `pnpm bench:size` measures representative
+XState, store, and adapter entry points locally and reports esbuild and Terser
+sizes, minified and gzipped. By default it also fails when a profile exceeds
+`scripts/bundle-size.thresholds.json`; those thresholds are not maintained, so
+use `--report` to print sizes without failing.
+
+```bash
+pnpm bench:size --report --profile=minimal-machine # One profile
+pnpm bench:size --report --why                    # Attribute bytes to modules
+pnpm bench:size --report --baseline=<rev>         # Measure another revision's source
+```
+
+`--baseline` measures only that revision; run it and a plain `--report` to
+compare. `pnpm bench:size:update` rewrites the thresholds; it refuses to raise
+one above its entry in `scripts/bundle-size.targets.json` unless you pass
+`--force`.
+
 ### Publishing
 
-We are using [changesets](https://github.com/atlassian/changesets) to create "release intents" for our packages. When those pop up on master a release PR gets prepared automatically and once it gets merged actual release happen (also automatically).
+We are using [changesets](https://github.com/atlassian/changesets) to create "release intents" for our packages. The Publish workflow handles release intents on `main` and `next`; changes for the v6 alpha belong on `next`.
+
+### Persistence conformance
+
+`packages/core/test/persistenceConformance.v6.test.ts` is the shape contract for persisted snapshots. It validates every envelope it produces against `packages/core/src/persistedSnapshot.schema.json`.
+
+### Examples and development dependencies
+
+<!-- Maintained check commands from package.json and scripts/check-*.js; fixture overrides from pnpm-workspace.yaml. -->
+
+`pnpm check:examples` typechecks and builds all 49 TypeScript examples, runs every discovered example regression test, and verifies donut persistence through a CLI restart. Run `pnpm build` first so standalone example compilers consume generated package declarations. Node-based writer and occupancy tests run separately through `pnpm test:tooling`; the remaining example tests use Vitest. New example test files are discovered automatically.
+
+`node scripts/typecheck-examples.js` checks every example with a `tsconfig.json`, including referenced projects behind solution configs; pass project names or paths to select examples. Any compiler failure exits nonzero. `examples/readme.md` has no project configuration and is skipped. Every current TypeScript example has a build script and participates in the CI gate.
+
+`pnpm check:templates` installs and builds all four standalone starter templates with their own frozen lockfiles.
+
+`pnpm check:exports` requires every public `xstate` export to carry exactly one
+`@public`, `@experimental`, or `@internal` stability tag. `@deprecated` must be
+paired with `@public` or `@experimental`.
+
+After `pnpm build`, `pnpm check:packed` packs `xstate` and `@xstate/react`, then
+checks their published files, declarations, ESM/CJS entry points, and production
+builds from a standalone consumer.
+
+Workflow regression tests use in-process actors, simulated clocks, and mocked network, database, filesystem, and subprocess boundaries. Passing these checks does not exercise real MongoDB credentials, external services, or media-file moves. Follow each example's README to run its live integration.
+
+The pinned `@scion-scxml/test-framework@2.0.16` package supplies SCXML fixtures only. Its original fixture files and licensing remain intact; its unused HTTP runner dependencies are removed with scoped pnpm overrides. That runner is intentionally unavailable. Core SCXML tests read the fixtures directly. Happy DOM is a development-only test environment.

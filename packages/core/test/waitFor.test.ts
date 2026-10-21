@@ -1,135 +1,16 @@
 import {
   createActor,
   waitFor,
-  createMachine,
-  fromTransition
+  createMachine as createMachine
 } from '../src/index.ts';
 
 describe('waitFor', () => {
-  describe('cleanup', () => {
-    beforeEach(() => {
-      vi.useFakeTimers();
-    });
-
-    afterEach(() => {
-      vi.useRealTimers();
-      vi.restoreAllMocks();
-    });
-
-    it('should unsubscribe and remove the abort listener after timing out', async () => {
-      const actor = createActor(createMachine({})).start();
-      const controller = new AbortController();
-      const removeListener = vi.spyOn(controller.signal, 'removeEventListener');
-      const predicate = vi.fn(() => false);
-      const promise = waitFor(actor, predicate, {
-        timeout: 10,
-        signal: controller.signal
-      });
-      const rejection = expect(promise).rejects.toThrow(
-        'Timeout of 10 ms exceeded'
-      );
-
-      vi.advanceTimersByTime(10);
-      await rejection;
-
-      expect(removeListener).toHaveBeenCalledWith(
-        'abort',
-        expect.any(Function)
-      );
-      expect(vi.getTimerCount()).toBe(0);
-      predicate.mockClear();
-      actor.send({ type: 'NEXT' });
-      expect(predicate).not.toHaveBeenCalled();
-      actor.stop();
-    });
-
-    it('should unsubscribe and clear the timeout after aborting', async () => {
-      const actor = createActor(createMachine({})).start();
-      const controller = new AbortController();
-      const predicate = vi.fn(() => false);
-      const reason = new Error('Canceled');
-      const promise = waitFor(actor, predicate, {
-        timeout: 100,
-        signal: controller.signal
-      });
-      const rejection = expect(promise).rejects.toBe(reason);
-
-      controller.abort(reason);
-      await rejection;
-
-      expect(vi.getTimerCount()).toBe(0);
-      predicate.mockClear();
-      actor.send({ type: 'NEXT' });
-      expect(predicate).not.toHaveBeenCalled();
-      actor.stop();
-    });
-
-    it('should unsubscribe, clear the timeout and remove the abort listener after an actor error', async () => {
-      const error = new Error('Actor failed');
-      const actor = createActor(
-        fromTransition(() => {
-          throw error;
-        }, 0)
-      ).start();
-      const controller = new AbortController();
-      const removeListener = vi.spyOn(controller.signal, 'removeEventListener');
-      const subscribe = vi.spyOn(actor, 'subscribe');
-      const promise = waitFor(actor, () => false, {
-        timeout: 100,
-        signal: controller.signal
-      });
-      const unsubscribe = vi.spyOn(
-        subscribe.mock.results[0].value,
-        'unsubscribe'
-      );
-      const rejection = expect(promise).rejects.toBe(error);
-
-      actor.send({ type: 'FAIL' });
-      await rejection;
-
-      expect(unsubscribe).toHaveBeenCalledOnce();
-      expect(vi.getTimerCount()).toBe(0);
-      expect(removeListener).toHaveBeenCalledWith(
-        'abort',
-        expect.any(Function)
-      );
-    });
-
-    it('should unsubscribe and clear the timeout when a later snapshot matches', async () => {
-      const actor = createActor(
-        createMachine({
-          initial: 'waiting',
-          states: {
-            waiting: { on: { NEXT: 'ready' } },
-            ready: {}
-          }
-        })
-      ).start();
-      const predicate = vi.fn(
-        (snapshot: ReturnType<typeof actor.getSnapshot>) =>
-          snapshot.matches('ready')
-      );
-      const promise = waitFor(actor, predicate, {
-        timeout: 100
-      });
-
-      actor.send({ type: 'NEXT' });
-      await expect(promise).resolves.toBe(actor.getSnapshot());
-
-      expect(vi.getTimerCount()).toBe(0);
-      predicate.mockClear();
-      actor.send({ type: 'NEXT' });
-      expect(predicate).not.toHaveBeenCalled();
-      actor.stop();
-    });
-  });
-
   it('should wait for a condition to be true and return the emitted value', async () => {
     const machine = createMachine({
       initial: 'a',
       states: {
         a: {
-          on: { NEXT: 'b' }
+          on: { NEXT: { target: 'b' } }
         },
         b: {}
       }
@@ -149,10 +30,10 @@ describe('waitFor', () => {
       initial: 'a',
       states: {
         a: {
-          on: { NEXT: 'b' }
+          on: { NEXT: { target: 'b' } }
         },
         b: {
-          on: { NEXT: 'c' }
+          on: { NEXT: { target: 'c' } }
         },
         c: {}
       }
@@ -172,10 +53,10 @@ describe('waitFor', () => {
       initial: 'a',
       states: {
         a: {
-          on: { NEXT: 'b' }
+          on: { NEXT: { target: 'b' } }
         },
         b: {
-          on: { NEXT: 'c' }
+          on: { NEXT: { target: 'c' } }
         },
         c: {}
       }
@@ -197,7 +78,7 @@ describe('waitFor', () => {
       initial: 'a',
       states: {
         a: {
-          on: { NEXT: 'b' }
+          on: { NEXT: { target: 'b' } }
         },
         b: {
           type: 'final'
@@ -212,6 +93,7 @@ describe('waitFor', () => {
     }, 10);
 
     await expect(
+      // @ts-expect-error 'never' is not a state of this machine
       waitFor(service, (state) => state.matches('never'))
     ).rejects.toMatchInlineSnapshot(
       `[Error: Actor terminated without satisfying predicate]`
@@ -252,7 +134,7 @@ describe('waitFor', () => {
       states: {
         a: {
           on: {
-            NEXT: 'b'
+            NEXT: { target: 'b' }
           }
         },
         b: {}
@@ -277,7 +159,7 @@ describe('waitFor', () => {
       states: {
         a: {
           on: {
-            NEXT: 'b'
+            NEXT: { target: 'b' }
           }
         },
         b: {
@@ -300,7 +182,7 @@ describe('waitFor', () => {
       states: {
         a: {
           on: {
-            NEXT: 'b'
+            NEXT: { target: 'b' }
           }
         },
         b: {
@@ -325,7 +207,7 @@ describe('waitFor', () => {
       states: {
         a: {
           on: {
-            NEXT: 'b'
+            NEXT: { target: 'b' }
           }
         },
         b: {
@@ -356,7 +238,7 @@ describe('waitFor', () => {
       states: {
         a: {
           on: {
-            NEXT: 'b'
+            NEXT: { target: 'b' }
           }
         },
         b: {
@@ -389,7 +271,7 @@ describe('waitFor', () => {
       states: {
         a: {
           on: {
-            NEXT: 'b'
+            NEXT: { target: 'b' }
           }
         },
         b: {
@@ -417,7 +299,7 @@ describe('waitFor', () => {
       states: {
         a: {
           on: {
-            NEXT: 'b'
+            NEXT: { target: 'b' }
           }
         },
         b: {
@@ -443,7 +325,7 @@ describe('waitFor', () => {
       initial: 'a',
       states: {
         a: {
-          on: { NEXT: 'b' }
+          on: { NEXT: { target: 'b' } }
         },
         b: {}
       }
@@ -465,7 +347,7 @@ describe('waitFor', () => {
       states: {
         a: {
           on: {
-            NEXT: 'b'
+            NEXT: { target: 'b' }
           }
         },
         b: {
@@ -494,7 +376,7 @@ describe('waitFor', () => {
       initial: 'a',
       states: {
         a: {
-          on: { NEXT: 'b' }
+          on: { NEXT: { target: 'b' } }
         },
         b: {
           type: 'final'
@@ -514,6 +396,7 @@ describe('waitFor', () => {
     signal.removeEventListener = spy;
 
     try {
+      // @ts-expect-error 'never' is not a state of this machine
       await waitFor(service, (state) => state.matches('never'), { signal });
       throw new Error('Should not be reached');
     } catch {

@@ -42,7 +42,6 @@ export function useSelector<
           updateSelectedIfChanged(selector(emitted));
         },
         error: () => {
-          // the error snapshot is not delivered through `next`
           updateSelectedIfChanged(selector(newActor.getSnapshot()));
         },
         complete: noop

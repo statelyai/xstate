@@ -2,8 +2,8 @@ import { testAll } from './utils';
 import {
   createMachine,
   createActor,
-  getNextSnapshot,
-  getInitialSnapshot
+  transition,
+  initialTransition
 } from '../src/index.ts';
 
 const idMachine = createMachine({
@@ -16,18 +16,18 @@ const idMachine = createMachine({
         foo: {
           id: 'A_foo',
           on: {
-            NEXT: '#A_bar'
+            NEXT: { target: '#A_bar' }
           }
         },
         bar: {
           id: 'A_bar',
           on: {
-            NEXT: '#B_foo'
+            NEXT: { target: '#B_foo' }
           }
         }
       },
       on: {
-        NEXT_DOT_RESOLVE: '#B.bar'
+        NEXT_DOT_RESOLVE: { target: '#B_bar' }
       }
     },
     B: {
@@ -37,14 +37,14 @@ const idMachine = createMachine({
         foo: {
           id: 'B_foo',
           on: {
-            NEXT: '#B_bar',
-            NEXT_DOT: '#B.dot'
+            NEXT: { target: '#B_bar' },
+            NEXT_DOT: { target: '#B.dot' }
           }
         },
         bar: {
           id: 'B_bar',
           on: {
-            NEXT: '#A_foo'
+            NEXT: { target: '#A_foo' }
           }
         },
         dot: {}
@@ -73,11 +73,12 @@ describe('State node IDs', () => {
 
   testAll(idMachine, expected);
 
-  it('should work with ID + relative path', () => {
+  it('resolves a nested state by its full implicit id', () => {
     const machine = createMachine({
+      id: 'm',
       initial: 'foo',
       on: {
-        ACTION: '#bar.qux.quux'
+        ACTION: { target: '#m.bar.qux.quux' }
       },
       states: {
         foo: {
@@ -91,9 +92,7 @@ describe('State node IDs', () => {
             qux: {
               initial: 'quux',
               states: {
-                quux: {
-                  id: '#bar.qux.quux'
-                }
+                quux: {}
               }
             }
           }
@@ -114,17 +113,80 @@ describe('State node IDs', () => {
     });
   });
 
+  it('does not resolve an id followed by a relative path', () => {
+    expect(() =>
+      createMachine({
+        id: 'm',
+        initial: 'foo',
+        on: {
+          ACTION: { target: '#bar.qux.quux' }
+        },
+        states: {
+          foo: {},
+          bar: {
+            id: 'bar',
+            initial: 'qux',
+            states: {
+              qux: {
+                initial: 'quux',
+                states: {
+                  quux: {}
+                }
+              }
+            }
+          }
+        }
+      } as any)
+    ).toThrowError(
+      'No state has id "bar.qux.quux". Use "#m.bar.qux.quux", or give that state an id.'
+    );
+  });
+
+  it('suggests the explicit id of a state reached by id + relative path', () => {
+    expect(() =>
+      createMachine({
+        initial: 'a',
+        on: {
+          GO: { target: '#a.b' }
+        },
+        states: {
+          a: {
+            id: 'a',
+            initial: 'b',
+            states: {
+              b: { id: 'bee' }
+            }
+          }
+        }
+      } as any)
+    ).toThrowError('No state has id "a.b". Use "#bee".');
+  });
+
+  it('throws a plain error for an unknown id', () => {
+    expect(() =>
+      createMachine({
+        initial: 'a',
+        on: {
+          GO: { target: '#nope.child' }
+        },
+        states: {
+          a: {}
+        }
+      } as any)
+    ).toThrowError(/^No state has id "nope\.child"\.$/);
+  });
+
   it('should work with keys that have escaped periods', () => {
     const machine = createMachine({
       initial: 'start',
       states: {
         start: {
           on: {
-            escaped: 'foo\\.bar',
-            unescaped: 'foo.bar'
+            escaped: { target: 'foo\\.bar' },
+            unescaped: { target: 'foo.bar' }
           }
         },
-        'foo.bar': {},
+        'foo\\.bar': {},
         foo: {
           initial: 'bar',
           states: {
@@ -134,27 +196,30 @@ describe('State node IDs', () => {
       }
     });
 
-    const initialState = getInitialSnapshot(machine);
-    const escapedState = getNextSnapshot(machine, initialState, {
+    const [initialState] = initialTransition(machine);
+    const [escapedState] = transition(machine, initialState, {
       type: 'escaped'
     });
 
-    expect(escapedState.value).toEqual('foo.bar');
+    expect(escapedState.value).toEqual('foo\\.bar');
 
-    const unescapedState = getNextSnapshot(machine, initialState, {
+    const [unescapedState] = transition(machine, initialState, {
       type: 'unescaped'
     });
     expect(unescapedState.value).toEqual({ foo: 'bar' });
   });
 
-  it('should work with IDs that have escaped periods', () => {
+  it('matches explicit ids that contain periods exactly', () => {
     const machine = createMachine({
+      // Without a machine id, the implicit id of `foo.bar` would collide with
+      // the explicit `foo.bar` id.
+      id: 'machine',
       initial: 'start',
       states: {
         start: {
           on: {
-            escaped: '#foo\\.bar',
-            unescaped: '#foo.bar'
+            explicit: { target: '#foo.bar' },
+            implicit: { target: '#machine.foo.bar' }
           }
         },
         stateWithDot: {
@@ -170,26 +235,43 @@ describe('State node IDs', () => {
       }
     });
 
-    const initialState = getInitialSnapshot(machine);
-    const escapedState = getNextSnapshot(machine, initialState, {
-      type: 'escaped'
+    const [initialState] = initialTransition(machine);
+    const [explicitState] = transition(machine, initialState, {
+      type: 'explicit'
     });
 
-    expect(escapedState.value).toEqual('stateWithDot');
+    expect(explicitState.value).toEqual('stateWithDot');
 
-    const unescapedState = getNextSnapshot(machine, initialState, {
-      type: 'unescaped'
+    const [implicitState] = transition(machine, initialState, {
+      type: 'implicit'
     });
-    expect(unescapedState.value).toEqual({ foo: 'bar' });
+    expect(implicitState.value).toEqual({ foo: 'bar' });
   });
 
-  it("should not treat escaped backslash as period's escape", () => {
+  it('does not unescape explicit ids', () => {
+    expect(() =>
+      createMachine({
+        id: 'machine',
+        initial: 'start',
+        states: {
+          start: {
+            on: { GO: { target: '#foo\\.bar' } }
+          },
+          stateWithDot: {
+            id: 'foo.bar'
+          }
+        }
+      } as any)
+    ).toThrowError('No state has id "foo\\.bar".');
+  });
+
+  it('treats backslashes in explicit ids as literal characters', () => {
     const machine = createMachine({
       initial: 'start',
       states: {
         start: {
           on: {
-            EV: '#some\\\\.thing'
+            EV: { target: '#some\\.thing' }
           }
         },
         foo: {
@@ -206,11 +288,11 @@ describe('State node IDs', () => {
       }
     });
 
-    const initialState = getInitialSnapshot(machine);
-    const escapedState = getNextSnapshot(machine, initialState, {
+    const [initialState] = initialTransition(machine);
+    const [nextState] = transition(machine, initialState, {
       type: 'EV'
     });
 
-    expect(escapedState.value).toEqual({ bar: 'thing' });
+    expect(nextState.value).toEqual('foo');
   });
 });

@@ -1,0 +1,81 @@
+* {
+  box-sizing: border-box;
+}
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  color-scheme: light dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: #242424;
+}
+body {
+  margin: 0;
+  display: flex;
+  place-items: center;
+  justify-content: center;
+  min-height: 100vh;
+}
+#app {
+  padding: 2rem;
+}
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-items: center;
+}
+button {
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 0.5em 1em;
+  font-size: 1em;
+  font-family: inherit;
+  background-color: #1a1a1a;
+  color: inherit;
+  cursor: pointer;
+}
+button:hover:not(:disabled) {
+  border-color: #646cff;
+}
+button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.controls {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+output {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.8;
+}
+.shaft {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.floor {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid #333;
+  border-radius: 6px;
+}
+.floor.queued {
+  border-color: #ffc53d;
+}
+.car {
+  width: 2rem;
+  height: 1.5rem;
+  border-radius: 4px;
+  background: #333;
+}
+.floor.here .car {
+  background: #646cff;
+}
+.floor.open .car {
+  background: #52c41a;
+}

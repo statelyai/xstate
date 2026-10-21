@@ -1,39 +1,46 @@
-import { assign, createMachine } from '../../index.ts';
+import { z } from 'zod';
+import { createAsyncLogic, createMachine, setup, types } from '../../index.ts';
 import { joinPaths } from '../graph.ts';
+import { getAllOwnEvents } from '../index.ts';
 import { getShortestPaths } from '../shortestPaths.ts';
 
 describe('getShortestPaths', () => {
   it('finds the shortest paths to a state without continuing traversal from that state', () => {
     const m = createMachine({
-      types: {} as { context: { count: number } },
+      // types: {} as { context: { count: number } },
+      schemas: {
+        context: z.object({
+          count: z.number()
+        })
+      },
       initial: 'a',
       context: { count: 0 },
       states: {
         a: {
           on: {
-            NEXT: 'b'
+            NEXT: { target: 'b' }
           }
         },
         b: {
           on: {
-            NEXT: 'c'
+            NEXT: { target: 'c' }
           }
         },
         c: {
           on: {
-            NEXT: 'd'
+            NEXT: { target: 'd' }
           }
         },
         d: {
           // If we reach this state, this will cause an infinite loop
           // if the stop condition does not stop the algorithm
           on: {
-            NEXT: {
-              target: 'd',
-              actions: assign({
-                count: ({ context }) => context.count + 1
-              })
-            }
+            NEXT: ({ context }) => ({
+              context: {
+                count: context.count + 1
+              },
+              target: 'd'
+            })
           }
         }
       }
@@ -49,26 +56,31 @@ describe('getShortestPaths', () => {
 
   it('finds the shortest paths from a state to another state', () => {
     const m = createMachine({
-      types: {} as {
-        context: { count: number };
+      // types: {} as {
+      //   context: { count: number };
+      // },
+      schemas: {
+        context: z.object({
+          count: z.number()
+        })
       },
       initial: 'a',
       context: { count: 0 },
       states: {
         a: {
           on: {
-            TO_Y: 'y',
-            TO_B: 'b'
+            TO_Y: { target: 'y' },
+            TO_B: { target: 'b' }
           }
         },
         b: {
           on: {
-            NEXT_B_TO_X: 'x'
+            NEXT_B_TO_X: { target: 'x' }
           }
         },
         x: {
           on: {
-            NEXT_X_TO_Y: 'y'
+            NEXT_X_TO_Y: { target: 'y' }
           }
         },
         y: {}
@@ -102,21 +114,25 @@ describe('getShortestPaths', () => {
 
   it('handles event cases', () => {
     const machine = createMachine({
-      types: {
-        events: {} as { type: 'todo.add'; todo: string },
-        context: {} as { todos: string[] }
+      schemas: {
+        context: z.object({
+          todos: z.array(z.string())
+        }),
+        events: {
+          'todo.add': z.object({
+            todo: z.string()
+          })
+        }
       },
       context: {
         todos: []
       },
       on: {
-        'todo.add': {
-          actions: assign({
-            todos: ({ context, event }) => {
-              return context.todos.concat(event.todo);
-            }
-          })
-        }
+        'todo.add': ({ context, event }) => ({
+          context: {
+            todos: context.todos.concat(event.todo)
+          }
+        })
       }
     });
 
@@ -149,7 +165,7 @@ describe('getShortestPaths', () => {
       states: {
         a: {
           after: {
-            1000: 'b'
+            1000: { target: 'b' }
           }
         },
         b: {}
@@ -160,7 +176,86 @@ describe('getShortestPaths', () => {
 
     expect(shortestPaths.map((p) => p.steps.map((s) => s.event.type))).toEqual([
       ['xstate.init'],
-      ['xstate.init', 'xstate.after.1000.(machine).a']
+      ['xstate.init', 'xstate.after']
     ]);
   });
+
+  it('can add the machine’s own events back to supplied `events`', () => {
+    const machine = createMachine({
+      initial: 'editing',
+      states: {
+        editing: { on: { SUBMIT: { target: 'saving' } } },
+        saving: {
+          invoke: {
+            id: 'submit',
+            src: createAsyncLogic({ run: async () => ({ id: 1 }) }),
+            onDone: { target: 'confirm' }
+          }
+        },
+        confirm: { after: { 1000: { target: 'done' } } },
+        done: {}
+      }
+    });
+
+    // Supplied events replace the machine's own events
+    expect(
+      getShortestPaths(machine, { events: [{ type: 'SUBMIT' }] }).map(
+        (path) => path.state.value
+      )
+    ).toEqual(['editing', 'saving']);
+
+    const paths = getShortestPaths(machine, {
+      events: (snapshot) =>
+        getAllOwnEvents(snapshot).map((event) =>
+          event.type === 'SUBMIT' ? { type: 'SUBMIT', value: 'hello' } : event
+        )
+    });
+
+    expect(paths.map((path) => path.steps.map((step) => step.event))).toEqual([
+      [{ type: 'xstate.init' }],
+      [{ type: 'xstate.init' }, { type: 'SUBMIT', value: 'hello' }],
+      [
+        { type: 'xstate.init' },
+        { type: 'SUBMIT', value: 'hello' },
+        expect.objectContaining({
+          type: 'xstate.done.actor',
+          actorId: 'submit'
+        })
+      ],
+      [
+        { type: 'xstate.init' },
+        { type: 'SUBMIT', value: 'hello' },
+        expect.objectContaining({
+          type: 'xstate.done.actor',
+          actorId: 'submit'
+        }),
+        { type: 'xstate.after', delay: 1000, stateId: 'confirm' }
+      ]
+    ]);
+  });
+});
+
+it('types supplied public and synthesized internal traversal events', () => {
+  const machine = setup({
+    schemas: { events: { START: types<{ value: number }>() } }
+  }).createMachine({
+    initial: 'idle',
+    states: { idle: {} }
+  });
+  getShortestPaths(machine, {
+    events: [
+      { type: 'START', value: 1 },
+      { type: 'xstate.done.actor', actorId: 'worker', output: { id: 1 } },
+      {
+        type: 'xstate.error.actor',
+        actorId: 'worker',
+        error: new Error('failed')
+      },
+      { type: 'xstate.after', delay: 1000, stateId: 'idle' }
+    ]
+  });
+  // @ts-expect-error public event payloads remain checked
+  getShortestPaths(machine, { events: [{ type: 'START', value: 'wrong' }] });
+  // @ts-expect-error unknown public events remain rejected
+  getShortestPaths(machine, { events: [{ type: 'UNKNOWN' }] });
 });

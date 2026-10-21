@@ -9,7 +9,7 @@
 
 <script lang="ts">
 import { useActor, useSelector } from '../src/index.ts';
-import { createMachine, sendParent } from 'xstate';
+import { createMachine } from 'xstate';
 import { defineComponent } from 'vue';
 
 const childMachine = createMachine({
@@ -18,7 +18,9 @@ const childMachine = createMachine({
   states: {
     active: {
       on: {
-        FINISH: { actions: sendParent({ type: 'FINISH' }) }
+        FINISH: ({ parent }, enq) => {
+          enq.sendTo(parent, { type: 'FINISH' });
+        }
       }
     }
   }
@@ -31,7 +33,7 @@ const machine = createMachine({
   },
   states: {
     active: {
-      on: { FINISH: 'success' }
+      on: { FINISH: { target: 'success' } }
     },
     success: {}
   }

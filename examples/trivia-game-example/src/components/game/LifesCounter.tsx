@@ -13,16 +13,16 @@ const LifesCounter = () => {
       size="sm"
       role="status"
     >
-      <span className="sr-only">Loading...</span>
+      <span className="visually-hidden">Loading...</span>
     </Spinner>
   );
 
   return (
-    <div className="text-right">
+    <div className="text-end">
       <h1>
         <div className="text-center">
           Lifes{' '}
-          <Badge variant="secondary" role="lifes-counter">
+          <Badge bg="secondary" data-testid="lifes-counter">
             {lifes}/3
           </Badge>
         </div>

@@ -1,155 +1,132 @@
-import * as fs from 'fs/promises';
-import * as fsExtra from 'fs-extra';
-import path from 'path';
-import probe from 'node-ffprobe';
-import winston from 'winston';
+import { execFile } from 'node:child_process';
+import * as fs from 'node:fs/promises';
+import path from 'node:path';
+import { promisify } from 'node:util';
 
-const logger = winston.createLogger({
-  level: 'info',
-  format: winston.format.json(),
-  defaultMeta: { service: 'fileHandlers' },
-  transports: [
-    new winston.transports.File({ filename: 'error.log', level: 'error' }),
-    new winston.transports.File({ filename: 'combined.log' }),
-    new winston.transports.Console({ format: winston.format.simple() })
-  ]
-});
+const execFileAsync = promisify(execFile);
 
+/** Returns every subdirectory of `basePath`. */
 export async function scanDirectories(basePath: string) {
-  try {
-    const files = await fs.readdir(basePath);
-    const validDirectories: string[] = [];
+  const entries = await fs.readdir(basePath, { withFileTypes: true });
+  const directories = entries
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => path.join(basePath, entry.name));
 
-    for (const file of files) {
-      const fullPath = basePath + '/' + file;
-      const stats = await fs.stat(fullPath);
-
-      if (stats.isDirectory()) {
-        validDirectories.push(fullPath);
-      }
-    }
-
-    if (validDirectories.length === 0) {
-      throw new Error('No valid directories found');
-    }
-
-    return validDirectories;
-  } catch (error) {
-    throw new Error('Unable to scan directory: ' + error.message);
+  if (directories.length === 0) {
+    throw new Error(`No directories found in ${basePath}`);
   }
+
+  return directories;
 }
 
+/** Splits directories into the readable/writable ones and the rest. */
 export async function checkFilePermissions(directories: string[]) {
-  try {
-    logger.info('checking directory permissions...');
+  console.log('Checking directory permissions...');
 
-    const promises = directories.map(async (dir) => {
+  const results = await Promise.all(
+    directories.map(async (dir) => {
       try {
         await fs.access(dir, fs.constants.R_OK | fs.constants.W_OK);
-        logger.info(`directory ${dir} is accessible`);
-        return { dir, status: 'accessible' };
-      } catch (err) {
-        logger.error(`cannot access directory ${dir}. Error: ${err}`);
-        return { dir, status: 'inaccessible', error: err };
+        return { dir, accessible: true };
+      } catch (error) {
+        console.error(`Cannot access directory ${dir}:`, error);
+        return { dir, accessible: false };
       }
-    });
+    })
+  );
 
-    const results = await Promise.all(promises);
+  const dirsToEvaluate = results.filter((r) => r.accessible).map((r) => r.dir);
+  const dirsToReport = results.filter((r) => !r.accessible).map((r) => r.dir);
 
-    const dirsToEvaluate = results
-      .filter((result) => result.status === 'accessible')
-      .map((result) => result.dir);
-    const dirsToReport = results
-      .filter((result) => result.status === 'inaccessible')
-      .map((result) => result.dir);
-
-    if (dirsToEvaluate.length === 0) {
-      throw { message: 'No accessible files found to move', dirsToReport };
-    }
-
-    return { dirsToEvaluate, dirsToReport };
-  } catch (error) {
-    throw { message: 'Error checking file permissions', error };
+  if (dirsToEvaluate.length === 0) {
+    throw new Error('No accessible directories found');
   }
+
+  return { dirsToEvaluate, dirsToReport };
 }
 
+/** Returns the media files larger than 1080p, which are assumed to be 4K. */
 export async function evaluateFiles(
   dirsToEvaluate: string[],
   acceptedFileTypes: string[]
 ) {
-  try {
-    logger.info('checking files in directories...');
-    const dirsToMove: string[] = [];
+  console.log('Checking files in directories...');
+  const dirsToMove: string[] = [];
 
-    for (const dir of dirsToEvaluate) {
-      try {
-        // read the directory's files
-        const filenames = await fs.readdir(dir);
+  for (const dir of dirsToEvaluate) {
+    const filenames = await fs.readdir(dir);
 
-        // check each file's type
-        for (const file of filenames) {
-          // if the file is a valid type, check the file's dimensions
-          const fileExtension = file.split('.').pop();
-          if (fileExtension && acceptedFileTypes.includes(fileExtension)) {
-            // read the file's dimensions
-            const result = await probe(path.join(dir, file));
-            if (
-              result.streams[0].width > 1920 &&
-              result.streams[0].height > 1080
-            ) {
-              logger.info(`file ${file} is greater than 1080p. Assuming 4K`);
-              dirsToMove.push(path.join(dir, file));
-            }
-          }
-        }
-      } catch (error) {
-        console.log(`error reading directory ${dir}: `, error);
-        //todo: add to a collection of directories that we need to report
+    for (const file of filenames) {
+      const extension = path.extname(file).slice(1);
+
+      if (!acceptedFileTypes.includes(extension)) continue;
+
+      const filePath = path.join(dir, file);
+      const { width, height } = await probeDimensions(filePath);
+
+      if (width > 1920 && height > 1080) {
+        console.log(`${file} is larger than 1080p; assuming 4K`);
+        dirsToMove.push(filePath);
       }
     }
-
-    if (dirsToMove.length === 0) {
-      throw { message: 'No files found to move', dirsToMove };
-    }
-
-    return { dirsToMove };
-  } catch (error) {
-    throw { message: 'Error evaluating files', error };
   }
+
+  if (dirsToMove.length === 0) {
+    throw new Error('No files found to move');
+  }
+
+  return { dirsToMove };
 }
 
+/** Moves the parent directory of each file to the destination library. */
 export async function moveFiles(
-  dirsToMove: string[],
+  filePaths: string[],
   destinationBasePath: string
 ) {
-  try {
-    logger.info('moving files...');
+  console.log('Moving files...');
+  const errors: Array<{ source: string; destination: string }> = [];
 
-    const errors: Array<{ source: string; destination: string; error: any }> =
-      [];
+  for (const filePath of filePaths) {
+    const sourceDir = path.dirname(filePath);
+    const destinationDir = path.join(
+      destinationBasePath,
+      path.basename(sourceDir)
+    );
 
-    for (const dir of dirsToMove) {
-      const parentDir = path.dirname(dir);
-      const newDirName = path.basename(parentDir);
-      const destinationDir = path.join(destinationBasePath, newDirName);
-
-      try {
-        await fsExtra.move(parentDir, destinationDir, { overwrite: true });
-        console.log(`moved ${dir} to ${destinationDir} successfully`);
-      } catch (error) {
-        logger.error(
-          `failed to move ${dir} to ${destinationDir}. Error: ${error}`
-        );
-        errors.push({ source: dir, destination: destinationDir, error });
-      }
+    try {
+      await fs.mkdir(destinationBasePath, { recursive: true });
+      await fs.rename(sourceDir, destinationDir);
+      console.log(`Moved ${sourceDir} to ${destinationDir}`);
+    } catch (error) {
+      console.error(`Failed to move ${sourceDir} to ${destinationDir}`, error);
+      errors.push({ source: sourceDir, destination: destinationDir });
     }
-
-    if (errors.length > 0) {
-      return { message: 'files moved with errors', errors };
-    } else {
-      return { message: 'all files moved successfully' };
-    }
-  } catch (error) {
-    throw { message: 'Error moving files', error };
   }
+
+  return errors.length > 0
+    ? { message: 'Files moved with errors', errors }
+    : { message: 'All files moved successfully', errors };
+}
+
+/** Reads the dimensions of the first video stream with `ffprobe`. */
+async function probeDimensions(filePath: string) {
+  const { stdout } = await execFileAsync('ffprobe', [
+    '-v',
+    'error',
+    '-select_streams',
+    'v:0',
+    '-show_entries',
+    'stream=width,height',
+    '-of',
+    'json',
+    filePath
+  ]);
+
+  const stream = (
+    JSON.parse(stdout) as {
+      streams?: Array<{ width?: number; height?: number }>;
+    }
+  ).streams?.[0];
+
+  return { width: stream?.width ?? 0, height: stream?.height ?? 0 };
 }

@@ -242,7 +242,7 @@ it('can be inspected', () => {
   expect(evs).toEqual([
     expect.objectContaining({
       type: '@xstate.transition',
-      event: { type: '@xstate.init' },
+      event: { type: 'xstate.init' },
       snapshot: expect.objectContaining({ context: { count: 0 } })
     }),
     expect.objectContaining({
@@ -253,17 +253,37 @@ it('can be inspected', () => {
   ]);
 });
 
-it('inspection with @statelyai/inspect typechecks correctly', () => {
+it('forwards store snapshots to @statelyai/inspect and unsubscribes', async () => {
   const store = createStore({
-    context: {},
-    on: {}
+    context: { count: 0 },
+    on: { inc: (context) => ({ count: context.count + 1 }) }
+  });
+  const send = vi.fn();
+  const inspector = createBrowserInspector({ autoStart: false, send });
+  const subscription = store.inspect((event) => {
+    inspector.snapshot(event.actorRef, event.snapshot, { event: event.event });
   });
 
-  const inspector = createBrowserInspector({
-    autoStart: false
-  });
-
-  store.inspect(inspector.inspect);
+  try {
+    store.trigger.inc();
+    await vi.waitFor(() => {
+      expect(send).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: '@xstate.snapshot',
+          event: { type: 'inc' },
+          snapshot: expect.objectContaining({ context: { count: 1 } })
+        })
+      );
+    });
+    subscription.unsubscribe();
+    const sentCount = send.mock.calls.length;
+    store.trigger.inc();
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    expect(send).toHaveBeenCalledTimes(sentCount);
+  } finally {
+    subscription.unsubscribe();
+    inspector.stop();
+  }
 });
 
 it('emitted events can be subscribed to', () => {
@@ -1054,11 +1074,10 @@ it('the emit type is not overridden by the payload', () => {
     },
     context,
     on: {
-      openDrawer: (context, event: { drawer: Drawer }, enqueue) => {
+      openDrawer: (_, event: { drawer: Drawer }, enqueue) => {
         enqueue.emit.drawerOpened(event);
 
         return {
-          ...context,
           drawer: event.drawer
         };
       }

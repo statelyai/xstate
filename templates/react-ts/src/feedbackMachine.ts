@@ -1,28 +1,17 @@
-import { assign, setup } from 'xstate';
+import { setup, types } from 'xstate';
 
 export const feedbackMachine = setup({
-  types: {
-    context: {} as { feedback: string },
-    events: {} as
-      | {
-          type: 'feedback.good';
-        }
-      | {
-          type: 'feedback.bad';
-        }
-      | {
-          type: 'feedback.update';
-          value: string;
-        }
-      | { type: 'submit' }
-      | {
-          type: 'close';
-        }
-      | { type: 'back' }
-      | { type: 'restart' }
-  },
-  guards: {
-    feedbackValid: ({ context }) => context.feedback.length > 0
+  schemas: {
+    context: types<{ feedback: string }>(),
+    events: {
+      'feedback.good': types<{}>(),
+      'feedback.bad': types<{}>(),
+      'feedback.update': types<{ value: string }>(),
+      submit: types<{}>(),
+      close: types<{}>(),
+      back: types<{}>(),
+      restart: types<{}>()
+    }
   }
 }).createMachine({
   id: 'feedback',
@@ -33,37 +22,37 @@ export const feedbackMachine = setup({
   states: {
     prompt: {
       on: {
-        'feedback.good': 'thanks',
-        'feedback.bad': 'form'
+        'feedback.good': { target: 'thanks' },
+        'feedback.bad': { target: 'form' }
       }
     },
     form: {
       on: {
-        'feedback.update': {
-          actions: assign({
-            feedback: ({ event }) => event.value
-          })
-        },
+        'feedback.update': ({ context, event }) => ({
+          context: { ...context, feedback: event.value }
+        }),
         back: { target: 'prompt' },
-        submit: {
-          guard: 'feedbackValid',
-          target: 'thanks'
+        submit: ({ context }) => {
+          // Only submit when feedback has been provided
+          if (context.feedback.length === 0) {
+            return;
+          }
+
+          return { target: 'thanks' };
         }
       }
     },
     thanks: {},
     closed: {
       on: {
-        restart: {
+        restart: ({ context }) => ({
           target: 'prompt',
-          actions: assign({
-            feedback: ''
-          })
-        }
+          context: { ...context, feedback: '' }
+        })
       }
     }
   },
   on: {
-    close: '.closed'
+    close: { target: '.closed' }
   }
 });

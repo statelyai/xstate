@@ -1,10 +1,11 @@
 import {
   createMachine,
+  createActor,
+  initialTransition,
   getMicrosteps,
   getInitialMicrosteps
 } from '../src/index.ts';
-import { raise } from '../src/actions/raise';
-import { createInertActorScope } from '../src/getNextSnapshot.ts';
+import { createInertActorScope } from '../src/inertActorScope.ts';
 
 describe('machine.microstep()', () => {
   it('should return an array of states from all microsteps', () => {
@@ -13,22 +14,23 @@ describe('machine.microstep()', () => {
       states: {
         start: {
           on: {
-            GO: 'a'
+            GO: { target: 'a' }
           }
         },
         a: {
-          entry: raise({ type: 'NEXT' }),
+          // entry: raise({ type: 'NEXT' }),
+          entry: (_, enq) => enq.raise({ type: 'NEXT' }),
           on: {
-            NEXT: 'b'
+            NEXT: { target: 'b' }
           }
         },
         b: {
-          always: 'c'
+          always: { target: 'c' }
         },
         c: {
-          entry: raise({ type: 'NEXT' }),
+          entry: (_, enq) => enq.raise({ type: 'NEXT' }),
           on: {
-            NEXT: 'd'
+            NEXT: { target: 'd' }
           }
         },
         d: {}
@@ -51,11 +53,11 @@ describe('machine.microstep()', () => {
       states: {
         first: {
           on: {
-            TRIGGER: 'second'
+            TRIGGER: { target: 'second' }
           }
         },
         second: {
-          always: 'third'
+          always: { target: 'third' }
         },
         third: {}
       }
@@ -77,15 +79,19 @@ describe('machine.microstep()', () => {
       states: {
         first: {
           on: {
-            TRIGGER: {
-              target: 'second',
-              actions: raise({ type: 'RAISED' })
+            // TRIGGER: {
+            //   target: 'second',
+            //   actions: raise({ type: 'RAISED' })
+            // }
+            TRIGGER: (_, enq) => {
+              enq.raise({ type: 'RAISED' });
+              return { target: 'second' };
             }
           }
         },
         second: {
           on: {
-            RAISED: 'third'
+            RAISED: { target: 'third' }
           }
         },
         third: {}
@@ -108,7 +114,7 @@ describe('machine.microstep()', () => {
       states: {
         first: {
           on: {
-            TRIGGER: 'second'
+            TRIGGER: { target: 'second' }
           }
         },
         second: {}
@@ -131,9 +137,14 @@ describe('machine.microstep()', () => {
       states: {
         first: {
           on: {
-            TRIGGER: {
-              target: 'second',
-              actions: [raise({ type: 'FOO' }), raise({ type: 'BAR' })]
+            // TRIGGER: {
+            //   target: 'second',
+            //   actions: [raise({ type: 'FOO' }), raise({ type: 'BAR' })]
+            // }
+            TRIGGER: (_, enq) => {
+              enq.raise({ type: 'FOO' });
+              enq.raise({ type: 'BAR' });
+              return { target: 'second' };
             }
           }
         },
@@ -152,7 +163,7 @@ describe('machine.microstep()', () => {
           }
         },
         fourth: {
-          always: 'fifth'
+          always: { target: 'fifth' }
         },
         fifth: {}
       }
@@ -181,21 +192,21 @@ describe('getMicrosteps', () => {
       states: {
         a: {
           on: {
-            GO: {
-              target: 'b',
-              actions: () => {}
+            GO: (_: any, enq: any) => {
+              enq(() => {});
+              return { target: 'b' };
             }
           }
         },
         b: {
-          entry: () => {},
-          always: {
-            target: 'c',
-            actions: () => {}
+          entry: (_: any, enq: any) => enq(() => {}),
+          always: (_: any, enq: any) => {
+            enq(() => {});
+            return { target: 'c' };
           }
         },
         c: {}
-      }
+      } as any
     });
 
     const actorScope = createInertActorScope(machine);
@@ -220,22 +231,23 @@ describe('getMicrosteps', () => {
       states: {
         a: {
           on: {
-            GO: {
-              target: 'b',
-              actions: [() => {}, raise({ type: 'NEXT' })]
+            GO: (_: any, enq: any) => {
+              enq.raise({ type: 'NEXT' });
+              enq(() => {});
+              return { target: 'b' };
             }
           }
         },
         b: {
           on: {
-            NEXT: {
-              target: 'c',
-              actions: () => {}
+            NEXT: (_: any, enq: any) => {
+              enq(() => {});
+              return { target: 'c' };
             }
           }
         },
         c: {}
-      }
+      } as any
     });
 
     const actorScope = createInertActorScope(machine);
@@ -247,6 +259,80 @@ describe('getMicrosteps', () => {
     expect(microsteps[0][0].value).toEqual('b');
     expect(microsteps[1][0].value).toEqual('c');
   });
+  it('should return the transitions taken in each microstep', () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            GO: (_: any, enq: any) => {
+              enq.raise({ type: 'NEXT' });
+              return { target: 'b' };
+            }
+          }
+        },
+        b: {
+          on: { NEXT: { target: 'c' } }
+        },
+        c: {
+          always: { target: 'd' }
+        },
+        d: {}
+      } as any
+    });
+
+    const actorScope = createInertActorScope(machine);
+    const initialSnapshot = machine.getInitialSnapshot(actorScope);
+
+    const microsteps = getMicrosteps(machine, initialSnapshot, { type: 'GO' });
+
+    expect(microsteps.map(([snapshot]) => snapshot.value)).toEqual([
+      'b',
+      'c',
+      'd'
+    ]);
+    expect(
+      microsteps.map(([, , transitions]) =>
+        transitions.map((t) => [t.source.key, t.eventType])
+      )
+    ).toEqual([[['a', 'GO']], [['b', 'NEXT']], [['c', '']]]);
+  });
+
+  it('should return the transition taken by a single-transition fast path', () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: { on: { GO: { target: 'b' } } },
+        b: {}
+      }
+    });
+
+    const actorScope = createInertActorScope(machine);
+    const initialSnapshot = machine.getInitialSnapshot(actorScope);
+
+    const microsteps = getMicrosteps(machine, initialSnapshot, { type: 'GO' });
+
+    expect(microsteps).toHaveLength(1);
+    expect(microsteps[0][2]).toEqual([
+      machine.root.states.a.transitions.get('GO')![0]
+    ]);
+  });
+
+  it('should return no transitions for an unhandled event', () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: { a: {} }
+    });
+
+    const actorScope = createInertActorScope(machine);
+    const initialSnapshot = machine.getInitialSnapshot(actorScope);
+
+    const microsteps = getMicrosteps(machine, initialSnapshot, {
+      type: 'UNKNOWN'
+    } as never);
+
+    expect(microsteps.flatMap(([, , transitions]) => transitions)).toEqual([]);
+  });
 });
 
 describe('getInitialMicrosteps', () => {
@@ -255,7 +341,7 @@ describe('getInitialMicrosteps', () => {
       initial: 'a',
       states: {
         a: {
-          entry: () => {}
+          entry: (_, enq) => enq(() => {})
         }
       }
     });
@@ -272,16 +358,16 @@ describe('getInitialMicrosteps', () => {
       initial: 'a',
       states: {
         a: {
-          entry: () => {},
-          always: {
-            target: 'b',
-            actions: () => {}
+          entry: (_: any, enq: any) => enq(() => {}),
+          always: (_: any, enq: any) => {
+            enq(() => {});
+            return { target: 'b' };
           }
         },
         b: {
-          entry: () => {}
+          entry: (_: any, enq: any) => enq(() => {})
         }
-      }
+      } as any
     });
 
     const microsteps = getInitialMicrosteps(machine);
@@ -291,6 +377,20 @@ describe('getInitialMicrosteps', () => {
     expect(microsteps[0][1]).toHaveLength(1); // entry action for 'a'
     expect(microsteps[1][0].value).toEqual('b');
     expect(microsteps[1][1]).toHaveLength(2); // always action + entry action for 'b'
+    // The first microstep enters the initial states; the second takes `always`
+    expect(microsteps[0][2]).toEqual([]);
+    expect(microsteps[1][2]).toHaveLength(1);
+    expect(microsteps[1][2][0].source).toBe(machine.root.states.a);
+    expect(microsteps[1][2][0].target).toEqual([machine.root.states.b]);
+    expect(microsteps[1][2][0].definition).toBe(
+      machine.root.states.a.always![0]
+    );
+    expect(JSON.parse(JSON.stringify(microsteps[1][2]))).toEqual([
+      expect.objectContaining({
+        source: `#${machine.root.states.a.id}`,
+        target: [`#${machine.root.states.b.id}`]
+      })
+    ]);
   });
 
   it('should work with nested initial states', () => {
@@ -298,11 +398,11 @@ describe('getInitialMicrosteps', () => {
       initial: 'parent',
       states: {
         parent: {
-          entry: () => {},
+          entry: (_, enq) => enq(() => {}),
           initial: 'child',
           states: {
             child: {
-              entry: () => {}
+              entry: (_, enq) => enq(() => {})
             }
           }
         }
@@ -318,9 +418,9 @@ describe('getInitialMicrosteps', () => {
 
   it('should pass input to context function', () => {
     const machine = createMachine({
-      context: ({ input }: { input: { value: number } }) => ({
+      context: (({ input }: { input: { value: number } }) => ({
         count: input.value
-      }),
+      })) as any,
       initial: 'a',
       states: {
         a: {}
@@ -331,4 +431,41 @@ describe('getInitialMicrosteps', () => {
 
     expect(microsteps[0][0].context).toEqual({ count: 42 });
   });
+});
+
+it('reports resolved function targets without changing the reusable definition', () => {
+  const target = vi.fn(() => ({ target: 'red.walk' }));
+  const machine = createMachine({
+    id: 'light',
+    initial: 'yellow',
+    states: {
+      yellow: { on: { GO: target } },
+      red: { initial: 'walk', states: { walk: {}, wait: {} } }
+    }
+  });
+  const original = machine.states.yellow.transitions.get('GO')![0];
+  const [snapshot] = initialTransition(machine);
+  const steps = getMicrosteps(machine, snapshot, { type: 'GO' });
+  expect(steps[0][2][0].target?.map((node) => node.id)).toEqual([
+    'light.red.walk'
+  ]);
+  expect(original.target).toBeUndefined();
+  target.mockClear();
+  const targets: string[] = [];
+  const actor = createActor(machine, {
+    inspect: (event) => {
+      if (event.type === '@xstate.transition' && event.eventType === 'GO') {
+        targets.push(
+          ...event.microsteps.flatMap(
+            (t) => t.target?.map((node) => node.id) ?? []
+          )
+        );
+      }
+    }
+  }).start();
+  actor.send({ type: 'GO' });
+  expect(targets).toEqual(['light.red.walk']);
+  expect(target).toHaveBeenCalledTimes(1);
+  expect(steps[0][2][0].definition).toBe(original);
+  actor.stop();
 });

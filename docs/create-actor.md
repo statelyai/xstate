@@ -1,0 +1,156 @@
+---
+title: Create actors
+description: Create and start an actor from actor logic.
+---
+
+`createActor(...)` creates an actor from actor logic, such as a state machine.
+
+```ts
+import { createActor, createMachine } from 'xstate';
+
+const machine = createMachine({
+  initial: 'active',
+  states: { active: {} }
+});
+
+const actor = createActor(machine);
+actor.start();
+```
+
+An actor does not process events until it starts. Subscribe before `start()` when the subscriber must receive the initial snapshot; a subscriber added afterwards only sees later snapshots.
+
+```ts
+actor.subscribe((snapshot) => console.log(snapshot.value));
+actor.start();
+actor.send({ type: 'next' });
+```
+
+Create a separate actor for each running instance. The same machine can run one actor per browser tab, order or uploaded file.
+
+## Actor options
+
+```ts
+const actor = createActor(machine, { input: { userId: 'u_1' } });
+```
+
+| Option | Type | Description |
+| --- | --- | --- |
+| `id` | `string` | Custom identifier for this actor. |
+| `input` | input of the logic | [Input](input-output.md) passed to the logic when it starts. |
+| `snapshot` | persisted snapshot | Starts the actor from a [persisted snapshot](persistence.md). Actions are not re-executed; invocations restart and children are restored. |
+| `inspect` | function or observer | Receives [inspection](inspection.md) events. |
+| `onRejectedEvent` | `(rejection) => void` | Dead-letter hook for events rejected at the delivery boundary. Registers a `system.onRejectedEvent` listener; see [dead letters](systems.md#dead-letters). Ignored on child actors. |
+| `onUnhandledEvent` | `(event, snapshot) => void` | Called when this state machine actor receives an event that no transition handles. Internal `xstate.*` events are not reported. See [unhandled events](transitions.md#unhandled-events). |
+| `clock` | `{ setTimeout, clearTimeout, now? }` | Controls [delays](delays.md) and [timeouts](timeouts.md). Use `SimulatedClock` in [tests](testing.md). |
+| `logger` | `(...args) => void` | Used by `log(...)` actions. Defaults to `console.log`. |
+| `registryKey` | `string` | Registers the actor in the [system](systems.md) under this key. |
+| `src` | `string` or actor logic | The source of the logic, used by inspectors and persistence. |
+| `parent` | actor | Parent actor. Set by XState when invoking or spawning; rarely passed by hand. |
+
+There is no `systemId` option in v6. Use `registryKey`, which is typed against the machine's system registry.
+
+## Custom clocks
+
+<!-- Clock and ActorOptions.clock from packages/core/src/system.ts and packages/core/src/types.ts -->
+
+Provide `clock` to control delayed events and transitions. `setTimeout` and
+`clearTimeout` are required. Add `now()` when persisting and restoring timers so
+XState calculates remaining delays from the same time source.
+
+```ts
+const actor = createActor(machine, {
+  clock: {
+    now: () => currentTime,
+    setTimeout: (callback, delay) => schedule(callback, delay),
+    clearTimeout: (handle) => cancel(handle)
+  }
+});
+```
+
+## Actor members
+
+| Member | Description |
+| --- | --- |
+| `start()` | Starts the actor and emits the initial snapshot. Calling it on a running actor is a no-op. Actors are single-use: calling it after `stop()` throws; create a new actor with `createActor()` instead. |
+| `stop()` | Stops the actor, its children and its timers, and completes observers. |
+| `send(event)` | Sends an event to the actor. |
+| `trigger` | Typed per-event shorthand for `send(...)`, e.g. `actor.trigger.submit()`. See [TypeScript](typescript.md). |
+| `subscribe(observer)` | Observes [snapshots](snapshots.md). |
+| `on(type, handler)` | Listens for [emitted events](emitted-events.md). Use `'*'` for all of them. |
+| `select(selector, equalityFn?)` | Returns a readable of a derived value. See [selectors](selectors.md). |
+| `getSnapshot()` | Reads the current snapshot synchronously. |
+| `getPersistedSnapshot(options?)` | Returns the serializable internal state. Pass `{ embedChildren: false }` to reference children by address instead of embedding their state. See [persistence](persistence.md). |
+| `system` | The [actor system](systems.md) this actor belongs to. |
+| `sessionId` | Unique session id, assigned per running actor. A new one is assigned on every restore. |
+| `address` | The actor's logical address: the `/`-joined path of actor ids from the root, e.g. `order/worker:0`. Unlike `sessionId`, it is stable across persistence and restore. |
+| `id` | The actor's id. |
+| `src` | The logic this actor was created from. |
+| `ref` | The `ActorRef` view of this actor, safe to pass around. |
+| `options` | The resolved options this actor was created with. |
+| `clock` | The clock in use. |
+
+## Subscribing
+
+`subscribe(...)` accepts a function or an observer object, and returns a subscription with `unsubscribe()`. All observers are unsubscribed when the actor stops.
+
+```ts
+const subscription = actor.subscribe({
+  next: (snapshot) => render(snapshot),
+  error: (error) => reportError(error),
+  complete: () => console.log('Done')
+});
+
+subscription.unsubscribe();
+```
+
+`complete` runs when the actor reaches a final state or is stopped. `error` runs when the actor errors. Subscribing to an already-finished actor calls `complete` or `error` immediately.
+
+Every processed event notifies subscribers, including an event that takes no transition. In that case subscribers receive the same snapshot object as before, so a reference check is enough to skip re-rendering.
+
+## Errors
+
+An error thrown in a transition function, action or invoked actor moves the actor to an `error` snapshot and stops it, including its children and their timers and subscriptions. Handle it with the `error` observer, or with an `onError` transition inside the machine (see [lifecycle and errors](lifecycle-and-errors.md)).
+
+```ts
+actor.subscribe({
+  error: (error) => showFailure(error)
+});
+```
+
+An unrecovered root error is reported to the host's unhandled error channel if any non-passive subscriber lacks an `error` handler, or if there are no such subscribers. Having another subscriber with an `error` handler does not suppress a report caused by a subscriber without one. The report is deferred by one macrotask; a new subscription with an `error` handler before then suppresses it. Child actors report their errors to their parent instead. See [error precedence](lifecycle-and-errors.md#error-precedence).
+
+## TypeScript
+
+Use `ActorRefFrom` to get the actor reference type for actor logic.
+
+```ts
+import type { ActorRefFrom } from 'xstate';
+
+type MachineActor = ActorRefFrom<typeof machine>;
+```
+
+## Create actor cheatsheet
+
+```ts
+const actor = createActor(logic, {
+  id: 'checkout',
+  input: { userId },
+  snapshot: restored,
+  inspect: (event) => console.log(event),
+  registryKey: 'checkout'
+});
+
+const subscription = actor.subscribe({
+  next: (snapshot) => console.log(snapshot.value),
+  error: (error) => console.error(error),
+  complete: () => console.log('done')
+});
+
+actor.on('notification', (event) => toast(event.message));
+actor.start();
+actor.send({ type: 'next' });
+actor.getSnapshot();
+actor.getPersistedSnapshot();
+subscription.unsubscribe();
+actor.stop();
+```

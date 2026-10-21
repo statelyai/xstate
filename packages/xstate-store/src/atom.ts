@@ -4,6 +4,7 @@ import {
   ReactiveFlags
 } from './alien.ts';
 import {
+  AnyAtom,
   Atom,
   AtomConfig,
   AtomOptions,
@@ -13,6 +14,16 @@ import {
   Subscription,
   SourceAtomConfig
 } from './types.ts';
+
+/** Returns `true` if `value` is an atom (has `get` and `subscribe` methods). */
+export function isAtom(value: unknown): value is AnyAtom {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    typeof (value as any).get === 'function' &&
+    typeof (value as any).subscribe === 'function'
+  );
+}
 
 interface ObservedNode extends ReactiveNode {
   _observers?: number;

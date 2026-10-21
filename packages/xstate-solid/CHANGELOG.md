@@ -1,5 +1,53 @@
 # @xstate/solid
 
+## 3.0.0-alpha.3
+
+### Patch Changes
+
+- 5b6df81: `xstate` is now a required peer dependency of `@xstate/react`, `@xstate/vue`, `@xstate/svelte`, and `@xstate/solid`. Package managers now warn when `xstate` is missing instead of letting the adapter fail at runtime.
+  
+  `useActorRef()`, `useActor()`, and `useMachine()` in `@xstate/react` no longer write implementations provided on a later render onto the machine passed on the first render. A module-level machine shared by several components keeps its own implementations:
+  
+  ```tsx
+  const machine = createMachine({
+    actions: { notify: () => {} },
+    on: { DO: ({ actions }, enq) => enq(actions.notify) }
+  });
+  
+  function Custom({ onNotify }) {
+    // Only this component's actor uses `onNotify`.
+    useActorRef(machine.provide({ actions: { notify: onNotify } }));
+    return null;
+  }
+  
+  function Plain() {
+    // Still uses the original `notify`.
+    useActorRef(machine);
+    return null;
+  }
+  ```
+
+## 3.0.0-alpha.2
+
+### Patch Changes
+
+- 73fa80b: `useActor`, `useActorRef` and `useMachine` now require `input` for machines that declare a required input schema, matching `createActor`. Passing a persisted `snapshot` instead of `input` is allowed.
+
+## 3.0.0-alpha.1
+
+### Patch Changes
+
+- 69b6663: Keep selected values current when subscriptions start or resume. Vue and Solid now expose terminal error snapshots, and Solid preserves array/object context changes without changing the actor's source data. Vue uses one snapshot subscription per `useActor` call.
+  
+  React store selectors now honor custom comparisons when the selector argument is omitted.
+
+## 3.0.0-alpha.0
+
+### Patch Changes
+
+- Updated dependencies [[`54b0f8b`](https://github.com/statelyai/xstate/commit/54b0f8b22679721d567ca7e2b7074e86a41de6ef), [`8b309a1`](https://github.com/statelyai/xstate/commit/8b309a17415b4522a99a374753731471b8784dd5), [`6031736`](https://github.com/statelyai/xstate/commit/6031736fb13fee88439cdbbc329f7b23f7387a63), [`54b0f8b`](https://github.com/statelyai/xstate/commit/54b0f8b22679721d567ca7e2b7074e86a41de6ef), [`8b309a1`](https://github.com/statelyai/xstate/commit/8b309a17415b4522a99a374753731471b8784dd5), [`d11c72d`](https://github.com/statelyai/xstate/commit/d11c72df0d83cfa5fc4445995b85e79a601c1c9e), [`46692e3`](https://github.com/statelyai/xstate/commit/46692e3c51ed6c830a01361ef74653949d5259d6), [`46692e3`](https://github.com/statelyai/xstate/commit/46692e3c51ed6c830a01361ef74653949d5259d6)]:
+  - xstate@6.0.0-alpha.0
+
 ## 2.0.0
 
 ### Patch Changes

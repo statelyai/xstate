@@ -1,3 +1,4 @@
+import { XSTATE_INIT } from '../constants.ts';
 import { StatePath } from './types.ts';
 
 // TODO: rewrite parts of the algorithm leading to this to make this function obsolete
@@ -8,7 +9,7 @@ export function alterPath<T extends StatePath<any, any>>(path: T): T {
     steps = [
       {
         state: path.state,
-        event: { type: 'xstate.init' } as any
+        event: { type: XSTATE_INIT }
       }
     ];
   } else {
@@ -17,7 +18,7 @@ export function alterPath<T extends StatePath<any, any>>(path: T): T {
 
       steps.push({
         state: step.state,
-        event: i === 0 ? { type: 'xstate.init' } : path.steps[i - 1].event
+        event: i === 0 ? { type: XSTATE_INIT } : path.steps[i - 1].event
       });
     }
     steps.push({

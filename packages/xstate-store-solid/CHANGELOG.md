@@ -1,12 +1,33 @@
 # @xstate/store-solid
 
-## 2.0.1
+## 2.0.1-alpha.2
 
 ### Patch Changes
 
-- [#5760](https://github.com/statelyai/xstate/pull/5760) [`38dcaff`](https://github.com/statelyai/xstate/commit/38dcaffb20ec7f3cbb10e6161d8f0ebacca33701) Thanks [@davidkpiano](https://github.com/davidkpiano)! - `useSelector` now keeps the selected value current when its subscription starts, including updates made during component setup.
-- Updated dependencies [[`6dc2adf`](https://github.com/statelyai/xstate/commit/6dc2adf46b4f6a96f7607dff0cdbdcd5933136f8), [`38dcaff`](https://github.com/statelyai/xstate/commit/38dcaffb20ec7f3cbb10e6161d8f0ebacca33701), [`38dcaff`](https://github.com/statelyai/xstate/commit/38dcaffb20ec7f3cbb10e6161d8f0ebacca33701), [`38dcaff`](https://github.com/statelyai/xstate/commit/38dcaffb20ec7f3cbb10e6161d8f0ebacca33701)]:
-  - @xstate/store@4.3.0
+- Updated dependencies [c27b509]
+  - @xstate/store@5.0.0-alpha.5
+
+## 2.0.1-alpha.1
+
+### Patch Changes
+
+- 69b6663: Keep selected values current when subscriptions start or resume. Vue and Solid now expose terminal error snapshots, and Solid preserves array/object context changes without changing the actor's source data. Vue uses one snapshot subscription per `useActor` call.
+  
+  React store selectors now honor custom comparisons when the selector argument is omitted.
+- Updated dependencies [69b6663]
+- Updated dependencies [69b6663]
+- Updated dependencies [69b6663]
+- Updated dependencies [69b6663]
+  - @xstate/store@4.3.0-alpha.3
+
+## 2.0.1-alpha.0
+
+### Patch Changes
+
+- [#5543](https://github.com/statelyai/xstate/pull/5543) [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `compare` function passed to `useSelector` is now typed as `(a: T, b: T)` instead of `(a: T | undefined, b: T)`, so the previous value is no longer typed as possibly `undefined`.
+
+- Updated dependencies [[`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925)]:
+  - @xstate/store@4.3.0-alpha.0
 
 ## 2.0.0
 

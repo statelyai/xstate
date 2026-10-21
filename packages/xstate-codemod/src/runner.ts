@@ -1,0 +1,136 @@
+import { Project, SourceFile, ts } from 'ts-morph';
+import type { Transform } from './types.ts';
+import {
+  transforms as allTransforms,
+  transformsByName
+} from './transforms/index.ts';
+
+/** Report-only transforms whose notes list manual migration steps. */
+const REPORT_TRANSFORMS = new Set([
+  'report-removed-apis',
+  'report-id-path-targets'
+]);
+
+export interface FileTransformReport {
+  filePath: string;
+  perTransform: Array<{
+    transform: string;
+    changed: boolean;
+    notes: string[];
+  }>;
+  changed: boolean;
+  newText?: string;
+}
+
+export interface RunReport {
+  files: FileTransformReport[];
+  filesChanged: number;
+  /** Notes emitted by the report-only transforms (manual-migration section). */
+  manualMigrationNotes: string[];
+}
+
+/** Resolve a list of transform names to Transform objects. */
+export function selectTransforms(names?: string[]): Transform[] {
+  if (!names || names.length === 0) {
+    return allTransforms;
+  }
+  const selected: Transform[] = [];
+  for (const name of names) {
+    const t = transformsByName[name];
+    if (!t) {
+      throw new Error(
+        `Unknown transform '${name}'. Available: ${Object.keys(
+          transformsByName
+        ).join(', ')}`
+      );
+    }
+    selected.push(t);
+  }
+  return selected;
+}
+
+/** Applies the given transforms to a single source file (in-memory). */
+export function applyToSourceFile(
+  sourceFile: SourceFile,
+  transforms: Transform[]
+): FileTransformReport {
+  const perTransform: FileTransformReport['perTransform'] = [];
+  let changed = false;
+
+  for (const transform of transforms) {
+    const result = transform.apply(sourceFile);
+    perTransform.push({
+      transform: transform.name,
+      changed: result.changed,
+      notes: result.notes
+    });
+    if (result.changed) {
+      changed = true;
+    }
+  }
+
+  if (changed) {
+    const diagnostics = sourceFile
+      .getProject()
+      .getProgram()
+      .compilerObject.getSyntacticDiagnostics(sourceFile.compilerNode);
+    if (diagnostics.length) {
+      throw new Error(
+        `Refusing to write invalid migration output for ${sourceFile.getFilePath()}: ${diagnostics.map((diagnostic) => ts.flattenDiagnosticMessageText(diagnostic.messageText, ' ')).join('; ')}`
+      );
+    }
+  }
+
+  return {
+    filePath: sourceFile.getFilePath(),
+    perTransform,
+    changed,
+    newText: changed ? sourceFile.getFullText() : undefined
+  };
+}
+
+/**
+ * Runs the selected transforms over the given files.
+ *
+ * @param filePaths absolute or cwd-relative file paths to process
+ * @param transforms the transforms to apply
+ * @param options.write when true, saves modified files to disk
+ */
+export function run(
+  filePaths: string[],
+  transforms: Transform[],
+  options: { write: boolean } = { write: false }
+): RunReport {
+  const project = new Project({
+    useInMemoryFileSystem: false,
+    skipAddingFilesFromTsConfig: true,
+    compilerOptions: {
+      allowJs: true
+    }
+  });
+
+  const files: FileTransformReport[] = [];
+  const manualMigrationNotes: string[] = [];
+  let filesChanged = 0;
+
+  for (const filePath of filePaths) {
+    const sourceFile = project.addSourceFileAtPath(filePath);
+    const report = applyToSourceFile(sourceFile, transforms);
+
+    for (const pt of report.perTransform) {
+      if (REPORT_TRANSFORMS.has(pt.transform)) {
+        manualMigrationNotes.push(...pt.notes);
+      }
+    }
+
+    if (report.changed) {
+      filesChanged++;
+      if (options.write) {
+        sourceFile.saveSync();
+      }
+    }
+    files.push(report);
+  }
+
+  return { files, filesChanged, manualMigrationNotes };
+}

@@ -1,0 +1,69 @@
+body {
+  font-family: system-ui, sans-serif;
+  background: #14161a;
+  color: #e6e6e6;
+  margin: 0;
+  padding: 32px;
+}
+
+main {
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+h1 {
+  font-size: 20px;
+  margin: 0;
+}
+
+.cart {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cart li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cart li span {
+  flex: 1;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+}
+
+button,
+input {
+  font: inherit;
+  background: #232833;
+  color: inherit;
+  border: 1px solid #39414f;
+  border-radius: 5px;
+  padding: 4px 10px;
+}
+
+.totals {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 16px;
+  margin: 0;
+  border-top: 1px solid #2a2f37;
+  padding-top: 12px;
+}
+
+.totals dd {
+  margin: 0;
+  text-align: right;
+}

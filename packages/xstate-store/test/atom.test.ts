@@ -209,8 +209,7 @@ it('works with a mix of atoms and stores', () => {
   const store = createStore({
     context: { name: 'David' },
     on: {
-      nameUpdated: (context, event: { name: string }) => ({
-        ...context,
+      nameUpdated: (_, event: { name: string }) => ({
         name: event.name
       })
     }
@@ -243,7 +242,6 @@ it('works with stores', () => {
     context: { name: 'David' },
     on: {
       nameUpdated: (context, event: { name: string }) => ({
-        ...context,
         name: event.name
       })
     }
@@ -252,7 +250,7 @@ it('works with stores', () => {
   const countStore = createStore({
     context: { count: 0 },
     on: {
-      increment: (context) => ({ ...context, count: context.count + 1 })
+      increment: (context) => ({ count: context.count + 1 })
     }
   });
 

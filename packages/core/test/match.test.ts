@@ -117,6 +117,7 @@ describe('matches() method', () => {
 
     expect(initialState.matches('foo')).toBeTruthy();
     expect(initialState.matches({ foo: 'bar' })).toBeTruthy();
+    // @ts-expect-error 'fake' is not a state of this machine
     expect(initialState.matches('fake')).toBeFalsy();
   });
 });

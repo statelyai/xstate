@@ -1,0 +1,67 @@
+* {
+  box-sizing: border-box;
+}
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  color-scheme: light dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: #242424;
+}
+body {
+  margin: 0;
+  display: flex;
+  place-items: center;
+  justify-content: center;
+  min-height: 100vh;
+}
+#app {
+  padding: 2rem;
+  width: min(38rem, 100%);
+}
+.panel {
+  border: 1px solid #4a4a4a;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  background: #1c1c1c;
+  min-height: 12rem;
+}
+.tabs,
+.sections,
+.controls {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+}
+button {
+  font: inherit;
+  padding: 0.4rem 0.8rem;
+  border-radius: 0.5rem;
+  border: 1px solid #4a4a4a;
+  background: #2f2f2f;
+  color: inherit;
+  cursor: pointer;
+}
+button[aria-pressed='true'] {
+  background: #4f7cff;
+  border-color: #4f7cff;
+}
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.body {
+  border-top: 1px solid #3a3a3a;
+  padding-top: 0.75rem;
+}
+.closed {
+  opacity: 0.6;
+  font-style: italic;
+}
+output {
+  display: block;
+  margin-top: 1rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85rem;
+}

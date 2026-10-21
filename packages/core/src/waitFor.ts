@@ -38,6 +38,7 @@ const defaultWaitForOptions: WaitForOptions = {
  * @param options
  * @returns A promise that eventually resolves to the emitted value that matches
  *   the condition
+ * @public
  */
 export function waitFor<TActorRef extends AnyActorRef>(
   actorRef: TActorRef,

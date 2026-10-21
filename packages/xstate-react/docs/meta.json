@@ -1,0 +1,12 @@
+{
+  "title": "XState React",
+  "pages": [
+    "use-machine",
+    "selectors",
+    "shared-actors",
+    "global-state",
+    "input-and-snapshots",
+    "server-rendering",
+    "testing"
+  ]
+}

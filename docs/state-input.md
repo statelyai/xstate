@@ -1,0 +1,162 @@
+---
+title: State input
+description: Pass typed data to a state when it is entered.
+---
+
+A state can declare an input schema. Transitions that target the state pass `input` alongside `target`, and the state's own functions read it from their arguments.
+
+Declare the schema in `setup(...)`:
+
+```ts
+const uploadSetup = setup({
+  states: {
+    idle: {},
+    uploading: {
+      schemas: { input: z.object({ fileName: z.string() }) }
+    }
+  }
+});
+```
+
+Then pass `input` from the transition:
+
+```ts
+const uploadMachine = uploadSetup.createMachine({
+  initial: 'idle',
+  states: {
+    idle: {
+      on: {
+        upload: { target: 'uploading', input: { fileName: 'report.pdf' } }
+      }
+    },
+    uploading: {
+      entry: ({ input }) => console.log(input.fileName)
+    }
+  }
+});
+```
+
+<!-- state input replacement behavior from packages/core/src/stateUtils.ts and packages/core/test/stateInput.test.ts -->
+
+State input is available to the target state's `entry`, `exit`, `on`, `after`, `timeout`, `onTimeout` and `output` functions. An invoked actor's `invoke.input` function also receives the state input, so it can adapt the state data to the actor's input contract. A transition's `input` takes effect only when its target state is entered. A non-reentering transition to an already-active state preserves that state's current input; set `reenter: true` to exit and enter the state again with the new input.
+
+## Computing input
+
+A transition function can compute input from context and the event.
+
+```ts
+idle: {
+  on: {
+    upload: ({ context, event }) => ({
+      target: 'uploading',
+      input: { fileName: event.fileName, token: context.authToken }
+    })
+  }
+}
+```
+
+## Initial state input
+
+The `initial` property accepts an object form so the initial state receives input too. A plain string is still used when the state needs none.
+
+```ts
+uploadSetup.createMachine({
+  initial: { target: 'uploading', input: { fileName: 'report.pdf' } },
+  states: {
+    uploading: { entry: ({ input }) => console.log(input.fileName) }
+  }
+});
+```
+
+Nested states work the same way: a parent's `initial` passes input to its child.
+
+## Multiple targets
+
+XState applies one transition `input` to every target in a target array. When
+setup declares input schemas for those targets, the input must satisfy all of
+them:
+
+```ts
+target: ['active.left.ready', 'active.right.ready'],
+input: { leftId: 1, rightId: true }
+```
+
+Each target's descendants still receive their own input from their normal
+`initial` transitions. Widened target arrays remain compatible with existing
+configurations.
+
+## Input lifetime
+
+State input lasts as long as its state is active. When the state exits, its input is removed, along with the inputs of its child states. Entering the state again without `input` gives it no input; the previous value does not come back.
+
+```ts
+const machine = createMachine({
+  initial: 'idle',
+  states: {
+    idle: {
+      on: {
+        UPLOAD: { target: 'uploading', input: { fileName: 'report.pdf' } }
+      }
+    },
+    uploading: {
+      on: { CANCEL: { target: 'idle' } }
+    }
+  }
+});
+
+const actor = createActor(machine).start();
+actor.send({ type: 'UPLOAD' });
+actor.getSnapshot().getInputs(); // { 'uploading': { fileName: 'report.pdf' } }
+
+actor.send({ type: 'CANCEL' });
+actor.getSnapshot().getInputs(); // {}
+```
+
+Persisted snapshots only include inputs for active states.
+
+## Reading input from a snapshot
+
+`snapshot.getInputs()` returns the current inputs keyed by state node ID.
+
+```ts
+const inputs = actor.getSnapshot().getInputs();
+inputs['uploading']; // { fileName: 'report.pdf' }
+```
+
+Use state input for data that belongs to one state rather than to the whole machine:
+
+- a checkout `paying` state that needs the selected payment method
+- a media player `buffering` state that needs the track being loaded
+- a form `submitting` state that needs the validated values
+
+> **Warning:** State input is not [actor input](input-output.md), which is passed once when an actor is created, and it is not action `params`, which belong to a named action call. State input belongs to a state and is provided by whichever transition enters it.
+
+## TypeScript
+
+Input is typed by the state's `schemas.input`. Transitions targeting the state require a matching `input`, and `({ input })` is typed inside that state's functions, including `invoke.input`. Modular state configs created with `setup(...).createStateConfig(...)` are typed the same way. See [setup and provide](setup-and-provide.md).
+
+## State input cheatsheet
+
+```ts
+const s = setup({
+  states: { loading: { schemas: { input: z.object({ id: z.string() }) } } }
+});
+
+s.createMachine({
+  initial: { target: 'loading', input: { id: 'a1' } },
+  states: {
+    loading: {
+      entry: ({ input }) => input.id,
+      on: {
+        retry: {
+          target: 'loading',
+          reenter: true,
+          input: { id: 'a2' }
+        }
+      }
+    }
+  }
+});
+
+actor.getSnapshot().getInputs();
+```

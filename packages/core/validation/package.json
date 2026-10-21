@@ -1,0 +1,8 @@
+{
+  "main": "../dist/xstate-validation.cjs.js",
+  "module": "../dist/xstate-validation.esm.js",
+  "umd:main": "../dist/xstate-validation.umd.min.js",
+  "preconstruct": {
+    "umdName": "XStateValidation"
+  }
+}

@@ -268,7 +268,7 @@ of separate `@xstate.actor`, `@xstate.event`, and `@xstate.snapshot` events.
 ```
 
 Subscribing to inspection immediately emits the current snapshot as an
-`@xstate.transition` event with `{ type: '@xstate.init' }`. Previously,
+`@xstate.transition` event with `{ type: 'xstate.init' }`. Previously,
 inspection emitted actor/snapshot events and used the initial snapshot on
 subscribe.
 

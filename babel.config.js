@@ -50,5 +50,8 @@ module.exports = {
       presets: ['babel-preset-solid']
     }
   ],
-  plugins: ['@babel/proposal-class-properties']
+  plugins: [
+    '@babel/proposal-class-properties',
+    '@babel/plugin-transform-class-static-block'
+  ]
 };

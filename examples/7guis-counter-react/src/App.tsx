@@ -1,10 +1,14 @@
-import React from 'react';
+import { useActor } from '@xstate/react';
 import './App.css';
-import { useMachine } from '@xstate/react';
 import { counterMachine } from './counterMachine';
+import { createInspector } from '@statelyai/sdk';
+
+const inspector = createInspector();
 
 function App() {
-  const [state, send] = useMachine(counterMachine);
+  const [state, send] = useActor(counterMachine, {
+    inspect: inspector.inspect
+  });
 
   return (
     <section id="app">

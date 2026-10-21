@@ -11,7 +11,9 @@
   <br />
 </p>
 
-XState is a state management and orchestration solution for JavaScript and TypeScript apps. It has _zero_ dependencies, and is useful for frontend and backend application logic.
+<!-- runtime dependencies and public entry points from packages/core/package.json -->
+
+XState is a state management and orchestration solution for JavaScript and TypeScript apps. The `xstate` package has _zero_ runtime dependencies. XState is useful for frontend and backend application logic.
 
 It uses event-driven programming, state machines, statecharts, and the actor model to handle complex logic in predictable, robust, and visual ways. XState provides a powerful and flexible way to manage application and workflow state by allowing developers to model logic as actors and state machines.
 
@@ -21,6 +23,10 @@ It uses event-driven programming, state machines, statecharts, and the actor mod
 
 📖 [Read the documentation](https://stately.ai/docs)
 
+<!-- documentation sections from docs/meta.json -->
+
+[Start](docs/quick-start.md) · [Learn](docs/why-state-machines.md) · [Build](docs/async-requests.md) · [Reference](docs/configuration.md) · [Transition functions](docs/transition-functions.md) · [Typestates](docs/typestates.md) · [Migrate](docs/xstate-v5-to-v6.md)
+
 ➡️ [Create state machines with the Stately Editor](https://stately.ai/editor)
 
 🖥 [Download our VS Code extension](https://marketplace.visualstudio.com/items?itemName=statelyai.stately-vscode)
@@ -29,18 +35,26 @@ It uses event-driven programming, state machines, statecharts, and the actor mod
 
 💬 Chat on the [Stately Discord Community](https://discord.gg/xstate)
 
-✍️ Browse through the many [XState examples](https://github.com/statelyai/xstate/tree/main/examples)
+✍️ Browse through the many [XState examples](https://github.com/statelyai/xstate/tree/next/examples)
 
 ## Which package should I use?
 
 Pick based on what you need:
 
-<!-- package choices from packages/xstate-store/src/index.ts -->
+<!-- package choices from packages/core/src/index.ts, packages/core/src/fsm/index.ts, packages/xstate-store/src/index.ts, and packages/xstate-effect/src/index.ts -->
 
 - **[`@xstate/store`](#xstate-store)**: simple event-based state management and reactive atoms, with great TypeScript inference, similar in spirit to Redux/Zustand. Start here if you just need a store.
+- **[`@xstate/effect`](https://github.com/statelyai/xstate/tree/main/packages/xstate-effect)**: Effect 4 integration for XState v6 actors, schemas, typed requirements/errors, streams, and Effect actions.
+- **[`xstate/fsm`](docs/fsm.md)**: tiny pure flat finite state machines with context and TypeScript support.
 - **[`xstate`](#super-quick-start)**: state machines, statecharts, actors, effects, and orchestration for complex app logic.
 
 They work great together, but you don't need one to use the other.
+
+<!-- experimental whole-system transitions from packages/core/src/systemTransition.ts -->
+
+For pure actor-system simulation, the experimental `initialSystemTransition`,
+`systemTransition` and `advanceSystemTime` APIs return an immutable system snapshot
+and external effects as data. See [pure system transitions](docs/system-transitions.md).
 
 ## Sponsors
 
@@ -49,6 +63,8 @@ Special thanks to the sponsors who support this open-source project:
 <img src="https://opencollective.com/xstate/tiers/backer/badge.svg?label=sponsors&color=brightgreen" />
 
 ## Templates
+
+<!-- template versions and starter links from templates/*/package.json -->
 
 Get started by forking one of these templates on CodeSandbox:
 
@@ -61,14 +77,14 @@ Get started by forking one of these templates on CodeSandbox:
 <tr>
 <td>
 
-[🤖 XState Template (CodeSandbox)](https://codesandbox.io/p/devbox/github/statelyai/xstate/tree/main/templates/vanilla-ts)
+[🤖 XState Template (CodeSandbox)](https://codesandbox.io/p/devbox/github/statelyai/xstate/tree/next/templates/vanilla-ts)
 
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/statelyai/xstate/tree/main/templates/vanilla-ts?file=%2Fsrc%2FfeedbackMachine.ts)
+[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/statelyai/xstate/tree/next/templates/vanilla-ts?file=%2Fsrc%2FfeedbackMachine.ts)
 
 </td>
 <td>
 
-- XState v5
+- XState v6 alpha
 - TypeScript
 - _No framework_
 
@@ -78,15 +94,15 @@ Get started by forking one of these templates on CodeSandbox:
 <tr>
 <td>
 
-[⚛️ XState + React Template (CodeSandbox)](https://codesandbox.io/p/devbox/github/statelyai/xstate/tree/main/templates/react-ts)
+[⚛️ XState + React Template (CodeSandbox)](https://codesandbox.io/p/devbox/github/statelyai/xstate/tree/next/templates/react-ts)
 
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/statelyai/xstate/tree/main/templates/react-ts?file=%2Fsrc%2FfeedbackMachine.ts)
+[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/statelyai/xstate/tree/next/templates/react-ts?file=%2Fsrc%2FfeedbackMachine.ts)
 
 </td>
 <td>
 
 - [React](https://react.dev/)
-- XState v5
+- XState v6 alpha
 - TypeScript
 
 </td>
@@ -95,15 +111,15 @@ Get started by forking one of these templates on CodeSandbox:
 <tr>
 <td>
 
-[💚 XState + Vue Template (CodeSandbox)](https://codesandbox.io/p/devbox/github/statelyai/xstate/tree/main/templates/vue-ts)
+[💚 XState + Vue Template (CodeSandbox)](https://codesandbox.io/p/devbox/github/statelyai/xstate/tree/next/templates/vue-ts)
 
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/statelyai/xstate/tree/main/templates/vue-ts?file=%2Fsrc%2FfeedbackMachine.ts)
+[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/statelyai/xstate/tree/next/templates/vue-ts?file=%2Fsrc%2FfeedbackMachine.ts)
 
 </td>
 <td>
 
 - [Vue](https://vuejs.org/)
-- XState v5
+- XState v6 alpha
 - TypeScript
 
 </td>
@@ -112,15 +128,15 @@ Get started by forking one of these templates on CodeSandbox:
 <tr>
 <td>
 
-[🧡 XState + Svelte Template (CodeSandbox)](https://codesandbox.io/p/devbox/github/statelyai/xstate/tree/main/templates/svelte-ts)
+[🧡 XState + Svelte Template (CodeSandbox)](https://codesandbox.io/p/devbox/github/statelyai/xstate/tree/next/templates/svelte-ts)
 
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/statelyai/xstate/tree/main/templates/svelte-ts?file=%2Fsrc%2FfeedbackMachine.ts)
+[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/statelyai/xstate/tree/next/templates/svelte-ts?file=%2Fsrc%2FfeedbackMachine.ts)
 
 </td>
 <td>
 
-- [Svelte](https://svelte.dev/)
-- XState v5
+- [Svelte 5](https://svelte.dev/)
+- XState v6 alpha
 - TypeScript
 
 </td>
@@ -131,46 +147,43 @@ Get started by forking one of these templates on CodeSandbox:
 
 ## Super quick start
 
+<!-- install command matching packages/core/package.json#version and example matching the XState v6 API -->
+
 ```bash
-npm install xstate
+npm install xstate@alpha
 ```
 
 ```ts
-import { createMachine, createActor, assign } from 'xstate';
+import { createActor, createMachine } from 'xstate';
 
-// State machine
-const toggleMachine = createMachine({
-  id: 'toggle',
-  initial: 'inactive',
-  context: {
-    count: 0
-  },
+const playerMachine = createMachine({
+  initial: 'stopped',
   states: {
-    inactive: {
+    stopped: {
+      on: { play: { target: 'playing' } }
+    },
+    playing: {
       on: {
-        TOGGLE: { target: 'active' }
+        pause: { target: 'paused' },
+        stop: { target: 'stopped' }
       }
     },
-    active: {
-      entry: assign({ count: ({ context }) => context.count + 1 }),
+    paused: {
       on: {
-        TOGGLE: { target: 'inactive' }
+        play: { target: 'playing' },
+        stop: { target: 'stopped' }
       }
     }
   }
 });
 
-// Actor (instance of the machine logic, like a store)
-const toggleActor = createActor(toggleMachine);
-toggleActor.subscribe((state) => console.log(state.value, state.context));
-toggleActor.start();
-// => logs 'inactive', { count: 0 }
+const player = createActor(playerMachine).start();
 
-toggleActor.send({ type: 'TOGGLE' });
-// => logs 'active', { count: 1 }
+player.send({ type: 'pause' });
+console.log(player.getSnapshot().value); // 'stopped'
 
-toggleActor.send({ type: 'TOGGLE' });
-// => logs 'inactive', { count: 1 }
+player.send({ type: 'play' });
+console.log(player.getSnapshot().value); // 'playing'
 ```
 
 ---
@@ -251,6 +264,7 @@ Read [📽 the slides](http://slides.com/davidkpiano/finite-state-machines) ([�
 | ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
 | 🤖 `xstate`                                                                                 | Core finite state machine and statecharts library + interpreter, including graph traversal and model-based testing utilities |
 | [🏪 `@xstate/store`](https://github.com/statelyai/xstate/tree/main/packages/xstate-store)   | Simple event-based state management and reactive atoms — standalone, works with or without `xstate`                                      |
+| [✨ `@xstate/effect`](https://github.com/statelyai/xstate/tree/main/packages/xstate-effect)  | Effect 4 integration for XState v6 actors, schemas, typed requirements/errors, streams, and Effect actions                   |
 | [⚛️ `@xstate/react`](https://github.com/statelyai/xstate/tree/main/packages/xstate-react)   | React hooks and utilities for using XState in React applications                                                             |
 | [💚 `@xstate/vue`](https://github.com/statelyai/xstate/tree/main/packages/xstate-vue)       | Vue composition functions and utilities for using XState in Vue applications                                                 |
 | [🎷 `@xstate/svelte`](https://github.com/statelyai/xstate/tree/main/packages/xstate-svelte) | Svelte utilities for using XState in Svelte applications                                                                     |

@@ -14,22 +14,25 @@ const QuestionNumber = () => {
       size="sm"
       role="status"
     >
-      <span className="sr-only">Loading...</span>
+      <span className="visually-hidden">Loading...</span>
     </Spinner>
   );
 
   return (
-    <div className="text-right">
+    <div className="text-end">
       <h1>
         <div className="text-center">
           Question #{' '}
-          <Badge role="question-counter" variant="secondary">
+          <Badge data-testid="question-counter" bg="secondary">
             {question}
           </Badge>
         </div>
 
         {context.hasLoaded && context.currentCharacter && (
-          <Clue episode={context.currentCharacter.episode[0]} />
+          <Clue
+            key={context.currentCharacter.episode[0]}
+            episode={context.currentCharacter.episode[0]}
+          />
         )}
       </h1>
     </div>

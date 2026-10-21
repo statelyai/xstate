@@ -1,11 +1,21 @@
-import { assign, fromCallback, setup } from 'xstate';
+import { createCallbackLogic, setup, types } from 'xstate';
 
 export const stopwatchMachine = setup({
+  schemas: {
+    context: types<{ elapsed: number }>(),
+    events: {
+      start: types<{}>(),
+      stop: types<{}>(),
+      reset: types<{}>(),
+      TICK: types<{}>()
+    }
+  },
   actors: {
-    ticks: fromCallback(({ sendBack }) => {
+    ticks: createCallbackLogic(({ sendBack }) => {
       const interval = setInterval(() => {
         sendBack({ type: 'TICK' });
       }, 10);
+
       return () => clearInterval(interval);
     })
   }
@@ -18,7 +28,7 @@ export const stopwatchMachine = setup({
   states: {
     stopped: {
       on: {
-        start: 'running'
+        start: { target: 'running' }
       }
     },
     running: {
@@ -26,21 +36,17 @@ export const stopwatchMachine = setup({
         src: 'ticks'
       },
       on: {
-        TICK: {
-          actions: assign({
-            elapsed: ({ context }) => context.elapsed + 1
-          })
-        },
-        stop: 'stopped'
+        TICK: ({ context }) => ({
+          context: { ...context, elapsed: context.elapsed + 1 }
+        }),
+        stop: { target: 'stopped' }
       }
     }
   },
   on: {
-    reset: {
-      actions: assign({
-        elapsed: 0
-      }),
-      target: '.stopped'
-    }
+    reset: ({ context }) => ({
+      target: '.stopped',
+      context: { ...context, elapsed: 0 }
+    })
   }
 });

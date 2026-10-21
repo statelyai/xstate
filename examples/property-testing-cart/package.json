@@ -1,0 +1,21 @@
+{
+  "name": "@xstate/example-property-testing-cart",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.35",
+    "@xstate/test": "workspace:*",
+    "fast-check": "^4.9.0",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.7",
+    "zod": "^4.4.3"
+  },
+  "dependencies": {
+    "xstate": "workspace:*"
+  }
+}
