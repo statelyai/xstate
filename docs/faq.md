@@ -5,7 +5,7 @@ description: Short answers to the questions most often asked about XState v6.
 
 ## Is XState v6 stable?
 
-Not yet. v6 is in alpha and is published under the `alpha` dist-tag, so `npm install xstate@alpha` gets the current release. APIs may still change between alpha releases. XState v5 is still supported; use it if you need a stable version today, and see [migrate from v5 to v6](xstate-v5-to-v6.md) when you are ready.
+Not yet. v6 is in beta and is published under the `beta` dist-tag, so `npm install xstate@beta` gets the current release. APIs may still change before the stable release. XState v5 is still supported; use it if you need a stable version today, and see [migrate from v5 to v6](xstate-v5-to-v6.md) when you are ready.
 
 ## Where did `assign`, `raise`, `sendTo` and `enqueueActions` go?
 
@@ -45,7 +45,7 @@ Transition functions must return the next context; mutating `context` in place d
 
 ## Does XState work with React, Vue, Svelte and Solid?
 
-Yes. XState itself is framework-agnostic; an actor is a plain object you can subscribe to. There are official bindings for React, Vue, Svelte and Solid that create or receive an actor, subscribe to its snapshots, and re-render when they change. Install them alongside the alpha core, for example `npm install xstate@alpha @xstate/react@alpha`. See [frameworks](frameworks.md).
+Yes. XState itself is framework-agnostic; an actor is a plain object you can subscribe to. There are official bindings for React, Vue, Svelte and Solid that create or receive an actor, subscribe to its snapshots, and re-render when they change. Install them alongside the beta core, for example `npm install xstate@beta @xstate/react@beta`. See [frameworks](frameworks.md).
 
 ## When should I use @xstate/store instead?
 
