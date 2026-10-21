@@ -1,5 +1,30 @@
 # xstate
 
+## 6.0.0-alpha.71
+
+### Minor Changes
+
+- 749955a: Observe emitted events from every actor in a system with `createSystem({ onEmitted })`. The callback receives the source actor and original event, including emissions from invoked and spawned children.
+  
+  ```ts
+  const system = createSystem({
+    onEmitted: ({ actorRef, event }) => {
+      analytics.track(`${actorRef.id}.${event.type}`, event);
+    }
+  });
+  
+  const root = system.createActor(applicationMachine);
+  root.start();
+  ```
+  
+  Use `system.onEmitted(listener)` for a subscription you can remove with `.unsubscribe()`. Existing `actor.on(...)` handlers continue to observe only that actor's emissions.
+
+### Patch Changes
+
+- 29ead0b: Clarify how imported SCXML machines differ from native XState v6 machines, including transition domains, event matching, error handling, and the supported execution profile.
+  
+  Fix SCXML executable content ordering: all state exits finish before selected transition content runs, and all transition content finishes before state entry. Scripts can mutate declared arrays and plain objects while preserving previous snapshots.
+
 ## 6.0.0-alpha.70
 
 ### Major Changes
