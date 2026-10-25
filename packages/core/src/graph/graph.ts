@@ -15,6 +15,7 @@ import type {
   StatePath,
   DirectedGraphEdge,
   DirectedGraphNode,
+  DirectedGraphDiagnostic,
   TraversalOptions,
   AnyStateNode,
   TraversalConfig
@@ -63,9 +64,25 @@ function getChildren(stateNode: AnyStateNode): AnyStateNode[] {
 /** @public */
 export function serializeSnapshot(snapshot: Snapshot<any>): SerializedSnapshot {
   const { value, context } = snapshot as any;
+  const machineSnapshot = isMachineSnapshot(snapshot) ? snapshot : undefined;
+  const inputs = machineSnapshot?.getInputs();
+  const history = machineSnapshot?.historyValue;
   return JSON.stringify({
     value,
-    context: Object.keys(context ?? {}).length ? context : undefined
+    context: Object.keys(context ?? {}).length ? context : undefined,
+    // Equal values and root contexts can still make different decisions when
+    // their state inputs or remembered history differ. Empty records remain
+    // omitted to preserve the keys of machines that do not use these features.
+    stateInputs: inputs && Object.keys(inputs).length ? inputs : undefined,
+    historyValue:
+      history && Object.keys(history).length
+        ? Object.fromEntries(
+            Object.entries(history).map(([id, nodes]) => [
+              id,
+              nodes.map((node) => node.id)
+            ])
+          )
+        : undefined
   }) as SerializedSnapshot;
 }
 
@@ -161,9 +178,23 @@ export function toDirectedGraph(
     isMachineLogic(stateMachine) ? stateMachine.root : stateMachine
   ) as AnyStateNode; // TODO: accept only machines
 
-  const edges: DirectedGraphEdge[] = [...stateNode.transitions.values()]
-    .flat()
-    .flatMap((t, transitionIndex) => {
+  const diagnostics: DirectedGraphDiagnostic[] = [];
+  const transitions = [
+    ...[...stateNode.transitions.values()].flat(),
+    ...(stateNode.always ?? [])
+  ];
+  const edges: DirectedGraphEdge[] = transitions.flatMap(
+    (t, transitionIndex) => {
+      if (t.to) {
+        diagnostics.push({
+          code: 'dynamic-target',
+          stateId: stateNode.id,
+          eventType: t.eventType,
+          transitionId: `${stateNode.id}:${transitionIndex}`,
+          message:
+            'Transition function destinations require execution or source analysis.'
+        });
+      }
       // A transition function computes its target when it runs, so there is
       // no static edge to draw; a targetless transition stays in its state.
       const targets = t.target ?? (t.to ? [] : [stateNode]);
@@ -187,16 +218,23 @@ export function toDirectedGraph(
 
         return edge;
       });
-    });
+    }
+  );
 
+  const children = getChildren(stateNode).map(toDirectedGraph);
+  diagnostics.push(...children.flatMap((child) => child.analysis.diagnostics));
   const graph = {
     id: stateNode.id,
     stateNode: stateNode,
-    children: getChildren(stateNode).map(toDirectedGraph),
+    children,
     edges,
+    analysis: {
+      transitionTargetsComplete: diagnostics.length === 0,
+      diagnostics
+    },
     toJSON: () => {
       const { id, children, edges: graphEdges } = graph;
-      return { id, children, edges: graphEdges };
+      return { id, children, edges: graphEdges, analysis: graph.analysis };
     }
   };
 

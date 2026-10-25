@@ -2341,7 +2341,7 @@ export interface ActorRuntime<
   _isRunning: () => boolean;
   src: string | AnyActorLogic;
   /** Registry key used by the actor system receptionist. */
-  registryKey?: string;
+  registryKey?: string | undefined;
   trigger: ActorTrigger<TSendEvent>;
   select<TSelected>(
     selector: (snapshot: TSnapshot) => TSelected,

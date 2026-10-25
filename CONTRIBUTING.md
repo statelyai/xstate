@@ -87,6 +87,8 @@ one above its entry in `scripts/bundle-size.targets.json` unless you pass
 
 We are using [changesets](https://github.com/atlassian/changesets) to create "release intents" for our packages. The Publish workflow handles release intents on `main` and `next`; changes for the v6 alpha belong on `next`.
 
+Before entering beta, run the built and packed consumer checks with both TypeScript compilers, including `exactOptionalPropertyTypes: true` and `skipLibCheck: false`. After publishing from `next` with the Changesets prerelease tag set to `beta`, the Publish workflow runs `pnpm check:release-tags --tag beta`. This read-only check requires the beta tag of every coordinated v6 package to resolve to its workspace version; it retries briefly for registry propagation and fails if a tag is missing or stale. Resolve any publication or tag mismatch before announcing the release. The check does not publish packages or change tags.
+
 ### Persistence conformance
 
 `packages/core/test/persistenceConformance.v6.test.ts` is the shape contract for persisted snapshots. It validates every envelope it produces against `packages/core/src/persistedSnapshot.schema.json`.

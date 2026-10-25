@@ -24,6 +24,8 @@ Use machine-as-data for cases such as:
 
 ## What survives serialization
 
+Call `getMachineSerializationDiagnostics(machine)` before exporting a code-authored machine when omitted values would matter to a tool. This experimental preflight reports JSON Pointer paths for omitted runtime values, code expressions needing an evaluator, and source implementations that must be supplied again. It does not call function values, prove behavioral equivalence or validate every required runtime binding.
+
 States, transitions, targets, serialized action objects, guard references, string actor `src` names, `after` delays, `timeout`/`onTimeout`, `meta`, `description`, `tags`, `output`, `context` values, internal event names (from `schemas.internalEvents`, as a top-level `internalEvents` array), `version`, and JSON-safe data within supported config fields all survive.
 
 Inline functions become code expressions:
