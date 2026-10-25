@@ -344,6 +344,56 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
     await testWaitFor(() => expect(count.textContent).toBe('42'));
   });
 
+  it.each(['resolve', 'reject'] as const)(
+    'ignores an aborted invocation that settles with %s after reconnecting effects',
+    async (settlement) => {
+      const promiseLogic = fromPromise(
+        ({ signal }) =>
+          new Promise<string>((resolve, reject) => {
+            const timer = setTimeout(() => resolve('current'), 0);
+            signal.addEventListener('abort', () => {
+              clearTimeout(timer);
+              if (settlement === 'reject') {
+                reject(new Error('aborted'));
+              } else {
+                resolve('stale');
+              }
+            });
+          })
+      );
+      const machine = createMachine({
+        context: { result: 'loading' },
+        initial: 'loading',
+        states: {
+          loading: {
+            invoke: {
+              src: promiseLogic,
+              onDone: {
+                target: 'done',
+                actions: assign({ result: ({ event }) => event.output })
+              },
+              onError: 'failed'
+            }
+          },
+          done: {},
+          failed: {}
+        }
+      });
+      const App = () => {
+        const actorRef = useActorRef(machine);
+        const result = useSelector(actorRef, (state) =>
+          state.matches('failed') ? 'failed' : state.context.result
+        );
+        return <div data-testid="result">{result}</div>;
+      };
+
+      render(<App />);
+      await testWaitFor(() =>
+        expect(screen.getByTestId('result').textContent).toBe('current')
+      );
+    }
+  );
+
   it('invoked actor should be able to receive (deferred) events that it replays when active', () => {
     let isDone = false;
 
