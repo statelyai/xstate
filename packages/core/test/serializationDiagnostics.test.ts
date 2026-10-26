@@ -3,8 +3,27 @@ import {
   createMachine,
   getMachineSerializationDiagnostics,
   machineFromJSON,
+  machineToJSON,
   types
 } from '../src/index.ts';
+
+it('reports undefined object properties and array entries omitted during export', () => {
+  const machine = createMachine({
+    context: { selected: undefined, items: [1, undefined, null, 2] }
+  });
+
+  expect(machineToJSON(machine).context).toEqual({ items: [1, null, 2] });
+  expect(getMachineSerializationDiagnostics(machine)).toEqual([
+    expect.objectContaining({
+      code: 'omitted-value',
+      path: '/context/selected'
+    }),
+    expect.objectContaining({
+      code: 'omitted-value',
+      path: '/context/items/1'
+    })
+  ]);
+});
 
 it('identifies omitted actors, schemas, source bindings and code without running functions', () => {
   const decide = vi.fn(() => ({ target: 'done' }));

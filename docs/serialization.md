@@ -45,6 +45,7 @@ These values are omitted rather than serialized:
 - runtime schemas such as Zod schemas in `schemas`
 - `schemas.internalEvents` declarations; restore those schemas when reviving if runtime validation is needed
 - root `actions`, `guards`, `actors` and `delays` sources that are functions
+- `undefined` object properties and array entries; omitted array entries shift later indexes
 - class instances, `Date`s, `bigint` and `symbol` values, including inside arrays
 
 > **Warning:** Named source keys are not preserved when their values are functions. The definition records where a source is _used_ (`invoke: { src: 'worker' }`, `guard: { type: 'canFinish' }`), and you supply the implementations when reviving.

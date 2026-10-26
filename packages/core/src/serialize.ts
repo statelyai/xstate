@@ -54,7 +54,11 @@ export function getMachineSerializationDiagnostics(
       );
       return;
     }
-    if (typeof value === 'bigint' || typeof value === 'symbol') {
+    if (
+      value === undefined ||
+      typeof value === 'bigint' ||
+      typeof value === 'symbol'
+    ) {
       report(
         'omitted-value',
         'This value is omitted from the exported definition.'
