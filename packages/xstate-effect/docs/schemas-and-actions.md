@@ -123,6 +123,58 @@ The latch lets this demo wait for the audit before closing its scope. In an appl
 - Standard Schemas can be mixed with Effect schemas. `EffectSchemaLike` represents either kind.
 - `createEffectLogic` also accepts Effect input and output schemas.
 
+### Action argument types
+
+<!-- action argument inference from src/setupEffect.ts -->
+
+Declared actions infer `context` from the setup's decoded context schema. Their `event` is the union of `schemas.events` and `schemas.internalEvents`. Check `event.type` before reading a payload that belongs to one event.
+
+An extension's actions use the merged schemas. Context schemas replace the previous context type. Event and action schema entries merge by name, with extension entries replacing matching names.
+
+Without a context schema, action context values are `unknown`. Without event schemas, actions receive `{ type: string }`. A later `createMachine` configuration cannot infer types for earlier action callbacks. Declare setup schemas or annotate the callback argument.
+
+To give an action a different argument, declare `schemas.actions.<name>.params`. This schema describes the entire first argument. Include `self` when enqueueing the action so its Effect runs in the owning actor's context:
+
+<!-- example from examples/effect-workflows/src/custom-actions.ts -->
+
+```ts
+import { Effect, Latch, Schema } from 'effect';
+import { createEffectActor, send, setupEffect } from '@xstate/effect';
+
+const messages: string[] = [];
+const recorded = Latch.makeUnsafe();
+const machine = setupEffect({
+  schemas: {
+    actions: {
+      audit: { params: Schema.Struct({ message: Schema.String }) }
+    }
+  },
+  actions: {
+    audit: ({ message }) =>
+      Effect.sync(() => {
+        messages.push(message);
+      }).pipe(Effect.andThen(recorded.open))
+  }
+}).createMachine({
+  on: {
+    SAVE: (args, enq) =>
+      enq(args.actions.audit, { self: args.self, message: 'saved' })
+  }
+});
+
+const program = Effect.gen(function* () {
+  const actor = yield* createEffectActor(machine);
+  yield* send(actor, { type: 'SAVE' });
+  yield* recorded.await;
+  return messages;
+});
+
+export const result = await Effect.runPromise(Effect.scoped(program));
+console.log(result);
+```
+
+The same `params` schema defines arguments for an action replacement passed to `machine.provide`. Actions without an argument schema retain their explicitly annotated callback arguments. When a source map mixes custom annotated arguments with inferred arguments, declare the custom arguments in `schemas.actions.<name>.params` so every callback receives a contextual type.
+
 ### Runtime validation
 
 Add `standardSchemaValidator()` from `xstate/validation` to check values at runtime, as above. Without a validator, schemas provide types only.

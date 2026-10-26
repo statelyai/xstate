@@ -42,7 +42,7 @@ INSPECT=1 pnpm --filter @xstate/example-effect-workflows start
 - `observe.ts`, `emitted.ts` and `inspection.ts`: state history, final output, reminders and visual inspection.
 - `task.ts`, `latest-stream.ts` and `event-stream.ts`: tasks, upload progress and rollout health events.
 - `matching.ts` and `parallel.ts`: exhaustive state matching and parallel regions.
-- `actions.ts` and `provided-actions.ts`: runtime schema validation, background audits and service requirements after overrides.
+- `actions.ts`, `custom-actions.ts` and `provided-actions.ts`: runtime schema validation, typed action arguments, background audits and service requirements after overrides.
 - `resources.ts`: invocation cleanup and resources retained with `withActorScope`.
 - `atoms.ts`, `input-atoms.ts`, `react.tsx` and `selector.tsx`: atom ownership, required input and React consumers.
 - `clock.ts`, `retry.ts`, `supervision.ts`, `errors.ts` and `failure-cause.ts`: deadlines, retries, typed failures and Cause inspection.
