@@ -1,18 +1,24 @@
 import { Cause, type Effect } from 'effect';
 import { AsyncResult, Atom } from 'effect/reactivity';
-import type {
-  AnyActorLogic,
-  ErrorFrom,
-  EventFromLogic,
-  Snapshot,
-  SnapshotFrom
+import {
+  StateMachine,
+  type AnyStateMachine,
+  type AnyActorLogic,
+  type ErrorFrom,
+  type EventFromLogic,
+  type Snapshot,
+  type SnapshotFrom
 } from 'xstate';
 import {
   createEffectActor,
   type EffectActorOptionsArgs
 } from './createEffectActor.ts';
 import type { EffectActor } from './effectActor.ts';
-import { NotReadyError } from './errors.ts';
+import {
+  NotReadyError,
+  causeFromError,
+  type UnwrapEffectFailure
+} from './errors.ts';
 import { taggedState, type TaggedStateFrom } from './state.ts';
 import type { RequirementsFrom } from './types.ts';
 
@@ -23,7 +29,7 @@ export { NotReadyError } from './errors.ts';
  * `effect/reactivity`. Read them with the atom bindings for your
  * framework, such as `@effect/atom-react`.
  */
-export interface ActorAtoms<TLogic extends AnyActorLogic, ER = never> {
+interface BaseActorAtoms<TLogic extends AnyActorLogic, ER> {
   /**
    * The running actor. It starts when the atom is first read and stops when
    * the atom is released, that is, when nothing reads or mounts it anymore.
@@ -38,7 +44,10 @@ export interface ActorAtoms<TLogic extends AnyActorLogic, ER = never> {
    * the actor's status is `error`, so an error boundary can handle it.
    */
   readonly result: Atom.Atom<
-    AsyncResult.AsyncResult<SnapshotFrom<TLogic>, ER | ErrorFrom<TLogic>>
+    AsyncResult.AsyncResult<
+      SnapshotFrom<TLogic>,
+      ER | UnwrapEffectFailure<ErrorFrom<TLogic>>
+    >
   >;
   /**
    * Sends an event to the actor synchronously. Set it with the event, for
@@ -54,14 +63,20 @@ export interface ActorAtoms<TLogic extends AnyActorLogic, ER = never> {
   readonly select: <T>(
     selector: (snapshot: SnapshotFrom<TLogic>) => T
   ) => Atom.Atom<AsyncResult.AsyncResult<T, ER>>;
-  /**
-   * The snapshot as a tagged union over the machine's states, for
-   * `Match.tag` or a `switch` on `_tag`. See `taggedState`.
-   */
-  readonly state: Atom.Atom<
-    AsyncResult.AsyncResult<TaggedStateFrom<SnapshotFrom<TLogic>>, ER>
-  >;
 }
+
+export type ActorAtoms<
+  TLogic extends AnyActorLogic,
+  ER = never
+> = BaseActorAtoms<TLogic, ER> &
+  ([TLogic] extends [AnyStateMachine]
+    ? {
+        /** The machine snapshot as a tagged union over its states. */
+        readonly state: Atom.Atom<
+          AsyncResult.AsyncResult<TaggedStateFrom<SnapshotFrom<TLogic>>, ER>
+        >;
+      }
+    : {});
 
 interface MissingRequirements<T> {
   readonly 'The runtime does not provide services the logic requires': T;
@@ -126,7 +141,7 @@ export function createActorAtoms<TLogic extends AnyActorLogic, R, ER = never>(
       get
     ): AsyncResult.AsyncResult<
       SnapshotFrom<TLogic>,
-      ER | ErrorFrom<TLogic>
+      ER | UnwrapEffectFailure<ErrorFrom<TLogic>>
     > => {
       const current = get(snapshot);
       if (!AsyncResult.isSuccess(current)) {
@@ -135,7 +150,7 @@ export function createActorAtoms<TLogic extends AnyActorLogic, R, ER = never>(
       const value = current.value as Snapshot<unknown>;
       if (value.status === 'error') {
         return AsyncResult.failureWithPrevious(
-          Cause.fail(value.error as ErrorFrom<TLogic>),
+          causeFromError(value.error as ErrorFrom<TLogic>),
           { previous: get.self() }
         );
       }
@@ -167,10 +182,18 @@ export function createActorAtoms<TLogic extends AnyActorLogic, R, ER = never>(
     return Atom.map(snapshot, (result) => AsyncResult.map(result, selector));
   }
 
-  const state = select(
-    (current) =>
-      taggedState(current as never) as TaggedStateFrom<SnapshotFrom<TLogic>>
-  );
-
-  return { actor, snapshot, result, send: sendAtom, select, state };
+  const base = { actor, snapshot, result, send: sendAtom, select };
+  return (
+    logic instanceof StateMachine
+      ? {
+          ...base,
+          state: select(
+            (current) =>
+              taggedState(current as never) as TaggedStateFrom<
+                SnapshotFrom<TLogic>
+              >
+          )
+        }
+      : base
+  ) as ActorAtoms<TLogic, ER>;
 }

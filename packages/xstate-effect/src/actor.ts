@@ -16,7 +16,11 @@ import type {
   Subscription
 } from 'xstate';
 import type { EffectActor } from './effectActor.ts';
-import { ActorStoppedError } from './errors.ts';
+import {
+  ActorStoppedError,
+  causeFromError,
+  type UnwrapEffectFailure
+} from './errors.ts';
 
 /** The event type accepted by an actor's `send` method. */
 export type SendableEventFrom<TActor extends AnyActorRef> = Parameters<
@@ -302,23 +306,28 @@ export const waitFor: {
 
 /**
  * Joins an actor's final result, like `Fiber.join`: succeeds with its `output`
- * when it is done, fails with `snapshot.error` when it errors, and fails with
+ * when it is done, replays an Effect actor's original Cause when it errors, and fails with
  * `ActorStoppedError` when it stops without output. Waits for a still-active
- * actor to settle.
+ * actor to settle. Ordinary XState errors remain typed failures.
  */
 export function join<TActor extends AnyActorRef>(
   actor: TActor
-): Effect.Effect<OutputFrom<TActor>, ErrorFrom<TActor> | ActorStoppedError> {
+): Effect.Effect<
+  OutputFrom<TActor>,
+  UnwrapEffectFailure<ErrorFrom<TActor>> | ActorStoppedError
+> {
   return Effect.callback<
     OutputFrom<TActor>,
-    ErrorFrom<TActor> | ActorStoppedError
+    UnwrapEffectFailure<ErrorFrom<TActor>> | ActorStoppedError
   >((resume) => {
     const settle = () => {
       const snapshot = actor.getSnapshot();
       if (snapshot.status === 'done') {
         resume(Effect.succeed(snapshot.output as OutputFrom<TActor>));
       } else if (snapshot.status === 'error') {
-        resume(Effect.fail(snapshot.error as ErrorFrom<TActor>));
+        resume(
+          Effect.failCause(causeFromError(snapshot.error as ErrorFrom<TActor>))
+        );
       } else {
         resume(Effect.fail(stoppedError(actor)));
       }

@@ -105,10 +105,10 @@ describe('system', () => {
       }
     });
     const actor = createActor(machine);
-    const child = createActor(createMachine({}), {
+    const child = actor.system.createActorRef(createMachine({}), {
       parent: actor,
       registryKey: 'child'
-    } as {});
+    });
 
     actor.start();
     transition(machine, actor.getSnapshot(), { type: 'CHECK' });

@@ -31,7 +31,7 @@ export interface XStateSourceCoverageSessionOptions<T extends AnyStateMachine> {
     event: EventFromLogic<T>,
     snapshot: SnapshotFrom<T>
   ) => void | Promise<void>;
-  /** Called after calculation, for assertions or comparison with a real SUT. */
+  /** Synchronous assertions or SUT comparisons. Thenables fail initialization or the step. */
   check?: (
     snapshot: SnapshotFrom<T>,
     event: EventFromLogic<T> | undefined
@@ -52,23 +52,25 @@ export function createXStateSourceCoverageSession<T extends AnyStateMachine>(
   if (!options.runtimeId)
     throw new Error('Source coverage sessions require a runtimeId');
   let snapshot: AnyMachineSnapshot;
+  let pending = false;
   const calculate = (
     event?: EventFromLogic<T>
   ): SourceCoverageSessionStep<SnapshotFrom<T>> => {
     const ids = new Set<string>();
     const previous = control.observer;
     const faults = control.faults;
+    let candidate: typeof snapshot;
     control.observer = (id) => ids.add(id);
     try {
       const steps =
         event === undefined
           ? getInitialMicrosteps(machine, options.input as InputFrom<T>)
           : getMicrosteps(machine, snapshot as SnapshotFrom<T>, event);
-      snapshot =
+      candidate =
         (steps.at(-1)?.[0] as AnyMachineSnapshot | undefined) ?? snapshot;
-      if (!snapshot || snapshot.status === 'error')
+      if (!candidate || candidate.status === 'error')
         throw new Error('Source coverage execution failed', {
-          cause: snapshot?.error
+          cause: candidate?.error
         });
       for (const [, , transitions] of steps)
         for (const transition of transitions) {
@@ -79,26 +81,53 @@ export function createXStateSourceCoverageSession<T extends AnyStateMachine>(
         }
       if (control.faults !== faults)
         throw new Error('Source coverage observer failed');
-      options.check?.(snapshot as SnapshotFrom<T>, event);
-      return {
-        stateId: serializeSnapshot(snapshot),
-        snapshot: snapshot as SnapshotFrom<T>,
-        outcomeIds: [...ids],
-        terminal: snapshot.status !== 'active'
-      };
     } finally {
       control.observer = previous;
     }
+    const checked: unknown = options.check?.(
+      candidate as SnapshotFrom<T>,
+      event
+    );
+    if (
+      checked !== null &&
+      (typeof checked === 'object' || typeof checked === 'function') &&
+      'then' in checked
+    ) {
+      const then = checked.then;
+      if (typeof then === 'function') {
+        void new Promise((resolve, reject) => {
+          then.call(checked, resolve, reject);
+        }).catch(() => {});
+        throw new TypeError('Source coverage checks must be synchronous');
+      }
+    }
+    const result = {
+      stateId: serializeSnapshot(candidate),
+      snapshot: candidate as SnapshotFrom<T>,
+      outcomeIds: [...ids],
+      terminal: candidate.status !== 'active'
+    };
+    snapshot = candidate;
+    return result;
   };
   const initial = calculate();
   return {
     runtimeId: options.runtimeId,
     initial,
     async step(event: EventFromLogic<T>) {
-      if (snapshot.status !== 'active')
-        throw new Error('Cannot send a coverage event to a terminal snapshot');
-      await options.validateEvent?.(event, snapshot as SnapshotFrom<T>);
-      return calculate(event);
+      if (pending)
+        throw new Error('Cannot run concurrent source coverage steps');
+      pending = true;
+      try {
+        if (snapshot.status !== 'active')
+          throw new Error(
+            'Cannot send a coverage event to a terminal snapshot'
+          );
+        await options.validateEvent?.(event, snapshot as SnapshotFrom<T>);
+        return calculate(event);
+      } finally {
+        pending = false;
+      }
     }
   };
 }

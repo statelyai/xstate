@@ -40,14 +40,15 @@ const actor = createActor(machine, { input: { userId: 'u_1' } });
 | `snapshot` | persisted snapshot | Starts the actor from a [persisted snapshot](persistence.md). Actions are not re-executed; invocations restart and children are restored. |
 | `inspect` | function or observer | Receives [inspection](inspection.md) events. |
 | `onRejectedEvent` | `(rejection) => void` | Dead-letter hook for events rejected at the delivery boundary. Registers a `system.onRejectedEvent` listener; see [dead letters](systems.md#dead-letters). Ignored on child actors. |
-| `onUnhandledEvent` | `(event, snapshot) => void` | Called when this state machine actor receives an event that no transition handles. Internal `xstate.*` events are not reported. See [unhandled events](transitions.md#unhandled-events). |
+| `onUnhandledEvent` | `(event, snapshot) => void` | Called when this state machine actor receives an event that no transition handles. Internal lifecycle and actor stop events are not reported. Unhandled public sends are reported even with `xstate.*` names. See [unhandled events](transitions.md#unhandled-events). |
 | `clock` | `{ setTimeout, clearTimeout, now? }` | Controls [delays](delays.md) and [timeouts](timeouts.md). Use `SimulatedClock` in [tests](testing.md). |
 | `logger` | `(...args) => void` | Used by `log(...)` actions. Defaults to `console.log`. |
 | `registryKey` | `string` | Registers the actor in the [system](systems.md) under this key. |
 | `src` | `string` or actor logic | The source of the logic, used by inspectors and persistence. |
-| `parent` | actor | Parent actor. Set by XState when invoking or spawning; rarely passed by hand. |
 
 There is no `systemId` option in v6. Use `registryKey`, which is typed against the machine's system registry.
+
+The `parent` option was removed. Passing it to `createActor` throws. Create child actors through `invoke`, `spawn`, or `enq.spawn`.
 
 ## Custom clocks
 

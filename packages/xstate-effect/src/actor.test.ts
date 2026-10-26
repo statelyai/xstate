@@ -9,6 +9,7 @@ import {
 import {
   ActorStoppedError,
   EffectActor,
+  EffectFailure,
   createEffectActor,
   emitted,
   createEffectLogic,
@@ -205,7 +206,8 @@ describe('snapshots', () => {
       'active',
       'error'
     ]);
-    expect(collected[1].error).toEqual(failure);
+    expect(collected[1].error).toBeInstanceOf(EffectFailure);
+    expect(Cause.squash(collected[1].error!.cause)).toEqual(failure);
   });
 
   it('unsubscribes from the actor when the stream is interrupted', async () => {
@@ -456,4 +458,76 @@ describe('inspect', () => {
     expect(events.map((event) => event.type)).toEqual(['@xstate.transition']);
     expect(events[0]).toMatchObject({ event: { type: 'INCREMENT' } });
   });
+});
+
+describe('original Effect Causes', () => {
+  it.each([
+    Cause.fail('failed'),
+    Cause.die(new Error('defect')),
+    Cause.interrupt(123),
+    Cause.combine(Cause.fail('first'), Cause.die('second'))
+  ])('replays a task Cause without squashing', async (cause) => {
+    const actor = await runScoped(
+      createEffectActor(createEffectLogic(Effect.failCause(cause)))
+    );
+    const exit = await Effect.runPromise(Effect.exit(join(actor)));
+    expect(Exit.isFailure(exit) && exit.cause).toBe(
+      actor.getSnapshot().error!.cause
+    );
+    expect(Exit.isFailure(exit) && exit.cause.reasons).toMatchObject(
+      cause.reasons.map(({ annotations, ...reason }) => reason)
+    );
+  });
+
+  it('captures a throwing source factory as a defect', async () => {
+    const defect = new Error('source factory');
+    const actor = await runScoped(
+      createEffectActor(
+        createEffectLogic(() => {
+          throw defect;
+        })
+      )
+    );
+    const exit = await Effect.runPromise(Effect.exit(join(actor)));
+    expect(Exit.isFailure(exit) && exit.cause.reasons).toMatchObject([
+      { _tag: 'Die', defect }
+    ]);
+  });
+
+  it('does not interpret a similarly tagged domain error as a Cause wrapper', async () => {
+    const error = { _tag: 'EffectFailure', cause: Cause.die('unrelated') };
+    const { createActor, createStepLogic } = await import('xstate');
+    const actor = createActor(
+      createStepLogic({
+        context: undefined,
+        run: () => ({ status: 'error', error })
+      })
+    );
+    actor.subscribe({ error: () => {} });
+    const result = Effect.runPromise(Effect.flip(join(actor)));
+    actor.start();
+    expect(await result).toBe(error);
+  });
+});
+
+it('restores genuine failed task snapshots and rejects serialized failure wrappers', async () => {
+  const cause = Cause.die(new Error('defect'));
+  const logic = createEffectLogic(Effect.failCause(cause));
+  const actor = await runScoped(createEffectActor(logic));
+  expect(
+    Exit.isFailure(await Effect.runPromise(Effect.exit(join(actor))))
+  ).toBe(true);
+  const persisted = actor.getPersistedSnapshot();
+  const live = await runScoped(
+    createEffectActor(logic, { snapshot: persisted })
+  );
+  const exit = await Effect.runPromise(Effect.exit(join(live)));
+  expect(Exit.isFailure(exit) && exit.cause).toBe(
+    actor.getSnapshot().error!.cause
+  );
+  const json = JSON.parse(JSON.stringify(persisted));
+  const restored = await Effect.runPromise(
+    Effect.exit(Effect.scoped(createEffectActor(logic, { snapshot: json })))
+  );
+  expect(Exit.isFailure(restored) && Cause.hasDies(restored.cause)).toBe(true);
 });

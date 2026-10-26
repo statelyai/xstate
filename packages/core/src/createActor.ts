@@ -2,7 +2,7 @@ import isDevelopment from '#is-development';
 import { publishEmittedEvent } from './runtimeHelpers.ts';
 import type { ActionRecord, SentRecord } from './inspection.ts';
 import { Mailbox } from './Mailbox.ts';
-import { XSTATE_STOP } from './constants.ts';
+import { XSTATE_STOP, XSTATE_TIMER } from './constants.ts';
 import {
   createDoneActorEvent,
   createErrorActorEvent,
@@ -51,6 +51,7 @@ import type {
   Readable,
   ActorLogicTransitionResult,
   LogicalTimer,
+  ReservedMachineEvent,
   SerializedActorRef
 } from './types.ts';
 import { getTimerKey } from './timerKey.ts';
@@ -76,6 +77,18 @@ interface ActorMailboxEvent<TEvent> {
 }
 
 const emptyInspectionRecords = Object.freeze([]) as unknown as never[];
+
+const reservedMachineEventTypes = {
+  'xstate.done.actor': true,
+  'xstate.error.actor': true,
+  'xstate.error.execution': true,
+  'xstate.snapshot.actor': true,
+  'xstate.done.state': true,
+  'xstate.after': true,
+  'xstate.timeout.state': true,
+  'xstate.timeout.actor': true,
+  [XSTATE_TIMER]: true
+} satisfies Record<ReservedMachineEvent['type'] | typeof XSTATE_TIMER, true>;
 
 // those values are currently used by @xstate/react directly so it's important to keep the assigned values in sync
 export enum ProcessingStatus {
@@ -1042,9 +1055,8 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
         !effects.length &&
         // State machine snapshots only; other logic may ignore events freely.
         'machine' in (previousSnapshot as object) &&
-        // `xstate.route` is sent by users, so a route that matches nothing is
-        // reported like any other unhandled event.
-        (!event.type.startsWith('xstate.') || event.type === 'xstate.route')
+        event.type !== XSTATE_STOP &&
+        (!sourceRef || !Object.hasOwn(reservedMachineEventTypes, event.type))
       ) {
         this._reportUnhandledEvent(event);
       }
@@ -1439,5 +1451,10 @@ export function createActor<TLogic extends AnyActorLogic>(
   logic: TLogic,
   ...[options]: CreateActorOptionsArgs<TLogic>
 ): Actor<TLogic> {
+  if (options && 'parent' in options) {
+    throw new Error(
+      'The "parent" actor option was removed. Create child actors through invoke, spawn, or enq.spawn instead.'
+    );
+  }
   return new Actor(logic, options);
 }

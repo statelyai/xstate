@@ -66,7 +66,7 @@
     "changeset": "changeset",
     "release": "changeset publish",
     "version": "changeset version",
-    "test:tooling": "node --test scripts/typecheck-examples.test.cjs scripts/check-export-stability.test.mjs scripts/check-release-tags.test.mjs scripts/agent-cli.test.mjs"
+    "test:tooling": "node scripts/build-package-docs.mjs && node --test scripts/typecheck-examples.test.cjs scripts/check-export-stability.test.mjs scripts/check-release-tags.test.mjs scripts/agent-cli.test.mjs"
   },
   "repository": {
     "type": "git",

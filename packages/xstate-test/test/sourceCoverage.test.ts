@@ -24,6 +24,9 @@ it('collects return outcomes and static microsteps from one calculation', async 
     states: {
       idle: { on: { GO: decide } },
       route: {
+        entry: ({ actions }, enq) => {
+          enq(actions.effect);
+        },
         always: {
           target: 'done',
           [Symbol.for('@statelyai.sourceCoverage')]: 'eventless'
@@ -134,4 +137,160 @@ it('collects initial eventless obligations and reports observer faults', () => {
       runtimeId: 'xstate@test'
     })
   ).toThrow('observer failed');
+});
+
+it('retains the last accepted snapshot when a SUT comparison fails', async () => {
+  const previous = vi.fn();
+  const control = { observer: previous, faults: 0 };
+  const machine = createMachine({
+    initial: 'idle',
+    states: {
+      idle: { on: { GO: { target: 'done' } } },
+      done: { type: 'final' }
+    }
+  });
+  let reject = true;
+  const session = createXStateSourceCoverageSession(machine, control, {
+    runtimeId: 'xstate@test',
+    check: (_snapshot, event) => {
+      if (event && reject) throw new Error('SUT differs');
+    }
+  });
+  await expect(session.step({ type: 'GO' })).rejects.toThrow('SUT differs');
+  expect(control.observer).toBe(previous);
+  reject = false;
+  const retried = await session.step({ type: 'GO' });
+  expect(retried.snapshot.value).toBe('done');
+  expect(retried.terminal).toBe(true);
+});
+
+it.each(['initial', 'step'])(
+  'rejects promise-returning checks during %s',
+  async (phase) => {
+    const previous = vi.fn();
+    const control = { observer: previous, faults: 0 };
+    const machine = createMachine({
+      initial: 'idle',
+      states: { idle: { on: { GO: { target: 'done' } } }, done: {} }
+    });
+    const createSession = () =>
+      createXStateSourceCoverageSession(machine, control, {
+        runtimeId: 'xstate@test',
+        check: (_snapshot, event) => {
+          if ((phase === 'initial') === (event === undefined))
+            return Promise.resolve();
+        }
+      });
+    if (phase === 'initial') {
+      expect(createSession).toThrow('synchronous');
+    } else {
+      await expect(createSession().step({ type: 'GO' })).rejects.toThrow(
+        'synchronous'
+      );
+    }
+    expect(control.observer).toBe(previous);
+  }
+);
+
+it.each(['initial', 'step'])(
+  'consumes rejected async checks during %s',
+  async (phase) => {
+    const control = { observer: undefined, faults: 0 };
+    const machine = createMachine({});
+    const createSession = () =>
+      createXStateSourceCoverageSession(machine, control, {
+        runtimeId: 'xstate@test',
+        check: (_snapshot, event) => {
+          if ((phase === 'initial') === (event === undefined))
+            return Promise.reject(new Error('async SUT differs'));
+        }
+      });
+    if (phase === 'initial') {
+      expect(createSession).toThrow('synchronous');
+    } else {
+      await expect(createSession().step({ type: 'GO' })).rejects.toThrow(
+        'synchronous'
+      );
+    }
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+  }
+);
+
+it('checks thenables once and restores the observer before checking', async () => {
+  const previous = vi.fn();
+  const control = { observer: previous, faults: 0 };
+  let reads = 0;
+  const machine = createMachine({});
+  expect(() =>
+    createXStateSourceCoverageSession(machine, control, {
+      runtimeId: 'xstate@test',
+      check: () => {
+        expect(control.observer).toBe(previous);
+        return {
+          get then() {
+            reads++;
+            if (reads > 1) throw new Error('then read twice');
+            return (_resolve: unknown, reject: (error: Error) => void) =>
+              reject(new Error('thenable failed'));
+          }
+        };
+      }
+    })
+  ).toThrow('synchronous');
+  expect(reads).toBe(1);
+  await new Promise<void>((resolve) => setTimeout(resolve, 0));
+});
+
+it('rejects overlapping steps before validating against a stale snapshot', async () => {
+  const control = { observer: undefined, faults: 0 };
+  const machine = createMachine({
+    initial: 'idle',
+    states: {
+      idle: { on: { GO: { target: 'done' } } },
+      done: { type: 'final' }
+    }
+  });
+  let release = () => {};
+  const validateEvent = vi.fn(
+    () =>
+      new Promise<void>((resolve) => {
+        release = resolve;
+      })
+  );
+  const session = createXStateSourceCoverageSession(machine, control, {
+    runtimeId: 'xstate@test',
+    validateEvent
+  });
+  const first = session.step({ type: 'GO' });
+  await expect(session.step({ type: 'GO' })).rejects.toThrow('concurrent');
+  expect(validateEvent).toHaveBeenCalledTimes(1);
+  release();
+  expect((await first).terminal).toBe(true);
+});
+
+it('retains accepted state when serializing a candidate fails', async () => {
+  const cyclic: Record<string, unknown> = {};
+  cyclic.self = cyclic;
+  let payload: unknown = cyclic;
+  const machine = createMachine({
+    schemas: { context: types<{ payload: unknown }>() },
+    context: { payload: null },
+    initial: 'idle',
+    states: {
+      idle: { on: { GO: () => ({ target: 'done', context: { payload } }) } },
+      done: { type: 'final' }
+    }
+  });
+  const session = createXStateSourceCoverageSession(
+    machine,
+    { observer: undefined, faults: 0 },
+    {
+      runtimeId: 'xstate@test'
+    }
+  );
+  await expect(session.step({ type: 'GO' })).rejects.toThrow(/circular/i);
+  payload = 'serializable';
+  const retried = await session.step({ type: 'GO' });
+  expect(retried.snapshot.context.payload).toBe('serializable');
+  expect(retried.terminal).toBe(true);
 });

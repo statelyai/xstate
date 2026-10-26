@@ -79,12 +79,12 @@ Use Effect's retry and timeout combinators inside the task.
 | Exit | Actor result |
 | --- | --- |
 | Success | `done`, with the success value as `output`. |
-| Typed failure | `error`, with the failure value as `error`. |
-| Defect | `error`, with the squashed cause. |
+| Typed failure | `error`, with `EffectFailure<E>` carrying the original Cause. |
+| Defect | `error`, with `EffectFailure<never>` carrying the defect Cause. |
 | Interrupted because the actor stopped or the invoking state exited | Stopped, without an error. |
-| Self-interruption inside the Effect | `error`, with `EffectInterruptedError`. |
+| Self-interruption inside the Effect | `error`, with `EffectFailure<never>` carrying the interruption Cause. |
 
-`Effect.timeout` fails with `Cause.TimeoutError`. A lost `Effect.race` interrupts only the loser; the actor completes with the winner.
+`join` replays `EffectFailure.cause` with `Effect.failCause`, so defects and interruption retain their Effect semantics. `Effect.timeout` fails with `Cause.TimeoutError`. A lost `Effect.race` interrupts only the loser; the actor completes with the winner.
 
 </details>
 

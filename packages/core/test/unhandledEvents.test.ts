@@ -1,5 +1,9 @@
+import { z } from 'zod';
+import { standardSchemaValidator } from '../src/validation/index.ts';
 import {
   createActor,
+  createAsyncLogic,
+  setup,
   createMachine,
   getMicrosteps,
   initialTransition,
@@ -107,6 +111,111 @@ describe('unhandled events', () => {
     expect(actor.getSnapshot()).toBe(snapshot);
   });
 
+  it.each([
+    [false, 'xstate.done.actor.save'],
+    [true, 'xstate.done.actor.save'],
+    [false, 'xstate.snapshot.actor'],
+    [true, 'xstate.snapshot.actor']
+  ] as const)(
+    'reports unhandled framework names with validation %s and type %s',
+    (validate, type) => {
+      const onUnhandledEvent = vi.fn();
+      const onRejectedEvent = vi.fn();
+      const logic = setup({
+        schemas: { events: { NEXT: z.object({}) } },
+        validator: validate ? standardSchemaValidator() : undefined
+      }).createMachine({});
+      const actor = createActor(logic, {
+        onUnhandledEvent,
+        onRejectedEvent
+      }).start();
+      const snapshot = actor.getSnapshot();
+      const event = { type, output: 'legacy' };
+
+      actor.send(event as never);
+
+      expect(actor.getSnapshot()).toBe(snapshot);
+      expect(onRejectedEvent).not.toHaveBeenCalled();
+      expect(onUnhandledEvent).toHaveBeenCalledExactlyOnceWith(event, snapshot);
+      expect(warn).toHaveBeenCalledExactlyOnceWith(
+        `Actor ${actor.id} received event "${type}" in state {} with no matching transition`
+      );
+      actor.stop();
+    }
+  );
+
+  it('does not report unhandled child completion or actor stop events', async () => {
+    const onUnhandledEvent = vi.fn();
+    const inspection: InspectionEvent[] = [];
+    const actor = createActor(
+      setup({
+        schemas: { events: { NEXT: z.object({}) } },
+        validator: standardSchemaValidator(),
+        actors: { child: createAsyncLogic({ run: async () => 'done' }) }
+      }).createMachine({ invoke: { src: 'child' } }),
+      { onUnhandledEvent, inspect: (event) => inspection.push(event) }
+    ).start();
+
+    await Promise.resolve();
+    await Promise.resolve();
+    actor.stop();
+
+    expect(
+      inspection.some(
+        (event) =>
+          event.type === '@xstate.transition' &&
+          event.actorRef === actor &&
+          event.event.type === 'xstate.done.actor'
+      )
+    ).toBe(true);
+    expect(onUnhandledEvent).not.toHaveBeenCalled();
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it.each(['xstate.custom', 'xstate.done.actor.save'])(
+    'reports an unhandled actor-sent %s event',
+    (type) => {
+      const onUnhandledEvent = vi.fn();
+      const receiver = createActor(createMachine({}), {
+        onUnhandledEvent
+      }).start();
+      const event = { type };
+      const sender = createActor(
+        createMachine({
+          entry: (_, enq) => {
+            enq.sendTo(receiver, event);
+          }
+        })
+      ).start();
+
+      expect(onUnhandledEvent).toHaveBeenCalledExactlyOnceWith(
+        event,
+        receiver.getSnapshot()
+      );
+      expect(warn).toHaveBeenCalledExactlyOnceWith(
+        `Actor ${receiver.id} received event "${type}" in state {} with no matching transition`
+      );
+      sender.stop();
+      receiver.stop();
+    }
+  );
+
+  it('does not report a stale scheduler timer input', () => {
+    const onUnhandledEvent = vi.fn();
+    const actor = createActor(createMachine({}), { onUnhandledEvent }).start();
+    const snapshot = actor.getSnapshot();
+
+    actor.system.sendEvent(actor, actor, {
+      type: 'xstate.timer',
+      id: 'cancelled'
+    });
+
+    expect(actor.getSnapshot()).toBe(snapshot);
+    expect(onUnhandledEvent).not.toHaveBeenCalled();
+    expect(warn).not.toHaveBeenCalled();
+    actor.stop();
+  });
+
   it('shows an unhandled event in the inspection stream as a transition with the same snapshot', () => {
     const events: InspectionEvent[] = [];
     const actor = createActor(machine, {
@@ -140,7 +249,7 @@ describe('unhandled events', () => {
     ]);
   });
 
-  it('does not report handled, wildcard-matched or internal xstate.* events', () => {
+  it('does not report handled or wildcard-matched events', () => {
     const onUnhandledEvent = vi.fn();
     const actor = createActor(
       createMachine({
@@ -158,7 +267,6 @@ describe('unhandled events', () => {
     ).start();
     actor.send({ type: 'NOOP' });
     actor.send({ type: 'wild.card' } as any);
-    actor.send({ type: 'xstate.snapshot.actor' } as any);
 
     expect(onUnhandledEvent).not.toHaveBeenCalled();
     expect(warn).not.toHaveBeenCalled();

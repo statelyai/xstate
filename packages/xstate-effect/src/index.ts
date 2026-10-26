@@ -29,7 +29,12 @@ export {
   type SendableEventFrom,
   type WaitForOptions
 } from './actor.ts';
-export { ActorStoppedError, EffectInterruptedError } from './errors.ts';
+export {
+  ActorStoppedError,
+  EventRejectedError,
+  EffectFailure,
+  EffectInterruptedError
+} from './errors.ts';
 export {
   setupEffect,
   type EffectAction,
@@ -50,3 +55,5 @@ export {
   type EffectSetupSchemas,
   type EffectSetupStateSchema
 } from './schema.ts';
+
+export { createSnapshotCodec, SnapshotCodecError } from './persistence.ts';

@@ -17,7 +17,7 @@ This package is experimental. It targets XState v6 alpha and Effect 4.
 In these docs, "transition effects" are the executable effect descriptors (`ExecutableEffect`) that an XState transition returns. "Effect" means an Effect.ts program.
 
 ```bash
-npm install @xstate/effect@alpha xstate@alpha effect@^4
+npm install @xstate/effect@latest xstate@alpha effect@^4
 ```
 
 ## Model a release approval

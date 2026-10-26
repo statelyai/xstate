@@ -2100,7 +2100,9 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
   /**
    * Called when this state machine actor processes an event that no
    * transition handled: the snapshot is unchanged and no effects ran.
-   * Internal `xstate.*` events are not reported.
+   * Reserved lifecycle and timer events delivered by actors, and actor stop
+   * events, are not reported. Other unhandled sends are reported even when
+   * their event type starts with `xstate.`.
    *
    * @param event The unhandled event.
    * @param snapshot The actor's (unchanged) snapshot.

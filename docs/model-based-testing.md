@@ -360,6 +360,18 @@ or a check throws. Effects and asynchronous actors are not executed by this
 adapter. Supply modeled service outcomes or use an executed SUT harness when
 checking integration behavior.
 
+The optional `check(snapshot, event)` callback must be synchronous and treat
+snapshots as immutable. It runs for the initial snapshot with `event` set to
+`undefined`, and after each event calculation. Returning a promise or another
+thenable throws during initialization or rejects the step. Async event validation
+remains supported through `validateEvent`. Await each `step()` before starting
+another; overlapping calls are rejected.
+
+A failed check or snapshot serialization leaves the last accepted model snapshot
+unchanged and returns no coverage result. The adapter cannot undo external work
+started by a callback. Reset any SUT changed by a callback before retrying the
+comparison.
+
 Source outcomes distinguish separate return sites and finite conditional target
 alternatives, even when destinations coincide. Refusals are reported separately
 from taken transitions. This criterion does not enumerate every context value,
