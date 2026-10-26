@@ -3034,6 +3034,9 @@ importers:
 
   packages/xstate-effect:
     devDependencies:
+      '@oxlint/plugins':
+        specifier: ^1.76.0
+        version: 1.83.0
       '@xstate/test':
         specifier: workspace:^
         version: link:../xstate-test

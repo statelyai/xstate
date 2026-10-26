@@ -16,6 +16,7 @@
     "./atom": "./dist/xstate-effect-atom.js",
     "./test": "./dist/xstate-effect-test.js",
     ".": "./dist/xstate-effect.js",
+    "./oxlint": "./dist/xstate-effect-oxlint.js",
     "./package.json": "./package.json"
   },
   "sideEffects": false,
@@ -31,10 +32,12 @@
   },
   "scripts": {},
   "peerDependencies": {
+    "@oxlint/plugins": "^1.76.0",
     "effect": "^4.0.0",
     "xstate": "workspace:^"
   },
   "devDependencies": {
+    "@oxlint/plugins": "^1.76.0",
     "@xstate/test": "workspace:^",
     "effect": "4.0.6",
     "fast-check": "4.10.2",
@@ -44,7 +47,13 @@
     "entrypoints": [
       "./index.ts",
       "./atom.ts",
+      "./oxlint.ts",
       "./test.ts"
     ]
+  },
+  "peerDependenciesMeta": {
+    "@oxlint/plugins": {
+      "optional": true
+    }
   }
 }

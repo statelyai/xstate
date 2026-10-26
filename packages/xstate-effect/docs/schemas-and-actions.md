@@ -310,6 +310,25 @@ An inline callback such as `enq(() => Effect.log('saved'))` creates an Effect th
 
 The `xstate-effect/no-inline-effect` oxlint rule checks these two patterns. It recognizes the root identifier `Effect`; Effects returned by helper functions are outside that check.
 
-The rule is not published as a package. To use it, install `@oxlint/plugins`, copy [`oxlint-plugin-xstate-effect.ts`](https://github.com/statelyai/xstate/blob/next/scripts/oxlint-plugin-xstate-effect.ts) from the XState repository and configure it in `jsPlugins`. Loading the TypeScript source requires Node.js 22.18+ or a newer release with native TypeScript support.
+The compiled plugin is included in `@xstate/effect`. Its optional `@oxlint/plugins` peer is needed only when loading `@xstate/effect/oxlint`. Install both development tools explicitly:
+
+```sh
+npm install --save-dev oxlint@^1.76.0 @oxlint/plugins@^1.76.0
+```
+
+Configure `.oxlintrc.json`:
+
+```json
+{
+  "jsPlugins": ["@xstate/effect/oxlint"],
+  "rules": {
+    "xstate-effect/no-inline-effect": "error"
+  }
+}
+```
+
+Run `npx oxlint`. Oxlint requires Node.js `^20.19.0 || >=22.12.0`. The plugin loads compiled JavaScript, so native TypeScript support is unnecessary.
+
+The rule matches enqueue parameters named `enq` or `enqueue`. It recognizes calls rooted at `Effect`, including `Promise.resolve(Effect.*(...))`, and inline `createEffectLogic`, `createEffectStreamLogic` and `createEffectEventStreamLogic` calls passed to `.spawn`. Aliased imports, helper-produced Effects and `Stream` or `Layer` roots are outside this syntactic check.
 
 </details>

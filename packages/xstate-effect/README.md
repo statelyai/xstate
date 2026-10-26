@@ -13,11 +13,13 @@ In these docs, "transition effects" are the executable effect descriptors (`Exec
 
 ## Installation
 
-<!-- package name and peer dependencies from package.json -->
+<!-- package name, zero direct runtime dependencies and required versus optional peers from package.json -->
 
 ```bash
 npm install @xstate/effect@latest xstate@alpha effect@^4
 ```
+
+`@xstate/effect` has zero direct runtime dependencies. Effect and XState are its only required peers. Lint tooling is opt-in and installed as development dependencies.
 
 ## XState Effect: Quick start
 
@@ -243,6 +245,10 @@ See [Effect actor logic](docs/effect-logic.md) for tasks and a stream that drive
 - Register spawned Effect logic in `actors`, then use `enq.spawn(args.actors.worker)`.
 
 See [schemas and actions](docs/schemas-and-actions.md) for a complete audit example, runtime schema constraints and inline-source pitfalls.
+
+<!-- lint plugin export from package.json; rule from src/oxlint.ts -->
+
+Enable `xstate-effect/no-inline-effect` with the compiled `@xstate/effect/oxlint` plugin to catch discarded inline Effects and unsupported inline spawned Effect logic. See [Oxlint configuration](docs/schemas-and-actions.md#declared-sources) for installation and the rule's syntactic limits.
 
 ## Atoms and React
 
