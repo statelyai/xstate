@@ -21,12 +21,7 @@ export class EffectFailure<E> extends Error {
   }
 }
 
-/**
- * @deprecated Inspect `EffectFailure.cause` for interruption instead.
- * The failure an Effect-backed actor reports when its Effect was interrupted
- * by something other than the actor being stopped, such as `Effect.interrupt`,
- * losing an `Effect.race`, or an `Effect.timeout` that interrupts.
- */
+/** @deprecated Inspect `EffectFailure.cause` for interruption instead. */
 export class EffectInterruptedError extends Data.TaggedError(
   'EffectInterruptedError'
 )<{
@@ -63,7 +58,7 @@ export class NotReadyError extends Data.TaggedError('NotReadyError') {
   }
 }
 
-/** @internal Replays genuine Effect failures; ordinary actor errors remain typed failures. */
+/** @internal */
 export function causeFromError<E>(
   error: E
 ): Cause.Cause<UnwrapEffectFailure<E>> {

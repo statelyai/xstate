@@ -124,7 +124,7 @@ export class EffectActor<TLogic extends AnyActorLogic> implements ActorRef<
     Queue.offerUnsafe(this._mailbox, { kind: 'event', event });
   }
 
-  /** @internal Enqueues an event with a receipt owned by this mailbox item. */
+  /** @internal */
   _sendAndAwait(
     event: EventFromLogic<TLogic>
   ): Effect.Effect<

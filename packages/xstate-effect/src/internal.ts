@@ -228,11 +228,7 @@ export function startHostedEffect<A, E>(
   return cancel;
 }
 
-/**
- * Runs an Effect in the actor's host context and settles when it exits.
- * Owner cancellation settles without error; other failures reject with
- * `EffectFailure` carrying the original Cause.
- */
+/** @internal */
 export function runHostedEffect<A, E>(
   actor: AnyActorRef,
   effect: Effect.Effect<A, E>,

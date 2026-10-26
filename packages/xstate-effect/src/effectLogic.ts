@@ -190,9 +190,7 @@ function brandLogic<TLogic extends AnyActorLogic>(
     try {
       return transition(snapshot, event, scope);
     } catch (error) {
-      throw EffectFailure.is(error)
-        ? error
-        : new EffectFailure(Cause.die(error));
+      throw preserveFailure(error);
     }
   };
   const initialTransition = logic.initialTransition!.bind(logic);
@@ -200,9 +198,7 @@ function brandLogic<TLogic extends AnyActorLogic>(
     try {
       return initialTransition(input, scope);
     } catch (error) {
-      throw EffectFailure.is(error)
-        ? error
-        : new EffectFailure(Cause.die(error));
+      throw preserveFailure(error);
     }
   };
   const restoreSnapshot = logic.restoreSnapshot?.bind(logic);
