@@ -3033,11 +3033,10 @@ importers:
         version: 3.2.7(@types/debug@4.1.13)(@types/node@25.2.1)(happy-dom@20.14.5)(jiti@2.7.0)(jsdom@26.1.0)(sass@1.97.3)(supports-color@5.5.0)(terser@5.49.0)(tsx@4.23.13)(yaml@2.9.0)
 
   packages/xstate-effect:
-    dependencies:
+    devDependencies:
       '@oxlint/plugins':
         specifier: ^1.76.0
         version: 1.83.0
-    devDependencies:
       '@xstate/test':
         specifier: workspace:^
         version: link:../xstate-test

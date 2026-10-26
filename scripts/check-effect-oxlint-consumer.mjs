@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import {
+  existsSync,
   mkdtempSync,
   readFileSync,
   readdirSync,
@@ -50,7 +51,6 @@ try {
     '--no-fund',
     ...tarballs,
     'effect@4.0.6',
-    'oxlint@1.76.0',
     'typescript@npm:@typescript/typescript6@6.0.2'
   ]);
 
@@ -58,11 +58,80 @@ try {
   const manifest = JSON.parse(
     readFileSync(join(packageDir, 'package.json'), 'utf8')
   );
-  assert.equal(manifest.dependencies['@oxlint/plugins'], '^1.76.0');
+  assert.deepEqual(manifest.dependencies ?? {}, {});
+  assert.deepEqual(manifest.optionalDependencies ?? {}, {});
+  assert.deepEqual(
+    Object.keys(manifest.peerDependencies)
+      .filter(
+        (name) => manifest.peerDependenciesMeta?.[name]?.optional !== true
+      )
+      .sort(),
+    ['effect', 'xstate']
+  );
+  assert.equal(manifest.peerDependencies['@oxlint/plugins'], '^1.76.0');
+  assert.equal(manifest.peerDependenciesMeta['@oxlint/plugins'].optional, true);
+  assert.ok(!existsSync(join(consumer, 'node_modules/@oxlint/plugins')));
+  const lock = JSON.parse(
+    readFileSync(join(consumer, 'package-lock.json'), 'utf8')
+  );
+  assert.ok(
+    !Object.keys(lock.packages).some((name) =>
+      name.endsWith('node_modules/@oxlint/plugins')
+    )
+  );
   assert.ok(
     !readdirSync(packageDir).includes('src'),
     'Consumer must use compiled files'
   );
+
+  writeFileSync(
+    join(consumer, 'runtime.ts'),
+    `import { setupEffect } from '@xstate/effect';
+export { setupEffect };
+`
+  );
+  const compilerOptions = {
+    target: 'ES2024',
+    module: 'NodeNext',
+    moduleResolution: 'NodeNext',
+    strict: true,
+    skipLibCheck: false,
+    declaration: true,
+    emitDeclarationOnly: true,
+    types: [],
+    outDir: 'declarations'
+  };
+  writeFileSync(
+    join(consumer, 'tsconfig.json'),
+    JSON.stringify({ compilerOptions, files: ['runtime.ts'] })
+  );
+  run(node, ['node_modules/typescript/bin/tsc6', '--pretty', 'false']);
+  writeFileSync(
+    join(consumer, 'reject-tooling.mjs'),
+    `export function resolve(specifier, context, nextResolve) {
+  if (specifier.startsWith('@oxlint/') || specifier.endsWith('/oxlint') || specifier.endsWith('/xstate-effect-oxlint.js')) {
+    throw new Error('Runtime entry imported tooling: ' + specifier);
+  }
+  return nextResolve(specifier, context);
+}
+`
+  );
+  writeFileSync(
+    join(consumer, 'runtime.mjs'),
+    `import { setupEffect } from '@xstate/effect';
+if (typeof setupEffect !== 'function') throw new Error('Missing setupEffect');
+`
+  );
+  run(node, ['--loader', './reject-tooling.mjs', 'runtime.mjs']);
+  run('npm', [
+    'install',
+    '--save-dev',
+    '--ignore-scripts',
+    '--no-audit',
+    '--no-fund',
+    '@oxlint/plugins@1.76.0',
+    'oxlint@1.76.0'
+  ]);
 
   writeFileSync(
     join(consumer, '.oxlintrc.json'),
@@ -110,42 +179,12 @@ export const effectRule = plugin.rules['no-inline-effect'];
   );
   writeFileSync(
     join(consumer, 'tsconfig.json'),
-    JSON.stringify({
-      compilerOptions: {
-        target: 'ES2024',
-        module: 'NodeNext',
-        moduleResolution: 'NodeNext',
-        strict: true,
-        skipLibCheck: false,
-        declaration: true,
-        emitDeclarationOnly: true,
-        types: [],
-        outDir: 'declarations'
-      },
-      files: ['plugin.ts']
-    })
+    JSON.stringify({ compilerOptions, files: ['plugin.ts'] })
   );
   run(node, ['node_modules/typescript/bin/tsc6', '--pretty', 'false']);
 
-  writeFileSync(
-    join(consumer, 'reject-tooling.mjs'),
-    `export function resolve(specifier, context, nextResolve) {
-  if (specifier.startsWith('@oxlint/') || specifier.endsWith('/oxlint') || specifier.endsWith('/xstate-effect-oxlint.js')) {
-    throw new Error('Runtime entry imported tooling: ' + specifier);
-  }
-  return nextResolve(specifier, context);
-}
-`
-  );
-  writeFileSync(
-    join(consumer, 'runtime.mjs'),
-    `import { setupEffect } from '@xstate/effect';
-if (typeof setupEffect !== 'function') throw new Error('Missing setupEffect');
-`
-  );
-  run(node, ['--loader', './reject-tooling.mjs', 'runtime.mjs']);
   console.log(
-    `Packed Effect plugin passed with ${run(node, ['--version']).trim()} and Oxlint 1.76.0.`
+    `Dependency-free Effect core and opt-in plugin passed with ${run(node, ['--version']).trim()} and Oxlint 1.76.0.`
   );
 } finally {
   if (process.env.EFFECT_OXLINT_KEEP) {

@@ -13,11 +13,13 @@ In these docs, "transition effects" are the executable effect descriptors (`Exec
 
 ## Installation
 
-<!-- package name and peer dependencies from package.json -->
+<!-- package name, zero direct runtime dependencies and required versus optional peers from package.json -->
 
 ```bash
 npm install @xstate/effect@latest xstate@alpha effect@^4
 ```
+
+`@xstate/effect` has zero direct runtime dependencies. Effect and XState are its only required peers. Lint tooling is opt-in and installed as development dependencies.
 
 ## XState Effect: Quick start
 

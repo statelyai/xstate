@@ -214,10 +214,10 @@ An inline callback such as `enq(() => Effect.log('saved'))` creates an Effect th
 
 The `xstate-effect/no-inline-effect` oxlint rule checks these two patterns. It recognizes the root identifier `Effect`; Effects returned by helper functions are outside that check.
 
-The compiled plugin is included in `@xstate/effect`. Install Oxlint 1.76 or later:
+The compiled plugin is included in `@xstate/effect`. Its optional `@oxlint/plugins` peer is needed only when loading `@xstate/effect/oxlint`. Install both development tools explicitly:
 
 ```sh
-npm install --save-dev oxlint@^1.76.0
+npm install --save-dev oxlint@^1.76.0 @oxlint/plugins@^1.76.0
 ```
 
 Configure `.oxlintrc.json`:
