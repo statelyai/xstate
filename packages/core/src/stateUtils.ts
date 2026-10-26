@@ -1,9 +1,5 @@
 import isDevelopment from '#is-development';
-import {
-  MachineSnapshot,
-  cloneMachineSnapshot,
-  freezeContext
-} from './State.ts';
+import { MachineSnapshot, cloneMachineSnapshot } from './State.ts';
 import type { StateNode } from './StateNode.ts';
 import {
   createAfterEvent,
@@ -1979,10 +1975,7 @@ function microstep(
         }
 
         if (contextChangedByEntry) {
-          nextState.context = context;
-          if (isDevelopment) {
-            freezeContext(context);
-          }
+          nextState = cloneMachineSnapshot(nextState, { context });
         }
 
         if (statesForDefaultEntry.has(stateNodeToEnter)) {
@@ -2009,13 +2002,9 @@ function microstep(
               internalQueue.push(...initialInternalEvents);
             }
             if (initialContext !== undefined) {
-              nextState.context = mergeContextPatch(
-                nextState.context,
-                initialContext
-              );
-              if (isDevelopment) {
-                freezeContext(nextState.context);
-              }
+              nextState = cloneMachineSnapshot(nextState, {
+                context: mergeContextPatch(nextState.context, initialContext)
+              });
             }
             if (initialInput && defaultTransition.target) {
               for (const targetNode of defaultTransition.target) {
