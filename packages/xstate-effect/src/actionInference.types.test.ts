@@ -44,6 +44,52 @@ it('infers decoded context and discriminated public and internal events', () => 
   });
 });
 
+it('keeps unspecified public events open beside internal event schemas', () => {
+  setupEffect({
+    schemas: { internalEvents: { tick: types<{ elapsed: number }>() } },
+    actions: {
+      audit: ({ event }) => {
+        false satisfies IsAny<typeof event>;
+        true satisfies Equals<typeof event.type, string>;
+        if (event.type === 'tick') {
+          // @ts-expect-error -- unspecified public events may have no payload
+          event.elapsed;
+        }
+        return Effect.void;
+      }
+    }
+  }).createMachine({
+    on: { PUBLIC: (args, enq) => enq(args.actions.audit, args) }
+  });
+});
+
+it('infers internal-only event payloads with an empty public event map', () => {
+  setupEffect({
+    schemas: {
+      events: {},
+      internalEvents: { tick: Schema.Struct({ elapsed: Schema.Number }) }
+    },
+    actions: {
+      audit: ({ event }) => {
+        false satisfies IsAny<typeof event>;
+        true satisfies Equals<typeof event.type, 'tick'>;
+        if (event.type === 'tick') {
+          true satisfies Equals<typeof event.elapsed, number>;
+          // @ts-expect-error -- elapsed remains numeric
+          event.elapsed.toUpperCase();
+        }
+        return Effect.void;
+      }
+    }
+  }).createMachine({
+    on: {
+      tick: (args, enq) => enq(args.actions.audit, args),
+      // @ts-expect-error -- the explicit public map has no PUBLIC event
+      PUBLIC: () => {}
+    }
+  });
+});
+
 it('uses safe defaults when setup does not declare schemas', () => {
   setupEffect({
     actions: {

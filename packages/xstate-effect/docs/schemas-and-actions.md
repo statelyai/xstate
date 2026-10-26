@@ -127,7 +127,7 @@ The latch lets this demo wait for the audit before closing its scope. In an appl
 
 <!-- action argument inference from src/setupEffect.ts -->
 
-Declared actions infer `context` from the setup's decoded context schema. Their `event` is the union of `schemas.events` and `schemas.internalEvents`. Check `event.type` before reading a payload that belongs to one event.
+Declared actions infer `context` from the setup's decoded context schema. Their `event` is the union of `schemas.events` and `schemas.internalEvents`. Check `event.type` before reading a payload that belongs to one event. Omitting `schemas.events` allows unknown public events, so internal event payloads cannot narrow by type alone. Use `events: {}` when there are no public events to keep internal events discriminable.
 
 An extension's actions use the merged schemas. Context schemas replace the previous context type. Event and action schema entries merge by name, with extension entries replacing matching names.
 
@@ -138,7 +138,9 @@ To give an action a different argument, declare `schemas.actions.<name>.params`.
 <!-- example from examples/effect-workflows/src/custom-actions.ts -->
 
 ```ts
+import { createInspector } from '@statelyai/sdk';
 import { Effect, Latch, Schema } from 'effect';
+import type { Snapshot } from 'xstate';
 import { createEffectActor, send, setupEffect } from '@xstate/effect';
 
 const messages: string[] = [];
@@ -162,8 +164,50 @@ const machine = setupEffect({
   }
 });
 
+const inspectorSnapshot = (snapshot: Snapshot<unknown>) => ({
+  status: snapshot.status,
+  ...('value' in snapshot ? { value: snapshot.value } : {})
+});
+
 const program = Effect.gen(function* () {
+  const inspector = yield* Effect.acquireRelease(
+    Effect.sync(() =>
+      process.env.INSPECT === '1' ? createInspector() : undefined
+    ),
+    (inspector) => Effect.sync(() => inspector?.destroy())
+  );
   const actor = yield* createEffectActor(machine);
+  if (inspector) {
+    inspector.actor(actor.sessionId!, {
+      machine: machine.config,
+      snapshot: inspectorSnapshot(actor.getSnapshot())
+    });
+    yield* Effect.acquireRelease(
+      Effect.sync(() =>
+        actor.inspect((event) => {
+          const id = event.actorRef.sessionId!;
+          if (event.type === '@xstate.actor') {
+            inspector.actor(id, {
+              parent: event.parentRef?.sessionId,
+              snapshot: inspectorSnapshot(event.snapshot)
+            });
+          } else {
+            inspector.event(id, event.event, {
+              source: event.sourceRef?.sessionId
+            });
+            inspector.snapshot(
+              id,
+              inspectorSnapshot(event.snapshot),
+              event.event
+            );
+            if (event.snapshot.status !== 'active') inspector.stop(id);
+          }
+        })
+      ),
+      (subscription) => Effect.sync(() => subscription.unsubscribe())
+    );
+    yield* Effect.promise(() => inspector.ready);
+  }
   yield* send(actor, { type: 'SAVE' });
   yield* recorded.await;
   return messages;
