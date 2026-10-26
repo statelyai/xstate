@@ -99,6 +99,8 @@ Before entering beta, run the built and packed consumer checks with both TypeScr
 
 `pnpm check:examples` typechecks and builds all 49 TypeScript examples, runs every discovered example regression test, and verifies donut persistence through a CLI restart. Run `pnpm build` first so standalone example compilers consume generated package declarations. Node-based writer and occupancy tests run separately through `pnpm test:tooling`; the remaining example tests use Vitest. New example test files are discovered automatically.
 
+`pnpm test:tooling` generates the bundled core documentation and API stability manifest before running the tooling tests, including the agent CLI checks. It can run after `pnpm install` without a separate package build.
+
 `node scripts/typecheck-examples.js` checks every example with a `tsconfig.json`, including referenced projects behind solution configs; pass project names or paths to select examples. Any compiler failure exits nonzero. `examples/readme.md` has no project configuration and is skipped. Every current TypeScript example has a build script and participates in the CI gate.
 
 `pnpm check:templates` installs and builds all four standalone starter templates with their own frozen lockfiles.
