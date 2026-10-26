@@ -124,15 +124,8 @@ describe('spawnChild action', () => {
       context: {
         childId: 'myChild'
       },
-      entry: ({ context, self }, enq) => {
-        // TODO: This should all be abstracted in enq.spawn(…)
-        const child = createActor(childMachine, {
-          id: context.childId,
-          parent: self
-        } as {});
-        enq(() => {
-          child.start();
-        });
+      entry: ({ context }, enq) => {
+        const child = enq.spawn(childMachine, { id: context.childId });
 
         enq.sendTo(child, {
           type: 'FOO'

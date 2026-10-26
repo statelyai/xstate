@@ -114,10 +114,12 @@ describe('error handling', () => {
             throw new Error('parent failed');
           }
           enq.effect('child', () => {
-            createActor(
-              createCallbackLogic(() => cleanup),
-              { parent: self as AnyActor } as {}
-            ).start();
+            (self as AnyActor).system
+              .createActorRef(
+                createCallbackLogic(() => cleanup),
+                { parent: self as AnyActor }
+              )
+              .start();
           });
         }
       })

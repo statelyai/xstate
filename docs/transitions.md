@@ -164,7 +164,7 @@ if (isUnhandled(snapshot, result)) {
 }
 ```
 
-A running actor reports an unhandled event through the `onUnhandledEvent` option of `createActor(...)`. In the [inspection](inspection.md) stream, the `@xstate.transition` event for an unhandled event carries the unchanged snapshot reference. Development builds also log a warning once per event type per actor. Internal `xstate.*` events are not reported.
+A running actor reports an unhandled event through the `onUnhandledEvent` option of `createActor(...)`. In the [inspection](inspection.md) stream, the `@xstate.transition` event for an unhandled event carries the unchanged snapshot reference. Development builds also log a warning once per event type per actor. Framework `xstate.*` events delivered by actors are not reported, except `xstate.route`. Actor stop events are also excluded. Unhandled events sent through `actor.send(...)` are reported even when their names start with `xstate.`, including obsolete names such as `xstate.done.actor.save`.
 
 ## TypeScript
 

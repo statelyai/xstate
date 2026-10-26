@@ -1042,9 +1042,9 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
         !effects.length &&
         // State machine snapshots only; other logic may ignore events freely.
         'machine' in (previousSnapshot as object) &&
-        // `xstate.route` is sent by users, so a route that matches nothing is
-        // reported like any other unhandled event.
-        (!event.type.startsWith('xstate.') || event.type === 'xstate.route')
+        (!event.type.startsWith('xstate.') ||
+          event.type === 'xstate.route' ||
+          (!sourceRef && event.type !== XSTATE_STOP))
       ) {
         this._reportUnhandledEvent(event);
       }
@@ -1439,5 +1439,10 @@ export function createActor<TLogic extends AnyActorLogic>(
   logic: TLogic,
   ...[options]: CreateActorOptionsArgs<TLogic>
 ): Actor<TLogic> {
+  if (options && 'parent' in options) {
+    throw new Error(
+      'The "parent" actor option was removed. Create child actors through invoke, spawn, or enq.spawn instead.'
+    );
+  }
   return new Actor(logic, options);
 }
