@@ -308,3 +308,132 @@ it('round-trips embedded machine children with pending timer deadlines', async (
     actor.stop();
   }
 });
+
+it.each(['task', 'stream'] as const)(
+  'round-trips rich input of an embedded active %s',
+  async (kind) => {
+    const { setup, types } = await import('xstate');
+    const { Stream } = await import('effect');
+    const { createEffectLogic, createEffectStreamLogic } =
+      await import('./index.ts');
+    const worker =
+      kind === 'task'
+        ? createEffectLogic((_args: { input: { when: Date } }) => Effect.never)
+        : createEffectStreamLogic(
+            (_args: { input: { when: Date } }) => Stream.never
+          );
+    const parent = setup({
+      actors: { worker },
+      schemas: { context: types<{ count: number }>() }
+    }).createMachine({
+      id: 'counter',
+      version: '2',
+      context: { count: 0 },
+      initial: 'idle',
+      states: {
+        idle: {
+          invoke: { src: 'worker', input: { when: new Date('2026-01-01') } }
+        }
+      }
+    });
+    const Child = Schema.Struct({
+      status: Schema.Literal('active'),
+      input: Schema.Struct({ when: Schema.DateFromString })
+    });
+    const nested = createSnapshotCodec(
+      parent,
+      Schema.Struct({
+        ...fields,
+        children: Schema.Record(
+          Schema.String,
+          Schema.Struct({
+            src: Schema.String,
+            address: Schema.String,
+            syncSnapshot: Schema.optionalKey(Schema.Boolean),
+            snapshot: Child
+          })
+        )
+      })
+    );
+    await Effect.runPromise(
+      Effect.scoped(
+        Effect.gen(function* () {
+          const actor = yield* createEffectActor(parent);
+          const decoded = yield* Effect.flatMap(
+            nested.encode(actor.getPersistedSnapshot()),
+            nested.decode
+          );
+          expect(
+            Object.values(decoded.children)[0].snapshot.input.when
+          ).toEqual(new Date('2026-01-01'));
+          const restored = yield* createEffectActor(parent, {
+            snapshot: decoded
+          });
+          expect(
+            Object.values(restored.getSnapshot().children)[0]?.getSnapshot()
+              .input.when
+          ).toEqual(new Date('2026-01-01'));
+        })
+      )
+    );
+  }
+);
+
+it('restores inline machine children whose native descriptors omit src', async () => {
+  const child = createMachine({
+    id: 'child',
+    version: '1',
+    context: { count: 1 },
+    initial: 'waiting',
+    states: { waiting: {} }
+  });
+  const parent = createMachine({
+    id: 'counter',
+    version: '2',
+    context: { count: 0 },
+    initial: 'idle',
+    states: { idle: { invoke: { src: child } } }
+  });
+  const Child = Schema.Struct({
+    ...fields,
+    machine: Schema.Struct({
+      id: Schema.Literal('child'),
+      version: Schema.Literal('1')
+    })
+  });
+  const nested = createSnapshotCodec(
+    parent,
+    Schema.Struct({
+      ...fields,
+      children: Schema.Record(
+        Schema.String,
+        Schema.Struct({
+          src: Schema.optionalKey(Schema.String),
+          address: Schema.String,
+          syncSnapshot: Schema.optionalKey(Schema.Boolean),
+          snapshot: Child
+        })
+      )
+    })
+  );
+  await Effect.runPromise(
+    Effect.scoped(
+      Effect.gen(function* () {
+        const actor = yield* createEffectActor(parent);
+        const original = actor.getPersistedSnapshot();
+        expect(Object.values(original.children)[0]).not.toHaveProperty('src');
+        const decoded = yield* Effect.flatMap(
+          nested.encode(original),
+          nested.decode
+        );
+        expect(Object.values(decoded.children)[0]).not.toHaveProperty('src');
+        const restored = yield* createEffectActor(parent, {
+          snapshot: decoded
+        });
+        expect(
+          Object.values(restored.getSnapshot().children)[0]?.getSnapshot().value
+        ).toBe('waiting');
+      })
+    )
+  );
+});

@@ -257,7 +257,7 @@ console.log(result); // { submittedAt: '2026-01-01T00:00:00.000Z', amount: '42' 
 ```
 
 - The transport has its own format version and stable machine ID. It preserves the source machine version. A schema can explicitly support historical versions, for example with a union.
-- The supplied schema owns every rich value, including nested child snapshots. Use reversible schemas for Date, bigint, Map, Set and application classes. The codec does not derive child schemas or revive constructors.
+- The supplied schema owns every rich value, including nested child snapshots and child input. Use reversible schemas for Date, bigint, Map, Set and application classes. The codec does not derive child schemas or revive constructors.
 - Include all existing core metadata. Omitting or changing children, timers, history, actor counters or state input owners fails with `SnapshotCodecError`. Unknown defined metadata must also survive. Optional undefined fields such as an active snapshot's output can be deliberately omitted by the schema.
 - Encoded values must be lossless plain JSON. Undefined, nonfinite numbers, negative zero, cycles, holes, functions, symbols, accessor properties and unsupported object prototypes are rejected. Schema validation errors retain `Schema.SchemaError` and the schema's service requirements.
 - Errored snapshots, including failed embedded children, are rejected. Recover or project their outcome before persisting. JSON cannot preserve a live Effect Cause or the genuine `EffectFailure` brand; direct restoration of a serialized failed task or stream is rejected too.

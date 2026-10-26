@@ -157,7 +157,10 @@ function checkSnapshot(
   }
   if (record(value.children)) {
     for (const [id, child] of Object.entries(value.children)) {
-      if (!record(child) || typeof child.src !== 'string')
+      if (
+        !record(child) ||
+        (child.src !== undefined && typeof child.src !== 'string')
+      )
         invalid(stage, `${path}.children.${id}`, 'Invalid persisted child');
       if (child.remote === true) {
         if (child.snapshot !== undefined)
@@ -200,7 +203,7 @@ function checkMetadata(
 ): void {
   for (const [key, value] of Object.entries(before)) {
     if (
-      ['context', 'output', 'error', 'stateInputs'].includes(key) ||
+      ['context', 'input', 'output', 'error', 'stateInputs'].includes(key) ||
       value === undefined
     )
       continue;
@@ -245,6 +248,8 @@ function checkMetadata(
       );
     }
   }
+  if (before.input !== undefined && !('input' in after))
+    invalid(stage, `${path}.input`, 'Schema removed input');
   if (before.output !== undefined && !('output' in after))
     invalid(stage, `${path}.output`, 'Schema removed output');
   if (
