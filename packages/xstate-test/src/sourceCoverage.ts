@@ -22,7 +22,7 @@ export interface SourceCoverageSessionStep<TSnapshot = unknown> {
   terminal: boolean;
 }
 /** @experimental */
-export interface XStateSourceCoverageSessionOptions<T extends AnyStateMachine> {
+export interface SourceCoverageSessionOptions<T extends AnyStateMachine> {
   /** Exact runtime identity recorded in replay fixtures, e.g. xstate@6.0.0-alpha.70. */
   runtimeId: string;
   input?: InputFrom<T>;
@@ -44,10 +44,10 @@ export interface XStateSourceCoverageSessionOptions<T extends AnyStateMachine> {
  *
  * @experimental
  */
-export function createXStateSourceCoverageSession<T extends AnyStateMachine>(
+export function createSourceCoverageSession<T extends AnyStateMachine>(
   machine: T,
   control: SourceCoverageControl,
-  options: XStateSourceCoverageSessionOptions<T>
+  options: SourceCoverageSessionOptions<T>
 ) {
   if (!options.runtimeId)
     throw new Error('Source coverage sessions require a runtimeId');

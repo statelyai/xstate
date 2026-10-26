@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { createMachine } from 'xstate';
 import fixture from './fixtures/source-coverage.json' with { type: 'json' };
-import { createXStateSourceCoverageSession } from '../src/sourceCoverage.ts';
+import { createSourceCoverageSession } from '../src/sourceCoverage.ts';
 
 function load() {
   const exports: Record<string, any> = {};
@@ -18,7 +18,7 @@ it('executes the exact source coverage protocol fixture shared with Viz and grap
   const { machine, control } = load();
   const hits = new Set<string>();
   for (const event of fixture.cases.filter((event) => event.type === 'PAY')) {
-    const session = createXStateSourceCoverageSession(machine, control, {
+    const session = createSourceCoverageSession(machine, control, {
       runtimeId: 'xstate@conformance'
     });
     expect(session.initial.outcomeIds).toEqual([]);

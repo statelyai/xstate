@@ -322,20 +322,20 @@ fast-check chooses whether each charge succeeds or fails, when the result arrive
 
 ## Source-backed transition coverage
 
-The experimental `createXStateSourceCoverageSession` adapter connects v6 execution
+The experimental `createSourceCoverageSession` adapter connects v6 execution
 to source instrumentation from `@statelyai/sdk/source-coverage`. Use
 `@statelyai/graph` to plan, reduce, shrink and replay witnesses against the
 independently extracted source obligation universe.
 
 ```ts
-import { createXStateSourceCoverageSession } from '@xstate/test';
+import { createSourceCoverageSession } from '@xstate/test';
 import { getSourceCoverageWitnesses } from '@statelyai/graph';
 
 // `machine` and `control` come from the instrumented module. Give every
 // campaign the exact runtime identity installed in its execution environment.
 const result = await getSourceCoverageWitnesses({
   manifest,
-  createSession: (input) => createXStateSourceCoverageSession(machine, control, {
+  createSession: (input) => createSourceCoverageSession(machine, control, {
     input,
     runtimeId: 'xstate@6.0.0-alpha.70',
     validateEvent: (event, snapshot) => {

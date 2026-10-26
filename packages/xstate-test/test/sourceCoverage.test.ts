@@ -1,5 +1,5 @@
 import { createMachine, types } from 'xstate';
-import { createXStateSourceCoverageSession } from '../src/sourceCoverage.ts';
+import { createSourceCoverageSession } from '../src/sourceCoverage.ts';
 
 it('collects return outcomes and static microsteps from one calculation', async () => {
   const control = {
@@ -35,7 +35,7 @@ it('collects return outcomes and static microsteps from one calculation', async 
       done: { type: 'final' }
     }
   });
-  const session = createXStateSourceCoverageSession(machine, control, {
+  const session = createSourceCoverageSession(machine, control, {
     runtimeId: 'xstate@test'
   });
   const refused = await session.step({ type: 'GO', ok: false });
@@ -60,7 +60,7 @@ it('restores an existing observer and validates events before executing a transi
     initial: 'idle',
     states: { idle: { on: { GO: called } }, done: { type: 'final' } }
   });
-  const session = createXStateSourceCoverageSession(machine, control, {
+  const session = createSourceCoverageSession(machine, control, {
     runtimeId: 'xstate@test',
     validateEvent: () => {
       throw new Error('invalid payload');
@@ -85,7 +85,7 @@ it('fails on runtime errors and failed SUT comparisons without accepting partial
       }
     }
   });
-  const session = createXStateSourceCoverageSession(broken, control, {
+  const session = createSourceCoverageSession(broken, control, {
     runtimeId: 'xstate@test'
   });
   await expect(session.step({ type: 'GO' })).rejects.toThrow();
@@ -94,7 +94,7 @@ it('fails on runtime errors and failed SUT comparisons without accepting partial
     initial: 'idle',
     states: { idle: { on: { GO: { target: 'done' } } }, done: {} }
   });
-  const checked = createXStateSourceCoverageSession(machine, control, {
+  const checked = createSourceCoverageSession(machine, control, {
     runtimeId: 'xstate@test',
     check: (_snapshot, event) => {
       if (event) throw new Error('SUT differs');
@@ -118,7 +118,7 @@ it('collects initial eventless obligations and reports observer faults', () => {
     }
   });
   expect(
-    createXStateSourceCoverageSession(machine, control, {
+    createSourceCoverageSession(machine, control, {
       runtimeId: 'xstate@test'
     }).initial.outcomeIds
   ).toEqual(['initial-route']);
@@ -133,7 +133,7 @@ it('collects initial eventless obligations and reports observer faults', () => {
     }
   });
   expect(() =>
-    createXStateSourceCoverageSession(broken, control, {
+    createSourceCoverageSession(broken, control, {
       runtimeId: 'xstate@test'
     })
   ).toThrow('observer failed');
@@ -150,7 +150,7 @@ it('retains the last accepted snapshot when a SUT comparison fails', async () =>
     }
   });
   let reject = true;
-  const session = createXStateSourceCoverageSession(machine, control, {
+  const session = createSourceCoverageSession(machine, control, {
     runtimeId: 'xstate@test',
     check: (_snapshot, event) => {
       if (event && reject) throw new Error('SUT differs');
@@ -174,7 +174,7 @@ it.each(['initial', 'step'])(
       states: { idle: { on: { GO: { target: 'done' } } }, done: {} }
     });
     const createSession = () =>
-      createXStateSourceCoverageSession(machine, control, {
+      createSourceCoverageSession(machine, control, {
         runtimeId: 'xstate@test',
         check: (_snapshot, event) => {
           if ((phase === 'initial') === (event === undefined))
@@ -198,7 +198,7 @@ it.each(['initial', 'step'])(
     const control = { observer: undefined, faults: 0 };
     const machine = createMachine({});
     const createSession = () =>
-      createXStateSourceCoverageSession(machine, control, {
+      createSourceCoverageSession(machine, control, {
         runtimeId: 'xstate@test',
         check: (_snapshot, event) => {
           if ((phase === 'initial') === (event === undefined))
@@ -222,7 +222,7 @@ it('checks thenables once and restores the observer before checking', async () =
   let reads = 0;
   const machine = createMachine({});
   expect(() =>
-    createXStateSourceCoverageSession(machine, control, {
+    createSourceCoverageSession(machine, control, {
       runtimeId: 'xstate@test',
       check: () => {
         expect(control.observer).toBe(previous);
@@ -257,7 +257,7 @@ it('rejects overlapping steps before validating against a stale snapshot', async
         release = resolve;
       })
   );
-  const session = createXStateSourceCoverageSession(machine, control, {
+  const session = createSourceCoverageSession(machine, control, {
     runtimeId: 'xstate@test',
     validateEvent
   });
@@ -281,7 +281,7 @@ it('retains accepted state when serializing a candidate fails', async () => {
       done: { type: 'final' }
     }
   });
-  const session = createXStateSourceCoverageSession(
+  const session = createSourceCoverageSession(
     machine,
     { observer: undefined, faults: 0 },
     {

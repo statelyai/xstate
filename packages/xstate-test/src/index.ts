@@ -112,8 +112,8 @@ export {
 } from './schema.ts';
 export type { EventsFromSchemasOptions, SchemaConverter } from './schema.ts';
 export {
-  createXStateSourceCoverageSession,
+  createSourceCoverageSession,
   type SourceCoverageControl,
   type SourceCoverageSessionStep,
-  type XStateSourceCoverageSessionOptions
+  type SourceCoverageSessionOptions
 } from './sourceCoverage.ts';
