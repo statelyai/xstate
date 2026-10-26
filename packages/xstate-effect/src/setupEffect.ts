@@ -312,7 +312,12 @@ function wrapActions(
     const action = actions[key];
     wrapped[key] = (args) => {
       // machine.provide can replace Effect actions with plain actions.
-      const result: unknown = action(args);
+      let result: unknown;
+      try {
+        result = action(args);
+      } catch (error) {
+        result = Effect.die(error);
+      }
       return Effect.isEffect(result)
         ? runHostedEffect(
             args.self,

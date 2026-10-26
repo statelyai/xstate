@@ -58,6 +58,12 @@ describe('runnable examples', () => {
     ['approval', 'https://example.com/v1.2.0'],
     ['clock', 'expired'],
     ['persistence', 'done'],
+    ['boundaries', 5],
+    ['failure-cause', 'NOT_FOUND'],
+    [
+      'persistence-codec',
+      { submittedAt: '2026-01-01T00:00:00.000Z', amount: '42' }
+    ],
     [
       'observe',
       { history: ['pending', 'approved'], output: { approved: true } }
