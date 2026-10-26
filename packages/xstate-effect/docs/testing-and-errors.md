@@ -5,6 +5,18 @@ description: Test deadlines, recover from failures and supervise workflow actors
 
 Test the workflow with its real machine and provide local Effect services. Use `waitFor` for state assertions and `join` for final output.
 
+## Acknowledging an event
+
+Import `sendAndAwait` from `@xstate/effect/test` when a test must know that one particular send was processed. The persistence example also uses it to checkpoint after each request.
+
+It returns that mailbox item's snapshot after publication and immediate effect scheduling. Ignored events succeed with an unchanged snapshot. Concurrent sends of the same object get independent receipts. An event that completes or errors the actor returns its terminal snapshot; use `join` for its outcome.
+
+Invalid and externally sent internal events fail with `EventRejectedError`. Stop, scope closure or completion before processing a queued send fails it with `ActorStoppedError`. Interrupting the waiter detaches the receipt without retracting the event. A reentrant observer stop can reject the currently processed receipt.
+
+This helper does not await invoked tasks, background actions, child replies, future timers or global quiescence. Keep `waitFor` or a domain-specific completion signal for those conditions.
+
+Existing `@xstate/test` SUT sessions accept async sends. Set their `send` function to an adapter that runs `sendAndAwait` and resolves to void, and `read` to the actor's snapshot projection. The package test suite exercises this through the real `testPaths` API.
+
 ## TestClock
 
 A release approval expires after 30 seconds. `TestClock` drives the same `after` transition without waiting for real time:
@@ -163,13 +175,63 @@ For machine workflows, expected outcomes such as declined or expired can be fina
 | Error | Raised by |
 | --- | --- |
 | `ActorStoppedError` | `waitFor` when the actor stops or errors before matching; `join` when it stops without output. |
-| `EffectInterruptedError` | Effect logic that interrupts itself. |
+| `EffectFailure<E>` | Task, stream or hosted action failure, defect or self-interruption. Its `cause` preserves the full Effect Cause. |
 | `Cause.TimeoutError` | `waitFor` with a timeout, or Effect's timeout combinators. |
 
 - `ActorStoppedError` includes `actorId` and `snapshot`.
-- `EffectInterruptedError` includes its interrupt `cause`.
-- Both package errors are `Data.TaggedError` classes.
-- An actor's own typed failure is available through `snapshot.error` and `join`; `ErrorFrom` names its type.
+- `snapshot.error` and invoked child `onError` events carry `EffectFailure<E>` for Effect logic. `ErrorFrom` reflects that wrapper.
+- `join` and result atoms unwrap genuine `EffectFailure` values and preserve the original Cause. Plain XState actor errors remain ordinary typed failures.
+- `EffectInterruptedError` is deprecated. Inspect `Cause.hasInterruptsOnly(error.cause)` instead.
+
+### Migrating error handlers
+
+Effect child error handlers now receive the Cause wrapper. Replace direct access such as `event.error.code` with inspection of `event.error.cause`.
+
+<!-- example from examples/effect-workflows/src/failure-cause.ts -->
+
+```ts
+import { Cause, Effect, Option } from 'effect';
+import {
+  createEffectActor,
+  createEffectLogic,
+  setupEffect,
+  waitFor
+} from '@xstate/effect';
+
+const request = createEffectLogic(Effect.fail({ code: 'NOT_FOUND' as const }));
+const machine = setupEffect({ actors: { request } }).createMachine({
+  context: { code: '' },
+  initial: 'pending',
+  states: {
+    pending: {
+      invoke: {
+        src: 'request',
+        onError: ({ event }) => {
+          const failure = Cause.findErrorOption(event.error.cause);
+          return {
+            target: 'failed',
+            context: {
+              code: Option.isSome(failure) ? failure.value.code : 'UNEXPECTED'
+            }
+          };
+        }
+      }
+    },
+    failed: {}
+  }
+});
+
+const program = Effect.gen(function* () {
+  const actor = yield* createEffectActor(machine);
+  return (yield* waitFor(actor, (snapshot) => snapshot.matches('failed')))
+    .context.code;
+});
+
+export const result = await Effect.runPromise(Effect.scoped(program));
+console.log(result); // 'NOT_FOUND'
+```
+
+Use `Effect.exit(join(actor))` when defects and interruption must be inspected alongside typed failures. Stopping the actor still makes `join` fail with `ActorStoppedError`.
 
 <details>
 <summary>Observe root actor errors</summary>

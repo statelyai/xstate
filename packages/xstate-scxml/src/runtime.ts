@@ -6,6 +6,7 @@ import {
   type AnyActorRef,
   type AnyEventObject,
   type AnyStateMachine,
+  type AnyTransitionDefinition,
   type EventObject,
   type MachineContext,
   type MetaObject,
@@ -861,6 +862,7 @@ const scxmlMachineNames = new WeakMap<AnyActorRef, string>();
 const scxmlIoProcessors = new WeakMap<AnyActorRef, object>();
 const scxmlEvents = new WeakMap<object, object>();
 const scxmlEnteringStates = new WeakMap<AnyActorRef, string[]>();
+const scxmlTransitionStates = new WeakMap<AnyActorRef, readonly string[]>();
 
 function getScxmlIoProcessors(self: AnyActorRef, sessionId: string): object {
   let processors = scxmlIoProcessors.get(self);
@@ -923,6 +925,12 @@ with (context) {
   const In = (stateId: string) => {
     if (!self) return false;
     const sanitized = stateId.replace(/\./g, '$');
+    const transitionStates = scxmlTransitionStates.get(self);
+    if (transitionStates) {
+      return transitionStates.some(
+        (id) => id === sanitized || id.endsWith('.' + sanitized)
+      );
+    }
     if (
       scxmlEnteringStates
         .get(self)
@@ -996,6 +1004,35 @@ with (context) {
   return result;
 }
 
+function cloneDatamodelValue(
+  value: unknown,
+  seen = new WeakMap<object, unknown>()
+): unknown {
+  if (!value || typeof value !== 'object') return value;
+  const prototype = Object.getPrototypeOf(value);
+  if (
+    !Array.isArray(value) &&
+    prototype !== Object.prototype &&
+    prototype !== null
+  ) {
+    return value;
+  }
+  if (seen.has(value)) return seen.get(value);
+  const clone: Record<string, unknown> | unknown[] = Array.isArray(value)
+    ? new Array(value.length)
+    : Object.create(prototype);
+  seen.set(value, clone);
+  for (const key of Object.keys(value)) {
+    Object.defineProperty(clone, key, {
+      value: cloneDatamodelValue(Reflect.get(value, key), seen),
+      writable: true,
+      enumerable: true,
+      configurable: true
+    });
+  }
+  return clone;
+}
+
 /** Executes an SCXML script block and returns updated context values. */
 function executeScript(
   context: MachineContext,
@@ -1064,7 +1101,7 @@ return updates;
     fnBody
   );
   return fn(
-    context,
+    cloneDatamodelValue(context),
     updates,
     sessionId,
     machineName,
@@ -1208,30 +1245,22 @@ export function createMachineFromSCXMLConfig(
     };
   }
 
-  // Scratch belongs to one actor and is reset before each transition selection.
-  // Sharing it on the compiled machine leaks guards/actions across instances.
   interface ScxmlScratch {
-    pendingTransitionActionsMap: Record<string, ActionJSON[]>;
-    allTransitionActions: ActionJSON[][];
-    contextBeforeTargetless: MachineContext | null;
-    targetlessEvent: AnyEventObject | null;
     pendingPlatformErrors: Array<Record<string, unknown>>;
   }
   const actorScratch = new WeakMap<AnyActorRef, ScxmlScratch>();
   function getScratch(self: AnyActorRef): ScxmlScratch {
     let scratch = actorScratch.get(self);
     if (!scratch) {
-      scratch = {
-        pendingTransitionActionsMap: Object.create(null),
-        allTransitionActions: [],
-        contextBeforeTargetless: null,
-        targetlessEvent: null,
-        pendingPlatformErrors: []
-      };
+      scratch = { pendingPlatformErrors: [] };
       actorScratch.set(self, scratch);
     }
     return scratch;
   }
+  const transitionContent = new WeakMap<
+    NonNullable<AnyTransitionDefinition['to']>,
+    ActionJSON[]
+  >();
   const scxmlDonedataValues = new WeakMap<AnyActorRef, Map<string, unknown>>();
 
   function evaluateDonedataValue(
@@ -1297,76 +1326,15 @@ export function createMachineFromSCXMLConfig(
     ];
     const stateId = node.id || nodeKey;
 
-    // Wrap entry to first execute any pending transition actions, then normal entry.
-    // This ensures SCXML execution order: exit → transition_actions → entry_actions
-    // because pending transition actions are set by .to (before exit) but executed
-    // in entry (after exit), thus seeing post-exit context.
     const entryFn: Action<any, any, any, any, any, any, any> | undefined = (
       x,
       enq
     ) => {
-      const scratch = getScratch(x.self);
       scxmlMachineNames.set(x.self, json.id ?? '');
       if (stateId) {
         scxmlEnteringStates.set(x.self, [...ancestorIds, stateId]);
       }
-      let context: MachineContext | undefined;
-
-      // If targetless transitions were interleaved with targeted transitions
-      // (parallel state), re-execute ALL transition actions from the original
-      // pre-transition context. This overrides any .to-produced context with
-      // the correct SCXML document-order sequential execution.
-      // Only trigger when BOTH targeted (pending in map) and targetless fired
-      // in the same microstep — prevents stale data from previous events.
-      if (
-        scratch.contextBeforeTargetless &&
-        scratch.targetlessEvent === x.event &&
-        scratch.allTransitionActions.length > 0 &&
-        Object.keys(scratch.pendingTransitionActionsMap).length > 0
-      ) {
-        let ctx = scratch.contextBeforeTargetless;
-        for (const actions of scratch.allTransitionActions) {
-          const mergedX = { ...x, context: ctx };
-          const result = executeActions(actions, mergedX, enq);
-          if (result.context) {
-            ctx = result.context;
-          }
-        }
-        scratch.allTransitionActions.length = 0;
-        scratch.contextBeforeTargetless = null;
-        scratch.targetlessEvent = null;
-        // Clear per-target map since we re-processed everything
-        for (const key of Object.keys(scratch.pendingTransitionActionsMap)) {
-          delete scratch.pendingTransitionActionsMap[key];
-        }
-        context = ctx;
-      } else {
-        // Normal path: consume pending transition actions for THIS state.
-        // In parallel states, each target gets its own pending actions.
-        const transActions = stateId
-          ? scratch.pendingTransitionActionsMap[stateId]
-          : undefined;
-        if (transActions) {
-          delete scratch.pendingTransitionActionsMap[stateId!];
-          const result = executeActions(transActions, x, enq);
-          if (result.context) {
-            context = result.context;
-          }
-        }
-        // Clear stale targetless data from previous microsteps
-        scratch.contextBeforeTargetless = null;
-        scratch.targetlessEvent = null;
-        scratch.allTransitionActions.length = 0;
-      }
-
-      // Execute normal entry actions
-      if (originalEntryActions.length) {
-        const mergedX = context ? { ...x, context } : x;
-        const result = executeActions(originalEntryActions, mergedX, enq);
-        if (result.context) {
-          context = result.context;
-        }
-      }
+      const { context } = executeActions(originalEntryActions, x, enq);
 
       if (node._scxmlDonedata && stateId) {
         let values = scxmlDonedataValues.get(x.self);
@@ -2324,7 +2292,6 @@ export function createMachineFromSCXMLConfig(
             `$.transition${transitions.length > 1 ? `[${index}]` : ''}`
           );
       }
-      const target = Array.isArray(t.target) ? t.target[0] : t.target;
       const targetConfig = t.target;
       const resolvedGuard = resolveCondition(
         t.guard,
@@ -2424,45 +2391,12 @@ export function createMachineFromSCXMLConfig(
         };
       }
 
-      // Targetless transitions: execute actions directly in .to AND track for
-      // parallel re-execution. For non-parallel, .to result is used directly.
-      // For parallel (entries exist), first entry re-executes all in document order.
-      if (!target) {
-        return {
-          matches: t.matches,
-          _transitionDomain: t._scxml?.type,
-          _eventMatcher: eventMatcher,
-          guard,
-          description: t.description,
-          reenter: t.reenter,
-          meta: t.meta,
-          input: t.input !== undefined ? resolveTransitionInput : undefined,
-          to: (x: any, enq: any) => {
-            const scratch = getScratch(x.self);
-            const context = resolveTransitionContext(x);
-            if (t.actions?.length) {
-              // Track for parallel re-execution (dedup by reference)
-              if (!scratch.allTransitionActions.includes(t.actions)) {
-                scratch.allTransitionActions.push(t.actions);
-              }
-              // Save pre-transition context for parallel override
-              scratch.contextBeforeTargetless ??= x.context;
-              scratch.targetlessEvent ??= x.event;
-              // Execute immediately (fallback for non-parallel case)
-              const result = executeActions(t.actions, x, enq);
-              if (result.context) {
-                return { context: { ...context, ...result.context } };
-              }
-            }
-            return context ? { context } : {};
-          }
-        };
-      }
-
-      // Has target + actions: use guard (for XState evaluation) + .to (for pending actions).
-      // The .to function does NOT re-check the guard — XState's evaluateCandidate
-      // already validated it. The .to just stores actions for entry to execute.
-      // Map by target state ID so parallel transitions each get their own actions.
+      const to = (x: any) => ({
+        target: targetConfig,
+        context: resolveTransitionContext(x),
+        reenter: t.reenter
+      });
+      transitionContent.set(to, t.actions ?? []);
       return {
         matches: t.matches,
         _transitionDomain: t._scxml?.type,
@@ -2472,23 +2406,7 @@ export function createMachineFromSCXMLConfig(
         reenter: t.reenter,
         meta: t.meta,
         input: t.input !== undefined ? resolveTransitionInput : undefined,
-        to: (_x: any, _enq: any) => {
-          const scratch = getScratch(_x.self);
-          const context = resolveTransitionContext(_x);
-          if (t.actions?.length) {
-            const targetId = target.replace(/^#/, '');
-            scratch.pendingTransitionActionsMap[targetId] = t.actions;
-            // Track for parallel re-execution (dedup by reference)
-            if (!scratch.allTransitionActions.includes(t.actions)) {
-              scratch.allTransitionActions.push(t.actions);
-            }
-          }
-          return {
-            target: targetConfig,
-            context,
-            reenter: t.reenter
-          };
-        }
+        to
       };
     });
   }
@@ -2591,18 +2509,34 @@ export function createMachineFromSCXMLConfig(
     delays: resolvedSources.delays
   });
 
-  // TODO: `_microstepHooks` is a private core extension point that only the
-  // SCXML runtime uses (per-actor scratch state, condition-error draining).
-  // Consider moving this into the SCXML runtime (e.g. wrapping `transition`)
-  // so core does not carry SCXML-specific hooks on its hot path.
   provided._microstepHooks = {
     begin(self) {
-      const scratch = getScratch(self);
-      scratch.pendingPlatformErrors = [];
-      scratch.pendingTransitionActionsMap = Object.create(null);
-      scratch.allTransitionActions = [];
-      scratch.contextBeforeTargetless = null;
-      scratch.targetlessEvent = null;
+      getScratch(self).pendingPlatformErrors = [];
+    },
+    transitionContent(transitions, activeStates) {
+      const blocks = [...transitions]
+        .sort((a, b) => a.source.order - b.source.order)
+        .flatMap((transition) => {
+          const block = transition.to && transitionContent.get(transition.to);
+          return block?.length ? [block] : [];
+        });
+      if (!blocks.length) return undefined;
+      return (x, enq) => {
+        scxmlTransitionStates.set(
+          x.self,
+          activeStates.map((state) => state.id)
+        );
+        try {
+          let context = x.context;
+          for (const block of blocks) {
+            const result = executeActions(block, { ...x, context }, enq);
+            context = result.context ?? context;
+          }
+          return { context };
+        } finally {
+          scxmlTransitionStates.delete(x.self);
+        }
+      };
     },
     drain(self) {
       const scratch = getScratch(self);

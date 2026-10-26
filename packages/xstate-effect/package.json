@@ -1,6 +1,6 @@
 {
   "name": "@xstate/effect",
-  "version": "1.0.0-alpha.8",
+  "version": "1.0.0-alpha.9",
   "type": "module",
   "description": "Effect integration for XState",
   "keywords": [
@@ -14,6 +14,7 @@
   "license": "MIT",
   "exports": {
     "./atom": "./dist/xstate-effect-atom.js",
+    "./test": "./dist/xstate-effect-test.js",
     ".": "./dist/xstate-effect.js",
     "./package.json": "./package.json"
   },
@@ -34,14 +35,16 @@
     "xstate": "workspace:^"
   },
   "devDependencies": {
-    "effect": "4.0.0",
+    "@xstate/test": "workspace:^",
+    "effect": "4.0.6",
     "fast-check": "4.10.2",
     "xstate": "workspace:^"
   },
   "preconstruct": {
     "entrypoints": [
       "./index.ts",
-      "./atom.ts"
+      "./atom.ts",
+      "./test.ts"
     ]
   }
 }

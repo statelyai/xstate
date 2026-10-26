@@ -3,17 +3,24 @@ import {
   ActorLogic,
   ActorSystem,
   EventObject,
-  Snapshot
+  Snapshot,
+  AnyActorLogic,
+  SnapshotFrom,
+  EventFromLogic
 } from '../index.ts';
 import {
   SerializedEvent,
   SerializedSnapshot,
   TraversalOptions,
   AdjacencyMap,
-  AdjacencyValue
+  AdjacencyValue,
+  EventCaseOptionsArgs,
+  EventListOptions,
+  TraversalEvent
 } from './types';
 import { resolveTraversalOptions } from './graph.ts';
 import { createMockActorScope } from './actorScope.ts';
+import { createTraversalError } from './traversalError.ts';
 
 function resolveTransitionSnapshot<TSnapshot>(
   result: TSnapshot | [TSnapshot, unknown[]]
@@ -22,6 +29,20 @@ function resolveTransitionSnapshot<TSnapshot>(
 }
 
 /** @public */
+export function getAdjacencyMap<TLogic extends AnyActorLogic>(
+  logic: TLogic,
+  ...[options]: EventCaseOptionsArgs<NoInfer<TLogic>>
+): AdjacencyMap<SnapshotFrom<TLogic>, EventFromLogic<TLogic>>;
+export function getAdjacencyMap<
+  TLogic extends AnyActorLogic,
+  const TEvents extends readonly TraversalEvent<
+    SnapshotFrom<NoInfer<TLogic>>,
+    EventFromLogic<NoInfer<TLogic>>
+  >[]
+>(
+  logic: TLogic,
+  options: EventListOptions<NoInfer<TLogic>, TEvents>
+): AdjacencyMap<SnapshotFrom<TLogic>, EventFromLogic<TLogic>>;
 export function getAdjacencyMap<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
@@ -29,7 +50,7 @@ export function getAdjacencyMap<
   TSystem extends ActorSystem<any> = ActorSystem<any>
 >(
   logic: ActorLogic<TSnapshot, TEvent, TInput, TSystem>,
-  options: TraversalOptions<TSnapshot, TEvent, TInput>
+  options?: TraversalOptions<TSnapshot, TEvent, TInput>
 ): AdjacencyMap<TSnapshot, TEvent> {
   'use strict';
   const { transition } = logic;
@@ -52,7 +73,7 @@ export function getAdjacencyMap<
     logic.getInitialSnapshot(
       actorScope,
       // TODO: fix this
-      options.input as TInput
+      options?.input as TInput
     );
 
   const adj: AdjacencyMap<TSnapshot, TEvent> = Object.create(null);
@@ -102,13 +123,17 @@ export function getAdjacencyMap<
         continue;
       }
 
-      const nextSnapshot = resolveTransitionSnapshot(
-        transition(state, nextEvent, actorScope)
-      );
+      const serializedEvent = serializeEvent(nextEvent) as SerializedEvent;
+      let nextSnapshot: TSnapshot;
+      try {
+        nextSnapshot = resolveTransitionSnapshot(
+          transition(state, nextEvent, actorScope)
+        );
+      } catch (cause) {
+        throw createTraversalError(serializedState, serializedEvent, cause);
+      }
 
-      adj[serializedState].transitions[
-        serializeEvent(nextEvent) as SerializedEvent
-      ] = {
+      adj[serializedState].transitions[serializedEvent] = {
         event: nextEvent,
         state: nextSnapshot
       };

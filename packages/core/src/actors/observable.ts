@@ -1,4 +1,5 @@
 import { XSTATE_INIT, XSTATE_STOP } from '../constants';
+import { publishEmittedEvent } from '../runtimeHelpers.ts';
 import { StandardSchemaV1 } from '../schema.types.ts';
 import { AnyActorSystem } from '../system.ts';
 import { assertValid } from '../validation.ts';
@@ -308,7 +309,7 @@ export function createObservableLogic<
           system,
           self: self as any,
           emit: ((event: TEmitted) =>
-            void runtime.emitEvent!(actorSelf, event)) as (
+            void publishEmittedEvent(actorSelf, event, runtime)) as (
             emitted: TEmitted
           ) => void
         }).subscribe({

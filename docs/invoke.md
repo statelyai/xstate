@@ -68,6 +68,8 @@ invoke: [
 ]
 ```
 
+An input mapper receives the parent machine's typed `context` and `event`, including when a registered actor accepts `unknown` or `any` input. Actors with a specific input type still check both static inputs and mapper return values.
+
 ## Typed inline invokes
 
 Use `s.createInvoke(...)` inside a machine created with `s = setup(...)` when actor logic is used in one state. It infers the actor's input, completion output, error and snapshot types without registering the actor in `setup.actors`. For async work, pass the function directly as `src` and declare its schemas in the same invoke config.

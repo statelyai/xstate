@@ -45,7 +45,9 @@ INSPECT=1 pnpm --filter @xstate/example-effect-workflows start
 - `actions.ts` and `provided-actions.ts`: runtime schema validation, background audits and service requirements after overrides.
 - `resources.ts`: invocation cleanup and resources retained with `withActorScope`.
 - `atoms.ts`, `input-atoms.ts`, `react.tsx` and `selector.tsx`: atom ownership, required input and React consumers.
-- `clock.ts`, `retry.ts`, `supervision.ts` and `errors.ts`: deadlines, retries and typed failures.
+- `clock.ts`, `retry.ts`, `supervision.ts`, `errors.ts` and `failure-cause.ts`: deadlines, retries, typed failures and Cause inspection.
+- `boundaries.ts`: decode external input and events before synchronous validation.
+- `persistence.ts` and `persistence-codec.ts`: causal event receipts and schema-backed snapshots with rich values.
 
 Run individual `.ts` examples with `pnpm --filter @xstate/example-effect-workflows exec tsx src/clock.ts`. The React components are exercised by the React tests.
 

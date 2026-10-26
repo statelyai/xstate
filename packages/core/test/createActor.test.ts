@@ -12,6 +12,19 @@ import {
 import { setTimeout as sleep } from 'node:timers/promises';
 import z from 'zod';
 describe('createActor()', () => {
+  it('rejects the removed parent option before attaching an actor', () => {
+    const logic = createMachine({});
+    const parent = createActor(logic);
+    const inspect = vi.fn();
+    parent.system.inspect(inspect);
+
+    expect(() =>
+      // @ts-expect-error removed; use invoke or spawn
+      createActor(logic, { parent })
+    ).toThrow('The "parent" actor option was removed');
+    expect(inspect).not.toHaveBeenCalled();
+  });
+
   it('throws in development for the removed `state` option', () => {
     const logic = createMachine({});
     const persisted = createActor(logic).getPersistedSnapshot();
@@ -24,13 +37,13 @@ describe('createActor()', () => {
   it('reserves explicit IDs in the generated ID namespace', () => {
     const logic = createMachine({});
     const root = createActor(logic);
-    const explicitlyNamed = createActor(logic, {
+    const explicitlyNamed = root.system.createActorRef(logic, {
       id: 'x:1',
       parent: root
-    } as {});
-    const automaticallyNamed = createActor(logic, {
+    });
+    const automaticallyNamed = root.system.createActorRef(logic, {
       parent: root
-    } as {});
+    });
 
     expect(explicitlyNamed.id).toBe('x:1');
     expect(automaticallyNamed.id).toBe('x:2');

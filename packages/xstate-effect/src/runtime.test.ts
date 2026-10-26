@@ -1,4 +1,4 @@
-import { Context, Duration, Effect, Exit, Scope, Stream } from 'effect';
+import { Cause, Context, Duration, Effect, Exit, Scope, Stream } from 'effect';
 import { TestClock } from 'effect/testing';
 import {
   createActor,
@@ -9,7 +9,7 @@ import {
 } from 'xstate';
 import {
   EffectActor,
-  EffectInterruptedError,
+  EffectFailure,
   createEffectActor,
   deadLetters,
   emitted,
@@ -17,6 +17,7 @@ import {
   createEffectEventStreamLogic,
   createEffectStreamLogic,
   setupEffect,
+  join,
   withActorScope
 } from './index.ts';
 
@@ -564,7 +565,7 @@ describe('@xstate/effect runtime', () => {
     );
   });
 
-  it('reports self-interruption as an EffectInterruptedError', async () => {
+  it('reports self-interruption as an EffectFailure', async () => {
     const actor = await runScoped(
       createEffectActor(createEffectLogic(Effect.interrupt))
     );
@@ -572,9 +573,9 @@ describe('@xstate/effect runtime', () => {
 
     const snapshot = actor.getSnapshot();
     const error: unknown = snapshot.error;
-    expect(error).toBeInstanceOf(EffectInterruptedError);
-    expect((error as EffectInterruptedError)._tag).toBe(
-      'EffectInterruptedError'
+    expect(error).toBeInstanceOf(EffectFailure);
+    expect(Cause.hasInterruptsOnly((error as EffectFailure<never>).cause)).toBe(
+      true
     );
   });
 
@@ -587,8 +588,10 @@ describe('@xstate/effect runtime', () => {
     await until(() => actor.getSnapshot().status === 'error');
 
     const error: unknown = actor.getSnapshot().error;
-    expect((error as { _tag?: string })._tag).toBe('TimeoutError');
-    expect(error).not.toBeInstanceOf(EffectInterruptedError);
+    expect(error).toBeInstanceOf(EffectFailure);
+    expect(Cause.squash((error as EffectFailure<unknown>).cause)).toMatchObject(
+      { _tag: 'TimeoutError' }
+    );
   });
 
   it('reports a defect from Effect.die as the actor error', async () => {
@@ -599,7 +602,10 @@ describe('@xstate/effect runtime', () => {
     await until(() => actor.getSnapshot().status === 'error');
 
     expect(actor.getSnapshot().status).toBe('error');
-    expect(actor.getSnapshot().error).toBe(defect);
+    expect(actor.getSnapshot().error).toBeInstanceOf(EffectFailure);
+    expect(actor.getSnapshot().error?.cause.reasons).toMatchObject([
+      { _tag: 'Die', defect }
+    ]);
   });
 
   it('routes an interrupted invoked Effect to onError', async () => {
@@ -624,7 +630,7 @@ describe('@xstate/effect runtime', () => {
     const actor = await runScoped(createEffectActor(machine));
     await until(() => actor.getSnapshot().value === 'failed');
 
-    expect(received).toBeInstanceOf(EffectInterruptedError);
+    expect(received).toBeInstanceOf(EffectFailure);
   });
 
   it('does not report interruption when the invoking state exits', async () => {
@@ -834,7 +840,7 @@ describe('@xstate/effect runtime', () => {
     );
     await until(() => actor.getSnapshot().status === 'error');
 
-    expect(actor.getSnapshot().error).toEqual(failure);
+    expect(Cause.squash(actor.getSnapshot().error!.cause)).toEqual(failure);
   });
 
   it('interrupts an Effect stream when the invoking state exits', async () => {
@@ -1037,7 +1043,10 @@ describe('@xstate/effect runtime', () => {
     actor.send({ type: 'BOOM' });
     await until(() => actor.getSnapshot().value === 'failed');
 
-    expect(received).toBe(defect);
+    expect(received).toBeInstanceOf(EffectFailure);
+    expect((received as EffectFailure<never>).cause.reasons).toMatchObject([
+      { _tag: 'Die', defect }
+    ]);
   });
 
   it('reports a send to a stopped actor as a dead letter', async () => {
@@ -1198,3 +1207,84 @@ describe('@xstate/effect runtime', () => {
     });
   });
 });
+
+it.each(['task', 'stream', 'action', 'factory'] as const)(
+  'retains a complete Cause through an invoked %s failure',
+  async (kind) => {
+    const defect = new Error('factory');
+    const cause = Cause.combine(
+      Cause.fail({ code: 'EXPECTED' }),
+      Cause.die(defect)
+    );
+    const worker =
+      kind === 'stream'
+        ? createEffectStreamLogic(Stream.failCause(cause))
+        : createEffectLogic(() => {
+            if (kind === 'factory') throw defect;
+            return Effect.failCause(cause);
+          });
+    const machine = setupEffect({
+      actors: { worker },
+      actions: {
+        fail: (_args: { self: AnyActorRef }) => Effect.failCause(cause)
+      }
+    }).createMachine({
+      ...(kind === 'action'
+        ? { entry: (args, enq) => enq(args.actions.fail, args) }
+        : { invoke: { src: 'worker' } })
+    });
+    const actor = await runScoped(createEffectActor(machine));
+    const exit = await Effect.runPromise(Effect.exit(join(actor)));
+    const error = actor.getSnapshot().error;
+    expect(error).toBeInstanceOf(EffectFailure);
+    expect(Exit.isFailure(exit) && exit.cause).toBe(
+      (error as EffectFailure<unknown>).cause
+    );
+    expect(Exit.isFailure(exit) && exit.cause.reasons).toMatchObject(
+      kind === 'factory'
+        ? [{ _tag: 'Die', defect }]
+        : [
+            { _tag: 'Fail', error: { code: 'EXPECTED' } },
+            { _tag: 'Die', defect }
+          ]
+    );
+  }
+);
+
+it('preserves self-interruption of a hosted action', async () => {
+  const machine = setupEffect({
+    actions: { stop: (_args: { self: AnyActorRef }) => Effect.interrupt }
+  }).createMachine({ entry: (args, enq) => enq(args.actions.stop, args) });
+  const actor = await runScoped(createEffectActor(machine));
+  const exit = await Effect.runPromise(Effect.exit(join(actor)));
+  expect(Exit.isFailure(exit) && Cause.hasInterruptsOnly(exit.cause)).toBe(
+    true
+  );
+});
+
+it.each(['input', 'output'] as const)(
+  'terminates an invoked task after %s validation defects',
+  async (kind) => {
+    const { Schema } = await import('effect');
+    const { standardSchemaValidator } = await import('xstate/validation');
+    const logic = createEffectLogic({
+      validator: standardSchemaValidator(),
+      schemas: {
+        input: Schema.Number.check(Schema.isGreaterThan(0)),
+        output: Schema.String
+      },
+      effect: () => Effect.succeed(42) as unknown as Effect.Effect<string>
+    });
+    const machine = setup({ actors: { logic } }).createMachine({
+      invoke: { src: 'logic', input: kind === 'input' ? -1 : 1 }
+    });
+    const actor = await runScoped(createEffectActor(machine));
+    const exit = await Effect.runPromise(
+      Effect.exit(Effect.timeout(join(actor), '1 second'))
+    );
+    expect(actor.getSnapshot().error).toBeInstanceOf(EffectFailure);
+    expect(Exit.isFailure(exit) && exit.cause.reasons).toMatchObject([
+      { _tag: 'Die' }
+    ]);
+  }
+);

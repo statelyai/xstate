@@ -1236,6 +1236,8 @@ events: {
 `frontiers` starts runs from paths that reach a state of interest. The prefix
 is replayed as-is, and shrinking only shortens the generated continuation:
 
+<!-- graph frontier samples from packages/core/src/graph/types.ts and the cart event schema above -->
+
 ```ts
 import { getShortestPaths } from 'xstate/graph';
 
@@ -1243,6 +1245,10 @@ await propertyTest(cartMachine, {
   events,
   frontiers: {
     paths: getShortestPaths(cartMachine, {
+      events: {
+        ADD: [{ sku: 'apple' }],
+        REMOVE: [{ sku: 'apple' }]
+      },
       toState: (snapshot) => Object.keys(snapshot.context.items).length > 0,
       stopWhen: (snapshot) =>
         Object.values(snapshot.context.items).some((qty) => qty >= 2)

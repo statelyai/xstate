@@ -1,4 +1,5 @@
 import isDevelopment from '#is-development';
+import { protectSelectionRelay } from './transitionSelection.ts';
 import type { InspectionEvent, SentRecord } from './inspection.ts';
 import type { StandardSchemaV1 } from './schema.types.ts';
 import type { InternalActorOptions } from './createActor.ts';
@@ -58,11 +59,6 @@ interface Scheduler {
 
 let executionIdPrefix: string | undefined;
 let nextExecutionId = 0;
-
-/** @internal */
-export const transitionEffectSignal = new Error('Transition effect');
-/** @internal */
-export const transitionEffectTargets: AnyActor[] = [];
 
 function createExecutionIdPrefix(): string {
   let crypto: Crypto | undefined;
@@ -339,6 +335,12 @@ export interface EventRejection extends DeadLetterDetail {
   reason: EventRejectionReason;
 }
 
+/** @public */
+export interface ActorEmission {
+  actorRef: AnyActor;
+  event: AnyEventObject;
+}
+
 /** @experimental */
 export interface ActorSystemRuntime {
   /** Publishes a newly created actor to the runtime. */
@@ -361,7 +363,7 @@ export interface ActorSystemRuntime {
     target: AnyActor,
     event: AnyEventObject
   ): void | PromiseLike<void>;
-  /** Publishes an emitted event. */
+  /** Delivers an emitted event, after system emission observers have run. */
   emitEvent(source: AnyActor, event: EventObject): void | PromiseLike<void>;
   /**
    * Schedules a logical timer. `source.address` and `timer` identify it; when
@@ -516,6 +518,16 @@ export interface ActorSystem<
   onRejectedEvent: (
     listener: (rejection: EventRejection) => void
   ) => Subscription;
+  /**
+   * Observes emitted events from every actor in this system, before runtime
+   * delivery. Listeners run in registration order; errors do not prevent
+   * other listeners or delivery. Unsubscribe to stop observing.
+   *
+   * @public
+   */
+  onEmitted: (listener: (emission: ActorEmission) => void) => Subscription;
+  /** @internal */
+  _notifyEmitted: (actorRef: AnyActor, event: AnyEventObject) => void;
   /** @internal Avoids collecting inspection-only transition metadata. */
   _hasInspectionObservers?: () => boolean;
   /** @internal */
@@ -584,6 +596,7 @@ interface RuntimeSystem<T extends ActorSystemInfo> {
   _inspectionObservers?: Set<Observer<InspectionEvent>>;
   _timerMap?: { [id: ScheduledTimerId]: number };
   _rejectionListeners?: Set<(rejection: EventRejection) => void>;
+  _emissionListeners?: Set<(emission: ActorEmission) => void>;
 }
 
 class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
@@ -884,6 +897,31 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
     };
   }
 
+  public onEmitted(listener: (emission: ActorEmission) => void): Subscription {
+    const entry = (emission: ActorEmission) => listener(emission);
+    (this._emissionListeners ??= new Set()).add(entry);
+    return {
+      unsubscribe: () => {
+        this._emissionListeners?.delete(entry);
+      }
+    };
+  }
+
+  public _notifyEmitted(actorRef: AnyActor, event: AnyEventObject): void {
+    const listeners = this._emissionListeners;
+    if (!listeners?.size) {
+      return;
+    }
+    const emission: ActorEmission = { actorRef, event };
+    for (const listener of Array.from(listeners)) {
+      try {
+        listener(emission);
+      } catch (err) {
+        reportUnhandledError(err);
+      }
+    }
+  }
+
   public _hasInspectionObservers(): boolean {
     return !!this._inspectionObservers?.size;
   }
@@ -898,9 +936,13 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
       ...event,
       rootId: this._rootActor.sessionId!
     };
-    this._inspectionObservers.forEach((observer) =>
-      observer.next?.(resolvedInspectionEvent)
-    );
+    this._inspectionObservers.forEach((observer) => {
+      try {
+        observer.next?.(resolvedInspectionEvent);
+      } catch (err) {
+        reportUnhandledError(err);
+      }
+    });
   }
 
   // Unlike the other operations, spawn has no local work: local actors
@@ -1100,11 +1142,8 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
     target: AnyActor,
     event: AnyEventObject
   ): void | PromiseLike<void> {
-    if (
-      transitionEffectTargets.length &&
-      transitionEffectTargets.includes(target)
-    ) {
-      throw transitionEffectSignal;
+    if (protectSelectionRelay(target)) {
+      return;
     }
     // Returned so callers that can observe a host runtime's asynchronous
     // delivery do; the built-in runtime delivers synchronously.

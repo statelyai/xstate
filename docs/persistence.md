@@ -24,7 +24,7 @@ const restored = createActor(machine, {
 
 A restored snapshot is opaque: restoring runs no transitions and re-executes no actions. `always` transitions and choice states in the restored configuration are not re-evaluated until the next event, even if their guards would now pass. Development builds warn when the restored state has eventless transitions.
 
-Restoring a terminal snapshot keeps it terminal. A snapshot with `status: 'done'`, `'error'` or `'stopped'` restores to an actor with that status after `start()`; it runs no transitions and processes no events. For `'error'`, subscribers with an `error` observer receive the persisted error, whether they subscribe before or after `start()`. A snapshot that cannot be restored, such as one that is not an object, has no valid `value`, or whose `value` names a state the machine does not have, produces an actor with an `'error'` snapshot whose `error` describes the failure (an `InvalidSnapshotError` for these structural cases); `createActor(...)` and `start()` do not throw. A `value` that stops at a compound state, such as `{ active: {} }`, is completed with that state's initial descendants, and the restored snapshot's `value` reflects the completed configuration.
+Restoring a terminal snapshot keeps it terminal. A snapshot with `status: 'done'`, `'error'` or `'stopped'` restores to an actor with that status after `start()`; it runs no transitions and processes no events. For `'error'`, subscribers with an `error` observer receive the persisted error, whether they subscribe before or after `start()`. A snapshot that cannot be restored, such as one that is not an object, has no valid `value`, whose `value` names a state the machine does not have, or whose children or timers are malformed, produces an actor with an `'error'` snapshot whose `error` describes the failure (an `InvalidSnapshotError` for these structural cases); `createActor(...)` and `start()` do not throw. A `value` that stops at a compound state, such as `{ active: {} }`, is completed with that state's initial descendants, and the restored snapshot's `value` reflects the completed configuration.
 
 Persisted snapshots may include child actor state. Keep the actor logic compatible with snapshots already stored by your application.
 
@@ -189,7 +189,7 @@ status/output/error, state value, context, children, history, timers, state
 inputs, counters and version metadata as applicable. Active state nodes are
 reconstructed from the state value, so `nodes` itself is not persisted. A
 versioned machine's generated `snapshotSchema` validates this durable shape,
-its state value and its configured context schema. It normalizes an omitted
+its state value, child entries and local child sources, timer entries and its configured context schema. Local children must name a provided actor source or match an inline invoke in the active states. Child ids may be arbitrary when a provided source is recorded. Remote children require an address and a source key, which may belong to another runtime. Unknown extra fields remain allowed. It normalizes an omitted
 `historyValue` to an empty record and omitted `timers` to an empty list,
 matching restoration behavior.
 
