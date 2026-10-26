@@ -172,6 +172,50 @@ describe('unhandled events', () => {
     expect(warn).not.toHaveBeenCalled();
   });
 
+  it.each(['xstate.custom', 'xstate.done.actor.save'])(
+    'reports an unhandled actor-sent %s event',
+    (type) => {
+      const onUnhandledEvent = vi.fn();
+      const receiver = createActor(createMachine({}), {
+        onUnhandledEvent
+      }).start();
+      const event = { type };
+      const sender = createActor(
+        createMachine({
+          entry: (_, enq) => {
+            enq.sendTo(receiver, event);
+          }
+        })
+      ).start();
+
+      expect(onUnhandledEvent).toHaveBeenCalledExactlyOnceWith(
+        event,
+        receiver.getSnapshot()
+      );
+      expect(warn).toHaveBeenCalledExactlyOnceWith(
+        `Actor ${receiver.id} received event "${type}" in state {} with no matching transition`
+      );
+      sender.stop();
+      receiver.stop();
+    }
+  );
+
+  it('does not report a stale scheduler timer input', () => {
+    const onUnhandledEvent = vi.fn();
+    const actor = createActor(createMachine({}), { onUnhandledEvent }).start();
+    const snapshot = actor.getSnapshot();
+
+    actor.system.sendEvent(actor, actor, {
+      type: 'xstate.timer',
+      id: 'cancelled'
+    });
+
+    expect(actor.getSnapshot()).toBe(snapshot);
+    expect(onUnhandledEvent).not.toHaveBeenCalled();
+    expect(warn).not.toHaveBeenCalled();
+    actor.stop();
+  });
+
   it('shows an unhandled event in the inspection stream as a transition with the same snapshot', () => {
     const events: InspectionEvent[] = [];
     const actor = createActor(machine, {

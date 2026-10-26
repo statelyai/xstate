@@ -45,9 +45,10 @@ const actor = createActor(machine, { input: { userId: 'u_1' } });
 | `logger` | `(...args) => void` | Used by `log(...)` actions. Defaults to `console.log`. |
 | `registryKey` | `string` | Registers the actor in the [system](systems.md) under this key. |
 | `src` | `string` or actor logic | The source of the logic, used by inspectors and persistence. |
-| `parent` | actor | Parent actor. Set by XState when invoking or spawning; rarely passed by hand. |
 
 There is no `systemId` option in v6. Use `registryKey`, which is typed against the machine's system registry.
+
+The `parent` option was removed. Passing it to `createActor` throws. Create child actors through `invoke`, `spawn`, or `enq.spawn`.
 
 ## Custom clocks
 
