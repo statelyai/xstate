@@ -88,10 +88,12 @@ submit: ({ context, event }, enq) => {
   enq(() => console.log('Submitted', event));
   return {
     target: 'submitting',
-    context: { ...context, submittedAt: Date.now() }
+    context: { ...context, submittedAt: event.submittedAt }
   };
 }
 ```
+
+Pass `submittedAt` in the event from the caller. Reading wall time or randomness inside a transition makes replay nondeterministic; see [durable execution](durable-execution.md#determinism-constraints).
 
 Returning `undefined` prevents the transition, unless the function already called `enq`: any `enq` call selects the transition, which then runs as a targetless transition with the queued effects. That is why the example returns before enqueuing.
 

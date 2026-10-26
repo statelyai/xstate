@@ -37,11 +37,16 @@ import { fileURLToPath } from 'node:url';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const rootRequire = createRequire(join(root, 'package.json'));
 const ts = rootRequire('typescript');
-const tsManifest = rootRequire('typescript/package.json');
-const tsc = join(
-  dirname(rootRequire.resolve('typescript/package.json')),
-  tsManifest.bin.tsc ?? tsManifest.bin.tsc6
-);
+const compilers = ['typescript', '@typescript/native'].map((name) => {
+  const manifest = rootRequire(`${name}/package.json`);
+  return {
+    version: rootRequire(name).version ?? manifest.version,
+    path: join(
+      dirname(rootRequire.resolve(`${name}/package.json`)),
+      manifest.bin.tsc ?? manifest.bin.tsc6
+    )
+  };
+});
 
 const PACKAGES = [
   { name: 'xstate', dir: 'core' },
@@ -406,37 +411,95 @@ const { useActorRef } = require('@xstate/react');`)
       module: 'node16',
       moduleResolution: 'node16',
       files: ['machine.ts', 'machine.cts', 'react.tsx', 'readme.ts']
+    },
+    'bundler-exact': {
+      module: 'ESNext',
+      moduleResolution: 'bundler',
+      exactOptionalPropertyTypes: true,
+      files: ['machine.ts', 'react.tsx', 'readme.ts']
+    },
+    'node16-exact': {
+      module: 'node16',
+      moduleResolution: 'node16',
+      exactOptionalPropertyTypes: true,
+      files: ['machine.ts', 'machine.cts', 'react.tsx', 'readme.ts']
     }
   };
-  for (const [label, { files, ...options }] of Object.entries(configs)) {
-    step(`tsc declaration emit (moduleResolution: ${label})`, () => {
-      const configPath = join(consumer, `tsconfig.${label}.json`);
-      writeFileSync(
-        configPath,
-        JSON.stringify({
-          compilerOptions: {
-            ...options,
-            target: 'ES2022',
-            strict: true,
-            jsx: 'react-jsx',
-            declaration: true,
-            emitDeclarationOnly: true,
-            skipLibCheck: false,
-            types: [],
-            lib: ['ES2022', 'DOM'],
-            outDir: `out-${label}`
-          },
-          files
-        })
+  for (const compiler of compilers) {
+    for (const [label, { files, ...options }] of Object.entries(configs)) {
+      step(
+        `TypeScript ${compiler.version} declaration emit (moduleResolution: ${label})`,
+        () => {
+          const configPath = join(consumer, `tsconfig.${label}.json`);
+          writeFileSync(
+            configPath,
+            JSON.stringify({
+              compilerOptions: {
+                ...options,
+                target: 'ES2022',
+                strict: true,
+                jsx: 'react-jsx',
+                declaration: true,
+                emitDeclarationOnly: true,
+                skipLibCheck: false,
+                types: [],
+                lib: ['ES2022', 'DOM'],
+                outDir: `out-${label}`
+              },
+              files
+            })
+          );
+          run(
+            process.execPath,
+            [compiler.path, '-p', configPath, '--pretty', 'false'],
+            consumer
+          );
+        }
       );
-      run(
-        process.execPath,
-        [tsc, '-p', configPath, '--pretty', 'false'],
-        consumer
-      );
-    });
+    }
   }
 
+  step('packed agent CLI and version-matched docs', () => {
+    const cli = join(nodeModules, 'xstate/bin/xstate.js');
+    const invoke = (command, ...args) => {
+      const response = JSON.parse(
+        run(process.execPath, [cli, command, ...args, '--json'], consumer)
+      );
+      if (!response.ok) throw new Error(JSON.stringify(response.error));
+      return response;
+    };
+    const docs = invoke('docs');
+    if (
+      docs.result.stability.xstateVersion !== docs.xstateVersion ||
+      !existsSync(docs.result.agentGuide)
+    ) {
+      throw new Error('Packed agent docs must match the installed package.');
+    }
+    const machine = join(consumer, 'agent-machine.json');
+    const events = join(consumer, 'agent-events.json');
+    writeFileSync(
+      machine,
+      JSON.stringify({
+        initial: 'idle',
+        states: {
+          idle: { on: { GO: { target: 'done' } } },
+          done: { type: 'final' }
+        }
+      })
+    );
+    writeFileSync(events, JSON.stringify([{ type: 'GO' }]));
+    invoke('validate', machine);
+    const inspection = invoke('inspect', machine);
+    if (!inspection.result.graph.analysis.transitionTargetsComplete)
+      throw new Error('Static graph was incomplete.');
+    const simulation = invoke('simulate', machine, events);
+    if (
+      simulation.result.trace.at(-1).snapshot.value !== 'done' ||
+      simulation.result.effectsExecuted !== false
+    ) {
+      throw new Error('Packed CLI simulation did not reach its final state.');
+    }
+  });
   step('node esm.mjs', () => run(process.execPath, ['esm.mjs'], consumer));
   step('node cjs.cjs', () => run(process.execPath, ['cjs.cjs'], consumer));
   step('README quick start runs with the packed package', () => {

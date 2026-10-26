@@ -1,6 +1,7 @@
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { execFileSync } from 'node:child_process';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const sourceDir = join(root, 'docs');
@@ -26,9 +27,27 @@ const documents = new Map(
   ])
 );
 
+const stability = JSON.parse(
+  execFileSync(
+    process.execPath,
+    [join(root, 'scripts/check-export-stability.mjs'), '--json', '--list'],
+    { cwd: root, encoding: 'utf8' }
+  )
+);
+if (!stability.ok)
+  throw new Error('Cannot publish documentation with unclassified exports.');
+documents.set(
+  'api-stability.json',
+  JSON.stringify(
+    { schemaVersion: 1, xstateVersion: version, entries: stability.entries },
+    null,
+    2
+  ) + '\n'
+);
+
 documents.set(
   'index.md',
-  `# XState ${version}\n\nThese docs match the installed xstate package. Start with the [quick start](quick-start.md).\nFor differences from v5, read the [migration guide](xstate-v5-to-v6.md).\n\n${pages
+  `# XState ${version}\n\nThese docs match the installed xstate package. Start with the [quick start](quick-start.md) or the [agent guide](agents.md).\nFor differences from v5, read the [migration guide](xstate-v5-to-v6.md).\nThe [export stability manifest](api-stability.json) classifies the installed source's public, experimental and internal exports.\n\n${pages
     .map((page) => {
       const source = documents.get(`${page}.md`);
       const title = source.match(/^title: (.+)$/m)?.[1] ?? page;
