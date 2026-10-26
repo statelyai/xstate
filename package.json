@@ -63,10 +63,11 @@
     "check:exports": "node scripts/check-export-stability.mjs",
     "check:packed": "node scripts/check-packed-consumer.mjs",
     "check:effect-oxlint": "node scripts/check-effect-oxlint-consumer.mjs",
+    "check:release-tags": "node scripts/check-release-tags.mjs",
     "changeset": "changeset",
     "release": "changeset publish",
     "version": "changeset version",
-    "test:tooling": "node --test scripts/typecheck-examples.test.cjs scripts/check-export-stability.test.mjs"
+    "test:tooling": "node scripts/build-package-docs.mjs && node --test scripts/typecheck-examples.test.cjs scripts/check-export-stability.test.mjs scripts/check-release-tags.test.mjs scripts/agent-cli.test.mjs"
   },
   "repository": {
     "type": "git",

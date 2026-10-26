@@ -125,6 +125,10 @@ Start Effect-backed logic with `createEffectActor` inside an Effect scope.
 
 </details>
 
+<!-- declared Effect action typing from src/setupEffect.ts -->
+
+Declared Effect actions infer context and event types from `setupEffect({ schemas })`, including schemas inherited through `extend`. See [Action argument types](docs/schemas-and-actions.md#action-argument-types) for custom arguments and safe defaults.
+
 ## Guides
 
 | Guide | Examples |

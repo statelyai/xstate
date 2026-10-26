@@ -25,13 +25,14 @@ The command runs `inspection.ts`, a local approval and publishing workflow. Serv
 
 ## Inspect it
 
-<!-- inspection.ts uses @statelyai/sdk only when INSPECT=1; its Effect scope destroys the inspector -->
+<!-- inspection.ts and custom-actions.ts use @statelyai/sdk only when INSPECT=1; their Effect scopes destroy the inspector -->
 
 ```bash
 INSPECT=1 pnpm --filter @xstate/example-effect-workflows start
+INSPECT=1 pnpm --filter @xstate/example-effect-workflows exec tsx src/custom-actions.ts
 ```
 
-`@statelyai/sdk` opens the Stately inspector and sends machine definitions, snapshots and events to its hosted relay. The demo subscribes before sending events and closes the inspector when its scope ends. Without the flag it runs locally.
+`@statelyai/sdk` opens the Stately inspector and sends machine definitions, snapshots and events to its hosted relay. Both `src/inspection.ts` and `src/custom-actions.ts` subscribe and wait for the inspector before sending events, then close it when their scopes end. Without the flag they run locally.
 
 ## Examples
 
@@ -42,7 +43,7 @@ INSPECT=1 pnpm --filter @xstate/example-effect-workflows start
 - `observe.ts`, `emitted.ts` and `inspection.ts`: state history, final output, reminders and visual inspection.
 - `task.ts`, `latest-stream.ts` and `event-stream.ts`: tasks, upload progress and rollout health events.
 - `matching.ts` and `parallel.ts`: exhaustive state matching and parallel regions.
-- `actions.ts` and `provided-actions.ts`: runtime schema validation, background audits and service requirements after overrides.
+- `actions.ts`, `custom-actions.ts` and `provided-actions.ts`: runtime schema validation, typed action arguments, background audits and service requirements after overrides.
 - `resources.ts`: invocation cleanup and resources retained with `withActorScope`.
 - `atoms.ts`, `input-atoms.ts`, `react.tsx` and `selector.tsx`: atom ownership, required input and React consumers.
 - `clock.ts`, `retry.ts`, `supervision.ts`, `errors.ts` and `failure-cause.ts`: deadlines, retries, typed failures and Cause inspection.

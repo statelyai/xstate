@@ -668,8 +668,16 @@ exports[`@xstate/graph > getSimplePaths() > should return value-based paths > si
 
 exports[`@xstate/graph > toDirectedGraph > should represent a statechart as a directed graph 1`] = `
 {
+  "analysis": {
+    "diagnostics": [],
+    "transitionTargetsComplete": true,
+  },
   "children": [
     {
+      "analysis": {
+        "diagnostics": [],
+        "transitionTargetsComplete": true,
+      },
       "children": [],
       "edges": [
         {
@@ -683,6 +691,10 @@ exports[`@xstate/graph > toDirectedGraph > should represent a statechart as a di
       "id": "light.green",
     },
     {
+      "analysis": {
+        "diagnostics": [],
+        "transitionTargetsComplete": true,
+      },
       "children": [],
       "edges": [
         {
@@ -696,8 +708,16 @@ exports[`@xstate/graph > toDirectedGraph > should represent a statechart as a di
       "id": "light.yellow",
     },
     {
+      "analysis": {
+        "diagnostics": [],
+        "transitionTargetsComplete": true,
+      },
       "children": [
         {
+          "analysis": {
+            "diagnostics": [],
+            "transitionTargetsComplete": true,
+          },
           "children": [],
           "edges": [
             {
@@ -711,6 +731,10 @@ exports[`@xstate/graph > toDirectedGraph > should represent a statechart as a di
           "id": "light.red.walk",
         },
         {
+          "analysis": {
+            "diagnostics": [],
+            "transitionTargetsComplete": true,
+          },
           "children": [],
           "edges": [
             {
@@ -724,6 +748,10 @@ exports[`@xstate/graph > toDirectedGraph > should represent a statechart as a di
           "id": "light.red.wait",
         },
         {
+          "analysis": {
+            "diagnostics": [],
+            "transitionTargetsComplete": true,
+          },
           "children": [],
           "edges": [
             {
@@ -737,6 +765,10 @@ exports[`@xstate/graph > toDirectedGraph > should represent a statechart as a di
           "id": "light.red.stop",
         },
         {
+          "analysis": {
+            "diagnostics": [],
+            "transitionTargetsComplete": true,
+          },
           "children": [],
           "edges": [],
           "id": "light.red.finished",
