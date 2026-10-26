@@ -13,4 +13,3 @@ const snapshot = yield* sendAndAwait(actor, event);
 const json = yield* codec.encode(actor.getPersistedSnapshot());
 const restored = yield* codec.decode(json);
 ```
-  
