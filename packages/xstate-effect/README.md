@@ -258,9 +258,9 @@ See [atoms and React](docs/atoms-and-react.md) for complete examples with import
 
 - Use `TestClock` to drive deadlines without waiting for real time.
 - `ActorStoppedError` reports a stop before an awaited result.
-- `EffectInterruptedError` reports self-interruption inside Effect logic.
+- `EffectFailure<E>` carries the original `Cause<E>` in task and stream error snapshots, including defects and self-interruption.
 - Timed waits fail with Effect's `Cause.TimeoutError`.
-- `join` preserves a task's typed failure. Unexpected machine errors have type `unknown`.
+- `join` replays the original Cause and preserves a task's typed failure. Unexpected machine errors have type `unknown`.
 
 See [testing and errors](docs/testing-and-errors.md) for executable deadline, retry and failure examples. Persisted snapshots record actor state; pass one to `createEffectActor(logic, { snapshot })` to resume the actor. See [persisting and restoring](docs/actors.md#persisting-and-restoring).
 

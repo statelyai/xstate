@@ -29,7 +29,11 @@ export {
   type SendableEventFrom,
   type WaitForOptions
 } from './actor.ts';
-export { ActorStoppedError, EffectInterruptedError } from './errors.ts';
+export {
+  ActorStoppedError,
+  EffectFailure,
+  EffectInterruptedError
+} from './errors.ts';
 export {
   setupEffect,
   type EffectAction,

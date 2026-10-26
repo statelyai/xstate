@@ -1,4 +1,5 @@
 import {
+  Cause,
   Context,
   Effect,
   Exit,
@@ -19,6 +20,7 @@ import {
 } from 'xstate';
 import { standardSchemaValidator } from 'xstate/validation';
 import {
+  EffectFailure,
   createEffectActor,
   createEffectLogic,
   createEffectEventStreamLogic,
@@ -459,7 +461,10 @@ describe('@xstate/effect', () => {
         src: 'logic',
         input: { id: '42' },
         onError: ({ event }) => {
-          event.error.code satisfies 'NOT_FOUND';
+          event.error satisfies EffectFailure<typeof failure>;
+          for (const reason of event.error.cause.reasons) {
+            if (reason._tag === 'Fail') reason.error.code satisfies 'NOT_FOUND';
+          }
           return {};
         }
       }
@@ -558,6 +563,8 @@ describe('@xstate/effect', () => {
     await until(() => actor.getSnapshot().status === 'error');
 
     expect(errors).toHaveLength(1);
+    expect(errors[0]).toBeInstanceOf(EffectFailure);
+    expect(Cause.hasDies(actor.getSnapshot().error!.cause)).toBe(true);
   });
 
   it('runs setupEffect actions inside the host Effect context', async () => {
@@ -688,7 +695,10 @@ describe('@xstate/effect', () => {
     actor.send({ type: 'FAIL' });
     await until(() => actor.getSnapshot().value === 'failed');
 
-    expect(received).toEqual(failure);
+    expect(received).toBeInstanceOf(EffectFailure);
+    expect(
+      Cause.squash((received as EffectFailure<typeof failure>).cause)
+    ).toEqual(failure);
   });
 
   it('invokes an Effect actor and routes success to onDone', async () => {
@@ -749,7 +759,10 @@ describe('@xstate/effect', () => {
     const actor = await runScoped(createEffectActor(machine));
     await until(() => actor.getSnapshot().value === 'failed');
 
-    expect(actor.getSnapshot().context).toEqual({ error: failure });
+    expect(actor.getSnapshot().context.error).toBeInstanceOf(EffectFailure);
+    expect(Cause.squash(actor.getSnapshot().context.error.cause)).toEqual(
+      failure
+    );
   });
 
   it('preserves typed Effect errors through registered v6 actors', () => {
@@ -763,7 +776,9 @@ describe('@xstate/effect', () => {
           invoke: {
             src: 'request',
             onError: ({ event }) => {
-              const code: 'NOT_FOUND' = event.error.code;
+              const code: 'NOT_FOUND' = Option.getOrThrow(
+                Cause.findErrorOption(event.error.cause)
+              ).code;
               // @ts-expect-error -- the Effect failure is discriminated
               const other: 'OTHER' = code;
               void other;

@@ -163,13 +163,29 @@ For machine workflows, expected outcomes such as declined or expired can be fina
 | Error | Raised by |
 | --- | --- |
 | `ActorStoppedError` | `waitFor` when the actor stops or errors before matching; `join` when it stops without output. |
-| `EffectInterruptedError` | Effect logic that interrupts itself. |
+| `EffectFailure<E>` | Task, stream or hosted action failure, defect or self-interruption. Its `cause` preserves the full Effect Cause. |
 | `Cause.TimeoutError` | `waitFor` with a timeout, or Effect's timeout combinators. |
 
 - `ActorStoppedError` includes `actorId` and `snapshot`.
-- `EffectInterruptedError` includes its interrupt `cause`.
-- Both package errors are `Data.TaggedError` classes.
-- An actor's own typed failure is available through `snapshot.error` and `join`; `ErrorFrom` names its type.
+- `snapshot.error` and invoked child `onError` events carry `EffectFailure<E>` for Effect logic. `ErrorFrom` reflects that wrapper.
+- `join` and result atoms unwrap genuine `EffectFailure` values and preserve the original Cause. Plain XState actor errors remain ordinary typed failures.
+- `EffectInterruptedError` is deprecated. Inspect `Cause.hasInterruptsOnly(error.cause)` instead.
+
+### Migrating error handlers
+
+Effect child error handlers now receive the Cause wrapper. Replace direct access such as `event.error.code` with inspection of `event.error.cause`.
+
+```ts
+import { Cause, Option } from 'effect';
+
+// Inside an Effect child's onError handler:
+const failure = Cause.findErrorOption(event.error.cause);
+if (Option.isSome(failure)) {
+  console.log(failure.value.code);
+}
+```
+
+Use `Effect.exit(join(actor))` when defects and interruption must be inspected alongside typed failures. Stopping the actor still makes `join` fail with `ActorStoppedError`.
 
 <details>
 <summary>Observe root actor errors</summary>

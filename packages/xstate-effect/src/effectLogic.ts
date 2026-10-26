@@ -11,7 +11,7 @@ import {
   type Snapshot,
   type StandardSchemaV1
 } from 'xstate';
-import { EffectInterruptedError } from './errors.ts';
+import { EffectFailure } from './errors.ts';
 import type { EffectRequirements } from './types.ts';
 import { relayToParent, startHostedEffect } from './internal.ts';
 import {
@@ -48,13 +48,12 @@ export interface EffectLogicBrand<TError, TRequirements> {
 /**
  * Snapshot of a `createEffectLogic` actor. The actor holds no context of its own: it
  * is `active` while the Effect runs, `done` with the Effect's success value as
- * `output`, or `error` with the Effect's failure, defect or
- * `EffectInterruptedError` as `error`.
+ * `output`, or `error` with the original `Cause` wrapped in `EffectFailure` as `error`.
  */
 export type EffectSnapshot<TOutput, TError, TInput> = Snapshot<TOutput> & {
   readonly context: undefined;
   readonly input: TInput | undefined;
-  readonly error: TError | undefined;
+  readonly error: EffectFailure<TError> | undefined;
 };
 
 /**
@@ -111,7 +110,7 @@ type SchemaOutput<TSchema extends EffectSchemaLike> =
 
 type EffectSuccess<T> = T extends Effect.Effect<infer A, any, any> ? A : never;
 
-type EffectFailure<T> = T extends Effect.Effect<any, infer E, any> ? E : never;
+type EffectError<T> = T extends Effect.Effect<any, infer E, any> ? E : never;
 
 type EffectSchemaValidationConfig<TSchemas extends EffectActorSchemas> =
   | {
@@ -146,7 +145,7 @@ export type EffectStreamSnapshot<TItem, TError, TInput> =
   Snapshot<undefined> & {
     readonly context: TItem | undefined;
     readonly input: TInput | undefined;
-    readonly error: TError | undefined;
+    readonly error: EffectFailure<TError> | undefined;
   };
 
 /**
@@ -162,16 +161,8 @@ export type EffectStreamActorLogic<TItem, TError, TInput, TRequirements> =
     AnyActorSystem
   > & { readonly id?: string } & EffectLogicBrand<TError, TRequirements>;
 
-function toError(exit: Exit.Exit<unknown, unknown>): unknown {
-  if (Exit.isSuccess(exit)) {
-    return undefined;
-  }
-  if (Cause.hasInterruptsOnly(exit.cause)) {
-    return new EffectInterruptedError({
-      cause: exit.cause as Cause.Cause<never>
-    });
-  }
-  return Cause.squash(exit.cause);
+function preserveFailure(error: unknown): EffectFailure<unknown> {
+  return EffectFailure.is(error) ? error : new EffectFailure(Cause.die(error));
 }
 
 function createSourceArgs<TInput>(
@@ -194,6 +185,38 @@ function brandLogic<TLogic extends AnyActorLogic>(
   error: unknown,
   requirements: unknown
 ): TLogic {
+  const transition = logic.transition.bind(logic);
+  logic.transition = (snapshot, event, scope) => {
+    try {
+      return transition(snapshot, event, scope);
+    } catch (error) {
+      throw EffectFailure.is(error)
+        ? error
+        : new EffectFailure(Cause.die(error));
+    }
+  };
+  const initialTransition = logic.initialTransition!.bind(logic);
+  logic.initialTransition = (input, scope) => {
+    try {
+      return initialTransition(input, scope);
+    } catch (error) {
+      throw EffectFailure.is(error)
+        ? error
+        : new EffectFailure(Cause.die(error));
+    }
+  };
+  const restoreSnapshot = logic.restoreSnapshot?.bind(logic);
+  if (restoreSnapshot) {
+    logic.restoreSnapshot = (persisted, scope) => {
+      const snapshot = restoreSnapshot(persisted, scope);
+      if (snapshot.status === 'error' && !EffectFailure.is(snapshot.error)) {
+        throw new Error(
+          'Cannot restore a serialized Effect failure. Recover the error before persisting the actor.'
+        );
+      }
+      return snapshot;
+    };
+  }
   Object.defineProperty(logic, effectLogicBrand, {
     configurable: false,
     enumerable: false,
@@ -204,9 +227,7 @@ function brandLogic<TLogic extends AnyActorLogic>(
 
 /**
  * Creates actor logic that runs an Effect. The actor completes with the
- * Effect's success value as its output and fails with the Effect's error, its
- * squashed defect, or an `EffectInterruptedError` when the Effect interrupts
- * itself. Stopping the actor interrupts the Effect without an error. Accepts
+ * Effect's success value as its output and fails with the original `Cause` wrapped in `EffectFailure`. Stopping the actor interrupts the Effect without an error. Accepts
  * an Effect, a function of {@link EffectSourceArgs} returning one, or a config
  * object with `id`, `schemas`, `validator` and `effect`. The logic must be run
  * under `createEffectActor`, which provides the Effect services it declares.
@@ -246,7 +267,7 @@ export function createEffectLogic<
   config: Omit<
     EffectSourceConfig<
       EffectSuccess<TEffect>,
-      EffectFailure<TEffect>,
+      EffectError<TEffect>,
       SchemaOutput<TInputSchema>,
       EffectRequirements<TEffect>,
       { input: TInputSchema }
@@ -263,7 +284,7 @@ export function createEffectLogic<
     }
 ): EffectActorLogic<
   EffectSuccess<TEffect>,
-  EffectFailure<TEffect>,
+  EffectError<TEffect>,
   SchemaOutput<TInputSchema>,
   EffectRequirements<TEffect>
 >;
@@ -363,7 +384,9 @@ export function createEffectLogic<
       if (event.type === EFFECT_REJECT) {
         return {
           status: 'error',
-          error: (event as EventObject & { error: TError }).error,
+          error: preserveFailure(
+            (event as EventObject & { error: unknown }).error
+          ),
           input: undefined
         };
       }
@@ -372,10 +395,11 @@ export function createEffectLogic<
         return;
       }
 
-      const effect =
+      const effect = Effect.suspend(() =>
         typeof source === 'function'
           ? source(createSourceArgs(input, self as AnyActorRef, system))
-          : source;
+          : source
+      );
 
       enq.effect(() =>
         startHostedEffect(
@@ -390,7 +414,10 @@ export function createEffectLogic<
             if (Exit.isSuccess(exit)) {
               self.send({ type: EFFECT_RESOLVE, output: exit.value } as any);
             } else {
-              self.send({ type: EFFECT_REJECT, error: toError(exit) } as any);
+              self.send({
+                type: EFFECT_REJECT,
+                error: new EffectFailure(exit.cause)
+              } as any);
             }
           }
         )
@@ -543,7 +570,9 @@ export function createEffectStreamLogic<
       if (event.type === EFFECT_REJECT) {
         return {
           status: 'error',
-          error: (event as EventObject & { error: TError }).error,
+          error: preserveFailure(
+            (event as EventObject & { error: unknown }).error
+          ),
           input: undefined
         };
       }
@@ -551,10 +580,11 @@ export function createEffectStreamLogic<
         return;
       }
 
-      const streamValue =
+      const streamValue = Stream.suspend(() =>
         typeof stream === 'function'
           ? stream(createSourceArgs(input, self as AnyActorRef, system))
-          : stream;
+          : stream
+      );
       const consume = Stream.runForEach(streamValue, (value) =>
         Effect.sync(() => {
           if (self.getSnapshot().status === 'active') {
@@ -575,7 +605,10 @@ export function createEffectStreamLogic<
             if (Exit.isSuccess(exit)) {
               self.send({ type: EFFECT_COMPLETE });
             } else {
-              self.send({ type: EFFECT_REJECT, error: toError(exit) } as any);
+              self.send({
+                type: EFFECT_REJECT,
+                error: new EffectFailure(exit.cause)
+              } as any);
             }
           }
         )
@@ -669,7 +702,9 @@ export function createEffectEventStreamLogic<
       if (event.type === EFFECT_REJECT) {
         return {
           status: 'error',
-          error: (event as EventObject & { error: TError }).error,
+          error: preserveFailure(
+            (event as EventObject & { error: unknown }).error
+          ),
           input: undefined
         };
       }
@@ -677,10 +712,11 @@ export function createEffectEventStreamLogic<
         return;
       }
 
-      const streamValue =
+      const streamValue = Stream.suspend(() =>
         typeof stream === 'function'
           ? stream(createSourceArgs(input, self as AnyActorRef, system))
-          : stream;
+          : stream
+      );
       const consume = Stream.runForEach(streamValue, (value) =>
         Effect.sync(() => relayToParent(self as AnyActorRef, value))
       );
@@ -697,7 +733,10 @@ export function createEffectEventStreamLogic<
             if (Exit.isSuccess(exit)) {
               self.send({ type: EFFECT_COMPLETE });
             } else {
-              self.send({ type: EFFECT_REJECT, error: toError(exit) } as any);
+              self.send({
+                type: EFFECT_REJECT,
+                error: new EffectFailure(exit.cause)
+              } as any);
             }
           }
         )
