@@ -20,6 +20,10 @@ runs:
       run: pnpm check:packed
       shell: bash
 
+    - name: Packed Effect Oxlint consumer
+      run: pnpm check:effect-oxlint
+      shell: bash
+
     - name: Export stability
       run: pnpm check:exports
       shell: bash
