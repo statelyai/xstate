@@ -16,7 +16,7 @@ In these docs, "transition effects" are the executable effect descriptors (`Exec
 <!-- package name and peer dependencies from package.json -->
 
 ```bash
-npm install @xstate/effect@alpha xstate@alpha effect@^4
+npm install @xstate/effect@latest xstate@alpha effect@^4
 ```
 
 ## XState Effect: Quick start

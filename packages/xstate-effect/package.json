@@ -34,7 +34,7 @@
     "xstate": "workspace:^"
   },
   "devDependencies": {
-    "effect": "4.0.0",
+    "effect": "4.0.6",
     "fast-check": "4.10.2",
     "xstate": "workspace:^"
   },
