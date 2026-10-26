@@ -31,6 +31,7 @@ export {
 } from './actor.ts';
 export {
   ActorStoppedError,
+  EventRejectedError,
   EffectFailure,
   EffectInterruptedError
 } from './errors.ts';
@@ -54,3 +55,5 @@ export {
   type EffectSetupSchemas,
   type EffectSetupStateSchema
 } from './schema.ts';
+
+export { createSnapshotCodec, SnapshotCodecError } from './persistence.ts';

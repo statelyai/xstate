@@ -10,6 +10,54 @@ description: Type workflow data and run background work with setupEffect.
 - Register actors, guards and delays as you would with `setup`.
 - Start the machine with `createEffectActor`.
 
+## Decoding external data
+
+Decode unknown input and events before actor creation or sending. `Schema.decodeUnknownEffect` retains async decoding and service requirements. When runtime validation is enabled, declare the decoded Type schema with `Schema.toType`; transitions validate decoded values synchronously.
+
+<!-- example from examples/effect-workflows/src/boundaries.ts -->
+
+```ts
+import { Effect, Schema } from 'effect';
+import { createEffectActor, setupEffect } from '@xstate/effect';
+import { sendAndAwait } from '@xstate/effect/test';
+import { standardSchemaValidator } from 'xstate/validation';
+
+const Input = Schema.Struct({ count: Schema.NumberFromString });
+const Add = Schema.Struct({
+  type: Schema.Literal('ADD'),
+  delta: Schema.NumberFromString
+});
+const counter = setupEffect({
+  validator: standardSchemaValidator(),
+  schemas: {
+    input: Schema.toType(Input),
+    events: { ADD: Schema.Struct({ delta: Schema.Number }) }
+  }
+}).createMachine({
+  context: ({ input }) => ({ count: input.count }),
+  on: {
+    ADD: ({ context, event }) => ({
+      context: { count: context.count + event.delta }
+    })
+  }
+});
+
+const program = Effect.gen(function* () {
+  const input = yield* Schema.decodeUnknownEffect(Input)({ count: '2' });
+  const actor = yield* createEffectActor(counter, { input });
+  const event = yield* Schema.decodeUnknownEffect(Add)({
+    type: 'ADD',
+    delta: '3'
+  });
+  return (yield* sendAndAwait(actor, event)).context.count;
+});
+
+export const result = await Effect.runPromise(Effect.scoped(program));
+console.log(result); // 5
+```
+
+Transforming schemas remain unsupported directly in synchronous runtime validation. Decode once at the boundary instead of repeating the transformation inside a transition.
+
 ## Schemas and background actions
 
 This machine accepts a typed approval event and records an audit entry without blocking its transition:

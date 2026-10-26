@@ -3034,6 +3034,9 @@ importers:
 
   packages/xstate-effect:
     devDependencies:
+      '@xstate/test':
+        specifier: workspace:^
+        version: link:../xstate-test
       effect:
         specifier: 4.0.6
         version: 4.0.6

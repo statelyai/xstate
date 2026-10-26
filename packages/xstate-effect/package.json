@@ -14,6 +14,7 @@
   "license": "MIT",
   "exports": {
     "./atom": "./dist/xstate-effect-atom.js",
+    "./test": "./dist/xstate-effect-test.js",
     ".": "./dist/xstate-effect.js",
     "./package.json": "./package.json"
   },
@@ -34,6 +35,7 @@
     "xstate": "workspace:^"
   },
   "devDependencies": {
+    "@xstate/test": "workspace:^",
     "effect": "4.0.6",
     "fast-check": "4.10.2",
     "xstate": "workspace:^"
@@ -41,7 +43,8 @@
   "preconstruct": {
     "entrypoints": [
       "./index.ts",
-      "./atom.ts"
+      "./atom.ts",
+      "./test.ts"
     ]
   }
 }
