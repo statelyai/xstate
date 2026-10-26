@@ -240,6 +240,10 @@ See [Effect actor logic](docs/effect-logic.md) for tasks and a stream that drive
 
 See [schemas and actions](docs/schemas-and-actions.md) for a complete audit example, runtime schema constraints and inline-source pitfalls.
 
+<!-- lint plugin export from package.json; rule from src/oxlint.ts -->
+
+Enable `xstate-effect/no-inline-effect` with the compiled `@xstate/effect/oxlint` plugin to catch discarded inline Effects and unsupported inline spawned Effect logic. See [Oxlint configuration](docs/schemas-and-actions.md#declared-sources) for installation and the rule's syntactic limits.
+
 ## Atoms and React
 
 <!-- atom surface from src/atom.ts -->

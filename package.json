@@ -62,6 +62,7 @@
     "bench:type-errors": "node scripts/type-error-quality.mjs",
     "check:exports": "node scripts/check-export-stability.mjs",
     "check:packed": "node scripts/check-packed-consumer.mjs",
+    "check:effect-oxlint": "node scripts/check-effect-oxlint-consumer.mjs",
     "changeset": "changeset",
     "release": "changeset publish",
     "version": "changeset version",

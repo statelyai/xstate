@@ -16,6 +16,7 @@
     "./atom": "./dist/xstate-effect-atom.js",
     "./test": "./dist/xstate-effect-test.js",
     ".": "./dist/xstate-effect.js",
+    "./oxlint": "./dist/xstate-effect-oxlint.js",
     "./package.json": "./package.json"
   },
   "sideEffects": false,
@@ -44,7 +45,11 @@
     "entrypoints": [
       "./index.ts",
       "./atom.ts",
+      "./oxlint.ts",
       "./test.ts"
     ]
+  },
+  "dependencies": {
+    "@oxlint/plugins": "^1.76.0"
   }
 }
