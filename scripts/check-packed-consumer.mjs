@@ -413,7 +413,11 @@ export function useUserState() {
     join(consumer, 'esm.mjs'),
     smoke(`import { createMachine, createActor } from 'xstate';
 import { createAsyncLogic } from 'xstate/actors';
-import { useActorRef } from '@xstate/react';`)
+import { useActorRef } from '@xstate/react';
+import { createEffectActor, setupEffect } from '@xstate/effect';
+if (typeof setupEffect !== 'function' || typeof createEffectActor !== 'function') {
+  throw new Error('@xstate/effect: setupEffect or createEffectActor missing');
+}`)
   );
   writeFileSync(
     join(consumer, 'cjs.cjs'),
