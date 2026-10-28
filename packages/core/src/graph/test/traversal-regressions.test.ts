@@ -1,9 +1,107 @@
-import { createStepLogic, createMachine } from '../../index.ts';
+import {
+  createStepLogic,
+  createMachine,
+  setup,
+  initialTransition,
+  transition
+} from '../../index.ts';
 import { z } from 'zod';
 import { getAdjacencyMap } from '../adjacency.ts';
 import { getPathsFromEvents } from '../pathFromEvents.ts';
 import { getShortestPaths } from '../shortestPaths.ts';
 import { getSimplePaths } from '../simplePaths.ts';
+import { serializeSnapshot } from '../graph.ts';
+
+it.each([getShortestPaths, getSimplePaths])(
+  'explores distinct state inputs with equal values and root context',
+  (generate) => {
+    const machine = setup({
+      schemas: {
+        events: {
+          SELECT: z.object({ ok: z.boolean() }),
+          FINISH: z.object({})
+        }
+      },
+      states: {
+        idle: {},
+        working: { schemas: { input: z.object({ ok: z.boolean() }) } },
+        success: {},
+        failure: {}
+      }
+    }).createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            SELECT: ({ event }) => ({
+              target: 'working',
+              input: { ok: event.ok }
+            })
+          }
+        },
+        working: {
+          on: {
+            FINISH: ({ input }) => ({
+              target: input.ok ? 'success' : 'failure'
+            })
+          }
+        },
+        success: { type: 'final' },
+        failure: { type: 'final' }
+      }
+    });
+    const paths = generate(machine, {
+      events: { SELECT: [{ ok: true }, { ok: false }], FINISH: [{}] }
+    });
+    expect(paths.map((path) => path.state.value)).toEqual(
+      expect.arrayContaining(['success', 'failure'])
+    );
+    for (const outcome of ['success', 'failure']) {
+      const path = paths.find(
+        (candidate) => candidate.state.value === outcome
+      )!;
+      const selection = path.steps.find(
+        (step) => step.event.type === 'SELECT'
+      )!;
+      expect(selection.event).toEqual({
+        type: 'SELECT',
+        ok: outcome === 'success'
+      });
+    }
+  }
+);
+
+it('distinguishes remembered history without serializing live state nodes', () => {
+  const machine = createMachine({
+    initial: 'outside',
+    states: {
+      outside: { on: { ENTER: { target: 'inside' } } },
+      inside: {
+        initial: 'a',
+        on: { LEAVE: { target: 'outside' } },
+        states: {
+          a: { on: { NEXT: { target: 'b' } } },
+          b: {},
+          hist: { type: 'history', target: 'a' }
+        }
+      }
+    }
+  });
+  const [initial] = initialTransition(machine);
+  const [entered] = transition(machine, initial, { type: 'ENTER' });
+  const [rememberedA] = transition(machine, entered, { type: 'LEAVE' });
+  const [inB] = transition(machine, entered, { type: 'NEXT' });
+  const [rememberedB] = transition(machine, inB, { type: 'LEAVE' });
+  expect(rememberedA.value).toEqual(rememberedB.value);
+  expect(rememberedA.context).toEqual(rememberedB.context);
+  expect(serializeSnapshot(rememberedA)).not.toBe(
+    serializeSnapshot(rememberedB)
+  );
+  expect(JSON.parse(serializeSnapshot(rememberedB)).historyValue).toEqual({
+    'inside.hist': ['inside.b']
+  });
+  expect(serializeSnapshot(initial)).toBe('{"value":"outside"}');
+});
 
 const counter = createStepLogic({
   context: ({ input }: { input: number }) => input,

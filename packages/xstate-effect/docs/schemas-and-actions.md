@@ -10,6 +10,54 @@ description: Type workflow data and run background work with setupEffect.
 - Register actors, guards and delays as you would with `setup`.
 - Start the machine with `createEffectActor`.
 
+## Decoding external data
+
+Decode unknown input and events before actor creation or sending. `Schema.decodeUnknownEffect` retains async decoding and service requirements. When runtime validation is enabled, declare the decoded Type schema with `Schema.toType`; transitions validate decoded values synchronously.
+
+<!-- example from examples/effect-workflows/src/boundaries.ts -->
+
+```ts
+import { Effect, Schema } from 'effect';
+import { createEffectActor, setupEffect } from '@xstate/effect';
+import { sendAndAwait } from '@xstate/effect/test';
+import { standardSchemaValidator } from 'xstate/validation';
+
+const Input = Schema.Struct({ count: Schema.NumberFromString });
+const Add = Schema.Struct({
+  type: Schema.Literal('ADD'),
+  delta: Schema.NumberFromString
+});
+const counter = setupEffect({
+  validator: standardSchemaValidator(),
+  schemas: {
+    input: Schema.toType(Input),
+    events: { ADD: Schema.Struct({ delta: Schema.Number }) }
+  }
+}).createMachine({
+  context: ({ input }) => ({ count: input.count }),
+  on: {
+    ADD: ({ context, event }) => ({
+      context: { count: context.count + event.delta }
+    })
+  }
+});
+
+const program = Effect.gen(function* () {
+  const input = yield* Schema.decodeUnknownEffect(Input)({ count: '2' });
+  const actor = yield* createEffectActor(counter, { input });
+  const event = yield* Schema.decodeUnknownEffect(Add)({
+    type: 'ADD',
+    delta: '3'
+  });
+  return (yield* sendAndAwait(actor, event)).context.count;
+});
+
+export const result = await Effect.runPromise(Effect.scoped(program));
+console.log(result); // 5
+```
+
+Transforming schemas remain unsupported directly in synchronous runtime validation. Decode once at the boundary instead of repeating the transformation inside a transition.
+
 ## Schemas and background actions
 
 This machine accepts a typed approval event and records an audit entry without blocking its transition:
@@ -74,6 +122,102 @@ The latch lets this demo wait for the audit before closing its scope. In an appl
 - Per-state schemas narrow context with [`taggedState`](matching-states.md).
 - Standard Schemas can be mixed with Effect schemas. `EffectSchemaLike` represents either kind.
 - `createEffectLogic` also accepts Effect input and output schemas.
+
+### Action argument types
+
+<!-- action argument inference from src/setupEffect.ts -->
+
+Declared actions infer `context` from the setup's decoded context schema. Their `event` is the union of `schemas.events` and `schemas.internalEvents`. Check `event.type` before reading a payload that belongs to one event. Omitting `schemas.events` allows unknown public events, so internal event payloads cannot narrow by type alone. Use `events: {}` when there are no public events to keep internal events discriminable.
+
+An extension's actions use the merged schemas. Context schemas replace the previous context type. Event and action schema entries merge by name, with extension entries replacing matching names.
+
+Without a context schema, action context values are `unknown`. Without event schemas, actions receive `{ type: string }`. A later `createMachine` configuration cannot infer types for earlier action callbacks. Declare setup schemas or annotate the callback argument.
+
+To give an action a different argument, declare `schemas.actions.<name>.params`. This schema describes the entire first argument. Include `self` when enqueueing the action so its Effect runs in the owning actor's context:
+
+<!-- example from examples/effect-workflows/src/custom-actions.ts -->
+
+```ts
+import { createInspector } from '@statelyai/sdk';
+import { Effect, Latch, Schema } from 'effect';
+import type { Snapshot } from 'xstate';
+import { createEffectActor, send, setupEffect } from '@xstate/effect';
+
+const messages: string[] = [];
+const recorded = Latch.makeUnsafe();
+const machine = setupEffect({
+  schemas: {
+    actions: {
+      audit: { params: Schema.Struct({ message: Schema.String }) }
+    }
+  },
+  actions: {
+    audit: ({ message }) =>
+      Effect.sync(() => {
+        messages.push(message);
+      }).pipe(Effect.andThen(recorded.open))
+  }
+}).createMachine({
+  on: {
+    SAVE: (args, enq) =>
+      enq(args.actions.audit, { self: args.self, message: 'saved' })
+  }
+});
+
+const inspectorSnapshot = (snapshot: Snapshot<unknown>) => ({
+  status: snapshot.status,
+  ...('value' in snapshot ? { value: snapshot.value } : {})
+});
+
+const program = Effect.gen(function* () {
+  const inspector = yield* Effect.acquireRelease(
+    Effect.sync(() =>
+      process.env.INSPECT === '1' ? createInspector() : undefined
+    ),
+    (inspector) => Effect.sync(() => inspector?.destroy())
+  );
+  const actor = yield* createEffectActor(machine);
+  if (inspector) {
+    inspector.actor(actor.sessionId!, {
+      machine: machine.config,
+      snapshot: inspectorSnapshot(actor.getSnapshot())
+    });
+    yield* Effect.acquireRelease(
+      Effect.sync(() =>
+        actor.inspect((event) => {
+          const id = event.actorRef.sessionId!;
+          if (event.type === '@xstate.actor') {
+            inspector.actor(id, {
+              parent: event.parentRef?.sessionId,
+              snapshot: inspectorSnapshot(event.snapshot)
+            });
+          } else {
+            inspector.event(id, event.event, {
+              source: event.sourceRef?.sessionId
+            });
+            inspector.snapshot(
+              id,
+              inspectorSnapshot(event.snapshot),
+              event.event
+            );
+            if (event.snapshot.status !== 'active') inspector.stop(id);
+          }
+        })
+      ),
+      (subscription) => Effect.sync(() => subscription.unsubscribe())
+    );
+    yield* Effect.promise(() => inspector.ready);
+  }
+  yield* send(actor, { type: 'SAVE' });
+  yield* recorded.await;
+  return messages;
+});
+
+export const result = await Effect.runPromise(Effect.scoped(program));
+console.log(result);
+```
+
+The same `params` schema defines arguments for an action replacement passed to `machine.provide`. Actions without an argument schema retain their explicitly annotated callback arguments. When a source map mixes custom annotated arguments with inferred arguments, declare the custom arguments in `schemas.actions.<name>.params` so every callback receives a contextual type.
 
 ### Runtime validation
 
@@ -166,6 +310,25 @@ An inline callback such as `enq(() => Effect.log('saved'))` creates an Effect th
 
 The `xstate-effect/no-inline-effect` oxlint rule checks these two patterns. It recognizes the root identifier `Effect`; Effects returned by helper functions are outside that check.
 
-The rule is not published as a package. To use it, install `@oxlint/plugins`, copy [`oxlint-plugin-xstate-effect.ts`](https://github.com/statelyai/xstate/blob/next/scripts/oxlint-plugin-xstate-effect.ts) from the XState repository and configure it in `jsPlugins`. Loading the TypeScript source requires Node.js 22.18+ or a newer release with native TypeScript support.
+The compiled plugin is included in `@xstate/effect`. Its optional `@oxlint/plugins` peer is needed only when loading `@xstate/effect/oxlint`. Install both development tools explicitly:
+
+```sh
+npm install --save-dev oxlint@^1.76.0 @oxlint/plugins@^1.76.0
+```
+
+Configure `.oxlintrc.json`:
+
+```json
+{
+  "jsPlugins": ["@xstate/effect/oxlint"],
+  "rules": {
+    "xstate-effect/no-inline-effect": "error"
+  }
+}
+```
+
+Run `npx oxlint`. Oxlint requires Node.js `^20.19.0 || >=22.12.0`. The plugin loads compiled JavaScript, so native TypeScript support is unnecessary.
+
+The rule matches enqueue parameters named `enq` or `enqueue`. It recognizes calls rooted at `Effect`, including `Promise.resolve(Effect.*(...))`, and inline `createEffectLogic`, `createEffectStreamLogic` and `createEffectEventStreamLogic` calls passed to `.spawn`. Aliased imports, helper-produced Effects and `Stream` or `Layer` roots are outside this syntactic check.
 
 </details>

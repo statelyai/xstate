@@ -1,9 +1,5 @@
 import isDevelopment from '#is-development';
-import {
-  MachineSnapshot,
-  cloneMachineSnapshot,
-  freezeContext
-} from './State.ts';
+import { MachineSnapshot, cloneMachineSnapshot } from './State.ts';
 import type { StateNode } from './StateNode.ts';
 import {
   createAfterEvent,
@@ -48,7 +44,8 @@ import {
   AnyTransitionConfig,
   AnyActor,
   AnyActorScope,
-  DoneStateEvent
+  DoneStateEvent,
+  EnqueueObject
 } from './types.ts';
 import {
   resolveOutput,
@@ -60,18 +57,22 @@ import {
 import { builtInActions } from './actions.ts';
 import {
   assertChildIdFree,
+  assertRaiseEvent,
   createEnqueueObject,
+  lateEnqueueCall,
   createTerminationEffect,
   closeTransitionEnqueue,
   createTransitionEnqueue,
-  lateEnqueueCall,
   createSendToEffect,
   deriveDeferredStarts,
   mergeContextPatch,
   resolveActionsWithContext
 } from './transitionActions.ts';
 import { parseDurationToMilliseconds } from './delay.ts';
-import { transitionEffectSignal, transitionEffectTargets } from './system.ts';
+import {
+  beginTransitionSelection,
+  transitionEffectSignal
+} from './transitionSelection.ts';
 import { isInertActorScope } from './inertActorScope.ts';
 import {
   getActorScopeParent,
@@ -902,11 +903,14 @@ export function getStateNodes(
   return allStateNodes;
 }
 
-export type TransitionSelectionResult = {
-  enabled: boolean;
-  result: unknown;
-  reusable: boolean;
-};
+export type TransitionSelectionResult =
+  | {
+      enabled: boolean;
+      result: unknown;
+      reusable: true;
+      operations: ReturnType<typeof createTransitionSelection>['operations'];
+    }
+  | { enabled: true; result: undefined; reusable: false };
 
 export type TransitionSelectionResults = Map<
   AnyTransitionDefinition,
@@ -1420,7 +1424,7 @@ function microstep(
       context: MachineContext,
       children: AnyMachineSnapshot['children'],
       input: Record<string, unknown> | undefined,
-      kind: 'entry' | 'exit',
+      kind: 'entry' | 'exit' | 'transition',
       stateNode: AnyStateNode
     ): [
       actions: any[],
@@ -1971,10 +1975,7 @@ function microstep(
         }
 
         if (contextChangedByEntry) {
-          nextState.context = context;
-          if (isDevelopment) {
-            freezeContext(context);
-          }
+          nextState = cloneMachineSnapshot(nextState, { context });
         }
 
         if (statesForDefaultEntry.has(stateNodeToEnter)) {
@@ -2001,13 +2002,9 @@ function microstep(
               internalQueue.push(...initialInternalEvents);
             }
             if (initialContext !== undefined) {
-              nextState.context = mergeContextPatch(
-                nextState.context,
-                initialContext
-              );
-              if (isDevelopment) {
-                freezeContext(nextState.context);
-              }
+              nextState = cloneMachineSnapshot(nextState, {
+                context: mergeContextPatch(nextState.context, initialContext)
+              });
             }
             if (initialInput && defaultTransition.target) {
               for (const targetNode of defaultTransition.target) {
@@ -2135,6 +2132,41 @@ function microstep(
     executableActions.push(...transitionExecutableEffects);
     if (context && context !== currentSnapshot.context) {
       nextState = cloneMachineSnapshot(nextState, { context });
+    }
+
+    const transitionContent =
+      nextState.machine._microstepHooks?.transitionContent?.(
+        filteredTransitions,
+        [...mutStateNodeSet]
+      );
+    if (transitionContent) {
+      const source = filteredTransitions[0].source;
+      const [actions, nextContext, raisedEvents, nextChildren] =
+        getStateActionsAndContext(
+          transitionContent,
+          nextState.context,
+          nextState.children,
+          getStateInput(nextState, source.id),
+          'transition',
+          source
+        );
+      if (raisedEvents?.length) {
+        internalQueue.push(...raisedEvents);
+      }
+      if (nextContext || nextChildren) {
+        nextState = cloneMachineSnapshot(nextState, {
+          ...(nextContext ? { context: nextContext } : {}),
+          ...(nextChildren ? { children: nextChildren } : {})
+        });
+      }
+      const [resolvedState, effects] = resolveActionsWithContext(
+        nextState,
+        event,
+        actorScope,
+        actions
+      );
+      nextState = resolvedState;
+      executableActions.push(...effects);
     }
 
     // Enter states
@@ -2296,7 +2328,11 @@ export function getTransitionResult(
     const actions: AnyAction[] = [];
     const internalEvents: EventObject[] = [];
     let res;
-    if (options?.selectionResult?.reusable) {
+    if (
+      options?.selectionResult?.reusable &&
+      (options.resolveActions === false ||
+        options.selectionResult.operations.length === 0)
+    ) {
       res = options.selectionResult.result;
     } else {
       const enqueue = createTransitionEnqueue(
@@ -2306,9 +2342,27 @@ export function getTransitionResult(
         true,
         options?.resolveActions ?? true
       );
-      res = transition.to(getTransitionArgs(), enqueue);
-      closeTransitionEnqueue(enqueue);
-      assertSyncTransitionResult(res, event, transition.source.id);
+      const speculativeSelection =
+        options?.resolveActions === false
+          ? beginTransitionSelection(
+              getActorScopeParent(actorScope),
+              'suppress'
+            )
+          : undefined;
+      try {
+        if (options?.selectionResult?.reusable) {
+          res = options.selectionResult.result;
+          for (const operation of options.selectionResult.operations) {
+            operation(enqueue);
+          }
+        } else {
+          res = transition.to(getTransitionArgs(), enqueue);
+          assertSyncTransitionResult(res, event, transition.source.id);
+        }
+      } finally {
+        speculativeSelection?.close();
+        closeTransitionEnqueue(enqueue);
+      }
     }
 
     const targets = res?.target
@@ -2735,16 +2789,6 @@ export function hasEffect(
   return false;
 }
 
-// Depth of in-flight selection-phase transition function calls; the shared
-// selection enqueue is only valid while one runs.
-let selectionDepth = 0;
-const triggerTransitionEffect = (): any => {
-  if (!selectionDepth) {
-    return lateEnqueueCall();
-  }
-  throw transitionEffectSignal;
-};
-
 /**
  * Throws when a transition, entry, or exit function returned a promise. The promise's
  * rejection is observed so it is never reported as unhandled.
@@ -2753,34 +2797,67 @@ function assertSyncTransitionResult(
   res: unknown,
   event: EventObject,
   sourceId: string,
-  kind?: 'entry' | 'exit'
+  kind?: 'entry' | 'exit' | 'transition'
 ): void {
   if (res && typeof (res as PromiseLike<unknown>).then === 'function') {
     void Promise.resolve(res as PromiseLike<unknown>).catch(() => {});
     throw new Error(
-      kind
+      kind && kind !== 'transition'
         ? `${kind === 'entry' ? 'Entry' : 'Exit'} functions must be synchronous. The ${kind} function of state "${sourceId}" returned a promise (event "${event.type}"). Move async work into an invoked or spawned actor, or enq.effect.`
         : `Transition functions must be synchronous. Transition for event "${event.type}" in state "${sourceId}" returned a promise. Move async work into an invoked or spawned actor, or enq.effect.`
     );
   }
 }
 
-let transitionEffectEnqueue: ReturnType<typeof createEnqueueObject> | undefined;
-function getTransitionEffectEnqueue() {
-  return (transitionEffectEnqueue ??= createEnqueueObject(
+type RecordedEnqueue = (enqueue: EnqueueObject<any, any>) => void;
+
+function createTransitionSelection(parent: AnyActor | undefined) {
+  const selection = beginTransitionSelection(parent);
+  const { frame } = selection;
+  const operations: RecordedEnqueue[] = [];
+  let closed = false;
+  const record = (operation: RecordedEnqueue) => {
+    if (closed) {
+      return lateEnqueueCall();
+    }
+    operations.push(operation);
+  };
+  const abortRefProducingCall = (): any => {
+    if (closed) {
+      return lateEnqueueCall();
+    }
+    frame.requiresReevaluation = true;
+    throw transitionEffectSignal;
+  };
+  const enqueue = createEnqueueObject(
     {
-      emit: triggerTransitionEffect,
-      cancel: triggerTransitionEffect,
-      log: triggerTransitionEffect,
-      raise: triggerTransitionEffect,
-      spawn: triggerTransitionEffect,
-      sendTo: triggerTransitionEffect,
-      stop: triggerTransitionEffect,
-      listen: triggerTransitionEffect,
-      subscribeTo: triggerTransitionEffect
+      cancel: (...args) => record((enq) => enq.cancel(...args)),
+      emit: (...args) => record((enq) => enq.emit(...args)),
+      log: (...args) => record((enq) => enq.log(...args)),
+      raise: (event, options) => {
+        if (closed) {
+          return lateEnqueueCall();
+        }
+        assertRaiseEvent(event);
+        record((enq) => enq.raise(event, options));
+      },
+      sendTo: (...args) => record((enq) => enq.sendTo(...args)),
+      stop: (...args) => record((enq) => enq.stop(...args)),
+      spawn: abortRefProducingCall,
+      listen: abortRefProducingCall,
+      subscribeTo: abortRefProducingCall
     },
-    triggerTransitionEffect
-  ));
+    (...args) => record((enq) => enq(...args))
+  );
+  return {
+    frame,
+    enqueue,
+    operations,
+    close() {
+      closed = true;
+      selection.close();
+    }
+  };
 }
 
 function evaluateTransitionFunction(
@@ -2793,12 +2870,7 @@ function evaluateTransitionFunction(
   sourceId: string
 ): TransitionSelectionResult {
   let res;
-  const parent = getActorScopeParent(actorScope);
-  if (parent) {
-    transitionEffectTargets.push(parent);
-  }
-
-  selectionDepth++;
+  const selection = createTransitionSelection(getActorScopeParent(actorScope));
   try {
     res = transitionTo(
       withActorScope(
@@ -2816,7 +2888,7 @@ function evaluateTransitionFunction(
         },
         actorScope
       ),
-      getTransitionEffectEnqueue()
+      selection.enqueue
     );
   } catch (err) {
     if (err === transitionEffectSignal) {
@@ -2824,14 +2896,19 @@ function evaluateTransitionFunction(
     }
     throw err;
   } finally {
-    selectionDepth--;
-    if (parent) {
-      transitionEffectTargets.pop();
-    }
+    selection.close();
   }
   assertSyncTransitionResult(res, event, sourceId);
 
-  return { enabled: res !== undefined, result: res, reusable: true };
+  if (selection.frame.requiresReevaluation) {
+    return { enabled: true, result: undefined, reusable: false };
+  }
+  return {
+    enabled: res !== undefined || selection.operations.length > 0,
+    result: res,
+    reusable: true,
+    operations: selection.operations
+  };
 }
 
 function stopChildren(

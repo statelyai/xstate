@@ -110,6 +110,18 @@ import type { PersistedMachineSnapshot } from './machineVersion.types.ts';
 
 const STATE_IDENTIFIER = '#';
 
+function isSnapshotRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function isActorLogic(value: unknown): value is AnyActorLogic {
+  return (
+    isSnapshotRecord(value) &&
+    typeof value.transition === 'function' &&
+    typeof value.getInitialSnapshot === 'function'
+  );
+}
+
 function findEventSchema(
   schemas: Record<string, StandardSchemaV1> | undefined,
   eventType: string
@@ -260,9 +272,10 @@ type ProvidedActionResult<TResult> = void extends TResult
 
 /**
  * The error a machine reports when a persisted snapshot cannot represent one
- * of its states: the snapshot is not an object, has no valid state value, or
- * its state value does not resolve on the machine. `createActor(machine, {
- * snapshot })` reports it as an `'error'` snapshot instead of starting.
+ * of its states: the snapshot has an invalid state value, malformed children
+ * or timers, or a child source that the machine cannot restore.
+ * `createActor(machine, { snapshot })` reports it as an `'error'` snapshot
+ * instead of starting.
  *
  * @public
  */
@@ -476,29 +489,15 @@ export class StateMachine<
               issues: [{ message: 'Persisted snapshot has invalid status.' }]
             };
           }
-          for (const key of ['children', 'historyValue'] as const) {
-            if (
-              snapshot[key] === null ||
-              typeof snapshot[key] !== 'object' ||
-              Array.isArray(snapshot[key])
-            ) {
-              return {
-                issues: [
-                  { message: `Persisted snapshot has invalid '${key}'.` }
-                ]
-              };
-            }
-          }
-          if (!Array.isArray(snapshot.timers)) {
+          if (!isSnapshotRecord(snapshot.historyValue)) {
             return {
-              issues: [{ message: "Persisted snapshot has invalid 'timers'." }]
+              issues: [
+                { message: "Persisted snapshot has invalid 'historyValue'." }
+              ]
             };
           }
           try {
-            this.resolveState({
-              value: snapshot.value as StateValue,
-              context
-            } as any);
+            this._validatePersistedSnapshot(snapshot);
           } catch (error) {
             return {
               issues: [
@@ -1711,6 +1710,130 @@ export class StateMachine<
     }
   }
 
+  private _validatePersistedSnapshot(snapshot: unknown): {
+    nodes: AnyStateNode[];
+    childLogics: Map<string, AnyActorLogic>;
+  } {
+    if (!isSnapshotRecord(snapshot)) {
+      throw new InvalidSnapshotError(
+        `Persisted snapshot for ${describeMachine(this.id)} must be an object.`
+      );
+    }
+    if (snapshot.value === undefined) {
+      throw new InvalidSnapshotError(
+        `Persisted snapshot for ${describeMachine(this.id)} has no state value.`
+      );
+    }
+    this._validatePersistedStateValue(snapshot.value, this.root, []);
+    const nodes = Array.from(
+      getAllStateNodes(getStateNodes(this.root, snapshot.value as StateValue))
+    );
+    if (!isSnapshotRecord(snapshot.children)) {
+      throw new InvalidSnapshotError(
+        "Persisted snapshot has invalid 'children'."
+      );
+    }
+    const childLogics = new Map<string, AnyActorLogic>();
+    for (const [id, child] of Object.entries(snapshot.children)) {
+      if (
+        !isSnapshotRecord(child) ||
+        (child.remote !== undefined && typeof child.remote !== 'boolean') ||
+        (child.address !== undefined && typeof child.address !== 'string') ||
+        (child.syncSnapshot !== undefined &&
+          typeof child.syncSnapshot !== 'boolean') ||
+        (child.registryKey !== undefined &&
+          typeof child.registryKey !== 'string') ||
+        (child.incarnation !== undefined &&
+          typeof child.incarnation !== 'string') ||
+        (child.snapshot !== undefined && !isSnapshotRecord(child.snapshot))
+      ) {
+        throw new InvalidSnapshotError(
+          `Persisted snapshot has invalid child '${id}'.`
+        );
+      }
+      if (child.remote === true) {
+        if (
+          typeof child.address !== 'string' ||
+          typeof child.src !== 'string'
+        ) {
+          throw new InvalidSnapshotError(
+            `Unable to restore remote child '${id}': a child referenced by address requires a registered source key and an address.`
+          );
+        }
+        continue;
+      }
+      if (
+        child.src !== undefined &&
+        typeof child.src !== 'string' &&
+        !isActorLogic(child.src)
+      ) {
+        throw new InvalidSnapshotError(
+          `Persisted snapshot has invalid child '${id}'.`
+        );
+      }
+      try {
+        const logic =
+          child.src === undefined
+            ? resolveInvokedActorLogic(this, nodes, id)
+            : typeof child.src === 'string'
+              ? Object.hasOwn(this.sources.actors, child.src)
+                ? this.sources.actors[child.src]
+                : undefined
+              : child.src;
+        if (!logic) {
+          throw new InvalidSnapshotError(
+            `Unable to restore child actor '${id}': child source '${typeof child.src === 'string' ? child.src : '<inline>'}' is not provided in ${describeMachine(this.id)}.`
+          );
+        }
+        childLogics.set(id, logic);
+      } catch (error) {
+        if (error instanceof InvalidSnapshotError) {
+          throw error;
+        }
+        throw new InvalidSnapshotError(
+          error instanceof Error
+            ? error.message
+            : `Unable to restore child actor '${id}'.`
+        );
+      }
+    }
+    if (snapshot.timers !== undefined && !Array.isArray(snapshot.timers)) {
+      throw new InvalidSnapshotError(
+        "Persisted snapshot has invalid 'timers'."
+      );
+    }
+    for (const timer of snapshot.timers ?? []) {
+      if (
+        !isSnapshotRecord(timer) ||
+        typeof timer.delay !== 'number' ||
+        (timer.type !== '@xstate.raise' && timer.type !== '@xstate.sendTo') ||
+        !isSnapshotRecord(timer.event) ||
+        typeof timer.event.type !== 'string' ||
+        (timer.id !== undefined && typeof timer.id !== 'string') ||
+        (timer.seq !== undefined && typeof timer.seq !== 'number') ||
+        (timer.scheduledAt !== undefined &&
+          typeof timer.scheduledAt !== 'number') ||
+        !(
+          typeof timer.target === 'string' ||
+          (isSnapshotRecord(timer.target) && timer.target.type === 'parent') ||
+          isSerializedActorRef(timer.target)
+        )
+      ) {
+        throw new InvalidSnapshotError('Persisted snapshot has invalid timer.');
+      }
+      if (
+        typeof timer.target === 'string' &&
+        timer.target !== 'self' &&
+        !Object.hasOwn(snapshot.children, timer.target)
+      ) {
+        throw new InvalidSnapshotError(
+          `Unable to restore timer: target actor '${timer.target}' is unavailable.`
+        );
+      }
+    }
+    return { nodes, childLogics };
+  }
+
   public restoreSnapshot(
     snapshot: Snapshot<unknown>,
     actorScope?: ActorScope<
@@ -1796,23 +1919,8 @@ export class StateMachine<
     }
 
     const snapshotData = snapshot as any;
-    // Validate the state value before restoring children: a snapshot that
-    // cannot represent a state must not construct (and later start) them.
-    if (!snapshotData || typeof snapshotData !== 'object') {
-      throw new InvalidSnapshotError(
-        `Persisted snapshot for ${describeMachine(this.id)} must be an object.`
-      );
-    }
-    if (snapshotData.value === undefined) {
-      throw new InvalidSnapshotError(
-        `Persisted snapshot for ${describeMachine(this.id)} has no state value.`
-      );
-    }
-    this._validatePersistedStateValue(snapshotData.value, this.root, []);
-
-    const nodes = Array.from(
-      getAllStateNodes(getStateNodes(this.root, snapshotData.value))
-    );
+    const { nodes, childLogics } =
+      this._validatePersistedSnapshot(snapshotData);
     const children: Record<string, AnyActor> = {};
     const snapshotChildren: Record<
       string,
@@ -1861,20 +1969,7 @@ export class StateMachine<
       const childState = actorData.snapshot;
       const src = actorData.src;
 
-      // A child without a source key is an inline invoke: resolve it through
-      // the invoke definitions of the restored active states.
-      const logic =
-        src === undefined
-          ? resolveInvokedActorLogic(this, nodes, actorId)
-          : typeof src === 'string'
-            ? this.sources.actors[src]
-            : src;
-
-      if (!logic) {
-        throw new Error(
-          `Unable to restore child actor '${actorId}': child source '${typeof src === 'string' ? src : '<inline>'}' is not provided in ${describeMachine(this.id)}.`
-        );
-      }
+      const logic = childLogics.get(actorId)!;
 
       const actor = resolvedActorScope.system.createActorRef(logic, {
         id: actorId,
@@ -1926,7 +2021,7 @@ export class StateMachine<
           typeof timer.target === 'string'
             ? timer.target
             : (timer.target as { type: string }).type;
-        throw new Error(
+        throw new InvalidSnapshotError(
           `Unable to restore timer ${timer.id !== undefined ? `'${timer.id}'` : `for event '${timer.event.type}'`}: target actor '${targetDescription}' is unavailable.`
         );
       }

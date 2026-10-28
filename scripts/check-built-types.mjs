@@ -12,11 +12,16 @@ import { spawnSync } from 'node:child_process';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const require = createRequire(join(root, 'package.json'));
-const compilerManifest = require('typescript/package.json');
-const compiler = join(
-  dirname(require.resolve('typescript/package.json')),
-  compilerManifest.bin.tsc ?? compilerManifest.bin.tsc6
-);
+const compilers = ['typescript', '@typescript/native'].map((name) => {
+  const manifest = require(`${name}/package.json`);
+  return {
+    version: require(name).version ?? manifest.version,
+    path: join(
+      dirname(require.resolve(`${name}/package.json`)),
+      manifest.bin.tsc ?? manifest.bin.tsc6
+    )
+  };
+});
 const publicEntries = Object.keys(
   require(join(root, 'packages/core/package.json')).exports
 ).filter((entry) => entry !== './package.json');
@@ -44,6 +49,25 @@ try {
     const actor = createActor(createMachine({ initial: 'idle', states: { idle: {} } }));
     actor.start(); actor.stop();
     void [${publicEntries.map((_, index) => `entry${index}`).join(',')}];
+
+    // Check both declaration validity and inferred state values with exact
+    // optional properties. Source tests that skip library checking cannot
+    // detect incompatible optional fields in emitted declarations.
+    const nested = setup({
+      schemas: { context: types<{ count: number }>() },
+      states: { idle: {}, active: { states: { first: {}, second: {} } } }
+    }).createMachine({
+      context: { count: 0 },
+      initial: 'idle',
+      states: {
+        idle: {},
+        active: { initial: 'first', states: { first: {}, second: {} } }
+      }
+    });
+    const nestedSnapshot = createActor(nested).getSnapshot();
+    nestedSnapshot.matches({ active: 'first' });
+    // @ts-expect-error invalid descendants remain rejected
+    nestedSnapshot.matches({ active: 'missing' });
 
     // The machine's internal-event marker must survive \`stripInternal\`, or
     // \`send\`/\`trigger\` silently accept internal events for every consumer of
@@ -133,33 +157,40 @@ try {
     });
   `
   );
-  writeFileSync(
-    join(consumer, 'tsconfig.json'),
-    JSON.stringify({
-      compilerOptions: {
-        target: 'ES2022',
-        module: 'NodeNext',
-        moduleResolution: 'NodeNext',
-        strict: true,
-        skipLibCheck: false,
-        noEmit: true,
-        types: [],
-        lib: ['ES2022', 'DOM']
-      },
-      files: ['index.mts']
-    })
-  );
-  const result = spawnSync(
-    process.execPath,
-    [compiler, '--project', join(consumer, 'tsconfig.json')],
-    { cwd: consumer, stdio: 'inherit' }
-  );
-  if (result.error) throw result.error;
-  if (result.status !== 0)
-    throw new Error(
-      'Built package declarations failed strict consumer typechecking'
-    );
-  console.log('Built package declarations pass strict consumer typechecking.');
+  for (const compiler of compilers) {
+    for (const exactOptionalPropertyTypes of [false, true]) {
+      writeFileSync(
+        join(consumer, 'tsconfig.json'),
+        JSON.stringify({
+          compilerOptions: {
+            target: 'ES2022',
+            module: 'NodeNext',
+            moduleResolution: 'NodeNext',
+            strict: true,
+            exactOptionalPropertyTypes,
+            skipLibCheck: false,
+            noEmit: true,
+            types: [],
+            lib: ['ES2022', 'DOM']
+          },
+          files: ['index.mts']
+        })
+      );
+      const result = spawnSync(
+        process.execPath,
+        [compiler.path, '--project', join(consumer, 'tsconfig.json')],
+        { cwd: consumer, stdio: 'inherit' }
+      );
+      if (result.error) throw result.error;
+      if (result.status !== 0)
+        throw new Error(
+          `Built package declarations failed TypeScript ${compiler.version} (exactOptionalPropertyTypes=${exactOptionalPropertyTypes})`
+        );
+      console.log(
+        `Built package declarations pass TypeScript ${compiler.version} (exactOptionalPropertyTypes=${exactOptionalPropertyTypes}, skipLibCheck=false).`
+      );
+    }
+  }
 } finally {
   rmSync(consumer, { recursive: true, force: true });
 }

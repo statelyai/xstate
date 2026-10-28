@@ -1,7 +1,8 @@
 import isDevelopment from '#is-development';
+import { publishEmittedEvent } from './runtimeHelpers.ts';
 import type { ActionRecord, SentRecord } from './inspection.ts';
 import { Mailbox } from './Mailbox.ts';
-import { XSTATE_STOP } from './constants.ts';
+import { XSTATE_STOP, XSTATE_TIMER } from './constants.ts';
 import {
   createDoneActorEvent,
   createErrorActorEvent,
@@ -50,6 +51,7 @@ import type {
   Readable,
   ActorLogicTransitionResult,
   LogicalTimer,
+  ReservedMachineEvent,
   SerializedActorRef
 } from './types.ts';
 import { getTimerKey } from './timerKey.ts';
@@ -69,7 +71,24 @@ import {
   setSnapshotActorRef
 } from './snapshotActorRef.ts';
 
+interface ActorMailboxEvent<TEvent> {
+  event: TEvent;
+  sourceRef: AnyActor | undefined;
+}
+
 const emptyInspectionRecords = Object.freeze([]) as unknown as never[];
+
+const reservedMachineEventTypes = {
+  'xstate.done.actor': true,
+  'xstate.error.actor': true,
+  'xstate.error.execution': true,
+  'xstate.snapshot.actor': true,
+  'xstate.done.state': true,
+  'xstate.after': true,
+  'xstate.timeout.state': true,
+  'xstate.timeout.actor': true,
+  [XSTATE_TIMER]: true
+} satisfies Record<ReservedMachineEvent['type'] | typeof XSTATE_TIMER, true>;
 
 // those values are currently used by @xstate/react directly so it's important to keep the assigned values in sync
 export enum ProcessingStatus {
@@ -158,8 +177,10 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
   /** The unique identifier for this actor relative to its parent. */
   public id: string;
 
-  private _boundProcess?: (event: EventFromLogic<TLogic>) => void;
-  private mailbox?: Mailbox<EventFromLogic<TLogic>>;
+  private _boundProcess?: (
+    item: ActorMailboxEvent<EventFromLogic<TLogic>>
+  ) => void;
+  private mailbox?: Mailbox<ActorMailboxEvent<EventFromLogic<TLogic>>>;
   private _mailboxStarted = false;
 
   private observers?: Set<Observer<SnapshotFrom<TLogic>>>;
@@ -300,6 +321,7 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
       !resolvedOptions._systemRef.current
     ) {
       resolvedOptions._systemRef.current = this.system;
+      resolvedOptions._systemRef.initialize?.();
     }
 
     if (inspect && !parent) {
@@ -443,7 +465,7 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
 
   private get emit(): (event: EmittedFrom<TLogic>) => void | PromiseLike<void> {
     const emit = (event: EmittedFrom<TLogic>) =>
-      this.system.emitEvent(this, event);
+      publishEmittedEvent(this, event, this.system);
     Object.defineProperty(this, 'emit', { value: emit });
     return emit;
   }
@@ -993,7 +1015,11 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
     return this;
   }
 
-  private _process(event: EventFromLogic<TLogic>) {
+  private _process({
+    event,
+    sourceRef
+  }: ActorMailboxEvent<EventFromLogic<TLogic>>) {
+    this._lastSourceRef = sourceRef;
     const previousSnapshot = this._snapshot;
     let nextState: ActorLogicTransitionResult<SnapshotFrom<TLogic>> | undefined;
     let caughtError;
@@ -1029,9 +1055,8 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
         !effects.length &&
         // State machine snapshots only; other logic may ignore events freely.
         'machine' in (previousSnapshot as object) &&
-        // `xstate.route` is sent by users, so a route that matches nothing is
-        // reported like any other unhandled event.
-        (!event.type.startsWith('xstate.') || event.type === 'xstate.route')
+        event.type !== XSTATE_STOP &&
+        (!sourceRef || !Object.hasOwn(reservedMachineEventTypes, event.type))
       ) {
         this._reportUnhandledEvent(event);
       }
@@ -1249,14 +1274,9 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
   }
 
   /** @internal */
-  public _send(event: EventFromLogic<TLogic>) {
+  public _send(event: EventFromLogic<TLogic>, sourceRef?: AnyActor) {
     if (this._processingStatus === ProcessingStatus.Stopped) {
-      this.system.deadLetter(
-        this._lastSourceRef,
-        this as AnyActor,
-        event,
-        'stopped'
-      );
+      this.system.deadLetter(sourceRef, this as AnyActor, event, 'stopped');
       return;
     }
 
@@ -1268,7 +1288,7 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
         mailbox.start();
       }
     }
-    mailbox.enqueue(event);
+    mailbox.enqueue({ event, sourceRef });
   }
 
   /**
@@ -1431,5 +1451,10 @@ export function createActor<TLogic extends AnyActorLogic>(
   logic: TLogic,
   ...[options]: CreateActorOptionsArgs<TLogic>
 ): Actor<TLogic> {
+  if (options && 'parent' in options) {
+    throw new Error(
+      'The "parent" actor option was removed. Create child actors through invoke, spawn, or enq.spawn instead.'
+    );
+  }
   return new Actor(logic, options);
 }

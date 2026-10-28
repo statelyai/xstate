@@ -71,7 +71,7 @@ try {
 | `select(f)` | Derived `AsyncResult<T>` from the snapshot. |
 | `state` | The snapshot as a [tagged union](matching-states.md). |
 
-The runtime Layer's error type is included in the atoms' error channels. `result` also includes the actor's `ErrorFrom<TLogic>`.
+The runtime Layer's error type is included in the atoms' error channels. `result` includes the underlying Effect failure type and preserves its original Cause. Plain XState actor errors keep their ordinary error type. The `state` atom exists only for state machine logic; tasks and streams expose `snapshot`, `result`, `select`, `send` and `actor`.
 
 <details>
 <summary>Sending before the runtime is ready</summary>

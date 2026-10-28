@@ -9,6 +9,9 @@ import {
   SerializedSnapshot,
   StatePath,
   Steps,
+  EventCaseOptionsArgs,
+  EventListOptions,
+  TraversalEvent,
   TraversalOptions,
   VisitedContext
 } from './types.ts';
@@ -18,6 +21,20 @@ import { alterPath } from './alterPath.ts';
 import { createMockActorScope } from './actorScope.ts';
 
 /** @public */
+export function getSimplePaths<TLogic extends AnyActorLogic>(
+  logic: TLogic,
+  ...[options]: EventCaseOptionsArgs<NoInfer<TLogic>>
+): Array<StatePath<SnapshotFrom<TLogic>, EventFromLogic<TLogic>>>;
+export function getSimplePaths<
+  TLogic extends AnyActorLogic,
+  const TEvents extends readonly TraversalEvent<
+    SnapshotFrom<NoInfer<TLogic>>,
+    EventFromLogic<NoInfer<TLogic>>
+  >[]
+>(
+  logic: TLogic,
+  options: EventListOptions<NoInfer<TLogic>, TEvents>
+): Array<StatePath<SnapshotFrom<TLogic>, EventFromLogic<TLogic>>>;
 export function getSimplePaths<TLogic extends AnyActorLogic>(
   logic: TLogic,
   options?: TraversalOptions<

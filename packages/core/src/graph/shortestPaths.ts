@@ -12,11 +12,28 @@ import {
   SerializedSnapshot,
   StatePath,
   StatePlanMap,
+  EventCaseOptionsArgs,
+  EventListOptions,
+  TraversalEvent,
   TraversalOptions
 } from './types.ts';
 import { createMockActorScope } from './actorScope.ts';
 
 /** @public */
+export function getShortestPaths<TLogic extends AnyActorLogic>(
+  logic: TLogic,
+  ...[options]: EventCaseOptionsArgs<NoInfer<TLogic>>
+): Array<StatePath<SnapshotFrom<TLogic>, EventFromLogic<TLogic>>>;
+export function getShortestPaths<
+  TLogic extends AnyActorLogic,
+  const TEvents extends readonly TraversalEvent<
+    SnapshotFrom<NoInfer<TLogic>>,
+    EventFromLogic<NoInfer<TLogic>>
+  >[]
+>(
+  logic: TLogic,
+  options: EventListOptions<NoInfer<TLogic>, TEvents>
+): Array<StatePath<SnapshotFrom<TLogic>, EventFromLogic<TLogic>>>;
 export function getShortestPaths<TLogic extends AnyActorLogic>(
   logic: TLogic,
   options?: TraversalOptions<

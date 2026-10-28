@@ -70,6 +70,8 @@ export type {
 export {
   machineConfigToJSON,
   machineToJSON,
+  getMachineSerializationDiagnostics,
+  type MachineSerializationDiagnostic,
   type CodeExpression
 } from './serialize.ts';
 export { mapState } from './mapState.ts';
@@ -168,6 +170,7 @@ export type {
   ActorSystem,
   ActorSystemRuntime,
   AnyActorSystem,
+  ActorEmission,
   DeadLetterDetail,
   EventRejection,
   EventRejectionReason

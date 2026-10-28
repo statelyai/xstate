@@ -51,18 +51,18 @@ export type SetupStateType =
 
 /** @public */
 export type SetupSchemas = {
-  context?: StandardSchemaV1;
-  events?: Record<string, StandardSchemaV1>;
-  internalEvents?: Record<string, StandardSchemaV1>;
-  actions?: ActionSchemas;
-  guards?: GuardSchemas;
-  emitted?: Record<string, StandardSchemaV1>;
-  input?: StandardSchemaV1;
-  output?: StandardSchemaV1;
-  meta?: StandardSchemaV1;
-  transitionMeta?: StandardSchemaV1;
-  tags?: StandardSchemaV1;
-  children?: Record<string, StandardSchemaV1>;
+  context?: StandardSchemaV1 | undefined;
+  events?: Record<string, StandardSchemaV1> | undefined;
+  internalEvents?: Record<string, StandardSchemaV1> | undefined;
+  actions?: ActionSchemas | undefined;
+  guards?: GuardSchemas | undefined;
+  emitted?: Record<string, StandardSchemaV1> | undefined;
+  input?: StandardSchemaV1 | undefined;
+  output?: StandardSchemaV1 | undefined;
+  meta?: StandardSchemaV1 | undefined;
+  transitionMeta?: StandardSchemaV1 | undefined;
+  tags?: StandardSchemaV1 | undefined;
+  children?: Record<string, StandardSchemaV1> | undefined;
 };
 
 /**
@@ -75,14 +75,14 @@ export type SetupSchemas = {
  * @public
  */
 export interface SetupStateSchema {
-  type?: SetupStateType;
-  id?: string;
-  initial?: string;
-  history?: 'shallow' | 'deep' | true;
-  target?: string | readonly [string, ...string[]];
-  route?: true;
-  schemas?: SetupStateSchemas;
-  states?: Record<string, SetupStateSchema>;
+  type?: SetupStateType | undefined;
+  id?: string | undefined;
+  initial?: string | undefined;
+  history?: 'shallow' | 'deep' | true | undefined;
+  target?: string | readonly [string, ...string[]] | undefined;
+  route?: true | undefined;
+  schemas?: SetupStateSchemas | undefined;
+  states?: Record<string, SetupStateSchema> | undefined;
 }
 
 /**

@@ -820,7 +820,9 @@ export type Next_InvokeConfig<
                     TInput
                   >
                 ) => InputFrom<TActorMap[K]>)
-              | InputFrom<TActorMap[K]>;
+              | ([unknown] extends [InputFrom<TActorMap[K]>]
+                  ? NonReducibleUnknown
+                  : InputFrom<TActorMap[K]>);
           } & (
               | {
                   src: K;

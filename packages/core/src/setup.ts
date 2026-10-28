@@ -23,6 +23,7 @@ import {
   AnyStateMachine,
   AnyActorLogic,
   ActorRefFrom,
+  ActorSelf,
   AnyStateNode,
   EventObject,
   AnyEventObject,
@@ -67,6 +68,7 @@ import type {
 } from './typeUtils.ts';
 import { AnyActorSystem } from './system.ts';
 import { InspectionEvent } from './inspection.ts';
+import type { MachineSnapshot } from './State.ts';
 import {
   createAsyncLogic,
   type AsyncActorLogic,
@@ -442,6 +444,7 @@ type MachineConfigSchemas<TConfig> = TConfig extends {
 /** @public */
 export type SystemConfig<TSystemRegistry extends SystemRegistry> = {
   registry?: TSystemRegistry;
+  onEmitted?: Parameters<AnyActorSystem['onEmitted']>[0];
 };
 
 /** @public */
@@ -1372,14 +1375,14 @@ type SetupStateNodeConfig<
   TSystemRegistry
 >;
 
-type SetupContext<TSchemas, TContextSchema extends StandardSchemaV1> = [
-  SetupSchema<TSchemas, 'context'>
-] extends [never]
-  ? unknown extends StandardSchemaV1.InferOutput<TContextSchema>
-    ? MachineContext
-    : StandardSchemaV1.InferOutput<TContextSchema> & MachineContext
-  : StandardSchemaV1.InferOutput<SetupSchema<TSchemas, 'context'>> &
-      MachineContext;
+type SetupContext<TSchemas, TContextSchema extends StandardSchemaV1> = Cast<
+  [SetupSchema<TSchemas, 'context'>] extends [never]
+    ? unknown extends StandardSchemaV1.InferOutput<TContextSchema>
+      ? MachineContext
+      : StandardSchemaV1.InferOutput<TContextSchema>
+    : StandardSchemaV1.InferOutput<SetupSchema<TSchemas, 'context'>>,
+  MachineContext
+>;
 
 type SetupContextShape<
   TSchemas,
@@ -1671,7 +1674,6 @@ type StateContext<
   ? TContextSchema extends StandardSchemaV1
     ? StandardSchemaV1.InferOutput<TContextSchema> &
         RootContext<TFallbackContext> &
-        MachineContext &
         RootContextMarker<TFallbackContext>
     : RootContext<TFallbackContext>
   : RootContext<TFallbackContext>;
@@ -1708,9 +1710,7 @@ export type ActiveStateContext<
   TStateSchema extends SetupStateSchema,
   TRootContext extends MachineContext,
   TAncestorContext
-> = StateContext<TStateSchema, TRootContext> &
-  TAncestorContext &
-  MachineContext;
+> = StateContext<TStateSchema, TRootContext> & TAncestorContext;
 
 type ActiveStateContextShape<
   TStateSchema extends SetupStateSchema,
@@ -4187,7 +4187,19 @@ type StateTransitionContextMapper<
   args: {
     context: TContext;
     event: TExpressionEvent;
-    self: AnyActorRef;
+    self: ActorSelf<
+      MachineSnapshot<
+        TContext,
+        AnyEventObject,
+        TChildren,
+        StateValue,
+        string,
+        unknown,
+        MetaObject,
+        StateSchema
+      >,
+      AnyEventObject
+    >;
     parent: AnyActorRef | undefined;
     value: StateValue;
     children: TChildren;
@@ -4279,7 +4291,20 @@ type StateTransitionFunction<
     context: TContext;
     event: TExpressionEvent;
     output: TOutput;
-    self: AnyActorRef;
+    self: ActorSelf<
+      MachineSnapshot<
+        TContext,
+        TEvent,
+        TChildren,
+        StateValue,
+        string,
+        unknown,
+        TMeta,
+        StateSchema
+      >,
+      TEvent,
+      TEmitted
+    >;
     parent: AnyActorRef | undefined;
     value: StateValue;
     children: TChildren;
@@ -5450,19 +5475,22 @@ type SystemBuilder<TSystemRegistry extends SystemRegistry> = {
       | ((inspectionEvent: InspectionEvent) => void)
   ): Subscription;
   onRejectedEvent: AnyActorSystem['onRejectedEvent'];
+  onEmitted: AnyActorSystem['onEmitted'];
   setup: SetupFunction<TSystemRegistry>;
 };
 
 /** @public */
 export function createSystem<const TSystemRegistry extends SystemRegistry = {}>(
-  _config: SystemConfig<TSystemRegistry> = {}
+  config: SystemConfig<TSystemRegistry> = {}
 ): SystemBuilder<TSystemRegistry> {
-  const runtimeRef: { current?: AnyActorSystem } = {};
-  const pending: Array<{
+  const runtimeRef: NonNullable<ActorOptions<AnyActorLogic>['_systemRef']> = {
+    initialize: () => flushObservers()
+  };
+  type PendingSubscription = {
     subscribe: (system: AnyActorSystem) => Subscription;
     subscription?: Subscription;
-    active: boolean;
-  }> = [];
+  };
+  const pending = new Set<PendingSubscription>();
 
   const flushObservers = () => {
     const runtime = runtimeRef.current;
@@ -5471,8 +5499,11 @@ export function createSystem<const TSystemRegistry extends SystemRegistry = {}>(
     }
 
     for (const entry of pending) {
-      if (entry.active && !entry.subscription) {
-        entry.subscription = entry.subscribe(runtime);
+      const subscription = entry.subscribe(runtime);
+      if (pending.delete(entry)) {
+        entry.subscription = subscription;
+      } else {
+        subscription.unsubscribe();
       }
     }
   };
@@ -5488,16 +5519,21 @@ export function createSystem<const TSystemRegistry extends SystemRegistry = {}>(
       return subscribe(runtime);
     }
 
-    const entry: (typeof pending)[number] = { subscribe, active: true };
-    pending.push(entry);
+    const entry: PendingSubscription = { subscribe };
+    pending.add(entry);
 
     return {
       unsubscribe() {
-        entry.active = false;
+        pending.delete(entry);
         entry.subscription?.unsubscribe();
       }
     };
   };
+
+  if (config.onEmitted) {
+    const listener = config.onEmitted;
+    subscribeToSystem((system) => system.onEmitted(listener));
+  }
 
   return {
     createActor(logic, ...[options]) {
@@ -5505,7 +5541,6 @@ export function createSystem<const TSystemRegistry extends SystemRegistry = {}>(
         ...options,
         _systemRef: runtimeRef
       } as any);
-      flushObservers();
       return actor as any;
     },
     get(key) {
@@ -5520,6 +5555,9 @@ export function createSystem<const TSystemRegistry extends SystemRegistry = {}>(
       return subscribeToSystem((system) =>
         system.inspect(observer as Parameters<AnyActorSystem['inspect']>[0])
       );
+    },
+    onEmitted(listener) {
+      return subscribeToSystem((system) => system.onEmitted(listener));
     },
     onRejectedEvent(listener) {
       return subscribeToSystem((system) => system.onRejectedEvent(listener));

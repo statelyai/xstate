@@ -87,6 +87,8 @@ one above its entry in `scripts/bundle-size.targets.json` unless you pass
 
 We are using [changesets](https://github.com/atlassian/changesets) to create "release intents" for our packages. The Publish workflow handles release intents on `main` and `next`; changes for the v6 alpha belong on `next`.
 
+Before entering beta, run the built and packed consumer checks with both TypeScript compilers, including `exactOptionalPropertyTypes: true` and `skipLibCheck: false`. After publishing from `next` with the Changesets prerelease tag set to `beta`, the Publish workflow runs `pnpm check:release-tags --tag beta`. This read-only check requires the beta tag of every coordinated v6 package to resolve to its workspace version; it retries briefly for registry propagation and fails if a tag is missing or stale. Resolve any publication or tag mismatch before announcing the release. The check does not publish packages or change tags.
+
 ### Persistence conformance
 
 `packages/core/test/persistenceConformance.v6.test.ts` is the shape contract for persisted snapshots. It validates every envelope it produces against `packages/core/src/persistedSnapshot.schema.json`.
@@ -96,6 +98,8 @@ We are using [changesets](https://github.com/atlassian/changesets) to create "re
 <!-- Maintained check commands from package.json and scripts/check-*.js; fixture overrides from pnpm-workspace.yaml. -->
 
 `pnpm check:examples` typechecks and builds all 49 TypeScript examples, runs every discovered example regression test, and verifies donut persistence through a CLI restart. Run `pnpm build` first so standalone example compilers consume generated package declarations. Node-based writer and occupancy tests run separately through `pnpm test:tooling`; the remaining example tests use Vitest. New example test files are discovered automatically.
+
+`pnpm test:tooling` generates the bundled core documentation and API stability manifest before running the tooling tests, including the agent CLI checks. It can run after `pnpm install` without a separate package build.
 
 `node scripts/typecheck-examples.js` checks every example with a `tsconfig.json`, including referenced projects behind solution configs; pass project names or paths to select examples. Any compiler failure exits nonzero. `examples/readme.md` has no project configuration and is skipped. Every current TypeScript example has a build script and participates in the CI gate.
 

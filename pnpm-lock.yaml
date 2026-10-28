@@ -1057,8 +1057,8 @@ importers:
   examples/effect-workflows:
     dependencies:
       '@effect/atom-react':
-        specifier: 4.0.0
-        version: 4.0.0(effect@4.0.0)(react@19.1.0)(scheduler@0.27.0)
+        specifier: 4.0.6
+        version: 4.0.6(effect@4.0.6)(react@19.1.0)(scheduler@0.27.0)
       '@statelyai/sdk':
         specifier: ^0.20.1
         version: 0.20.3(zod@4.4.3)
@@ -1069,8 +1069,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/xstate-react
       effect:
-        specifier: 4.0.0
-        version: 4.0.0
+        specifier: 4.0.6
+        version: 4.0.6
       react:
         specifier: 19.1.0
         version: 19.1.0
@@ -3034,9 +3034,15 @@ importers:
 
   packages/xstate-effect:
     devDependencies:
+      '@oxlint/plugins':
+        specifier: ^1.76.0
+        version: 1.83.0
+      '@xstate/test':
+        specifier: workspace:^
+        version: link:../xstate-test
       effect:
-        specifier: 4.0.0
-        version: 4.0.0
+        specifier: 4.0.6
+        version: 4.0.6
       fast-check:
         specifier: 4.10.2
         version: 4.10.2
@@ -3346,8 +3352,8 @@ importers:
         specifier: ^1.40.0
         version: 1.63.0
       effect:
-        specifier: 4.0.0
-        version: 4.0.0
+        specifier: 4.0.6
+        version: 4.0.6
       fast-check:
         specifier: ^4.9.0
         version: 4.10.2
@@ -4254,12 +4260,12 @@ packages:
     resolution: {integrity: sha512-Vd/9EVDiu6PPJt9yAh6roZP6El1xHrdvIVGjyBsHR0RYwNHgL7FJPyIIW4fANJNG6FtyZfvlRPpFI4ZM/lubvw==, tarball: https://registry.npmjs.org/@csstools/css-tokenizer/-/css-tokenizer-3.0.4.tgz}
     engines: {node: '>=18'}
 
-  '@effect/atom-react@4.0.0':
-    resolution: {integrity: sha512-VPP2oOjj56iwOpL5aIGbu7Qhb4+1sFNdU16aI5of3JqToqWWX9eJPBfeiPyQ1eTYof1hnNX1auyRiTORSfLT6g==, tarball: https://registry.npmjs.org/@effect/atom-react/-/atom-react-4.0.0.tgz}
+  '@effect/atom-react@4.0.6':
+    resolution: {integrity: sha512-DpbuEdaJl+2/GW4KkrKtRD8YVPT+I29bh/TFE7JCGkB4YNiHWNE5q69EagDeK/QXi4RlSb+iR+rNGkORJ9qB/A==}
     peerDependencies:
-      effect: ^4.0.0
+      effect: ^4.0.6
       react: '>=19.0.0 <20.0.0'
-      scheduler: '>=0.25.0 <0.28.0'
+      scheduler: '>=0.25.0 <0.29.0'
 
   '@emnapi/core@1.11.0':
     resolution: {integrity: sha512-l9Oo58x0HOP5znGzVhYW9U3e5wVuA4LAZU2AGezTmkhO1CgQRFDhDg4nneHsu/t3WniXg9QrG2nIXL/ZS8ln8Q==, tarball: https://registry.npmjs.org/@emnapi/core/-/core-1.11.0.tgz}
@@ -8117,8 +8123,8 @@ packages:
   ee-first@1.1.1:
     resolution: {integrity: sha512-WMwm9LhRUo+WUaRN+vRuETqG89IgZphVSNkdFgeb6sS/E4OrDIN7t48CAewSHXc6C8lefD8KKfr5vY61brQlow==, tarball: https://registry.npmjs.org/ee-first/-/ee-first-1.1.1.tgz}
 
-  effect@4.0.0:
-    resolution: {integrity: sha512-ooc1TG5t+FfzgYnFz2ff6BBKyZ7EwBRVXC7c4RhQUAD6/TZ2gTXXMeb4WX7a19ozQo4J73/QW+S00YAIresoMQ==, tarball: https://registry.npmjs.org/effect/-/effect-4.0.0.tgz}
+  effect@4.0.6:
+    resolution: {integrity: sha512-Tc3mkzuLR6t6P9dhLt0D2GrxYtmU5td4XEJEiXCmILz53IRIfJyHsKZWjTA3xEjiwpNTtXBgI4iqYPxMztBDrw==}
 
   electron-to-chromium@1.5.427:
     resolution: {integrity: sha512-n14zb3FdsChZ2BNobqNHAJMcP3ifFv4paox2LvCrfVAQcqGiSURgbJl+PfMpHVCNFkStnNc+RRVtPBTVW5PDgw==, tarball: https://registry.npmjs.org/electron-to-chromium/-/electron-to-chromium-1.5.427.tgz}
@@ -12190,9 +12196,9 @@ snapshots:
 
   '@csstools/css-tokenizer@3.0.4': {}
 
-  '@effect/atom-react@4.0.0(effect@4.0.0)(react@19.1.0)(scheduler@0.27.0)':
+  '@effect/atom-react@4.0.6(effect@4.0.6)(react@19.1.0)(scheduler@0.27.0)':
     dependencies:
-      effect: 4.0.0
+      effect: 4.0.6
       react: 19.1.0
       scheduler: 0.27.0
 
@@ -15448,7 +15454,7 @@ snapshots:
 
   ee-first@1.1.1: {}
 
-  effect@4.0.0: {}
+  effect@4.0.6: {}
 
   electron-to-chromium@1.5.427: {}
 

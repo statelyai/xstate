@@ -7,7 +7,7 @@ Understanding the order of operations makes machines predictable to write, test,
 
 ## Transitions are pure
 
-When an event arrives, XState calls the matching transition function. The function computes what should change and returns it. Nothing else happens while it runs.
+When an event arrives, XState calls the matching transition function. The function computes what should change and returns it. Put external effects in `enq(...)` so XState can defer them until it accepts the transition.
 
 ```ts
 on: {
@@ -19,6 +19,12 @@ on: {
 ```
 
 The `enq` calls do not run effects. They record them. The analytics call above has not happened when the function returns. It has been added to a queue. This is why a transition function must not rely on an effect's result: the result does not exist yet.
+
+Selection records ordinary enqueue calls, including calls inside `try` blocks, without executing their effects. An effect-only transition is enabled even when it returns `undefined`. XState reuses that result when it applies the selected transition.
+
+`enq.spawn(...)`, `enq.listen(...)`, and `enq.subscribeTo(...)` return actor refs. Selection stops at these calls without initializing an actor. An accepted transition runs again with real refs, so `enq.spawn(...).getSnapshot().context` remains available during execution. These calls and direct parent sends still use an internal selection abort. Catching that abort does not discard their effects, but the transition function can run again. Keep transition calculations free of external effects, and use `enq(...)` to schedule those effects.
+
+A losing transition and `snapshot.can(...)` do not execute queued effects or initialize spawned actors. An enqueue handle expires when its callback exits, including when the callback throws. Keep enqueue calls synchronous and inside that callback.
 
 Because transitions are pure, XState can calculate the next snapshot without an actor. [`transition(...)`](utilities.md) does this, so a test can compute a next snapshot directly. Restoring a [persisted snapshot](persistence.md) does not replay effects either.
 

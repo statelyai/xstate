@@ -41,7 +41,9 @@ type _StillExported = [
 describe('public actor options', () => {
   it('do not accept a parent actor', () => {
     const parent = createActor(createMachine({}));
-    // @ts-expect-error `parent` is internal
-    createActor(createMachine({}), { parent });
+    expect(() =>
+      // @ts-expect-error `parent` is internal
+      createActor(createMachine({}), { parent })
+    ).toThrow('The "parent" actor option was removed');
   });
 });

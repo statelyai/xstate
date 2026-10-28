@@ -27,13 +27,7 @@ import {
   type TimerKey
 } from 'xstate';
 import { createDurable, type DurableEffect } from 'xstate/durable';
-import {
-  EffectActor,
-  actionFailure,
-  isActionFailure,
-  safeCall,
-  type MailboxItem
-} from './effectActor.ts';
+import { EffectActor, safeCall, type MailboxItem } from './effectActor.ts';
 import {
   bindEffectHost,
   closeEffectHost,
@@ -43,6 +37,7 @@ import {
 } from './internal.ts';
 import type { RequirementsFrom } from './types.ts';
 import { ActorScope } from './actorScope.ts';
+import { EventRejectedError } from './errors.ts';
 
 const XSTATE_TIMER = 'xstate.timer';
 const XSTATE_INIT = 'xstate.init';
@@ -105,7 +100,13 @@ export function createEffectActor<TLogic extends AnyActorLogic>(
       const runPromise = Effect.runPromiseWith(context);
 
       const mailbox =
-        yield* Queue.unbounded<MailboxItem<EventFromLogic<TLogic>>>();
+        yield* Queue.unbounded<
+          MailboxItem<EventFromLogic<TLogic>, SnapshotFrom<TLogic>>
+        >();
+      let delivered:
+        | MailboxItem<EventFromLogic<TLogic>, SnapshotFrom<TLogic>>
+        | undefined;
+      const getDelivered = () => delivered;
       const timers = new Map<string, Fiber.Fiber<void>>();
       // `root` and `actor` are declared after the adapter below; its
       // callbacks only run once they are initialized.
@@ -113,7 +114,9 @@ export function createEffectActor<TLogic extends AnyActorLogic>(
       const isRoot = (candidate: AnyActor) =>
         candidate.address === durable.rootAddress;
 
-      const offer = (item: MailboxItem<EventFromLogic<TLogic>>) => {
+      const offer = (
+        item: MailboxItem<EventFromLogic<TLogic>, SnapshotFrom<TLogic>>
+      ) => {
         if (!stopped) {
           Queue.offerUnsafe(mailbox, item);
         }
@@ -140,11 +143,11 @@ export function createEffectActor<TLogic extends AnyActorLogic>(
                 typeof (result as PromiseLike<unknown>).then === 'function'
               ) {
                 void Promise.resolve(result).catch((error: unknown) => {
-                  offer({ [actionFailure]: true, error });
+                  offer({ kind: 'actionFailure', error });
                 });
               }
             } catch (error) {
-              offer({ [actionFailure]: true, error });
+              offer({ kind: 'actionFailure', error });
             }
           },
           spawnActor: (_source, child) => {
@@ -166,7 +169,7 @@ export function createEffectActor<TLogic extends AnyActorLogic>(
           },
           sendEvent: (source, target, event) => {
             if (isRoot(target)) {
-              offer(event as EventFromLogic<TLogic>);
+              offer({ kind: 'event', event: event as EventFromLogic<TLogic> });
               return;
             }
             deliverEvent(source, target, event);
@@ -192,7 +195,10 @@ export function createEffectActor<TLogic extends AnyActorLogic>(
                       ...timer
                     };
                     if (isRoot(source)) {
-                      offer(timerEvent as EventFromLogic<TLogic>);
+                      offer({
+                        kind: 'event',
+                        event: timerEvent as EventFromLogic<TLogic>
+                      });
                     } else {
                       deliverEvent(source, source, timerEvent);
                     }
@@ -217,7 +223,14 @@ export function createEffectActor<TLogic extends AnyActorLogic>(
             }
           },
           waitForEvent: () =>
-            runPromise(Queue.take(mailbox)) as Promise<EventFromLogic<TLogic>>
+            runPromise(Queue.take(mailbox)).then((item) => {
+              delivered = item;
+              return item.kind === 'event'
+                ? item.event
+                : ({
+                    type: 'xstate.effect.actionFailure'
+                  } as EventFromLogic<TLogic>);
+            })
         },
         {
           inspect: (event) => {
@@ -280,6 +293,7 @@ export function createEffectActor<TLogic extends AnyActorLogic>(
             status: 'stopped'
           } as SnapshotFrom<TLogic>);
         }
+        actor._rejectReceipts();
         closeEffectHost(host);
       };
 
@@ -332,7 +346,7 @@ export function createEffectActor<TLogic extends AnyActorLogic>(
           durable.executeEffects(batch).then(
             () => undefined,
             (error: unknown) => {
-              offer({ [actionFailure]: true, error });
+              offer({ kind: 'actionFailure', error });
             }
           )
         );
@@ -343,17 +357,18 @@ export function createEffectActor<TLogic extends AnyActorLogic>(
           (snapshot as Snapshot<unknown>).status === 'active' &&
           !stopped
         ) {
-          const item = yield* Effect.promise(() =>
-            durable.waitForEvent().then(
-              (event) => event as MailboxItem<EventFromLogic<TLogic>>,
-              () => undefined
-            )
+          delivered = undefined;
+          const received = yield* Effect.promise(() =>
+            durable.waitForEvent().catch(() => undefined)
           );
-          if (item === undefined || stopped) {
-            break;
-          }
+          if (received === undefined || stopped) break;
+          const item: MailboxItem<
+            EventFromLogic<TLogic>,
+            SnapshotFrom<TLogic>
+          > = getDelivered() ?? { kind: 'event', event: received };
+          const receipt = item.kind === 'event' ? item.receipt : undefined;
           let event: EventFromLogic<TLogic>;
-          if (isActionFailure(item)) {
+          if (item.kind === 'actionFailure') {
             const errorEvent = (
               logic as {
                 getExecutionErrorEvent?: (
@@ -368,16 +383,38 @@ export function createEffectActor<TLogic extends AnyActorLogic>(
             }
             event = errorEvent;
           } else {
-            event = item;
+            event = item.event;
           }
           try {
             [snapshot, effects] = durable.transition(snapshot, event);
           } catch (error) {
             snapshot = errorSnapshot(snapshot, error);
+            actor._publish(snapshot, receipt);
+            actor._completeReceipt(receipt, Exit.succeed(snapshot));
             break;
           }
-          actor._publish(snapshot);
+          actor._publish(snapshot, receipt);
+          if (stopped) break;
+          const rejectedReason =
+            effects.length === 1 &&
+            effects[0].effect.type === '@xstate.deadLetter' &&
+            'reason' in effects[0].effect &&
+            effects[0].effect.reason === 'invalidEvent'
+              ? effects[0].effect.reason
+              : undefined;
           yield* executeEffects(effects);
+          actor._completeReceipt(
+            receipt,
+            rejectedReason !== undefined
+              ? Exit.fail(
+                  new EventRejectedError({
+                    actorId: actor.id,
+                    event,
+                    reason: rejectedReason
+                  })
+                )
+              : Exit.succeed(snapshot)
+          );
         }
         if (!stopped) {
           actor._publish(snapshot);

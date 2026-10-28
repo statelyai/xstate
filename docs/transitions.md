@@ -88,10 +88,12 @@ submit: ({ context, event }, enq) => {
   enq(() => console.log('Submitted', event));
   return {
     target: 'submitting',
-    context: { ...context, submittedAt: Date.now() }
+    context: { ...context, submittedAt: event.submittedAt }
   };
 }
 ```
+
+Pass `submittedAt` in the event from the caller. Reading wall time or randomness inside a transition makes replay nondeterministic; see [durable execution](durable-execution.md#determinism-constraints).
 
 Returning `undefined` prevents the transition, unless the function already called `enq`: any `enq` call selects the transition, which then runs as a targetless transition with the queued effects. That is why the example returns before enqueuing.
 
@@ -164,7 +166,7 @@ if (isUnhandled(snapshot, result)) {
 }
 ```
 
-A running actor reports an unhandled event through the `onUnhandledEvent` option of `createActor(...)`. In the [inspection](inspection.md) stream, the `@xstate.transition` event for an unhandled event carries the unchanged snapshot reference. Development builds also log a warning once per event type per actor. Internal `xstate.*` events are not reported.
+A running actor reports an unhandled event through the `onUnhandledEvent` option of `createActor(...)`. In the [inspection](inspection.md) stream, the `@xstate.transition` event for an unhandled event carries the unchanged snapshot reference. Development builds also log a warning once per event type per actor. Reserved lifecycle and timer events delivered by actors, and actor stop events, are not reported. Unhandled events sent through `actor.send(...)` or between actors are reported even when their names start with `xstate.`, including obsolete names such as `xstate.done.actor.save`.
 
 ## TypeScript
 

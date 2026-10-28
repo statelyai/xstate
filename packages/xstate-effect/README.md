@@ -13,11 +13,13 @@ In these docs, "transition effects" are the executable effect descriptors (`Exec
 
 ## Installation
 
-<!-- package name and peer dependencies from package.json -->
+<!-- package name, zero direct runtime dependencies and required versus optional peers from package.json -->
 
 ```bash
-npm install @xstate/effect@alpha xstate@alpha effect@^4
+npm install @xstate/effect@latest xstate@alpha effect@^4
 ```
+
+`@xstate/effect` has zero direct runtime dependencies. Effect and XState are its only required peers. Lint tooling is opt-in and installed as development dependencies.
 
 ## XState Effect: Quick start
 
@@ -123,6 +125,10 @@ Start Effect-backed logic with `createEffectActor` inside an Effect scope.
 
 </details>
 
+<!-- declared Effect action typing from src/setupEffect.ts -->
+
+Declared Effect actions infer context and event types from `setupEffect({ schemas })`, including schemas inherited through `extend`. See [Action argument types](docs/schemas-and-actions.md#action-argument-types) for custom arguments and safe defaults.
+
 ## Guides
 
 | Guide | Examples |
@@ -185,7 +191,7 @@ The actor's later errors are observed through `join` or snapshots. Invalid input
 
 ## Effect actor logic
 
-<!-- createEffectLogic, createEffectStreamLogic, createEffectEventStreamLogic from src/createEffectLogic.ts -->
+<!-- createEffectLogic, createEffectStreamLogic, createEffectEventStreamLogic from src/effectLogic.ts -->
 
 | Function | Behavior |
 | --- | --- |
@@ -240,11 +246,15 @@ See [Effect actor logic](docs/effect-logic.md) for tasks and a stream that drive
 
 See [schemas and actions](docs/schemas-and-actions.md) for a complete audit example, runtime schema constraints and inline-source pitfalls.
 
+<!-- lint plugin export from package.json; rule from src/oxlint.ts -->
+
+Enable `xstate-effect/no-inline-effect` with the compiled `@xstate/effect/oxlint` plugin to catch discarded inline Effects and unsupported inline spawned Effect logic. See [Oxlint configuration](docs/schemas-and-actions.md#declared-sources) for installation and the rule's syntactic limits.
+
 ## Atoms and React
 
 <!-- atom surface from src/atom.ts -->
 
-`createActorAtoms` from `@xstate/effect/atom` exposes `actor`, `snapshot`, `result`, `send`, `select` and `state`. Its `Atom.runtime` must provide the logic's services. Pass `{ input }` when the logic requires input; missing or mismatched input is a type error.
+`createActorAtoms` from `@xstate/effect/atom` exposes `actor`, `snapshot`, `result`, `send` and `select`. Machine logic also exposes `state`; tasks and streams do not. Its `Atom.runtime` must provide the logic's services. Pass `{ input }` when the logic requires input; missing or mismatched input is a type error.
 
 - Read atoms with `@effect/atom-react` in React, or an `AtomRegistry` elsewhere.
 - The registry owns their lifetime; dispose it when its owner shuts down.
@@ -256,16 +266,17 @@ See [atoms and React](docs/atoms-and-react.md) for complete examples with import
 
 <!-- error types from src/errors.ts; timeout failure from src/actor.ts -->
 
+- Use `sendAndAwait` from `@xstate/effect/test` to acknowledge a specific event, including ignored events.
 - Use `TestClock` to drive deadlines without waiting for real time.
 - `ActorStoppedError` reports a stop before an awaited result.
-- `EffectInterruptedError` reports self-interruption inside Effect logic.
+- `EffectFailure<E>` carries the original `Cause<E>` in task and stream error snapshots, including defects and self-interruption.
 - Timed waits fail with Effect's `Cause.TimeoutError`.
-- `join` preserves a task's typed failure. Unexpected machine errors have type `unknown`.
+- `join` replays the original Cause and preserves a task's typed failure. Unexpected machine errors have type `unknown`.
 
-See [testing and errors](docs/testing-and-errors.md) for executable deadline, retry and failure examples. Persisted snapshots record actor state; pass one to `createEffectActor(logic, { snapshot })` to resume the actor. See [persisting and restoring](docs/actors.md#persisting-and-restoring).
+See [testing and errors](docs/testing-and-errors.md) for executable deadline, retry and failure examples. Persisted snapshots record actor state; pass one to `createEffectActor(logic, { snapshot })` to resume the actor. Use `createSnapshotCodec` with a full bidirectional Effect schema for validated JSON persistence of versioned machines. See [persisting and restoring](docs/actors.md#persisting-and-restoring).
 
 ## Tracing
 
-<!-- span names and attributes from src/internal.ts and src/createEffectLogic.ts -->
+<!-- span names and attributes from src/internal.ts and src/effectLogic.ts -->
 
 Hosted work uses spans named `createEffectLogic`, `createEffectStreamLogic`, `createEffectEventStreamLogic` and `action.<name>`. Each carries `xstate.actor.id` and `xstate.actor.address`. Provide a `Tracer` to record and export them.
