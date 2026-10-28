@@ -53,7 +53,9 @@ export {
   type EffectSchema,
   type EffectSchemaLike,
   type EffectSetupSchemas,
-  type EffectSetupStateSchema
+  type EffectSetupStateSchema,
+  type ToStandardSetupSchemas,
+  type ToStandardSetupStates
 } from './schema.ts';
 
 export { createSnapshotCodec, SnapshotCodecError } from './persistence.ts';

@@ -17,7 +17,6 @@ import {
   type SystemRegistry,
   type SystemRuntime
 } from 'xstate';
-import { effectActionBrand } from './brands.ts';
 import { runHostedEffect } from './internal.ts';
 import type { EffectRequirements } from './types.ts';
 import {
@@ -129,7 +128,9 @@ type CoreEffectAction<TAction, TInput = never> = TAction extends (
   ...args: infer TArgs
 ) => any
   ? ((...args: [TInput] extends [never] ? TArgs : [args: TInput]) => void) & {
-      readonly [effectActionBrand]?: EffectActionRequirements<TAction>;
+      // String key, not a `unique symbol`: inferred types in consumer
+      // declarations must be able to name it.
+      readonly '~effectRequirements'?: EffectActionRequirements<TAction>;
     }
   : never;
 
