@@ -1,4 +1,14 @@
-import { Cause, Context, Duration, Effect, Exit, Scope, Stream } from 'effect';
+import {
+  Cause,
+  Context,
+  Deferred,
+  Duration,
+  Effect,
+  Exit,
+  Fiber,
+  Scope,
+  Stream
+} from 'effect';
 import { TestClock } from 'effect/testing';
 import {
   createActor,
@@ -298,6 +308,42 @@ describe('@xstate/effect runtime', () => {
       )
     );
     expect(released).toBe(true);
+  });
+
+  it('awaits invoked task finalizers when the owning fiber is interrupted', async () => {
+    const results = await Effect.runPromise(
+      Effect.forEach(Array.from({ length: 10 }), () =>
+        Effect.gen(function* () {
+          const started = yield* Deferred.make<void>();
+          let released = false;
+          const task = Effect.acquireRelease(
+            Deferred.succeed(started, undefined),
+            () =>
+              Effect.sync(() => {
+                released = true;
+              })
+          ).pipe(Effect.andThen(Effect.never));
+          const machine = setupEffect({
+            actors: {
+              task: createEffectLogic({ effect: () => Effect.scoped(task) })
+            }
+          }).createMachine({
+            initial: 'running',
+            states: { running: { invoke: { src: 'task' } } }
+          });
+
+          const owner = yield* Effect.forkChild(
+            Effect.scoped(
+              createEffectActor(machine).pipe(Effect.andThen(Effect.never))
+            )
+          );
+          yield* Deferred.await(started);
+          yield* Fiber.interrupt(owner);
+          return released;
+        })
+      )
+    );
+    expect(results.every(Boolean)).toBe(true);
   });
 
   it('stops the actor and interrupts its Effect when the enclosing scope closes', async () => {

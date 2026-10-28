@@ -206,12 +206,15 @@ export function startHostedEffect<A, E>(
     onCancel?.();
     interrupt();
   };
-  const fiber = Fiber.runIn(
-    Effect.runForkWith(host.context)(traced),
-    host.scope
-  );
+  // Register the fiber before its body runs: the body can synchronously
+  // trigger the host's close, which only awaits registered fibers.
+  const registered = Effect.withFiber((fiber) => {
+    Fiber.runIn(fiber, host.scope);
+    host.fibers.add(fiber);
+    return traced;
+  });
+  const fiber = Effect.runForkWith(host.context)(registered);
   const interrupt = () => fiber.interruptUnsafe();
-  host.fibers.add(fiber);
   fiber.addObserver((exit) => {
     host.fibers.delete(fiber);
     if (!active) {
