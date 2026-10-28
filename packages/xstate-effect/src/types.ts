@@ -1,6 +1,5 @@
 import type { Effect, Scope } from 'effect';
 import type { EffectLogicBrand } from './effectLogic.ts';
-import { effectActionBrand } from './brands.ts';
 import type { ActorScope } from './actorScope.ts';
 
 /** The `R` channel of an Effect type, or `never` for anything else. */
@@ -11,7 +10,7 @@ type RequirementsFromActions<T> =
   T extends Record<string, (...args: any[]) => any>
     ? T[keyof T] extends infer TAction
       ? TAction extends {
-          readonly [effectActionBrand]?: infer R;
+          readonly '~effectRequirements'?: infer R;
         }
         ? unknown extends R
           ? EffectRequirements<
