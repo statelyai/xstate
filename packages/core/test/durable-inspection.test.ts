@@ -77,4 +77,37 @@ describe('durable execution inspection', () => {
     const [next] = durable.transition(snapshot, await durable.waitForEvent());
     expect((next as { value?: unknown }).value).toBe('approved');
   });
+
+  it('attaches the inspect option only while isInspected returns true', async () => {
+    const inspected: InspectionEvent[] = [];
+    let isInspected = false;
+    const durable = createDurable(
+      machine,
+      {
+        executeAction: () => {},
+        startActor: (actor) => {
+          actor.start();
+        },
+        waitForEvent: () => {
+          throw new Error('host-driven loop');
+        }
+      },
+      { inspect: (ev) => inspected.push(ev), isInspected: () => isInspected }
+    );
+    const [snapshot, effects] = durable.initialTransition();
+    await durable.executeEffects(effects);
+    const done = await durable.waitForEvent();
+    expect(inspected).toEqual([]);
+
+    isInspected = true;
+    const [next] = durable.transition(snapshot, done);
+    expect(inspected).toContainEqual(
+      expect.objectContaining({ type: '@xstate.transition', event: done })
+    );
+
+    isInspected = false;
+    inspected.length = 0;
+    durable.transition(next, done);
+    expect(inspected).toEqual([]);
+  });
 });
