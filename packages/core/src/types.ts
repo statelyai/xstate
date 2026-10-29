@@ -619,7 +619,7 @@ export type EventDescriptor<TEvent extends EventObject> =
 type NormalizeDescriptor<TDescriptor extends string> = TDescriptor extends '*'
   ? string
   : TDescriptor extends `${infer TLeading}.*`
-    ? `${TLeading}.${string}`
+    ? TLeading | `${TLeading}.${string}`
     : TDescriptor;
 
 export type IsLiteralString<T extends string> = string extends T ? false : true;
