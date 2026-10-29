@@ -30,7 +30,7 @@ or the [v5 to v6 migration guide](https://github.com/statelyai/xstate/blob/next/
 ## Quick start
 
 ```bash
-npm install xstate@alpha
+npm install xstate@beta
 ```
 
 ```ts
@@ -335,17 +335,17 @@ const lightMachine = createMachine({
   states: {
     green: {
       on: {
-        TIMER: 'yellow'
+        TIMER: { target: 'yellow' }
       }
     },
     yellow: {
       on: {
-        TIMER: 'red'
+        TIMER: { target: 'red' }
       }
     },
     red: {
       on: {
-        TIMER: 'green'
+        TIMER: { target: 'green' }
       }
     }
   }
@@ -408,12 +408,12 @@ const pedestrianStates = {
   states: {
     walk: {
       on: {
-        PED_TIMER: 'wait'
+        PED_TIMER: { target: 'wait' }
       }
     },
     wait: {
       on: {
-        PED_TIMER: 'stop'
+        PED_TIMER: { target: 'stop' }
       }
     },
     stop: {}
@@ -426,17 +426,17 @@ const lightMachine = createMachine({
   states: {
     green: {
       on: {
-        TIMER: 'yellow'
+        TIMER: { target: 'yellow' }
       }
     },
     yellow: {
       on: {
-        TIMER: 'red'
+        TIMER: { target: 'red' }
       }
     },
     red: {
       on: {
-        TIMER: 'green'
+        TIMER: { target: 'green' }
       },
       ...pedestrianStates
     }
@@ -612,15 +612,15 @@ const paymentMachine = createMachine({
       states: {
         cash: {
           on: {
-            SWITCH_CHECK: 'check'
+            SWITCH_CHECK: { target: 'check' }
           }
         },
         check: {
           on: {
-            SWITCH_CASH: 'cash'
+            SWITCH_CASH: { target: 'cash' }
           }
         },
-        hist: { type: 'history' }
+        hist: { type: 'history', target: 'cash' }
       },
       on: { NEXT: { target: 'review' } }
     },

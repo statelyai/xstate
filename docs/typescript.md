@@ -144,6 +144,8 @@ after: {
 
 <!-- runtime validation API and boundaries from packages/core/src/validation.types.ts, packages/core/src/validation/index.ts, and packages/core/src/setup.ts -->
 
+> **Experimental:** `standardSchemaValidator()`, `ActorValidationError` and the other `xstate/validation` exports may change in a minor release.
+
 Runtime validation is opt-in. Install the Standard Schema validator from the
 separate `xstate/validation` entry point:
 
