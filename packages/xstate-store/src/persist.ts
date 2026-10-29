@@ -1040,7 +1040,7 @@ interface BroadcastStorageOptions {
 /** Storage adapter returned by `createBroadcastStorage(...)`. */
 type BroadcastStorage = StateStorage & {
   /** Channel used to announce writes to other same-origin contexts. */
-  readonly channel: BroadcastChannel;
+  readonly channel: InstanceType<typeof BroadcastChannel>;
 };
 
 function assertBroadcastChannelAvailable(): void {

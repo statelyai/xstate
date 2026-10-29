@@ -1,5 +1,11 @@
 import type { StandardSchemaV1 } from './schema.ts';
 
+declare global {
+  interface SymbolConstructor {
+    readonly observable: symbol;
+  }
+}
+
 export type EventPayloadMap = Record<string, {} | null | undefined>;
 
 export type ExtractEvents<T extends EventPayloadMap> = Values<{

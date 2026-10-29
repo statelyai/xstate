@@ -749,13 +749,6 @@ export function createStoreLogic(
     }
   };
 }
-
-declare global {
-  interface SymbolConstructor {
-    readonly observable: symbol;
-  }
-}
-
 /**
  * Creates a store transition function that handles state updates based on
  * events.

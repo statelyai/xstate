@@ -11,6 +11,7 @@
   "homepage": "https://github.com/statelyai/xstate/tree/main/packages/xstate-store#readme",
   "license": "MIT",
   "exports": {
+    "./core": "./dist/xstate-store-core.js",
     "./undo": "./dist/xstate-store-undo.js",
     ".": "./dist/xstate-store.js",
     "./reset": "./dist/xstate-store-reset.js",
@@ -24,7 +25,8 @@
     "undo",
     "persist",
     "reset",
-    "validate"
+    "validate",
+    "core"
   ],
   "repository": {
     "type": "git",
@@ -62,7 +64,8 @@
       "./undo.ts",
       "./persist.ts",
       "./reset.ts",
-      "./validate.ts"
+      "./validate.ts",
+      "./core.ts"
     ]
   }
 }

@@ -1,0 +1,54 @@
+import {
+  createStore as rootCreate,
+  fromStore,
+  type Store as RootStore,
+  type StoreExtension as RootExtension,
+  type StoreContext,
+  type EventPayloadMap,
+  type EventObject
+} from '@xstate/store';
+import {
+  createStore as coreCreate,
+  type Store as CoreStore,
+  type StoreExtension as CoreExtension
+} from '@xstate/store/core';
+import { createActor } from 'xstate';
+
+export function acceptRoot<
+  C extends StoreContext,
+  E extends EventPayloadMap,
+  O extends EventObject
+>(value: RootStore<C, E, O>): CoreStore<C, E, O> {
+  return value;
+}
+
+export function acceptCore<
+  C extends StoreContext,
+  E extends EventPayloadMap,
+  O extends EventObject
+>(value: CoreStore<C, E, O>): RootStore<C, E, O> {
+  return value;
+}
+
+export function acceptExtension<
+  C extends StoreContext,
+  E extends EventPayloadMap,
+  O extends EventObject
+>(value: CoreExtension<C, E, {}, O>): RootExtension<C, E, {}, O> {
+  return value;
+}
+
+if (rootCreate !== coreCreate) {
+  throw new Error('Root and core createStore identities differ');
+}
+const actor = createActor(
+  fromStore({
+    context: { count: 0 },
+    on: { add: (context) => ({ count: context.count + 1 }) }
+  })
+).start();
+actor.send({ type: 'add' });
+if (actor.getSnapshot().context.count !== 1) {
+  throw new Error('Existing fromStore actor integration failed');
+}
+actor.stop();

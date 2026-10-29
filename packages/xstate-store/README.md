@@ -20,6 +20,20 @@ XState Store is a library for **simple event-based state management**. If you wa
 npm install @xstate/store
 ```
 
+## Use Store without XState declarations
+
+<!-- core and root exports from src/core.ts, src/index.ts and package.json -->
+
+Import from `@xstate/store/core` when your TypeScript application does not install XState:
+
+```ts
+import { createStore, type Store } from '@xstate/store/core';
+```
+
+The core entry provides the same stores, atoms, and public types as `@xstate/store`, except `fromStore`. Existing root imports remain supported. Import `fromStore` from `@xstate/store` and install `xstate` when you need actor logic.
+
+Extensions remain available at `@xstate/store/undo`, `@xstate/store/reset`, `@xstate/store/persist`, and `@xstate/store/validate`.
+
 ## Quick start
 
 ```ts

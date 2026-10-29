@@ -1,0 +1,141 @@
+import {
+  createStore,
+  createAtom,
+  type Store,
+  type StoreContext,
+  type EventPayloadMap,
+  type EventObject,
+  type StandardSchemaV1
+} from '@xstate/store/core';
+import { reset } from '@xstate/store/reset';
+import { undoRedo } from '@xstate/store/undo';
+import { persist, createBroadcastStorage } from '@xstate/store/persist';
+import { validateSchemas, StoreValidationError } from '@xstate/store/validate';
+
+function preserveStore<
+  C extends StoreContext,
+  E extends EventPayloadMap,
+  O extends EventObject
+>(value: Store<C, E, O>) {
+  return value;
+}
+
+const changes: number[] = [];
+const store = createStore({
+  context: { count: 0 },
+  on: {
+    add: (context, event: { by: number }) => ({
+      count: context.count + event.by
+    })
+  }
+});
+const sameStore: typeof store = preserveStore(store);
+const subscription = sameStore.subscribe((snapshot) => {
+  changes.push(snapshot.context.count);
+});
+sameStore.send({ type: 'add', by: 2 });
+sameStore.trigger.add({ by: 3 });
+subscription.unsubscribe();
+const count: number = sameStore.getSnapshot().context.count;
+if (count !== 5 || changes.at(-1) !== 5) {
+  throw new Error('Public core commands or subscriptions lost state');
+}
+
+const atom = createAtom(1);
+atom.set((value) => value + 2);
+if (atom.get() !== 3) {
+  throw new Error('Public core atom did not update');
+}
+
+const countSchema: StandardSchemaV1<unknown, { count: number }> = {
+  '~standard': {
+    version: 1,
+    vendor: 'public-package-consumer',
+    validate(value) {
+      if (
+        typeof value === 'object' &&
+        value !== null &&
+        'count' in value &&
+        typeof value.count === 'number' &&
+        Number.isFinite(value.count)
+      ) {
+        return { value: { count: value.count } };
+      }
+      return { issues: [{ message: 'Count must be a finite number' }] };
+    }
+  }
+};
+const history = createStore({
+  context: { count: 0 },
+  schemas: { context: countSchema },
+  on: {
+    add: (context) => ({ count: context.count + 1 }),
+    invalidate: () => ({ count: NaN })
+  }
+})
+  .with(reset())
+  .with(undoRedo())
+  .with(validateSchemas());
+history.trigger.add();
+history.trigger.undo();
+if (history.getSnapshot().context.count !== 0) {
+  throw new Error('Undo extension did not restore state');
+}
+history.trigger.redo();
+if (history.getSnapshot().context.count !== 1) {
+  throw new Error('Redo extension did not restore state');
+}
+history.trigger.reset();
+if (history.getSnapshot().context.count !== 0) {
+  throw new Error('Reset extension did not restore state');
+}
+if (history.can.invalidate()) {
+  throw new Error('Validation preview accepted an invalid context');
+}
+let validationRejected = false;
+try {
+  history.trigger.invalidate();
+} catch (error) {
+  if (!(error instanceof StoreValidationError) || error.reason !== 'invalidContext') {
+    throw error;
+  }
+  validationRejected = true;
+}
+if (!validationRejected || history.getSnapshot().context.count !== 0) {
+  throw new Error('Validation failed to reject the edit or preserve accepted state');
+}
+
+const values = new Map<string, string>();
+const persisted = createStore({
+  context: { count: 0 },
+  on: { add: (context) => ({ count: context.count + 1 }) }
+}).with(
+  persist({
+    name: 'public-core',
+    storage: {
+      getItem: (key) => values.get(key) ?? null,
+      setItem: (key, value) => {
+        values.set(key, value);
+      },
+      removeItem: (key) => {
+        values.delete(key);
+      }
+    }
+  })
+);
+persisted.trigger.add();
+if (persisted.getSnapshot().context.count !== 1) {
+  throw new Error('Persist extension blocked a public core edit');
+}
+
+export function channelToHost(
+  channel: ReturnType<typeof createBroadcastStorage>['channel']
+): InstanceType<typeof BroadcastChannel> {
+  return channel;
+}
+
+export function channelFromHost(
+  channel: InstanceType<typeof BroadcastChannel>
+): ReturnType<typeof createBroadcastStorage>['channel'] {
+  return channel;
+}
