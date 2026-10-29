@@ -1,4 +1,4 @@
-import { assertEvent, InspectionEvent } from '../src';
+import { assertEvent, ExtractEvent, InspectionEvent } from '../src';
 
 describe('assertEvent generics', () => {
   it('narrows a non-generic event the same way as before', () => {
@@ -89,5 +89,80 @@ describe('assertEvent with union-typed `type` fields', () => {
       // @ts-expect-error
       assertEvent(event, 'not-a-real-descriptor');
     }
+  });
+});
+
+describe('partial wildcard event descriptors', () => {
+  type Events =
+    | { type: 'FEEDBACK' }
+    | { type: 'FEEDBACK.GOOD'; value: number }
+    | { type: 'OTHER'; other: boolean };
+  type NestedEvents =
+    | Events
+    | { type: 'FEEDBACK.GOOD.DETAILED'; message: string };
+
+  it('preserves the prefix event when narrowing a concrete event', () => {
+    function handle(event: Events) {
+      assertEvent(event, 'FEEDBACK.*');
+      event.type satisfies 'FEEDBACK' | 'FEEDBACK.GOOD';
+      // @ts-expect-error the prefix event has no value
+      event.value;
+
+      if (event.type === 'FEEDBACK') {
+        event satisfies { type: 'FEEDBACK' };
+      }
+      if (event.type === 'FEEDBACK.GOOD') {
+        event.value satisfies number;
+      }
+      // @ts-expect-error unrelated events are excluded
+      event.other;
+    }
+  });
+
+  it('preserves the prefix event when narrowing an event with a generic payload', () => {
+    function handle<TValue>(
+      event:
+        | { type: 'FEEDBACK' }
+        | { type: 'FEEDBACK.GOOD'; value: TValue }
+        | { type: 'OTHER'; other: boolean }
+    ) {
+      assertEvent(event, 'FEEDBACK.*');
+      event.type satisfies 'FEEDBACK' | 'FEEDBACK.GOOD';
+      // @ts-expect-error the prefix event has no value
+      event.value;
+
+      if (event.type === 'FEEDBACK') {
+        event satisfies { type: 'FEEDBACK' };
+      }
+      if (event.type === 'FEEDBACK.GOOD') {
+        event.value satisfies TValue;
+      }
+      // @ts-expect-error unrelated events are excluded
+      event.other;
+    }
+  });
+
+  it('preserves nested prefixes in descriptor arrays', () => {
+    function handle(event: NestedEvents) {
+      assertEvent(event, ['FEEDBACK.GOOD.*', 'OTHER']);
+      event.type satisfies 'FEEDBACK.GOOD' | 'FEEDBACK.GOOD.DETAILED' | 'OTHER';
+
+      if (event.type === 'FEEDBACK.GOOD') {
+        event.value satisfies number;
+      }
+      // @ts-expect-error only the detailed event has a message
+      event.message;
+    }
+  });
+
+  it('includes bare and nested prefixes in ExtractEvent', () => {
+    const prefix: ExtractEvent<Events, 'FEEDBACK.*'> = { type: 'FEEDBACK' };
+    const nestedPrefix: ExtractEvent<NestedEvents, 'FEEDBACK.GOOD.*'> = {
+      type: 'FEEDBACK.GOOD',
+      value: 42
+    };
+
+    prefix.type satisfies 'FEEDBACK';
+    nestedPrefix.value satisfies number;
   });
 });
