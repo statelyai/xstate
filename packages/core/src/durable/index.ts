@@ -35,6 +35,7 @@ import type {
   OutputFrom,
   Snapshot,
   SnapshotFrom,
+  Subscription,
   TimerKey
 } from '../types.ts';
 import { matchesTimerKey } from '../timerKey.ts';
@@ -307,6 +308,11 @@ export interface DurableExecutionOptions {
    * physics.
    */
   inspect?: (inspectionEvent: InspectionEvent) => void;
+  /**
+   * Whether `inspect` has observers. When given, it is checked at each
+   * transition and `inspect` is attached only while it returns `true`.
+   */
+  isInspected?: () => boolean;
 }
 
 /** @experimental */
@@ -606,6 +612,18 @@ export function createDurable<TLogic extends AnyActorLogic>(
   }
 
   const inspect = options?.inspect;
+  let activeInspect: typeof inspect;
+  const inspectedSystems = new Map<AnyActor['system'], Subscription>();
+  function updateInspection(): void {
+    activeInspect = (options?.isInspected?.() ?? true) ? inspect : undefined;
+    if (!activeInspect) {
+      for (const subscription of inspectedSystems.values()) {
+        subscription.unsubscribe();
+      }
+      inspectedSystems.clear();
+    }
+  }
+  updateInspection();
 
   // Attaches the execution's inspector to a system that does not have it
   // yet. Systems constructed inside a transition get it at construction (the
@@ -614,8 +632,8 @@ export function createDurable<TLogic extends AnyActorLogic>(
   // system. Observer presence doubles as the dedup check: this execution is
   // the only thing attaching observers to its systems.
   function wireInspection(system: AnyActor['system']): void {
-    if (inspect && !system._hasInspectionObservers?.()) {
-      system.inspect(inspect);
+    if (activeInspect && !system._hasInspectionObservers?.()) {
+      inspectedSystems.set(system, system.inspect(activeInspect));
     }
   }
 
@@ -633,7 +651,7 @@ export function createDurable<TLogic extends AnyActorLogic>(
         observedRoots.add(root);
       }
     }
-    if (wrappedSystemRuntime || inspect) {
+    if (wrappedSystemRuntime || activeInspect) {
       const ref = getSnapshotActorRef(snapshot as Snapshot<unknown>)?.actor;
       const systems = new Set<AnyActor['system']>();
       const visit = (actor: AnyActor) => {
@@ -691,7 +709,7 @@ export function createDurable<TLogic extends AnyActorLogic>(
       ) {
         throw new Error('restore() requires a fresh durable execution');
       }
-      const { snapshot, scope } = withSystemInspector(inspect, () =>
+      const { snapshot, scope } = withSystemInspector(activeInspect, () =>
         withExecutionIdentity(executionIdentity, () => {
           const scope = createInertActorScope(logic);
           const snapshot = logic.restoreSnapshot
@@ -745,7 +763,7 @@ export function createDurable<TLogic extends AnyActorLogic>(
           'initialTransition() cannot initialize a restored execution'
         );
       }
-      const [snapshot, effects] = withSystemInspector(inspect, () =>
+      const [snapshot, effects] = withSystemInspector(activeInspect, () =>
         withExecutionIdentity(executionIdentity, () =>
           initialTransition(logic, ...args)
         )
@@ -753,7 +771,13 @@ export function createDurable<TLogic extends AnyActorLogic>(
       return [installSystemRuntime(snapshot), tagEffects(effects)];
     },
     transition(snapshot, event) {
-      const [nextSnapshot, effects] = withSystemInspector(inspect, () =>
+      const wasInspected = !!activeInspect;
+      updateInspection();
+      if (activeInspect && !wasInspected) {
+        // Wires a snapshot made while not inspected, so this step is observed.
+        installSystemRuntime(snapshot);
+      }
+      const [nextSnapshot, effects] = withSystemInspector(activeInspect, () =>
         withExecutionIdentity(executionIdentity, () =>
           transition(logic, snapshot, event)
         )

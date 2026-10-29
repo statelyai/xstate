@@ -138,6 +138,8 @@ export function createSnapshotSystem(
       actorRef: AnyActor,
       event: Parameters<AnyActor['system']['_notifyEmitted']>[1]
     ) => baseSystem._notifyEmitted(actorRef, event),
+    inspect: (observer: Parameters<AnyActor['system']['inspect']>[0]) =>
+      baseSystem.inspect(observer),
     // Pure transition resolution must not leak topology inspection events
     // into a live runtime system — planning branches stay silent. The one
     // exception is a durable execution's own transitions (marked by the

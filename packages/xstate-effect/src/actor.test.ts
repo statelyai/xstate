@@ -458,6 +458,14 @@ describe('inspect', () => {
     expect(events.map((event) => event.type)).toEqual(['@xstate.transition']);
     expect(events[0]).toMatchObject({ event: { type: 'INCREMENT' } });
   });
+
+  it('builds no inspection events without a subscriber', async () => {
+    const actor = await runScoped(createEffectActor(counterMachine));
+    actor.send({ type: 'INCREMENT' });
+    await until(() => actor.getSnapshot().context.count === 1);
+
+    expect(actor.system._hasInspectionObservers?.()).toBe(false);
+  });
 });
 
 describe('original Effect Causes', () => {
