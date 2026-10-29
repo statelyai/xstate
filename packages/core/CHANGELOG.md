@@ -1,5 +1,41 @@
 # xstate
 
+## 6.0.0-alpha.71
+
+### Minor Changes
+
+- 749955a: Observe emitted events from every actor in a system with `createSystem({ onEmitted })`. The callback receives the source actor and original event, including emissions from invoked and spawned children.
+  
+  ```ts
+  const system = createSystem({
+    onEmitted: ({ actorRef, event }) => {
+      analytics.track(`${actorRef.id}.${event.type}`, event);
+    }
+  });
+  
+  const root = system.createActor(applicationMachine);
+  root.start();
+  ```
+  
+  Use `system.onEmitted(listener)` for a subscription you can remove with `.unsubscribe()`. Existing `actor.on(...)` handlers continue to observe only that actor's emissions.
+- 2cac9ae: Keep model traversal paths distinct when state inputs or remembered history differ, and fix published declarations for consumers using exact optional properties with library checking enabled.
+  
+  Directed graphs now include static eventless transitions and report function-based destinations that cannot be extracted. The experimental `getMachineSerializationDiagnostics(machine)` helper identifies values that need runtime bindings or cannot be preserved by machine JSON, including omitted `undefined` object properties and array entries.
+  
+  Add JSON CLI commands for version-matched documentation, inspection, definition validation, effect-free simulation, bounded state assertions, counterexample replay, and structural diffs. Run `npx xstate docs --json` to find the installed agent guide and API stability manifest. The data-only CLI refuses code expressions and does not execute external effects or claim formal proofs.
+
+### Patch Changes
+
+- 2672ea8: Preserve the context of previously captured machine snapshots when entry functions return context patches.
+- 29ead0b: Clarify how imported SCXML machines differ from native XState v6 machines, including transition domains, event matching, error handling, and the supported execution profile.
+  
+  Fix SCXML executable content ordering: all state exits finish before selected transition content runs, and all transition content finishes before state entry. Scripts can mutate declared arrays and plain objects while preserving previous snapshots.
+- 0cd2e26: Reject malformed persisted state values, children, and timers consistently during snapshot parsing and restoration. Invalid snapshots now produce an `InvalidSnapshotError` instead of an incidental `TypeError` or plain `Error`.
+  
+  Report unhandled public `xstate.*` events through `onUnhandledEvent` and development warnings, including obsolete suffixed lifecycle names such as `xstate.done.actor.save`.
+  
+  Reject the removed `parent` option passed to `createActor` with migration guidance. Create child actors through `invoke`, `spawn`, or `enq.spawn`.
+
 ## 6.0.0-alpha.70
 
 ### Major Changes

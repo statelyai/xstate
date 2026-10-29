@@ -1,5 +1,69 @@
 # @xstate/effect
 
+## 1.0.0-alpha.10
+
+### Minor Changes
+
+- a99e096: Preserve complete Effect Causes in task, stream and hosted action failures. Error snapshots and invoked child `onError` events now carry `EffectFailure<E>`; inspect `error.cause` instead of reading domain error properties directly. `join` and result atoms preserve typed failures, defects and interruption.
+  
+  Add `createSnapshotCodec(machine, schema)` for validated JSON persistence with explicit rich-value schemas and existing machine migrations. Add `sendAndAwait` from `@xstate/effect/test` to acknowledge a specific mailbox event, including ignored events, and integrate with async `@xstate/test` SUT sessions.
+  
+  Expose the `state` atom only for machine logic. Update Effect 4 compatibility and installation guidance.
+  
+  ```ts
+  const snapshot = yield* sendAndAwait(actor, event);
+  const json = yield* codec.encode(actor.getPersistedSnapshot());
+  const restored = yield* codec.decode(json);
+  ```
+- 70c5866: Add the compiled `@xstate/effect/oxlint` plugin. Enable `xstate-effect/no-inline-effect` to catch discarded inline Effects and unsupported inline spawned Effect logic without copying a rule from the repository.
+  
+  `@xstate/effect` keeps zero direct runtime dependencies. Install the optional lint tools as development dependencies before enabling the plugin:
+  
+  ```sh
+  npm install --save-dev oxlint@^1.76.0 @oxlint/plugins@^1.76.0
+  ```
+  
+  ```json
+  {
+    "jsPlugins": ["@xstate/effect/oxlint"],
+    "rules": {
+      "xstate-effect/no-inline-effect": "error"
+    }
+  }
+  ```
+
+### Patch Changes
+
+- 1db8c66: Interrupting the fiber that owns an actor created with `createEffectActor` now waits for the finalizers of Effects invoked by that actor, even when the owner is interrupted immediately after the invoked Effect starts.
+- 58b0f81: Exported `setupEffect(...)` results and machines created from them now emit portable declarations. Previously, `declaration: true` builds failed with TS4023 or TS2883 when exporting them without a type annotation.
+  
+  ```ts
+  export const machine = setupEffect({
+    actions: { audit: (_args) => Effect.void }
+  }).createMachine({});
+  ```
+- 87a6d33: Infer declared Effect action arguments from setup schemas, including decoded context types, public and internal events, and merged extension schemas. Actions without context schemas receive `unknown` context values instead of implicit `any`.
+  
+  Declare custom action arguments with `schemas.actions.<name>.params`. This schema describes the whole first argument. Include the owning `self` when enqueueing the action:
+  
+  ```ts
+  const machine = setupEffect({
+    schemas: {
+      actions: {
+        audit: { params: Schema.Struct({ message: Schema.String }) }
+      }
+    },
+    actions: {
+      audit: ({ message }) => Effect.log(message)
+    }
+  }).createMachine({
+    on: {
+      SAVE: (args, enq) =>
+        enq(args.actions.audit, { self: args.self, message: 'saved' })
+    }
+  });
+  ```
+
 ## 1.0.0-alpha.9
 
 ### Major Changes
