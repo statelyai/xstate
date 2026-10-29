@@ -26,7 +26,7 @@ type NormalizeAssertedDescriptor<TDescriptor extends string> =
   TDescriptor extends '*'
     ? string
     : TDescriptor extends `${infer TLeading}.*`
-      ? `${TLeading}.${string}`
+      ? TLeading | `${TLeading}.${string}`
       : TDescriptor;
 
 type AssertedEvent<TEvent extends EventObject, TDescriptor extends string> =
@@ -45,6 +45,8 @@ type AssertedEvent<TEvent extends EventObject, TDescriptor extends string> =
 /**
  * Asserts that the given event object is of the specified type or types. Throws
  * an error if the event object is not of the specified types.
+ * Partial wildcard descriptors such as `feedback.*` match both `feedback` and
+ * its descendants, such as `feedback.good`.
  *
  * @example
  *
