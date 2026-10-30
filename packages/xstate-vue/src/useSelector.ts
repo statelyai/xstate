@@ -50,7 +50,8 @@ export function useSelector<
       onCleanup(() => sub.unsubscribe());
     },
     {
-      immediate: true
+      immediate: true,
+      flush: 'sync'
     }
   );
 
