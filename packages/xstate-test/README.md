@@ -1329,12 +1329,15 @@ adapter without shrinking.
 
 ### Exports
 
-The fast-check-backed entry points and helpers:
+<!-- Public exports from src/index.ts. -->
+
+The package exports these entry points and helpers:
 
 | Export | Description |
 | --- | --- |
 | `propertyTest(source, options)` | Runs a random-sequence campaign. Resolves with `{ coverage }`. |
 | `testPaths(source, options?)` | Runs generated paths. Resolves with `{ coverage, results }`. |
+| `createSourceCoverageSession(machine, control, options)` | Experimental execution sessions for instrumented source coverage. Requires the instrumented module's file-local `control` and an exact `options.runtimeId`. See [source-backed transition coverage](https://github.com/statelyai/xstate/blob/next/docs/model-based-testing.md#source-backed-transition-coverage). |
 | `generateTestSuite(source, options)` | Records an offline suite from a passing campaign. |
 | `pick(select, toPayload?)` | An event case that picks its payload from the current snapshot, with a fast-check index. |
 | `createTestFailureStore(options?)` | The file-system store behind the `failures` option. |
@@ -1345,6 +1348,9 @@ The fast-check-backed entry points and helpers:
 | `mergeEventGenerators(derived, explicit)` | Merges two `events` maps; explicit entries win. |
 | `withScheduledSut(sut)`, `withScheduledReference(reference)` | Route async boundaries through the run's scheduler. |
 | `getCurrentScheduler()` | The running `fc.Scheduler`, or `undefined`. |
+
+The source coverage adapter also exports the types `SourceCoverageControl`,
+`SourceCoverageSessionStep` and `SourceCoverageSessionOptions`.
 
 `propertyTest()`, `testPaths()`, and `generateTestSuite()` take fast-check
 options at the top level, derive events from schemas, and accept
