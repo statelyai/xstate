@@ -89,6 +89,21 @@ describe('verify (child processes)', { timeout: 60_000 }, () => {
     expect(report.status).toBe('equivalent');
   });
 
+  it('final-output: top-level final output is an intentional delta', async () => {
+    const report = await runVerify({
+      v5: fixture('final-output', 'v5.ts'),
+      file: fixture('final-output', 'v6.ts')
+    });
+    expect(report.error).toBeUndefined();
+    expect(report.status).toBe('equivalent');
+    expect(report.intentional).toBeGreaterThanOrEqual(1);
+    expect(unclassified(report)).toEqual([]);
+    const outputDiff = report.diffs.find((d) => d.field === 'output');
+    expect(outputDiff?.classification).toMatchObject({
+      rule: 'final-state-output'
+    });
+  });
+
   it('reports EXPORT_NOT_FOUND for a module without actor logic', async () => {
     const report = await runVerify({
       v5: fixture('traffic-light', 'v5.ts'),

@@ -50,6 +50,21 @@ describe('normalizeEvent', () => {
     );
   });
 
+  it('drops the v5 default root id "(machine)" from state ids', () => {
+    const s = stats();
+    expect(
+      normalizeEvent({ type: 'xstate.after.10.(machine).nested.wait' }, s)
+    ).toEqual(
+      normalizeEvent(
+        { type: 'xstate.after', delay: 10, stateId: 'nested.wait' },
+        s
+      )
+    );
+    expect(
+      normalizeEvent({ type: 'xstate.done.state.(machine).a' }, s)
+    ).toEqual(normalizeEvent({ type: 'xstate.done.state', stateId: 'a' }, s));
+  });
+
   it('strips sessionId and keeps payloads', () => {
     expect(
       normalizeEvent({ type: 'INC', by: 2, sessionId: 'x' }, stats())

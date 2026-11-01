@@ -289,6 +289,26 @@ on: {
 }
 ```
 
+### Transitions inside parallel regions
+
+A transition whose targets stay inside one region of a parallel state exits
+and reenters that region only. In v5 the same transition, when it reentered
+its source or targeted a child state, exited the whole parallel state and
+reset every sibling region to its initial state. v6 leaves the siblings where
+they are. A transition declared on a sibling region for the same event still
+runs, because the two exit sets no longer overlap.
+
+```ts
+// Parallel state `p` with regions `a` and `b`.
+// Event `t`: `a` reenters itself; `b.b1` moves to `b.b2`.
+// v5 after `t`: { a: 'a1', b: 'b1' } — `b` was reset when `p` was exited.
+// v6 after `t`: { a: 'a1', b: 'b2' } — only `a` was exited.
+```
+
+Reset the sibling regions explicitly if the v5 behavior was intended: target
+the parallel state itself, or list a target in every region.
+`@xstate/scxml` keeps the SCXML exit semantics for SCXML sources.
+
 ---
 
 ## 2. Guards
@@ -1053,6 +1073,11 @@ Transition arrays are not accepted by the authoring APIs. Use a single
 transition function to select among targets. Serialized transition arrays are
 still accepted by `machineFromJSON(...)`.
 
+A chain of eventless transitions that never settles ends the actor in v6. The
+actor processes at most 1000 microsteps per event and then fails with
+`InfiniteTransitionError`, so `snapshot.status` is `'error'`. v5 ran such a
+loop until the process ran out of memory.
+
 ---
 
 ## 16. Removed top-level exports
@@ -1590,6 +1615,7 @@ It runs these transforms in order. `--transform name,name` selects a subset.
 | `types-to-schemas`    | Converts `types: {} as { ... }` to `schemas` with `types<T>()` entries. Events become a map only when they are written as an inline union literal.                                                                                                                         |
 | `report-removed-apis` | Reports, without rewriting, uses of `assign`, `raise`, `sendTo`, `sendParent`, `forwardTo`, `emit`, `log`, `cancel`, `spawnChild`, `stop`, `stopChild`, `enqueueActions`, `and`, `or`, `not`, `stateIn`, `fromPromise`, `fromTransition`, `toObserver`, `pathToStateValue`, and `SpecialTargets`, with a suggested replacement. |
 | `report-id-path-targets` | Reports, without rewriting, `#a.b` targets and `matches('#a.b')` or `stateIn('#a.b')` arguments that are not whole state ids of the machine config that contains them. References outside a `createMachine` or `createStateConfig` config are always reported. v6 resolves `#` targets by exact id only. |
+| `report-suffixed-lifecycle-events` | Reports, without rewriting, `on` keys that use suffixed v5 lifecycle event types: `xstate.done.state.<id>`, `xstate.done.actor.<id>`, `xstate.error.actor.<id>`, and `xstate.after.<delay>.<id>`. v6 raises the category type with the id in a payload field, so these transitions never fire (see [Internal lifecycle events](#internal-lifecycle-events)). |
 
 `string-targets` wraps string elements inside transition arrays but keeps the arrays. The v6 `createMachine` types reject transition arrays in `on` and `always` (for example, `on: { X: [ … ] }`), and no transform reports them. Find them by hand and replace each with one transition function (§15, §16).
 
@@ -1695,6 +1721,7 @@ A diff that matches a known v6 change is classified with a rule instead of `uncl
 | `error-string-shape` | Error strings with the same message after the prefix is removed. |
 | `context-reference` | `context` that is equal after removing actor-reference keys (`$actor`). |
 | `done-event-session` | Processed events that are equal after dropping `sessionId`. |
+| `final-state-output` | `output` that is undefined in v5 and set in v6, because v6 uses a top-level final state's `output` when the root has none (see [Machine output](#machine-output)). |
 
 Fix the v6 code for each unclassified diff. Do not edit the baseline.
 
@@ -1705,6 +1732,8 @@ Fix the v6 code for each unclassified diff. Do not edit the baseline.
 - `actions` are not compared unless `--compare +actions` is passed. v6 records an `emit` as an action named after the emitted event, so `+actions` reports a diff on every emitting step.
 - Random walks advance the simulated clock to the next pending timer only. The v6 clock also fires timers scheduled during a jump and the v5 clock does not, so a longer jump would diverge on clock behavior alone.
 - An equivalent result covers the generated sequences only. Behavior that needs an event payload or actor outcome missing from the events and stubs files is not exercised.
+- A transition that reenters its own parallel region reports a `value` diff that is not classified. v5 reset the sibling regions and v6 leaves them in place (see "Transitions inside parallel regions"). Confirm that the v6 value is the intended one, or add explicit targets for the siblings.
+- A machine whose eventless transitions never settle makes `baseline` fail with `CHILD_CRASH` and an out-of-memory message, because v5 has no microstep limit. v6 ends the actor with `InfiniteTransitionError` instead. Fix the loop in the v5 machine before recording a baseline.
 
 ### Running v5 and v6 side by side
 

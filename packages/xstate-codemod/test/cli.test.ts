@@ -34,6 +34,35 @@ function runCli(argv: string[]): { code: number; stdout: string } {
 }
 
 describe('cli', () => {
+  it('exits 2 for sites from every report transform', () => {
+    writeFileSync(
+      join(dir, 'done.ts'),
+      `import { createMachine } from 'xstate';
+export const m = createMachine({
+  initial: 'a',
+  states: {
+    a: { on: { 'xstate.done.state.a': { target: 'b' } } },
+    b: {}
+  }
+});
+`
+    );
+    const { code, stdout } = runCli([
+      'migrate',
+      join(dir, 'done.ts'),
+      '--dry',
+      '--json'
+    ]);
+    expect(code).toBe(2);
+    expect(JSON.parse(stdout).manualSites).toEqual([
+      expect.objectContaining({
+        transform: 'report-suffixed-lifecycle-events',
+        api: 'xstate.done.state.a',
+        line: 5
+      })
+    ]);
+  });
+
   it('prints one JSON document and exits 2 when manual migration is needed', () => {
     const { code, stdout } = runCli([
       'migrate',

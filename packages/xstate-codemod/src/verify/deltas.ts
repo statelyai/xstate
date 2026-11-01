@@ -89,5 +89,12 @@ export const INTENTIONAL_DELTAS: DeltaRule[] = [
         ),
         mapDeep(actual, (key, item) => (key === 'sessionId' ? undefined : item))
       )
+  },
+  {
+    rule: 'final-state-output',
+    section: '§3',
+    note: "v6 promotes a top-level final state's output to snapshot.output when the root has none; v5 left it undefined",
+    matches: (field, expected, actual) =>
+      field === 'output' && expected === undefined && actual !== undefined
   }
 ];

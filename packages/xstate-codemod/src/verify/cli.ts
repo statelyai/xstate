@@ -106,12 +106,17 @@ export async function verifyCli(argv: string[]): Promise<number> {
         'max-sequences': { type: 'string' },
         compare: { type: 'string' },
         timeout: { type: 'string' },
-        json: { type: 'boolean' }
+        json: { type: 'boolean' },
+        help: { type: 'boolean', short: 'h' }
       }
     });
   } catch (err) {
     process.stderr.write(`${(err as Error).message}\n${USAGE}`);
     return 1;
+  }
+  if (parsed.values.help) {
+    process.stdout.write(USAGE);
+    return 0;
   }
   const { values, positionals } = parsed;
   const int = (value: string | undefined) =>

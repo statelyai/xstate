@@ -6,10 +6,8 @@ import {
 } from './transforms/index.ts';
 
 /** Report-only transforms whose notes list manual migration steps. */
-const REPORT_TRANSFORMS = new Set([
-  'report-removed-apis',
-  'report-id-path-targets'
-]);
+/** Report-only transforms never rewrite; their notes and sites need manual work. */
+const isReportTransform = (name: string) => name.startsWith('report-');
 
 export interface FileTransformReport {
   filePath: string;
@@ -123,7 +121,7 @@ export function run(
     const report = applyToSourceFile(sourceFile, transforms);
 
     for (const pt of report.perTransform) {
-      if (REPORT_TRANSFORMS.has(pt.transform)) {
+      if (isReportTransform(pt.transform)) {
         manualMigrationNotes.push(...pt.notes);
         for (const site of pt.sites) {
           manualSites.push({ ...site, transform: pt.transform });

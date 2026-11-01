@@ -85,10 +85,15 @@ export async function runChild(
           message: `child timed out after ${timeout}ms`
         };
       } else if (at === -1) {
+        // Node prints the fatal reason (e.g. heap out of memory) before the
+        // native stack, so the first such line is the useful one.
+        const fatal = stderr
+          .split('\n')
+          .find((line) => /FATAL ERROR|^\w*Error:/.test(line));
         result = {
           ok: false,
           code: 'CHILD_CRASH',
-          message: `child exited with code ${code} without a result`
+          message: `child exited with code ${code} without a result${fatal ? `: ${fatal.trim()}` : ''}`
         };
       } else {
         result = JSON.parse(stdout.slice(at + RESULT_MARKER.length));

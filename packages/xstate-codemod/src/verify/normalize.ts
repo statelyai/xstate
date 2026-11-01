@@ -7,6 +7,15 @@ export function normalizeId(id: string): string {
   return ANON_ID.test(id) ? '(anon)' : id;
 }
 
+/**
+ * v5 gives an id-less machine the root id `(machine)` and prefixes every
+ * implicit state id with it; v6 leaves the prefix out.
+ */
+export function normalizeStateId(id: string): string {
+  if (id === '(machine)') return '';
+  return id.startsWith('(machine).') ? id.slice('(machine).'.length) : id;
+}
+
 function isActorRef(value: any): boolean {
   return (
     typeof value.send === 'function' &&
@@ -105,7 +114,7 @@ export function normalizeEvent(event: any, stats: Stats): NormalizedEvent {
     type === 'xstate.done.state' ||
     (match = /^xstate\.done\.state\.(.+)$/.exec(type))
   ) {
-    const stateId = rest.stateId ?? match![1];
+    const stateId = normalizeStateId(rest.stateId ?? match![1]);
     return withOutput(
       { type: 'xstate.done.state', stateId },
       rest.output,
@@ -113,14 +122,14 @@ export function normalizeEvent(event: any, stats: Stats): NormalizedEvent {
     );
   }
   if (type === 'xstate.after') {
-    return { type, delay: rest.delay, stateId: rest.stateId };
+    return { type, delay: rest.delay, stateId: normalizeStateId(rest.stateId) };
   }
   if ((match = /^xstate\.after\.([^.]+)\.(.+)$/.exec(type))) {
     const delay = Number(match[1]);
     return {
       type: 'xstate.after',
       delay: Number.isFinite(delay) ? delay : match[1],
-      stateId: match[2]
+      stateId: normalizeStateId(match[2])
     };
   }
   return { type, ...(toJson(rest, stats) as object) };

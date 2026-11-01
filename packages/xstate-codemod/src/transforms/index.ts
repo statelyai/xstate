@@ -4,6 +4,7 @@ import { stringTargets } from './string-targets.ts';
 import { typesToSchemas } from './types-to-schemas.ts';
 import { reportRemovedApis } from './report-removed-apis.ts';
 import { reportIdPathTargets } from './report-id-path-targets.ts';
+import { reportSuffixedLifecycleEvents } from './report-suffixed-lifecycle-events.ts';
 
 /** All transforms, in recommended application order. */
 export const transforms: Transform[] = [
@@ -11,7 +12,8 @@ export const transforms: Transform[] = [
   stringTargets,
   typesToSchemas,
   reportRemovedApis,
-  reportIdPathTargets
+  reportIdPathTargets,
+  reportSuffixedLifecycleEvents
 ];
 
 export const transformsByName: Record<string, Transform> = Object.fromEntries(
@@ -23,5 +25,6 @@ export {
   stringTargets,
   typesToSchemas,
   reportRemovedApis,
-  reportIdPathTargets
+  reportIdPathTargets,
+  reportSuffixedLifecycleEvents
 };
