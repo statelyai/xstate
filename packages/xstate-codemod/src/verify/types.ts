@@ -58,6 +58,8 @@ export interface Baseline {
   traces: Trace[];
   unstubbed: string[];
   eventsWithoutCases: string[];
+  /** Graph origins or events dropped because a guard threw while generating. */
+  generationErrors: string[];
   nonSerializable: number;
 }
 
@@ -81,6 +83,7 @@ export type ChildResult =
       traces: Trace[];
       unstubbed: string[];
       eventsWithoutCases: string[];
+      generationErrors?: string[];
       nonSerializable: number;
     }
   | { ok: false; code: string; message: string; stack?: string };
@@ -110,6 +113,7 @@ export interface VerifyReport {
   intentional: number;
   unstubbed: string[];
   eventsWithoutCases: string[];
+  generationErrors: string[];
   nonSerializable: number;
   notes: string[];
   error?: {

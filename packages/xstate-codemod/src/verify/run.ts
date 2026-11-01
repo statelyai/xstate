@@ -155,6 +155,7 @@ export async function runBaseline(options: BaselineOptions): Promise<Baseline> {
     traces: result.traces,
     unstubbed: result.unstubbed,
     eventsWithoutCases: result.eventsWithoutCases,
+    generationErrors: result.generationErrors ?? [],
     nonSerializable: result.nonSerializable
   };
 }
@@ -191,6 +192,7 @@ export async function runVerify(options: VerifyOptions): Promise<VerifyReport> {
     intentional: 0,
     unstubbed: [],
     eventsWithoutCases: [],
+    generationErrors: [],
     nonSerializable: 0,
     notes: []
   };
@@ -225,6 +227,7 @@ export async function runVerify(options: VerifyOptions): Promise<VerifyReport> {
   };
   report.sequences = baseline.sequences.length;
   report.eventsWithoutCases = baseline.eventsWithoutCases;
+  report.generationErrors = baseline.generationErrors ?? [];
 
   const { result, stderr } = await runChild(
     6,

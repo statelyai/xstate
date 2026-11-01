@@ -1670,7 +1670,7 @@ Events are sent as `{ type }` unless an events file supplies payloads. Pass `--e
 { "ADD_ITEM": [{ "type": "ADD_ITEM", "sku": "A1" }, { "type": "ADD_ITEM", "sku": "B2" }] }
 ```
 
-Event types without cases are listed in the report under `eventsWithoutCases`.
+Event types without cases are listed in the report under `eventsWithoutCases`. When a guard throws because an event has no payload, the graph traversal that hit it is dropped and the event is left out of the random walks that reach it; each such case is listed under `generationErrors`. Add payload cases for those events to cover the transitions behind them.
 
 #### Trace
 

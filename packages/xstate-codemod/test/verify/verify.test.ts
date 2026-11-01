@@ -89,6 +89,22 @@ describe('verify (child processes)', { timeout: 60_000 }, () => {
     expect(report.status).toBe('equivalent');
   });
 
+  it('payload-guard: a guard that throws without a payload is reported, not fatal', async () => {
+    const baseline = await runBaseline({
+      file: fixture('payload-guard', 'v5.ts')
+    });
+    expect(baseline.generationErrors.length).toBeGreaterThan(0);
+    expect(baseline.generationErrors.join('\n')).toMatch(/PICK|paths skipped/);
+    expect(baseline.sequences.length).toBeGreaterThan(0);
+    const report = await runVerify({
+      v5: fixture('payload-guard', 'v5.ts'),
+      file: fixture('payload-guard', 'v6.ts')
+    });
+    expect(report.error).toBeUndefined();
+    expect(report.status).toBe('equivalent');
+    expect(report.generationErrors).toEqual(baseline.generationErrors);
+  });
+
   it('final-output: top-level final output is an intentional delta', async () => {
     const report = await runVerify({
       v5: fixture('final-output', 'v5.ts'),

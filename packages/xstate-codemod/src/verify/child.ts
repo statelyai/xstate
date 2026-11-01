@@ -122,17 +122,20 @@ async function runJob(job: ChildJob): Promise<ChildResult> {
 
   let sequences = job.sequences ?? [];
   let eventsWithoutCases: string[] = [];
+  let generationErrors: string[] = [];
   if (job.mode === 'baseline') {
     const graph: any = await import('xstate/graph');
     const candidates = eventCandidates(machine, job.events);
     eventsWithoutCases = candidates.withoutCases;
-    sequences = await generateSequences(
+    const generated = await generateSequences(
       xs,
       graph,
       machine,
       candidates.events,
       job.options
     );
+    sequences = generated.sequences;
+    generationErrors = generated.generationErrors;
   }
 
   const traces: Trace[] = [];
@@ -155,6 +158,7 @@ async function runJob(job: ChildJob): Promise<ChildResult> {
     traces,
     unstubbed: [...unstubbed].sort(),
     eventsWithoutCases,
+    generationErrors,
     nonSerializable: stats.nonSerializable
   };
 }

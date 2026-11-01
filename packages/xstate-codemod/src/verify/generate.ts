@@ -64,16 +64,21 @@ export async function generateSequences(
   machine: any,
   events: EventObject[],
   options: GenerateOptions
-): Promise<Sequence[]> {
+): Promise<{ sequences: Sequence[]; generationErrors: string[] }> {
   const raw: Array<{ origin: Origin; steps: SequenceStep[] }> = [];
+  const generationErrors: string[] = [];
   const fromPaths = (origin: Origin, paths: () => any[]) => {
     let result: any[];
     try {
       result = paths();
     } catch (err) {
-      // Unbounded context makes the state space infinite; random walks still run.
-      if (String(err).includes('Traversal limit exceeded')) return;
-      throw err;
+      // Unbounded context makes the state space infinite, and a guard that
+      // reads a payload the event cases do not supply throws. Either way the
+      // origin is dropped and reported; random walks still run.
+      generationErrors.push(
+        `${origin} paths skipped: ${(err as Error).message ?? String(err)}`
+      );
+      return;
     }
     for (const path of result) {
       raw.push({
@@ -102,7 +107,16 @@ export async function generateSequences(
     ) {
       const snapshot = actor.getSnapshot();
       const candidates: SequenceStep[] = events
-        .filter((event) => snapshot.can(event))
+        .filter((event) => {
+          try {
+            return snapshot.can(event);
+          } catch (err) {
+            // A guard threw on this payload; drop the event for this walk.
+            const note = `event '${event.type}' skipped: guard threw: ${(err as Error).message ?? String(err)}`;
+            if (!generationErrors.includes(note)) generationErrors.push(note);
+            return false;
+          }
+        })
         .map((event) => ({ event }));
       const ms = untilNextTimer(clock);
       if (ms !== undefined) candidates.push({ advance: ms });
@@ -127,5 +141,5 @@ export async function generateSequences(
     if (sequences.length >= options.maxSequences) break;
     sequences.push({ id: `${origin}-${counts[origin]++}`, origin, steps });
   }
-  return sequences;
+  return { sequences, generationErrors };
 }

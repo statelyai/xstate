@@ -67,6 +67,8 @@ function formatReport(report: VerifyReport): string {
     lines.push(
       `  events without cases: ${report.eventsWithoutCases.join(', ')}`
     );
+  for (const error of report.generationErrors)
+    lines.push(`  generation: ${error} (add payload cases with --events)`);
   if (report.nonSerializable)
     lines.push(`  non-serializable values: ${report.nonSerializable}`);
   for (const note of report.notes) lines.push(`  note: ${note}`);
@@ -179,7 +181,12 @@ export async function verifyCli(argv: string[]): Promise<number> {
       );
     else
       process.stdout.write(
-        `baseline: ${baseline.sequences.length} sequences from ${baseline.file} (export ${baseline.export}) → ${out}\n`
+        `baseline: ${baseline.sequences.length} sequences from ${baseline.file} (export ${baseline.export}) → ${out}\n` +
+          baseline.generationErrors
+            .map(
+              (e) => `  generation: ${e} (add payload cases with --events)\n`
+            )
+            .join('')
       );
     return 0;
   }
