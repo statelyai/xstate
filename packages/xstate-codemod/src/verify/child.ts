@@ -69,10 +69,15 @@ async function recordTrace(
   logic: any,
   sequence: Sequence,
   recorder: Recorder,
-  stats: Stats
+  stats: Stats,
+  input: unknown
 ): Promise<Trace> {
   const clock = new xs.SimulatedClock();
-  const actor = xs.createActor(logic, { clock, inspect: recorder.inspect });
+  const actor = xs.createActor(logic, {
+    clock,
+    inspect: recorder.inspect,
+    input
+  });
   recorder.setRoot(actor);
   actor.subscribe({ error: () => {} });
   actor.on('*', recorder.emit);
@@ -132,7 +137,8 @@ async function runJob(job: ChildJob): Promise<ChildResult> {
       graph,
       machine,
       candidates.events,
-      job.options
+      job.options,
+      job.input
     );
     sequences = generated.sequences;
     generationErrors = generated.generationErrors;
@@ -143,7 +149,14 @@ async function runJob(job: ChildJob): Promise<ChildResult> {
   for (const sequence of sequences) {
     const recorder =
       major === 5 ? createRecorder5(stats) : createRecorder6(stats);
-    const trace = await recordTrace(xs, machine, sequence, recorder, stats);
+    const trace = await recordTrace(
+      xs,
+      machine,
+      sequence,
+      recorder,
+      stats,
+      job.input
+    );
     for (const step of trace.steps) {
       for (const child of step.children)
         if (child.src === '(inline)') unstubbed.add(child.id);

@@ -2,7 +2,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { parseArgs } from 'node:util';
 import { DEFAULT_FIELDS } from './diff.ts';
-import { runBaseline, runVerify, VerifyError } from './run.ts';
+import { runBaseline, runVerify, startError, VerifyError } from './run.ts';
 import type { Baseline, SequenceStep, VerifyReport } from './types.ts';
 
 const USAGE = `Usage:
@@ -14,6 +14,7 @@ Options:
   --export <name>        export to load (default: default, else first actor logic)
   --events <file>        event payload cases: { "TYPE": [payload, ...] }
   --stubs <file>         actor/delay stubs: { "actors": {...}, "delays": {...} }
+  --input <file>         JSON passed as createActor(logic, { input })
   --seed <n>             random walk seed (default 1)
   --walks <n>            random walks (default 25)
   --steps <n>            steps per walk (default 12)
@@ -23,6 +24,8 @@ Options:
   --json                 print the JSON report only
 `;
 
+const startLine = (error: string) =>
+  `  start: machine errored at start: ${error} (pass --input if the machine reads input)`;
 const readJson = (file: string) => JSON.parse(readFileSync(file, 'utf8'));
 const show = (value: unknown) => JSON.stringify(value) ?? 'undefined';
 const showStep = (step: SequenceStep) =>
@@ -61,6 +64,7 @@ function formatReport(report: VerifyReport): string {
   lines.push(
     `  sequences: ${report.sequences}, steps compared: ${report.stepsCompared}, unclassified diffs: ${unclassified.length}, intentional: ${report.intentional}`
   );
+  if (report.startError) lines.push(startLine(report.startError));
   if (report.unstubbed.length)
     lines.push(`  unstubbed inline actors: ${report.unstubbed.join(', ')}`);
   if (report.eventsWithoutCases.length)
@@ -84,6 +88,7 @@ function formatReport(report: VerifyReport): string {
     );
     lines.push(`  expected (v5): ${show(diff.expected)}`);
     lines.push(`  actual (v6):   ${show(diff.actual)}`);
+    if (diff.detail) lines.push(`  detail: ${diff.detail}`);
   });
   return lines.join('\n') + '\n';
 }
@@ -102,6 +107,7 @@ export async function verifyCli(argv: string[]): Promise<number> {
         export: { type: 'string' },
         events: { type: 'string' },
         stubs: { type: 'string' },
+        input: { type: 'string' },
         seed: { type: 'string' },
         walks: { type: 'string' },
         steps: { type: 'string' },
@@ -142,10 +148,11 @@ export async function verifyCli(argv: string[]): Promise<number> {
     process.stderr.write(`Numeric options must be integers\n${USAGE}`);
     return 1;
   }
-  let events, stubs;
+  let events, stubs, input;
   try {
     events = values.events ? readJson(values.events) : undefined;
     stubs = values.stubs ? readJson(values.stubs) : undefined;
+    input = values.input ? readJson(values.input) : undefined;
   } catch (err) {
     process.stderr.write(`${(err as Error).message}\n`);
     return 1;
@@ -162,7 +169,8 @@ export async function verifyCli(argv: string[]): Promise<number> {
         ...common,
         file: positionals[0],
         events,
-        stubs
+        stubs,
+        input
       });
     } catch (err) {
       if (!(err instanceof VerifyError)) throw err;
@@ -175,13 +183,19 @@ export async function verifyCli(argv: string[]): Promise<number> {
       values.out ?? join('.xstate-migrate', `${baseline.export}.baseline.json`);
     mkdirSync(dirname(out), { recursive: true });
     writeFileSync(out, JSON.stringify(baseline, null, 2) + '\n');
+    const error = startError(baseline);
     if (values.json)
       process.stdout.write(
-        JSON.stringify({ out, sequences: baseline.sequences.length }) + '\n'
+        JSON.stringify({
+          out,
+          sequences: baseline.sequences.length,
+          startError: error
+        }) + '\n'
       );
     else
       process.stdout.write(
         `baseline: ${baseline.sequences.length} sequences from ${baseline.file} (export ${baseline.export}) → ${out}\n` +
+          (error ? startLine(error) + '\n' : '') +
           baseline.generationErrors
             .map(
               (e) => `  generation: ${e} (add payload cases with --events)\n`
@@ -211,6 +225,7 @@ export async function verifyCli(argv: string[]): Promise<number> {
       file: positionals[expected - 1],
       events,
       stubs,
+      input,
       compare: compareFields(values.compare)
     });
     process.stdout.write(

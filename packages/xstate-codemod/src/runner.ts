@@ -5,8 +5,7 @@ import {
   transformsByName
 } from './transforms/index.ts';
 
-/** Report-only transforms whose notes list manual migration steps. */
-/** Report-only transforms never rewrite; their notes and sites need manual work. */
+/** Report-only transforms never rewrite; their notes list manual migration steps. */
 const isReportTransform = (name: string) => name.startsWith('report-');
 
 export interface FileTransformReport {
@@ -26,7 +25,7 @@ export interface RunReport {
   filesChanged: number;
   /** Notes emitted by the report-only transforms (manual-migration section). */
   manualMigrationNotes: string[];
-  /** Structured locations emitted by the report-only transforms. */
+  /** Structured locations that need manual migration, from every transform. */
   manualSites: Array<ManualSite & { transform: string }>;
 }
 
@@ -123,9 +122,10 @@ export function run(
     for (const pt of report.perTransform) {
       if (isReportTransform(pt.transform)) {
         manualMigrationNotes.push(...pt.notes);
-        for (const site of pt.sites) {
-          manualSites.push({ ...site, transform: pt.transform });
-        }
+      }
+      // Any transform may leave code it could not migrate.
+      for (const site of pt.sites) {
+        manualSites.push({ ...site, transform: pt.transform });
       }
     }
 

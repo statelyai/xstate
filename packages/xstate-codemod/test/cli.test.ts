@@ -63,6 +63,34 @@ export const m = createMachine({
     ]);
   });
 
+  it('exits 2 for sites from a rewriting transform', () => {
+    writeFileSync(
+      join(dir, 'types-ref.ts'),
+      `import { createMachine } from 'xstate';
+type MyEvents = { type: 'a' } | { type: 'b' };
+export const m = createMachine({
+  types: {} as { events: MyEvents }
+});
+`
+    );
+    const { code, stdout } = runCli([
+      'migrate',
+      join(dir, 'types-ref.ts'),
+      '--dry',
+      '--json'
+    ]);
+    expect(code).toBe(2);
+    expect(JSON.parse(stdout).manualSites).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          transform: 'types-to-schemas',
+          api: 'types',
+          line: 4
+        })
+      ])
+    );
+  });
+
   it('prints one JSON document and exits 2 when manual migration is needed', () => {
     const { code, stdout } = runCli([
       'migrate',

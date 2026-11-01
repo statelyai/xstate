@@ -2,7 +2,12 @@ import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
-import { runBaseline, runVerify, verifyCli } from '../../src/verify/index.ts';
+import {
+  runBaseline,
+  runVerify,
+  startError,
+  verifyCli
+} from '../../src/verify/index.ts';
 import type {
   EventCases,
   Stubs,
@@ -118,6 +123,60 @@ describe('verify (child processes)', { timeout: 60_000 }, () => {
     expect(outputDiff?.classification).toMatchObject({
       rule: 'final-state-output'
     });
+  });
+
+  it('needs-input: start error without input, equivalent with --input', async () => {
+    const baseline = await runBaseline({
+      file: fixture('needs-input', 'v5.ts')
+    });
+    expect(startError(baseline)).toMatch(/reading 'start'/);
+    const withoutInput = await runVerify({
+      baseline,
+      file: fixture('needs-input', 'v6.ts')
+    });
+    expect(withoutInput.error).toBeUndefined();
+    expect(withoutInput.startError).toBe(startError(baseline));
+
+    const dir = mkdtempSync(join(tmpdir(), 'xstate-verify-'));
+    const stdout = vi.spyOn(process.stdout, 'write').mockReturnValue(true);
+    try {
+      const out = join(dir, 'baseline.json');
+      const input = fixture('needs-input', 'input.json');
+      expect(
+        await verifyCli([
+          'baseline',
+          fixture('needs-input', 'v5.ts'),
+          '--out',
+          out,
+          '--input',
+          input
+        ])
+      ).toBe(0);
+      const recorded = readJson(out);
+      expect(recorded.input).toEqual({ start: 10 });
+      expect(startError(recorded)).toBeUndefined();
+      expect(recorded.sequences.length).toBeGreaterThan(1);
+      expect(
+        await verifyCli([
+          'verify',
+          '--baseline',
+          out,
+          fixture('needs-input', 'v6.ts')
+        ])
+      ).toBe(0);
+      expect(
+        await verifyCli([
+          'verify',
+          fixture('needs-input', 'v5.ts'),
+          fixture('needs-input', 'v6.ts'),
+          '--input',
+          input
+        ])
+      ).toBe(0);
+    } finally {
+      stdout.mockRestore();
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 
   it('reports EXPORT_NOT_FOUND for a module without actor logic', async () => {

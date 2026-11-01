@@ -3,6 +3,7 @@ export { childMain } from './child.ts';
 export {
   runBaseline,
   runVerify,
+  startError,
   VerifyError,
   type BaselineOptions,
   type VerifyOptions

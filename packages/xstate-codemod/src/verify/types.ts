@@ -54,6 +54,8 @@ export interface Baseline {
   options: GenerateOptions;
   events: EventCases;
   stubs: Stubs;
+  /** Passed as `createActor(logic, { input })`. */
+  input?: unknown;
   sequences: Sequence[];
   traces: Trace[];
   unstubbed: string[];
@@ -69,6 +71,7 @@ export interface ChildJob {
   export?: string;
   events: EventCases;
   stubs: Stubs;
+  input?: unknown;
   options: GenerateOptions;
   /** Replay only. */
   sequences?: Sequence[];
@@ -100,6 +103,8 @@ export interface Diff {
   field: string;
   expected: unknown;
   actual: unknown;
+  /** Error message(s) behind a `status` diff where either side errored. */
+  detail?: string;
   classification: Classification;
 }
 
@@ -115,6 +120,8 @@ export interface VerifyReport {
   eventsWithoutCases: string[];
   generationErrors: string[];
   nonSerializable: number;
+  /** The baseline's error at start, if the v5 machine errored there. */
+  startError?: string;
   notes: string[];
   error?: {
     phase: 'baseline' | 'replay';

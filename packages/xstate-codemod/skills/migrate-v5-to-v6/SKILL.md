@@ -19,6 +19,8 @@ Run these steps for one machine file at a time. `<name>` is a short name for the
    `{ "actors": { "fetchUser": { "done": { "id": 1 } } }, "delays": { "RETRY": 100 } }`.
    `delays` sets named delays in milliseconds.
 
+   Add `--input input.json` when the machine reads `input`.
+
 2. Convert the file:
 
    ```bash

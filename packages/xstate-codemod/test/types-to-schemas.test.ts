@@ -51,6 +51,33 @@ createMachine({
     );
   });
 
+  it('reports the leftover `types` key as a manual site when events is a type reference', () => {
+    const input = `import { createMachine } from 'xstate';
+type MyEvents = { type: 'a' } | { type: 'b' };
+createMachine({
+  types: {} as { events: MyEvents }
+});`;
+    const { output, sites } = applyTransform(typesToSchemas, input);
+    expect(output).toContain(
+      'TODO(xstate-codemod): migrate events to schemas.events map'
+    );
+    expect(sites).toEqual([
+      expect.objectContaining({ api: 'types', line: 4, column: 3 })
+    ]);
+  });
+
+  it('positions the site at the preserved `types` key after partial migration', () => {
+    const input = `import { createMachine } from 'xstate';
+type Ev = { type: 'a' } | { type: 'b' };
+createMachine({
+  types: {} as { context: { a: number }; events: Ev }
+});`;
+    const { output, sites } = applyTransform(typesToSchemas, input);
+    expect(sites).toHaveLength(1);
+    const line = output.split('\n')[sites[0].line - 1];
+    expect(line.slice(sites[0].column - 1)).toMatch(/^types: \{\} as/);
+  });
+
   it('leaves `types: {} as any` unchanged with a TODO note', () => {
     const input = `import { createMachine } from 'xstate';
 createMachine({

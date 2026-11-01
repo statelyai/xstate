@@ -53,6 +53,9 @@ export async function runChild(
   timeout = DEFAULT_TIMEOUT
 ): Promise<{ result: ChildResult; stderr: string }> {
   const args = [
+    // Select xstate's `development` export condition so v6 config diagnostics
+    // throw at load with a clear message instead of failing later at runtime.
+    '--conditions=development',
     '--import',
     pathToFileURL(require.resolve('tsx')).href,
     '--import',
@@ -109,7 +112,16 @@ export interface BaselineOptions extends Partial<GenerateOptions> {
   export?: string;
   events?: EventCases;
   stubs?: Stubs;
+  input?: unknown;
   timeout?: number;
+}
+
+/** The error of the first trace's start step, when the machine errored there. */
+export function startError(baseline: Baseline): string | undefined {
+  const start = baseline.traces[0]?.steps[0];
+  return start?.status === 'error'
+    ? (start.error ?? 'unknown error')
+    : undefined;
 }
 
 /** Records a golden trace of a v5 module. Throws {@link VerifyError}. */
@@ -131,6 +143,7 @@ export async function runBaseline(options: BaselineOptions): Promise<Baseline> {
       export: options.export,
       events,
       stubs,
+      input: options.input,
       options: generate
     },
     options.timeout
@@ -151,6 +164,7 @@ export async function runBaseline(options: BaselineOptions): Promise<Baseline> {
     options: generate,
     events,
     stubs,
+    input: options.input,
     sequences: result.sequences,
     traces: result.traces,
     unstubbed: result.unstubbed,
@@ -167,9 +181,10 @@ export interface VerifyOptions extends Partial<GenerateOptions> {
   v5?: string;
   baseline?: Baseline;
   export?: string;
-  /** Override the baseline's recorded cases/stubs. */
+  /** Override the baseline's recorded cases/stubs/input. */
   events?: EventCases;
   stubs?: Stubs;
+  input?: unknown;
   /** Trace fields to compare; defaults to all but `actions`. */
   compare?: string[];
   timeout?: number;
@@ -219,6 +234,8 @@ export async function runVerify(options: VerifyOptions): Promise<VerifyReport> {
       );
     if (options.stubs)
       report.notes.push('--stubs overrides the stubs recorded in the baseline');
+    if (options.input !== undefined)
+      report.notes.push('--input overrides the input recorded in the baseline');
   }
   report.v5 = {
     file: baseline.file,
@@ -228,6 +245,7 @@ export async function runVerify(options: VerifyOptions): Promise<VerifyReport> {
   report.sequences = baseline.sequences.length;
   report.eventsWithoutCases = baseline.eventsWithoutCases;
   report.generationErrors = baseline.generationErrors ?? [];
+  report.startError = startError(baseline);
 
   const { result, stderr } = await runChild(
     6,
@@ -237,6 +255,7 @@ export async function runVerify(options: VerifyOptions): Promise<VerifyReport> {
       export: options.export,
       events: options.events ?? baseline.events,
       stubs: options.stubs ?? baseline.stubs,
+      input: options.input ?? baseline.input,
       options: baseline.options,
       sequences: baseline.sequences
     },

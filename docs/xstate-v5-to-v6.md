@@ -1612,10 +1612,11 @@ It runs these transforms in order. `--transform name,name` selects a subset.
 | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `rename-imports`      | Renames `interpret` to `createActor`, `Interpreter` to `Actor`, and `fromCallback`, `fromObservable`, and `fromEventObservable` to their `create*Logic` names, and the executable action types to their executable effect names, including usages. Import aliases are kept.                                                                  |
 | `string-targets`      | Wraps bare string transition values under `on`, `after`, `onDone`, `onError`, and `always` in `{ target: '...' }` inside `createMachine` and `createStateConfig` configs.                                                                                                   |
-| `types-to-schemas`    | Converts `types: {} as { ... }` to `schemas` with `types<T>()` entries. Events become a map only when they are written as an inline union literal.                                                                                                                         |
+| `types-to-schemas`    | Converts `types: {} as { ... }` to `schemas` with `types<T>()` entries. Events become a map only when they are written as an inline union literal. When a member cannot be migrated, the leftover `types` key is reported as a manual site.                                                                                                                         |
 | `report-removed-apis` | Reports, without rewriting, uses of `assign`, `raise`, `sendTo`, `sendParent`, `forwardTo`, `emit`, `log`, `cancel`, `spawnChild`, `stop`, `stopChild`, `enqueueActions`, `and`, `or`, `not`, `stateIn`, `fromPromise`, `fromTransition`, `toObserver`, `pathToStateValue`, and `SpecialTargets`, with a suggested replacement. |
 | `report-id-path-targets` | Reports, without rewriting, `#a.b` targets and `matches('#a.b')` or `stateIn('#a.b')` arguments that are not whole state ids of the machine config that contains them. References outside a `createMachine` or `createStateConfig` config are always reported. v6 resolves `#` targets by exact id only. |
 | `report-suffixed-lifecycle-events` | Reports, without rewriting, `on` keys that use suffixed v5 lifecycle event types: `xstate.done.state.<id>`, `xstate.done.actor.<id>`, `xstate.error.actor.<id>`, and `xstate.after.<delay>.<id>`. v6 raises the category type with the id in a payload field, so these transitions never fire (see [Internal lifecycle events](#internal-lifecycle-events)). |
+| `report-action-shapes` | Reports, without rewriting, `entry` and `exit` values that are not functions (strings, arrays, objects, identifiers, or calls such as `assign(...)`), and `actions` on transition objects under `on`, `after`, `always`, `onDone`, `onError`, `onSnapshot`, or an object `initial`. v6 rejects both shapes: `entry` and `exit` take a single function `(args, enq) => { ... }`, and transitions queue effects on `enq` instead of listing `actions`. |
 
 `string-targets` wraps string elements inside transition arrays but keeps the arrays. The v6 `createMachine` types reject transition arrays in `on` and `always` (for example, `on: { X: [ … ] }`), and no transform reports them. Find them by hand and replace each with one transition function (§15, §16).
 
@@ -1685,7 +1686,7 @@ The baseline records, for the state after start and after each step:
 
 Before comparison, events are normalized: suffixed v5 lifecycle event types such as `xstate.done.actor.<id>` become the v6 category types with their `actorId`, `stateId`, or `delay` fields, `xstate.init` is dropped, `sessionId` fields are removed, and generated child ids are replaced by `(anon)`. Functions and symbols in `context` and `output` are replaced by markers and counted under `nonSerializable`.
 
-`verify` compares every field except `actions` by default. `--compare +actions` adds it. Inline v6 actions have no stable type, so `actions` differ after most migrations. For each sequence, the first mismatching field at a step is reported as one diff. An unclassified diff ends that sequence. A classified diff is recorded and the comparison continues, so an intentional difference cannot hide a later one.
+`verify` compares every field except `actions` by default. `--compare +actions` adds it. Inline v6 actions have no stable type, so `actions` differ after most migrations. When both versions end a step with `status: 'error'`, only `status` and `error` are compared for that step, because a v6 errored snapshot has no `value`. For each sequence, the first mismatching field at a step is reported as one diff. An unclassified diff ends that sequence. A classified diff is recorded and the comparison continues, so an intentional difference cannot hide a later one.
 
 #### Stubs
 
@@ -1700,6 +1701,12 @@ Invoked and spawned actors that are referenced by name are replaced by stubs. A 
 
 `done` resolves with the given output, and `error` rejects with the given value. `delays` sets named delays on both versions.
 
+#### Input
+
+Pass `--input input.json` when the machine reads `input`. The file's JSON value is passed as `createActor(logic, { input })` in both versions. `baseline` stores the input in the baseline file, and `verify --baseline` uses it unless `--input` is passed.
+
+When the machine errors at start, `baseline` and `verify` print `start: machine errored at start: <error>`, and `baseline --json` reports the message as `startError`. A machine that builds `context` from `input` errors this way when no input is passed.
+
 #### Results
 
 `verify` exits with one of these codes:
@@ -1711,7 +1718,7 @@ Invoked and spawned actors that are referenced by name are replaced by stubs. A 
 | `3` | Diverged. At least one diff is `unclassified`. |
 | `4` | A module failed to load or run. `error` has the phase (`baseline` or `replay`), a code such as `EXPORT_NOT_FOUND`, and the message. |
 
-The default output is a summary and the first five unclassified diffs. `--json` prints the full report. Each entry in `diffs` has the sequence id, the step, the `field`, the v5 value as `expected`, the v6 value as `actual`, a `witness` (the events and clock advances that reproduce the step), and a `classification`.
+The default output is a summary and the first five unclassified diffs. `--json` prints the full report. Each entry in `diffs` has the sequence id, the step, the `field`, the v5 value as `expected`, the v6 value as `actual`, a `witness` (the events and clock advances that reproduce the step), and a `classification`. A `status` diff where either side errored also has a `detail` with the error message of each errored side.
 
 A diff that matches a known v6 change is classified with a rule instead of `unclassified`:
 

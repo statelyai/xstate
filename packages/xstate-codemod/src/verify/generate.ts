@@ -63,7 +63,8 @@ export async function generateSequences(
   graph: any,
   machine: any,
   events: EventObject[],
-  options: GenerateOptions
+  options: GenerateOptions,
+  input?: unknown
 ): Promise<{ sequences: Sequence[]; generationErrors: string[] }> {
   const raw: Array<{ origin: Origin; steps: SequenceStep[] }> = [];
   const generationErrors: string[] = [];
@@ -89,14 +90,14 @@ export async function generateSequences(
       });
     }
   };
-  const traversal = { events, limit: 1000 };
+  const traversal = { events, limit: 1000, input };
   fromPaths('shortest', () => graph.getShortestPaths(machine, traversal));
   fromPaths('simple', () => graph.getSimplePaths(machine, traversal));
 
   const random = mulberry32(options.seed);
   for (let walk = 0; walk < options.walks; walk++) {
     const clock = new xs.SimulatedClock();
-    const actor = xs.createActor(machine, { clock });
+    const actor = xs.createActor(machine, { clock, input });
     actor.subscribe({ error: () => {} });
     actor.start();
     await flush();

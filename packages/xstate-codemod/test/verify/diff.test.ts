@@ -85,6 +85,41 @@ describe('diffTraces', () => {
   });
 });
 
+describe('diffTraces errored steps', () => {
+  it('compares only status and error when both sides errored', () => {
+    const expected = trace([
+      step({ status: 'error', value: 'a', error: 'Error: boom' })
+    ]);
+    const actual = trace([
+      step({
+        status: 'error',
+        value: undefined,
+        context: {},
+        error: 'Error: boom'
+      })
+    ]);
+    expect(diffTraces([sequence], [expected], [actual]).diffs).toEqual([]);
+    const other = trace([step({ status: 'error', error: 'Error: other' })]);
+    expect(
+      diffTraces([sequence], [expected], [other]).diffs.map((d) => d.field)
+    ).toEqual(['error']);
+  });
+
+  it('adds the error message as detail to a status diff', () => {
+    const expected = trace([step()]);
+    const actual = trace([step({ status: 'error', error: 'Error: boom' })]);
+    const [diff] = diffTraces([sequence], [expected], [actual]).diffs;
+    expect(diff.field).toBe('status');
+    expect(diff.detail).toBe('v6 error: Error: boom');
+    const [reverse] = diffTraces([sequence], [actual], [expected]).diffs;
+    expect(reverse.detail).toBe('v5 error: Error: boom');
+    const done = trace([step({ status: 'done' })]);
+    expect(
+      diffTraces([sequence], [expected], [done]).diffs[0].detail
+    ).toBeUndefined();
+  });
+});
+
 describe('classify', () => {
   it('matches the intentional delta table', () => {
     expect(

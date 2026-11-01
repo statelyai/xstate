@@ -6,7 +6,7 @@ import {
   SyntaxKind,
   TypeNode
 } from 'ts-morph';
-import type { Transform, TransformResult } from '../types.ts';
+import type { ManualSite, Transform, TransformResult } from '../types.ts';
 import { ensureNamedImport, findMachineConfigObjects } from '../util.ts';
 
 /**
@@ -80,6 +80,25 @@ function getKey(prop: PropertyAssignment): string | undefined {
   return undefined;
 }
 
+const LEFTOVER_TYPES_HINT =
+  '`types` was replaced by `schemas`; declare events as a map `schemas: { events: { TYPE: types<Payload>() } }`, or use `types<EventUnion>()` when the union is not inline.';
+
+/** Records a manual site for a `types` property left at `pos`. */
+function pushLeftoverSite(
+  sourceFile: SourceFile,
+  pos: number,
+  sites: ManualSite[]
+): void {
+  const { line, column } = sourceFile.getLineAndColumnAtPos(pos);
+  sites.push({
+    file: sourceFile.getFilePath(),
+    line,
+    column,
+    api: 'types',
+    hint: LEFTOVER_TYPES_HINT
+  });
+}
+
 /**
  * Converts a single `types: {} as { ... }` property into a `schemas: { ... }`
  * property. Mutates the containing config object literal.
@@ -87,12 +106,16 @@ function getKey(prop: PropertyAssignment): string | undefined {
 function convertTypesProperty(
   configObj: ObjectLiteralExpression,
   typesProp: PropertyAssignment,
-  notes: string[]
+  notes: string[],
+  sites: ManualSite[]
 ): boolean {
+  const sourceFile = configObj.getSourceFile();
+  const start = typesProp.getStart();
   const init = typesProp.getInitializerOrThrow();
   const typeNode = getTypesAsTypeNode(init);
 
   if (!typeNode) {
+    pushLeftoverSite(sourceFile, start, sites);
     return false;
   }
 
@@ -101,6 +124,7 @@ function convertTypesProperty(
     notes.push(
       `left 'types' unchanged: initializer is not an inline object type ({} as ${typeNode.getText()})`
     );
+    pushLeftoverSite(sourceFile, start, sites);
     typesProp.replaceWithText(
       `${typesProp.getText()} /* TODO(xstate-codemod): could not migrate 'types' to 'schemas' automatically */`
     );
@@ -145,6 +169,12 @@ function convertTypesProperty(
   }
 
   if (schemaEntries.length === 0) {
+    if (eventsLeftBehind) {
+      typesProp.replaceWithText(
+        `${typesProp.getText()} /* TODO(xstate-codemod): migrate events to schemas.events map */`
+      );
+      pushLeftoverSite(sourceFile, start, sites);
+    }
     return false;
   }
 
@@ -153,6 +183,7 @@ function convertTypesProperty(
     : undefined;
   if (!helper) {
     notes.push("left 'types' unchanged: no xstate runtime import available");
+    pushLeftoverSite(sourceFile, start, sites);
     return false;
   }
 
@@ -169,6 +200,12 @@ function convertTypesProperty(
       ? `types: {} as { ${eventsMember.getText()} } /* TODO(xstate-codemod): migrate events to schemas.events map */`
       : typesProp.getText();
     typesProp.replaceWithText(`${schemasText},\n  ${preservedTypes}`);
+    const leftover = configObj
+      .getProperties()
+      .find((p) => Node.isPropertyAssignment(p) && getKey(p) === 'types');
+    if (leftover) {
+      pushLeftoverSite(sourceFile, leftover.getStart(), sites);
+    }
   } else {
     typesProp.replaceWithText(schemasText);
   }
@@ -191,6 +228,7 @@ export const typesToSchemas: Transform = {
     'Convert `types: {} as {...}` into `schemas: { context: types<C>(), events: { ... }, input: types<I>() }`. Events are converted to a map only when written as a literal inline union.',
   apply(sourceFile: SourceFile): TransformResult {
     const notes: string[] = [];
+    const sites: ManualSite[] = [];
     let changed = false;
 
     for (const configObj of findMachineConfigObjects(sourceFile, [
@@ -200,13 +238,13 @@ export const typesToSchemas: Transform = {
     ])) {
       for (const prop of configObj.getProperties()) {
         if (Node.isPropertyAssignment(prop) && getKey(prop) === 'types') {
-          if (convertTypesProperty(configObj, prop, notes)) {
+          if (convertTypesProperty(configObj, prop, notes, sites)) {
             changed = true;
           }
         }
       }
     }
 
-    return { changed, notes };
+    return { changed, notes, sites };
   }
 };
