@@ -1595,6 +1595,117 @@ It runs these transforms in order. `--transform name,name` selects a subset.
 
 The codemod does not convert action creators or guard combinators. Rewrite each reported `assign`, `raise`, `sendTo`, or other action creator as an inline function by hand (§1, §2). The transforms read and write imports from `'xstate'` only.
 
+### Exit codes and JSON output
+
+`migrate` exits with one of these codes:
+
+| Code | Meaning |
+| --- | --- |
+| `0` | No manual migration is needed. |
+| `1` | Usage error, or the transformed output failed the syntax check and was not written. |
+| `2` | Manual migration is needed. At least one transform reported a site. |
+
+`--json` prints one JSON report to stdout instead of the text summary. `manualSites` lists each reported site:
+
+```json
+{
+  "filesChanged": 1,
+  "files": [{ "filePath": "...", "changed": true, "transforms": [{ "name": "...", "changed": true, "notes": [] }] }],
+  "manualSites": [{ "file": "...", "line": 12, "column": 7, "api": "assign", "hint": "...", "transform": "report-removed-apis" }]
+}
+```
+
+### Check behavior with `baseline` and `verify`
+
+<!-- commands, flags and report fields from packages/xstate-codemod/src/verify/cli.ts, run.ts, diff.ts and deltas.ts -->
+
+`baseline` and `verify` check that a migrated machine behaves like the v5 original. `baseline` loads the v5 module under XState v5, generates event sequences, and records a trace of each one. `verify` loads the migrated module under XState v6, replays the same sequences, and compares the traces step by step. The codemod package includes both XState versions and resolves `'xstate'` imports in the loaded file to the matching one, so the project can have either version installed.
+
+Record the baseline before `migrate` rewrites the file:
+
+```bash
+npx @xstate/codemod baseline src/checkout.ts --out .xstate-migrate/checkout.json
+npx @xstate/codemod migrate src/checkout.ts
+# fix the reported manual sites
+npx @xstate/codemod verify --baseline .xstate-migrate/checkout.json src/checkout.ts
+```
+
+When both versions exist as separate files, `verify v5-file v6-file` records the baseline and replays it in one run.
+
+The loaded module must export the machine. `--export name` selects an export. Otherwise the commands use the `default` export, then the first export that is actor logic.
+
+#### Sequences
+
+Sequences come from the v5 machine's shortest paths, its simple paths, and seeded random walks. Random walks also advance a simulated clock to the next pending timer, so they cover delayed transitions. `--walks` (default `25`), `--steps` (default `12`), and `--seed` (default `1`) control the walks. `--max-sequences` (default `200`) caps the total.
+
+Events are sent as `{ type }` unless an events file supplies payloads. Pass `--events events.json`, an object that maps each event type to a list of payloads:
+
+```json
+{ "ADD_ITEM": [{ "type": "ADD_ITEM", "sku": "A1" }, { "type": "ADD_ITEM", "sku": "B2" }] }
+```
+
+Event types without cases are listed in the report under `eventsWithoutCases`.
+
+#### Trace
+
+The baseline records, for the state after start and after each step:
+
+- `value`, `context`, `status`, `output`, and `error`
+- `processed`: every event the root actor processed during the step, in order, including raised, delayed, and done events
+- `children`: the live child actors, by id and source
+- `sent`: events sent to other actors, with the target id and delay
+- `emitted`: events emitted with `emit`
+- `actions`: custom actions run, by type and params
+
+Before comparison, events are normalized: suffixed v5 lifecycle event types such as `xstate.done.actor.<id>` become the v6 category types with their `actorId`, `stateId`, or `delay` fields, `xstate.init` is dropped, `sessionId` fields are removed, and generated child ids are replaced by `(anon)`. Functions and symbols in `context` and `output` are replaced by markers and counted under `nonSerializable`.
+
+`verify` compares every field except `actions` by default. `--compare +actions` adds it. Inline v6 actions have no stable type, so `actions` differ after most migrations. For each sequence, the first mismatching field at a step is reported as one diff. An unclassified diff ends that sequence. A classified diff is recorded and the comparison continues, so an intentional difference cannot hide a later one.
+
+#### Stubs
+
+Invoked and spawned actors that are referenced by name are replaced by stubs. A stub defaults to `"pending"`, a promise that never settles. Pass `--stubs stubs.json` to script outcomes and delays:
+
+```json
+{
+  "actors": { "fetchUser": { "done": { "id": 1 } }, "saveOrder": { "error": "boom" }, "poll": "pending" },
+  "delays": { "RETRY": 100 }
+}
+```
+
+`done` resolves with the given output, and `error` rejects with the given value. `delays` sets named delays on both versions.
+
+#### Results
+
+`verify` exits with one of these codes:
+
+| Code | Meaning |
+| --- | --- |
+| `0` | Equivalent. Every diff, if any, matched an intentional delta. |
+| `1` | Usage error. |
+| `3` | Diverged. At least one diff is `unclassified`. |
+| `4` | A module failed to load or run. `error` has the phase (`baseline` or `replay`), a code such as `EXPORT_NOT_FOUND`, and the message. |
+
+The default output is a summary and the first five unclassified diffs. `--json` prints the full report. Each entry in `diffs` has the sequence id, the step, the `field`, the v5 value as `expected`, the v6 value as `actual`, a `witness` (the events and clock advances that reproduce the step), and a `classification`.
+
+A diff that matches a known v6 change is classified with a rule instead of `unclassified`:
+
+| Rule | Diff |
+| --- | --- |
+| `anonymous-child-id` | Child or send-target ids that differ only by a generated suffix. |
+| `error-string-shape` | Error strings with the same message after the prefix is removed. |
+| `context-reference` | `context` that is equal after removing actor-reference keys (`$actor`). |
+| `done-event-session` | Processed events that are equal after dropping `sessionId`. |
+
+Fix the v6 code for each unclassified diff. Do not edit the baseline.
+
+#### Limits
+
+- Actor logic written inline in `invoke.src` or `spawn` cannot be stubbed. It runs for real in both versions, and its source is listed under `unstubbed`.
+- Actions run for real. Side effects inside them, such as network requests or writes, happen during `baseline` and `verify`.
+- `actions` are not compared unless `--compare +actions` is passed. v6 records an `emit` as an action named after the emitted event, so `+actions` reports a diff on every emitting step.
+- Random walks advance the simulated clock to the next pending timer only. The v6 clock also fires timers scheduled during a jump and the v5 clock does not, so a longer jump would diverge on clock behavior alone.
+- An equivalent result covers the generated sequences only. Behavior that needs an event payload or actor outcome missing from the events and stubs files is not exercised.
+
 ### Running v5 and v6 side by side
 
 Install v6 under an npm alias next to v5:
@@ -1610,7 +1721,7 @@ import { createMachine as createV5Machine } from 'xstate';
 import { createMachine } from 'xstate-v6';
 ```
 
-Migrate one file at a time: run the codemod on it, finish the manual changes, then change its `'xstate'` imports to `'xstate-v6'`. When no v5 imports remain, remove the alias and install `xstate@alpha` as `xstate`.
+Migrate one file at a time: run the codemod on it, finish the manual changes, then change its `'xstate'` imports to `'xstate-v6'`. `verify` resolves `'xstate'`, `'xstate/*'`, `'xstate-v6'`, and `'xstate-v6/*'` imports in the migrated file to its own XState v6, so it works before or after the import change. When no v5 imports remain, remove the alias and install `xstate@alpha` as `xstate`.
 
 ---
 
@@ -1677,7 +1788,9 @@ The old persisted shapes are not read on restore. Convert or discard alpha snaps
 
 ## Migration checklist
 
+- [ ] Record a behavior baseline for each machine file with `xstate-codemod baseline` (§27)
 - [ ] Run `xstate-codemod migrate --dry`, apply it, and migrate the APIs it reports by hand (§27)
+- [ ] Run `xstate-codemod verify --baseline` on each migrated file and fix every unclassified diff (§27)
 - [ ] Replace every `assign({...})` with an inline function returning a shallow `{ context: {...} }` patch
 - [ ] Replace every `raise`, `sendTo`, `sendParent`, `forwardTo`, `emit`, `log`, `cancel`, `spawnChild`, `stopChild` with the corresponding `enq.*` call
 - [ ] Replace `enqueueActions(...)` with a regular inline `(args, enq) => { ... }` function

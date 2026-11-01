@@ -1,5 +1,5 @@
 import { Project, SourceFile, ts } from 'ts-morph';
-import type { Transform } from './types.ts';
+import type { ManualSite, Transform } from './types.ts';
 import {
   transforms as allTransforms,
   transformsByName
@@ -17,6 +17,7 @@ export interface FileTransformReport {
     transform: string;
     changed: boolean;
     notes: string[];
+    sites: ManualSite[];
   }>;
   changed: boolean;
   newText?: string;
@@ -27,6 +28,8 @@ export interface RunReport {
   filesChanged: number;
   /** Notes emitted by the report-only transforms (manual-migration section). */
   manualMigrationNotes: string[];
+  /** Structured locations emitted by the report-only transforms. */
+  manualSites: Array<ManualSite & { transform: string }>;
 }
 
 /** Resolve a list of transform names to Transform objects. */
@@ -62,7 +65,8 @@ export function applyToSourceFile(
     perTransform.push({
       transform: transform.name,
       changed: result.changed,
-      notes: result.notes
+      notes: result.notes,
+      sites: result.sites ?? []
     });
     if (result.changed) {
       changed = true;
@@ -111,6 +115,7 @@ export function run(
 
   const files: FileTransformReport[] = [];
   const manualMigrationNotes: string[] = [];
+  const manualSites: RunReport['manualSites'] = [];
   let filesChanged = 0;
 
   for (const filePath of filePaths) {
@@ -120,6 +125,9 @@ export function run(
     for (const pt of report.perTransform) {
       if (REPORT_TRANSFORMS.has(pt.transform)) {
         manualMigrationNotes.push(...pt.notes);
+        for (const site of pt.sites) {
+          manualSites.push({ ...site, transform: pt.transform });
+        }
       }
     }
 
@@ -132,5 +140,5 @@ export function run(
     files.push(report);
   }
 
-  return { files, filesChanged, manualMigrationNotes };
+  return { files, filesChanged, manualMigrationNotes, manualSites };
 }

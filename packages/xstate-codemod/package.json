@@ -1,7 +1,7 @@
 {
   "name": "@xstate/codemod",
   "version": "0.1.0-alpha.4",
-  "description": "Codemods for migrating XState source between versions (v5 → v6)",
+  "description": "Codemods for migrating XState source between versions (v5 \u2192 v6)",
   "keywords": [
     "xstate",
     "codemod",
@@ -17,11 +17,13 @@
   },
   "exports": {
     ".": "./dist/xstate-codemod.js",
+    "./skills/*": "./skills/*",
     "./package.json": "./package.json"
   },
   "files": [
     "dist",
-    "bin"
+    "bin",
+    "skills"
   ],
   "repository": {
     "type": "git",
@@ -31,7 +33,10 @@
     "url": "https://github.com/statelyai/xstate/issues"
   },
   "dependencies": {
-    "ts-morph": "^24.0.0"
+    "ts-morph": "^24.0.0",
+    "tsx": "^4.23.13",
+    "xstate": "workspace:^",
+    "xstate5": "npm:xstate@^5.33.0"
   },
   "devDependencies": {
     "vitest": "^3.2.2"

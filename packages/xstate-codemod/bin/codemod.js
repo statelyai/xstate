@@ -1,4 +1,11 @@
 #!/usr/bin/env node
-import { main } from '../dist/xstate-codemod.js';
+import { main, verifyCli } from '../dist/xstate-codemod.js';
 
-process.exit(main(process.argv.slice(2)));
+const argv = process.argv.slice(2);
+const [command] = argv;
+
+process.exit(
+  command === 'baseline' || command === 'verify'
+    ? await verifyCli(argv)
+    : main(argv)
+);

@@ -5,5 +5,7 @@ Run `xstate-codemod migrate [globs...] --dry` to review a v5-to-v6 migration. Om
 
 The transforms rename imports, wrap string targets, convert inline `types` declarations to schemas, report APIs requiring manual migration, and report `#id.path` targets that v6 no longer resolves. `--transform name,name` selects transforms.
 
+`--json` prints a single JSON report to stdout, including a `manualSites` list with the file, line, column, API and hint for each manual migration step. The command exits with `0` when no manual migration is needed, `1` on a usage error or invalid migration output, and `2` when manual migration is needed.
+
 <!-- helper binding and output validation from src/util.ts, src/transforms/types-to-schemas.ts and src/runner.ts -->
 The codemod supports named, namespace and type-only imports. It checks transformed syntax before saving. Run your application's typecheck and tests after migration, and review any reported manual migration steps.

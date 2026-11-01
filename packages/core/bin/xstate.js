@@ -15,11 +15,14 @@ switch (command) {
   case 'diff':
     require('./agent.js')(command, rest);
     break;
-  case 'migrate': {
-    // Delegates to @xstate/codemod (ts-morph based v5 → v6 codemods).
+  case 'migrate':
+  case 'baseline':
+  case 'verify': {
+    // Delegates to @xstate/codemod (ts-morph based v5 → v6 codemods plus the
+    // baseline/verify trace-equivalence loop).
     const result = spawnSync(
       process.platform === 'win32' ? 'npx.cmd' : 'npx',
-      ['-y', '@xstate/codemod', 'migrate', ...rest],
+      ['-y', '@xstate/codemod', command, ...rest],
       { stdio: 'inherit' }
     );
     process.exit(result.status ?? 1);
@@ -41,7 +44,10 @@ switch (command) {
         '  replay <machine> <fixture>  Replay a matching counterexample (JSON)',
         '  diff <before> <after>       Structural definition changes (JSON)',
         '  migrate [globs...] [--dry]   Migrate source files to the current XState version',
-        '                               (delegates to @xstate/codemod)'
+        '                               (delegates to @xstate/codemod)',
+        '  baseline <v5-file>           Record a v5 behavior baseline before migrating',
+        '  verify --baseline <json> <v6-file>',
+        '                               Replay the baseline against the migrated module'
       ].join('\n')
     );
     process.exit(command ? 0 : 1);

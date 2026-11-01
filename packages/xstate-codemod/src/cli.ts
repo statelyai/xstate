@@ -7,6 +7,7 @@ export interface ParsedArgs {
   command: string | undefined;
   globs: string[];
   dry: boolean;
+  json: boolean;
   transformNames: string[] | undefined;
   help: boolean;
 }
@@ -20,6 +21,7 @@ export function parseArgs(argv: string[]): ParsedArgs {
     command: undefined,
     globs: [],
     dry: false,
+    json: false,
     transformNames: undefined,
     help: false
   };
@@ -30,6 +32,8 @@ export function parseArgs(argv: string[]): ParsedArgs {
       parsed.help = true;
     } else if (arg === '--dry') {
       parsed.dry = true;
+    } else if (arg === '--json') {
+      parsed.json = true;
     } else if (arg === '--transform') {
       const value = argv[++i];
       if (value) {
@@ -61,14 +65,25 @@ function printHelp(): void {
       'xstate-codemod — migrate XState source (v5 → v6)',
       '',
       'Usage:',
-      '  xstate-codemod migrate [globs...] [--dry] [--transform <name,name>]',
+      '  xstate-codemod migrate [globs...] [--dry] [--json] [--transform <name,name>]',
+      '  xstate-codemod baseline <v5-file> [--out <path>]',
+      '  xstate-codemod verify --baseline <path> <v6-file>',
+      '  xstate-codemod verify <v5-file> <v6-file>',
+      '',
+      'Run `xstate-codemod verify --help` for the baseline/verify options.',
       '',
       'Options:',
       '  --dry                  Print a summary of changes without writing files',
+      '  --json                 Print one JSON report to stdout instead of text',
       '  --transform <names>    Comma-separated transform names (default: all)',
       '  -h, --help             Show this help',
       '',
       `Default glob: ${DEFAULT_GLOB} (excludes node_modules and dist)`,
+      '',
+      'Exit codes:',
+      '  0  No manual migration needed',
+      '  1  Usage error or invalid migration output',
+      '  2  Manual migration needed',
       '',
       'Transforms:',
       ...names,
@@ -104,7 +119,7 @@ export function main(argv: string[]): number {
 
   if (args.command !== 'migrate') {
     process.stderr.write(
-      `Unknown command '${args.command}'. Did you mean 'migrate'?\n`
+      `Unknown command '${args.command}'. Expected 'migrate', 'baseline' or 'verify'.\n`
     );
     return 1;
   }
@@ -118,12 +133,60 @@ export function main(argv: string[]): number {
   }
 
   const files = resolveFiles(args.globs);
-  if (files.length === 0) {
+  if (files.length === 0 && !args.json) {
     process.stdout.write('No files matched.\n');
     return 0;
   }
 
-  const report = run(files, transforms, { write: !args.dry });
+  let report;
+  try {
+    report = run(files, transforms, { write: !args.dry });
+  } catch (err) {
+    const message = (err as Error).message;
+    if (!message.startsWith('Refusing to write invalid migration output')) {
+      throw err;
+    }
+    if (args.json) {
+      process.stdout.write(
+        `${JSON.stringify({ error: { code: 'INVALID_OUTPUT', message } })}\n`
+      );
+    } else {
+      process.stderr.write(`${message}\n`);
+    }
+    return 1;
+  }
+
+  const exitCode = report.manualSites.length > 0 ? 2 : 0;
+
+  if (args.json) {
+    process.stdout.write(
+      `${JSON.stringify(
+        {
+          filesChanged: report.filesChanged,
+          files: report.files.map((file) => ({
+            filePath: file.filePath,
+            changed: file.changed,
+            transforms: file.perTransform.map((pt) => ({
+              name: pt.transform,
+              changed: pt.changed,
+              notes: pt.notes
+            }))
+          })),
+          manualSites: report.manualSites.map((site) => ({
+            file: site.file,
+            line: site.line,
+            column: site.column,
+            api: site.api,
+            hint: site.hint,
+            transform: site.transform
+          }))
+        },
+        null,
+        2
+      )}\n`
+    );
+    return exitCode;
+  }
 
   // Per-file, per-transform summary.
   for (const file of report.files) {
@@ -160,5 +223,5 @@ export function main(argv: string[]): number {
     } file(s) ${args.dry ? 'would change' : 'changed'}.\n`
   );
 
-  return 0;
+  return exitCode;
 }

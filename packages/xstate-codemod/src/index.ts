@@ -16,3 +16,14 @@ export {
   type FileTransformReport
 } from './runner.ts';
 export { main, parseArgs, resolveFiles } from './cli.ts';
+export {
+  verifyCli,
+  childMain,
+  runBaseline,
+  runVerify,
+  VerifyError,
+  type BaselineOptions,
+  type VerifyOptions,
+  type Baseline,
+  type VerifyReport
+} from './verify/index.ts';
