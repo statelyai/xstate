@@ -88,4 +88,48 @@ const b = createMachine(
     expect(notes).toEqual([]);
     expect(sites).toEqual([]);
   });
+
+  it('reports transition guard and cond keys, including every array element', () => {
+    const input = `import { setup } from 'xstate';
+const machine = setup({}).createMachine({
+  initial: 'idle',
+  states: {
+    idle: {
+      always: [{ guard: 'isDone', target: 'done' }, { target: 'busy' }],
+      on: {
+        GO: [
+          { guard: ({ context }) => context.ok, target: 'busy' },
+          { cond: { type: 'check' }, target: 'done' }
+        ]
+      }
+    },
+    busy: { after: { 100: { cond: 'late', target: 'done' } } },
+    done: {}
+  }
+});`;
+    const { output, sites } = applyTransform(reportActionShapes, input);
+    expect(output).toBe(input);
+    expect(
+      sites.map(({ api, line, column }) => ({ api, line, column }))
+    ).toEqual([
+      { api: 'guard', line: 6, column: 18 },
+      { api: 'guard', line: 9, column: 13 },
+      { api: 'cond', line: 10, column: 13 },
+      { api: 'cond', line: 14, column: 29 }
+    ]);
+    expect(sites[0].hint).toContain('transition `guard` was removed');
+  });
+
+  it('does not report guard keys outside transition objects', () => {
+    const input = `import { setup } from 'xstate';
+const machine = setup({
+  guards: { guard: () => true, cond: () => true }
+}).createMachine({
+  meta: { guard: 'x' },
+  on: { GO: { target: '.a' } },
+  states: { a: { meta: { cond: 'y' } } }
+});`;
+    const { sites } = applyTransform(reportActionShapes, input);
+    expect(sites).toEqual([]);
+  });
 });

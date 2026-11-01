@@ -67,9 +67,9 @@ export const m = createMachine({
     writeFileSync(
       join(dir, 'types-ref.ts'),
       `import { createMachine } from 'xstate';
-type MyEvents = { type: 'a' } | { type: 'b' };
+const machineTypes = {};
 export const m = createMachine({
-  types: {} as { events: MyEvents }
+  types: machineTypes
 });
 `
     );

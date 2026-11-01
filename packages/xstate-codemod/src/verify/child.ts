@@ -1,5 +1,6 @@
 import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
+import { withDeterminism } from './determinism.ts';
 import { generateSequences, eventCandidates } from './generate.ts';
 import { normalizeId, toJson } from './normalize.ts';
 import { createRecorder5 } from './recorder5.ts';
@@ -35,7 +36,7 @@ const isLogic = (value: any) =>
 async function loadLogic(
   file: string,
   name: string | undefined
-): Promise<[string, any]> {
+): Promise<[string, any, string[]]> {
   let mod: Record<string, unknown>;
   try {
     mod = await import(pathToFileURL(file).href);
@@ -56,7 +57,13 @@ async function loadLogic(
       `${name ? `export "${name}" is not actor logic` : 'no actor logic export'} in ${file}; exports: ${names.join(', ') || '(none)'}`
     );
   }
-  return [found, mod[found]];
+  const notes: string[] = [];
+  const logicNames = names.filter((key) => isLogic(mod[key]));
+  if (!name && new Set(logicNames.map((key) => mod[key])).size > 1)
+    notes.push(
+      `module exports ${logicNames.length} machines: ${logicNames.join(', ')}; using ${found} (pass --export to choose)`
+    );
+  return [found, mod[found], notes];
 }
 
 const flush = async () => {
@@ -70,48 +77,51 @@ async function recordTrace(
   sequence: Sequence,
   recorder: Recorder,
   stats: Stats,
-  input: unknown
+  input: unknown,
+  seed: number
 ): Promise<Trace> {
   const clock = new xs.SimulatedClock();
-  const actor = xs.createActor(logic, {
-    clock,
-    inspect: recorder.inspect,
-    input
-  });
-  recorder.setRoot(actor);
-  actor.subscribe({ error: () => {} });
-  actor.on('*', recorder.emit);
+  return withDeterminism(clock, seed, async () => {
+    const actor = xs.createActor(logic, {
+      clock,
+      inspect: recorder.inspect,
+      input
+    });
+    recorder.setRoot(actor);
+    actor.subscribe({ error: () => {} });
+    actor.on('*', recorder.emit);
 
-  const capture = (input: TraceStep['input']): TraceStep => {
-    const snapshot = actor.getSnapshot();
-    const children = Object.values<any>(snapshot.children ?? {})
-      .filter(Boolean)
-      .map((ref) => ({ id: normalizeId(ref.id), src: recorder.srcOf(ref) }))
-      .sort((a, b) => (a.id + a.src).localeCompare(b.id + b.src));
-    const output = toJson(snapshot.output, stats);
-    return {
-      input,
-      value: toJson(snapshot.value, stats),
-      context: toJson(snapshot.context, stats) ?? null,
-      status: snapshot.status,
-      ...(output !== undefined && { output }),
-      ...(snapshot.error !== undefined && { error: String(snapshot.error) }),
-      ...recorder.take(),
-      children
+    const capture = (input: TraceStep['input']): TraceStep => {
+      const snapshot = actor.getSnapshot();
+      const children = Object.values<any>(snapshot.children ?? {})
+        .filter(Boolean)
+        .map((ref) => ({ id: normalizeId(ref.id), src: recorder.srcOf(ref) }))
+        .sort((a, b) => (a.id + a.src).localeCompare(b.id + b.src));
+      const output = toJson(snapshot.output, stats);
+      return {
+        input,
+        value: toJson(snapshot.value, stats),
+        context: toJson(snapshot.context, stats) ?? null,
+        status: snapshot.status,
+        ...(output !== undefined && { output }),
+        ...(snapshot.error !== undefined && { error: String(snapshot.error) }),
+        ...recorder.take(),
+        children
+      };
     };
-  };
 
-  actor.start();
-  await flush();
-  const steps = [capture({ start: true })];
-  for (const step of sequence.steps) {
-    if ('event' in step) actor.send(step.event);
-    else clock.increment(step.advance);
+    actor.start();
     await flush();
-    steps.push(capture(step));
-  }
-  actor.stop();
-  return { sequenceId: sequence.id, steps };
+    const steps = [capture({ start: true })];
+    for (const step of sequence.steps) {
+      if ('event' in step) actor.send(step.event);
+      else clock.increment(step.advance);
+      await flush();
+      steps.push(capture(step));
+    }
+    actor.stop();
+    return { sequenceId: sequence.id, steps };
+  });
 }
 
 async function runJob(job: ChildJob): Promise<ChildResult> {
@@ -121,7 +131,7 @@ async function runJob(job: ChildJob): Promise<ChildResult> {
   const xstateVersion: string = createRequire(import.meta.url)(
     'xstate/package.json'
   ).version;
-  const [exportName, logic] = await loadLogic(job.file, job.export);
+  const [exportName, logic, notes] = await loadLogic(job.file, job.export);
   const machine = applyStubs(xs, major, logic, job.stubs);
   const stats: Stats = { nonSerializable: 0 };
 
@@ -146,7 +156,7 @@ async function runJob(job: ChildJob): Promise<ChildResult> {
 
   const traces: Trace[] = [];
   const unstubbed = new Set<string>();
-  for (const sequence of sequences) {
+  for (const [index, sequence] of sequences.entries()) {
     const recorder =
       major === 5 ? createRecorder5(stats) : createRecorder6(stats);
     const trace = await recordTrace(
@@ -155,7 +165,8 @@ async function runJob(job: ChildJob): Promise<ChildResult> {
       sequence,
       recorder,
       stats,
-      job.input
+      job.input,
+      job.options.seed + index
     );
     for (const step of trace.steps) {
       for (const child of step.children)
@@ -172,7 +183,8 @@ async function runJob(job: ChildJob): Promise<ChildResult> {
     unstubbed: [...unstubbed].sort(),
     eventsWithoutCases,
     generationErrors,
-    nonSerializable: stats.nonSerializable
+    nonSerializable: stats.nonSerializable,
+    notes
   };
 }
 

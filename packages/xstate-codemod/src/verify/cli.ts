@@ -19,13 +19,26 @@ Options:
   --walks <n>            random walks (default 25)
   --steps <n>            steps per walk (default 12)
   --max-sequences <n>    sequence cap (default 200)
+  --no-simple-paths      skip the graph's simple paths (use when baseline times out)
   --compare <fields>     fields to compare, or +field to add (e.g. +actions)
   --timeout <ms>         per child process (default 60000)
   --json                 print the JSON report only
 `;
 
-const startLine = (error: string) =>
-  `  start: machine errored at start: ${error} (pass --input if the machine reads input)`;
+const startLine = (error: string, hasInput: boolean) =>
+  `  start: machine errored at start: ${error} ${hasInput ? '(the baseline exercised nothing past start)' : '(pass --input if the machine reads input)'}`;
+const EVENTS_ADVICE = ' (add payload cases with --events)';
+
+/** The --events advice applies only to a guard that threw on an event sent without a payload. */
+function generationLine(error: string, eventsWithoutCases: string[]): string {
+  const type = /^event '(.*)' skipped: guard threw:/.exec(error)?.[1];
+  const advice =
+    type === undefined
+      ? /paths skipped: (?!graph traversal hit its limit)/.test(error) &&
+        eventsWithoutCases.length > 0
+      : eventsWithoutCases.includes(type);
+  return `  generation: ${error}${advice ? EVENTS_ADVICE : ''}`;
+}
 const readJson = (file: string) => JSON.parse(readFileSync(file, 'utf8'));
 const show = (value: unknown) => JSON.stringify(value) ?? 'undefined';
 const showStep = (step: SequenceStep) =>
@@ -42,7 +55,7 @@ function compareFields(value: string | undefined): string[] | undefined {
   return [...(set.length ? set : DEFAULT_FIELDS), ...added];
 }
 
-function formatReport(report: VerifyReport): string {
+function formatReport(report: VerifyReport, hasInput: boolean): string {
   const lines = [`verify: ${report.status}`];
   lines.push(
     `  v5: ${report.v5.file} (export ${report.v5.export || '?'}, xstate ${report.v5.xstateVersion || '?'})`
@@ -64,15 +77,15 @@ function formatReport(report: VerifyReport): string {
   lines.push(
     `  sequences: ${report.sequences}, steps compared: ${report.stepsCompared}, unclassified diffs: ${unclassified.length}, intentional: ${report.intentional}`
   );
-  if (report.startError) lines.push(startLine(report.startError));
+  if (report.startError) lines.push(startLine(report.startError, hasInput));
   if (report.unstubbed.length)
     lines.push(`  unstubbed inline actors: ${report.unstubbed.join(', ')}`);
   if (report.eventsWithoutCases.length)
     lines.push(
-      `  events without cases: ${report.eventsWithoutCases.join(', ')}`
+      `  events sent without payload (add cases with --events if guards or actions read the payload): ${report.eventsWithoutCases.join(', ')}`
     );
   for (const error of report.generationErrors)
-    lines.push(`  generation: ${error} (add payload cases with --events)`);
+    lines.push(generationLine(error, report.eventsWithoutCases));
   if (report.nonSerializable)
     lines.push(`  non-serializable values: ${report.nonSerializable}`);
   for (const note of report.notes) lines.push(`  note: ${note}`);
@@ -112,6 +125,7 @@ export async function verifyCli(argv: string[]): Promise<number> {
         walks: { type: 'string' },
         steps: { type: 'string' },
         'max-sequences': { type: 'string' },
+        'no-simple-paths': { type: 'boolean' },
         compare: { type: 'string' },
         timeout: { type: 'string' },
         json: { type: 'boolean' },
@@ -135,6 +149,7 @@ export async function verifyCli(argv: string[]): Promise<number> {
     walks: int(values.walks),
     steps: int(values.steps),
     maxSequences: int(values['max-sequences']),
+    ...(values['no-simple-paths'] && { simplePaths: false }),
     timeout: int(values.timeout)
   };
   const numbers = [
@@ -195,12 +210,11 @@ export async function verifyCli(argv: string[]): Promise<number> {
     else
       process.stdout.write(
         `baseline: ${baseline.sequences.length} sequences from ${baseline.file} (export ${baseline.export}) → ${out}\n` +
-          (error ? startLine(error) + '\n' : '') +
+          (error ? startLine(error, input !== undefined) + '\n' : '') +
           baseline.generationErrors
-            .map(
-              (e) => `  generation: ${e} (add payload cases with --events)\n`
-            )
-            .join('')
+            .map((e) => generationLine(e, baseline.eventsWithoutCases) + '\n')
+            .join('') +
+          (baseline.notes ?? []).map((note) => `  note: ${note}\n`).join('')
       );
     return 0;
   }
@@ -231,7 +245,7 @@ export async function verifyCli(argv: string[]): Promise<number> {
     process.stdout.write(
       values.json
         ? JSON.stringify(report, null, 2) + '\n'
-        : formatReport(report)
+        : formatReport(report, (input ?? baseline?.input) !== undefined)
     );
     return report.status === 'equivalent'
       ? 0

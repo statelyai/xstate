@@ -6,7 +6,8 @@ import type { ManualSite, Transform, TransformResult } from '../types.ts';
  * risky to automate. Value is a one-line hint for the v6 replacement.
  */
 const REMOVED_APIS: Record<string, string> = {
-  assign: 'return a `{ context }` patch from the transition/action function',
+  assign:
+    'return a `{ context }` patch from the inline transition function. A named `assign` in `setup({ actions })` becomes a plain function returning the patch; call it from the transition and return its result (`enq(actions.x)` ignores return values).',
   raise: 'use `enq.raise(...)` inside an action',
   sendTo: 'use `enq.sendTo(...)` inside an action',
   sendParent: 'use `enq.sendTo(...)` with the parent ref inside an action',

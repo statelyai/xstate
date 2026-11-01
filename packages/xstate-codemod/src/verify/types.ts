@@ -44,6 +44,8 @@ export interface GenerateOptions {
   walks: number;
   steps: number;
   maxSequences: number;
+  /** `false` skips the v5 graph's simple paths (`--no-simple-paths`). */
+  simplePaths?: boolean;
 }
 
 export interface Baseline {
@@ -63,6 +65,8 @@ export interface Baseline {
   /** Graph origins or events dropped because a guard threw while generating. */
   generationErrors: string[];
   nonSerializable: number;
+  /** Loader notes, such as which of several machine exports was used. */
+  notes?: string[];
 }
 
 export interface ChildJob {
@@ -88,6 +92,7 @@ export type ChildResult =
       eventsWithoutCases: string[];
       generationErrors?: string[];
       nonSerializable: number;
+      notes?: string[];
     }
   | { ok: false; code: string; message: string; stack?: string };
 

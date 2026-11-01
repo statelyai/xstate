@@ -34,48 +34,117 @@ createMachine({
     expect(output).toMatch(/import \{[^}]*\btypes\b[^}]*\} from 'xstate'/);
   });
 
-  it('leaves events in place with a TODO when the union is a type reference (not inline)', () => {
+  it('expands a same-file event union alias into an events map', () => {
     const input = `import { createMachine } from 'xstate';
-type Ev = { type: 'a' } | { type: 'b' };
+type Inc = { type: 'inc'; by: number };
+type Ev = Inc | { type: 'reset' };
 createMachine({
   types: {} as { context: { a: number }; events: Ev }
 });`;
-    const { output, changed, notes } = applyTransform(typesToSchemas, input);
+    const { output, changed, sites } = applyTransform(typesToSchemas, input);
     expect(changed).toBe(true);
     expect(output).toContain('context: types<{ a: number }>()');
-    expect(output).toContain(
-      'TODO(xstate-codemod): migrate events to schemas.events map'
-    );
-    expect(notes.some((n) => n.includes("could not migrate 'events'"))).toBe(
-      true
-    );
+    expect(output).toContain('"inc": types<{ by: number }>()');
+    expect(output).toContain('"reset": types<{}>()');
+    expect(output).not.toMatch(/\btypes: /);
+    expect(sites).toEqual([]);
   });
 
-  it('reports the leftover `types` key as a manual site when events is a type reference', () => {
+  it('writes `events: types<E>()` when the union cannot be expanded', () => {
     const input = `import { createMachine } from 'xstate';
-type MyEvents = { type: 'a' } | { type: 'b' };
+import type { MyEvents } from './events';
+type Generic<T> = { type: 'a'; value: T };
 createMachine({
-  types: {} as { events: MyEvents }
+  types: {} as { context: { a: number }; events: MyEvents }
+});
+createMachine({
+  types: {} as { events: Generic<string> | { type: 'b' } }
+});`;
+    const { output, changed, sites } = applyTransform(typesToSchemas, input);
+    expect(changed).toBe(true);
+    expect(output).toContain('context: types<{ a: number }>()');
+    expect(output).toContain('events: types<MyEvents>()');
+    expect(output).toContain(
+      "events: types<Generic<string> | { type: 'b' }>()"
+    );
+    expect(output).not.toContain('TODO(xstate-codemod)');
+    expect(output).not.toMatch(/\btypes: /);
+    // Both fallbacks are reported: the entry loads but does not type-check.
+    expect(sites).toHaveLength(2);
+    for (const site of sites) {
+      expect(site.api).toBe('types');
+      expect(site.hint).toContain('does not type-check');
+    }
+  });
+
+  it('converts the per-key `types: { context: {} as C, ... }` form in setup and createMachine', () => {
+    const input = `import { createMachine, setup } from 'xstate';
+type TimerEvent = { type: 'tick' } | { type: 'set'; count: number };
+setup({
+  types: {
+    context: {} as { count: number },
+    events: {} as
+      | { type: 'trigger'; title: string }
+      | { type: 'close' },
+    input: {} as { start: number }
+  }
+});
+createMachine({
+  types: {
+    context: {} as { a: number },
+    events: {} as TimerEvent
+  }
+});`;
+    const { output, changed, sites } = applyTransform(typesToSchemas, input);
+    expect(changed).toBe(true);
+    expect(output).toContain('context: types<{ count: number }>()');
+    expect(output).toContain('"trigger": types<{ title: string }>()');
+    expect(output).toContain('"close": types<{}>()');
+    expect(output).toContain('input: types<{ start: number }>()');
+    expect(output).toContain('context: types<{ a: number }>()');
+    expect(output).toContain('"tick": types<{}>()');
+    expect(output).toContain('"set": types<{ count: number }>()');
+    expect(output).not.toMatch(/\btypes: /);
+    expect(sites).toEqual([]);
+    expectValidMigration(output);
+  });
+
+  it('builds an events map from a union with JSDoc between members', () => {
+    const input = `import { createMachine } from 'xstate';
+createMachine({
+  types: {
+    events: {} as
+      /** Due. */
+      | { type: 'refreshDue' }
+      /** Refused. */
+      | { accessToken: string; type: 'sessionRefused' }
+  }
 });`;
     const { output, sites } = applyTransform(typesToSchemas, input);
+    expect(output).toContain('"refreshDue": types<{}>()');
     expect(output).toContain(
-      'TODO(xstate-codemod): migrate events to schemas.events map'
+      '"sessionRefused": types<{ accessToken: string }>()'
     );
+    expect(sites).toEqual([]);
+    expectValidMigration(output);
+  });
+
+  it('reports `types` initializers it cannot read as a manual site', () => {
+    const input = `import { createMachine } from 'xstate';
+const machineTypes = {};
+createMachine({
+  types: machineTypes
+});
+createMachine({
+  types: { context: {} as { a: number }, events: makeEvents() }
+});`;
+    const { output, changed, sites } = applyTransform(typesToSchemas, input);
+    expect(changed).toBe(false);
+    expect(output).toBe(input);
     expect(sites).toEqual([
-      expect.objectContaining({ api: 'types', line: 4, column: 3 })
+      expect.objectContaining({ api: 'types', line: 4, column: 3 }),
+      expect.objectContaining({ api: 'types', line: 7, column: 3 })
     ]);
-  });
-
-  it('positions the site at the preserved `types` key after partial migration', () => {
-    const input = `import { createMachine } from 'xstate';
-type Ev = { type: 'a' } | { type: 'b' };
-createMachine({
-  types: {} as { context: { a: number }; events: Ev }
-});`;
-    const { output, sites } = applyTransform(typesToSchemas, input);
-    expect(sites).toHaveLength(1);
-    const line = output.split('\n')[sites[0].line - 1];
-    expect(line.slice(sites[0].column - 1)).toMatch(/^types: \{\} as/);
   });
 
   it('leaves `types: {} as any` unchanged with a TODO note', () => {
@@ -145,6 +214,7 @@ function expectValidMigration(output: string) {
     export type AnyActorRef = unknown;
     export function types<T>(): T;
     export function createMachine(config: unknown): unknown;
+    export function setup(config: unknown): unknown;
   }`
   );
   const source = project.createSourceFile('consumer.ts', output);

@@ -125,6 +125,63 @@ describe('verify (child processes)', { timeout: 60_000 }, () => {
     });
   });
 
+  it('wall-clock: Date.now, performance.now and Math.random are simulated', async () => {
+    const report = await runVerify({
+      v5: fixture('wall-clock', 'v5.ts'),
+      file: fixture('wall-clock', 'v6.ts')
+    });
+    expect(report.error).toBeUndefined();
+    expect(unclassified(report)).toEqual([]);
+    expect(report.status).toBe('equivalent');
+    const baseline = await runBaseline({
+      file: fixture('wall-clock', 'v5.ts')
+    });
+    const contexts = baseline.traces.flatMap((t) =>
+      t.steps.map((s) => s.context as { startedAt: number })
+    );
+    expect(contexts[0].startedAt).toBe(1_700_000_000_000);
+  });
+
+  it('send-parent-root: v5 sendParent error in a root actor is an intentional delta', async () => {
+    const report = await runVerify({
+      v5: fixture('send-parent-root', 'v5.ts'),
+      file: fixture('send-parent-root', 'v6.ts')
+    });
+    expect(report.error).toBeUndefined();
+    expect(unclassified(report)).toEqual([]);
+    expect(report.status).toBe('equivalent');
+    expect(
+      report.diffs.find((d) => d.field === 'status')?.classification
+    ).toMatchObject({ rule: 'root-send-parent', section: '§26' });
+  });
+
+  it('--no-simple-paths: baseline has no simple sequences', async () => {
+    const baseline = await runBaseline({
+      file: fixture('counter', 'v5.ts'),
+      events: readJson(fixture('counter', 'events.json')),
+      simplePaths: false
+    });
+    expect(baseline.options.simplePaths).toBe(false);
+    expect(baseline.sequences.some((s) => s.origin === 'simple')).toBe(false);
+    expect(baseline.generationErrors).toContain(
+      'simple paths skipped (--no-simple-paths)'
+    );
+    const full = await runBaseline({
+      file: fixture('counter', 'v5.ts'),
+      events: readJson(fixture('counter', 'events.json'))
+    });
+    expect(full.sequences.some((s) => s.origin === 'simple')).toBe(true);
+  });
+
+  it('notes which export is used when a module exports several machines', async () => {
+    const baseline = await runBaseline({
+      file: fixture('multi-export', 'v5.ts')
+    });
+    expect(baseline.notes).toEqual([
+      'module exports 2 machines: first, second; using first (pass --export to choose)'
+    ]);
+  });
+
   it('needs-input: start error without input, equivalent with --input', async () => {
     const baseline = await runBaseline({
       file: fixture('needs-input', 'v5.ts')

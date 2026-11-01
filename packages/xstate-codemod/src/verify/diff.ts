@@ -29,10 +29,11 @@ export function classify(
   field: string,
   expected: unknown,
   actual: unknown,
-  step: number
+  step: number,
+  steps: { expected: TraceStep; actual: TraceStep }
 ): Classification {
   const rule = INTENTIONAL_DELTAS.find((delta) =>
-    delta.matches(field, expected, actual, step)
+    delta.matches(field, expected, actual, step, steps)
   );
   return rule
     ? { rule: rule.rule, section: rule.section, note: rule.note }
@@ -78,7 +79,10 @@ export function diffTraces(
         const e = expStep[field];
         const a = actStep[field];
         if (isEqual(e, a)) continue;
-        const classification = classify(field, e, a, step);
+        const classification = classify(field, e, a, step, {
+          expected: expStep,
+          actual: actStep
+        });
         const detail =
           field === 'status' ? errorDetail(expStep, actStep) : undefined;
         diffs.push({
@@ -93,6 +97,9 @@ export function diffTraces(
           classification
         });
         if (classification === 'unclassified') break outer;
+        // An intentional status divergence (one side errored, the other kept
+        // running) makes every later field and step incomparable.
+        if (field === 'status') break outer;
       }
     }
   }

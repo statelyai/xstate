@@ -4,11 +4,15 @@
 
 `xstate-codemod migrate` accepts `--json`, which prints one JSON report to stdout. The command exits with code `2` when manual migration is needed, and the report lists each site under `manualSites` with its file, line, column, API, and hint.
 
-A new report transform, `report-suffixed-lifecycle-events`, flags `on` keys written as `xstate.done.state.<id>`, `xstate.done.actor.<id>`, `xstate.error.actor.<id>`, or `xstate.after.<delay>.<id>`. v6 raises the plain event type with the id in a field, so those transitions never fire after migration. Another report transform, `report-action-shapes`, flags non-function `entry` and `exit` values and transition `actions`, which v6 rejects.
+A new report transform, `report-suffixed-lifecycle-events`, flags `on` keys written as `xstate.done.state.<id>`, `xstate.done.actor.<id>`, `xstate.error.actor.<id>`, or `xstate.after.<delay>.<id>`. v6 raises the plain event type with the id in a field, so those transitions never fire after migration. Another report transform, `report-action-shapes`, flags non-function `entry` and `exit` values and transition `actions`, `guard`, and `cond` keys, which v6 rejects.
+
+A new report transform, `report-implementations`, flags a second `createMachine` argument, which v6 ignores, and named actions and guards written with the v5 `({ context, event })` or `(_, params)` signature.
+
+`types-to-schemas` converts the per-key form `types: { context: {} as C, events: {} as E }`, builds an events map from same-file type aliases, and writes `events: types<E>()` for other event types instead of leaving `types` in place.
 
 New `baseline` and `verify` commands check that a migrated machine behaves like the v5 original. `baseline` records a trace of generated event sequences under XState v5, and `verify` replays them against the v6 module and reports the diffs.
 
-`baseline` and `verify` accept `--input <file>`, a JSON value passed as the machine's `input`.
+`baseline` and `verify` accept `--input <file>`, a JSON value passed as the machine's `input`. While a machine runs, `Date.now()`, `performance.now()`, and `Math.random()` return simulated, seeded values, so machines that store them in `context` compare equal, and a v5 root actor's `sendParent` error is classified as the intentional `root-send-parent` delta. `--no-simple-paths` skips the graph's simple paths when `baseline` times out.
 
 ```bash
 npx @xstate/codemod baseline src/checkout.ts --out .xstate-migrate/checkout.json

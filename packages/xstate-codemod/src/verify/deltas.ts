@@ -1,4 +1,5 @@
 import { isEqual } from './normalize.ts';
+import type { TraceStep } from './types.ts';
 
 export interface DeltaRule {
   rule: string;
@@ -8,7 +9,8 @@ export interface DeltaRule {
     field: string,
     expected: unknown,
     actual: unknown,
-    step: number
+    step: number,
+    steps: { expected: TraceStep; actual: TraceStep }
   ): boolean;
 }
 
@@ -96,5 +98,15 @@ export const INTENTIONAL_DELTAS: DeltaRule[] = [
     note: "v6 promotes a top-level final state's output to snapshot.output when the root has none; v5 left it undefined",
     matches: (field, expected, actual) =>
       field === 'output' && expected === undefined && actual !== undefined
+  },
+  {
+    rule: 'root-send-parent',
+    section: '§26',
+    note: "v5 errors when a root actor sends to its parent; v6 dead-letters the event with reason 'missingTarget'",
+    matches: (field, _expected, _actual, _step, steps) =>
+      field === 'status' &&
+      steps.expected.status === 'error' &&
+      steps.actual.status !== 'error' &&
+      /#_parent|Unable to send event to actor/.test(steps.expected.error ?? '')
   }
 ];

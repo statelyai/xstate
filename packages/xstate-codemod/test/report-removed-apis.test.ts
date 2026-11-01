@@ -35,6 +35,7 @@ const g = and(['x', 'y']);`;
       api: 'assign',
       hint: expect.stringContaining('{ context }')
     });
+    expect(sites[0].hint).toContain('`enq(actions.x)` ignores return values');
     expect(notes[0]).toContain(`:${sites[0].line}:${sites[0].column} `);
   });
 

@@ -131,7 +131,8 @@ export async function runBaseline(options: BaselineOptions): Promise<Baseline> {
     seed: options.seed ?? DEFAULT_OPTIONS.seed,
     walks: options.walks ?? DEFAULT_OPTIONS.walks,
     steps: options.steps ?? DEFAULT_OPTIONS.steps,
-    maxSequences: options.maxSequences ?? DEFAULT_OPTIONS.maxSequences
+    maxSequences: options.maxSequences ?? DEFAULT_OPTIONS.maxSequences,
+    ...(options.simplePaths === false && { simplePaths: false })
   };
   const events = options.events ?? {};
   const stubs = options.stubs ?? {};
@@ -152,7 +153,9 @@ export async function runBaseline(options: BaselineOptions): Promise<Baseline> {
     throw new VerifyError(
       'baseline',
       result.code,
-      result.message,
+      result.code === 'CHILD_TIMEOUT'
+        ? `${result.message}; ${generate.simplePaths === false ? '' : 'pass --no-simple-paths or '}pass a smaller --events set`
+        : result.message,
       stderr,
       result.stack
     );
@@ -170,7 +173,8 @@ export async function runBaseline(options: BaselineOptions): Promise<Baseline> {
     unstubbed: result.unstubbed,
     eventsWithoutCases: result.eventsWithoutCases,
     generationErrors: result.generationErrors ?? [],
-    nonSerializable: result.nonSerializable
+    nonSerializable: result.nonSerializable,
+    notes: result.notes ?? []
   };
 }
 
@@ -280,6 +284,8 @@ export async function runVerify(options: VerifyOptions): Promise<VerifyReport> {
     ...new Set([...baseline.unstubbed, ...result.unstubbed])
   ].sort();
   report.nonSerializable = baseline.nonSerializable + result.nonSerializable;
+  for (const note of [...(baseline.notes ?? []), ...(result.notes ?? [])])
+    if (!report.notes.includes(note)) report.notes.push(note);
   const { diffs, stepsCompared } = diffTraces(
     baseline.sequences,
     baseline.traces,

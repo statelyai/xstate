@@ -1,3 +1,4 @@
+import { withDeterminism } from './determinism.ts';
 import type {
   EventCases,
   EventObject,
@@ -6,6 +7,10 @@ import type {
   Sequence,
   SequenceStep
 } from './types.ts';
+
+/** Generation note for a graph traversal that never closed. */
+export const TRAVERSAL_LIMIT_NOTE =
+  'graph traversal hit its limit (context that changes on every step prevents the graph from closing); random walks still cover these paths';
 
 export function mulberry32(seed: number): () => number {
   let a = seed >>> 0;
@@ -68,16 +73,19 @@ export async function generateSequences(
 ): Promise<{ sequences: Sequence[]; generationErrors: string[] }> {
   const raw: Array<{ origin: Origin; steps: SequenceStep[] }> = [];
   const generationErrors: string[] = [];
-  const fromPaths = (origin: Origin, paths: () => any[]) => {
+  const fromPaths = async (origin: Origin, paths: () => any[]) => {
     let result: any[];
     try {
-      result = paths();
+      // The wall clock stays at the epoch during traversal so context that
+      // stores `Date.now()` does not keep the graph from closing.
+      result = await withDeterminism({ now: () => 0 }, options.seed, paths);
     } catch (err) {
       // Unbounded context makes the state space infinite, and a guard that
       // reads a payload the event cases do not supply throws. Either way the
       // origin is dropped and reported; random walks still run.
+      const message = (err as Error).message ?? String(err);
       generationErrors.push(
-        `${origin} paths skipped: ${(err as Error).message ?? String(err)}`
+        `${origin} paths skipped: ${message === 'Traversal limit exceeded' ? TRAVERSAL_LIMIT_NOTE : message}`
       );
       return;
     }
@@ -91,12 +99,14 @@ export async function generateSequences(
     }
   };
   const traversal = { events, limit: 1000, input };
-  fromPaths('shortest', () => graph.getShortestPaths(machine, traversal));
-  fromPaths('simple', () => graph.getSimplePaths(machine, traversal));
+  await fromPaths('shortest', () => graph.getShortestPaths(machine, traversal));
+  if (options.simplePaths === false)
+    generationErrors.push('simple paths skipped (--no-simple-paths)');
+  else
+    await fromPaths('simple', () => graph.getSimplePaths(machine, traversal));
 
   const random = mulberry32(options.seed);
-  for (let walk = 0; walk < options.walks; walk++) {
-    const clock = new xs.SimulatedClock();
+  const randomWalk = async (clock: any): Promise<SequenceStep[]> => {
     const actor = xs.createActor(machine, { clock, input });
     actor.subscribe({ error: () => {} });
     actor.start();
@@ -129,6 +139,13 @@ export async function generateSequences(
       await flush();
     }
     actor.stop();
+    return steps;
+  };
+  for (let walk = 0; walk < options.walks; walk++) {
+    const clock = new xs.SimulatedClock();
+    const steps = await withDeterminism(clock, options.seed + walk, () =>
+      randomWalk(clock)
+    );
     raw.push({ origin: 'random', steps });
   }
 

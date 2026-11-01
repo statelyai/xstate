@@ -1612,11 +1612,12 @@ It runs these transforms in order. `--transform name,name` selects a subset.
 | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `rename-imports`      | Renames `interpret` to `createActor`, `Interpreter` to `Actor`, and `fromCallback`, `fromObservable`, and `fromEventObservable` to their `create*Logic` names, and the executable action types to their executable effect names, including usages. Import aliases are kept.                                                                  |
 | `string-targets`      | Wraps bare string transition values under `on`, `after`, `onDone`, `onError`, and `always` in `{ target: '...' }` inside `createMachine` and `createStateConfig` configs.                                                                                                   |
-| `types-to-schemas`    | Converts `types: {} as { ... }` to `schemas` with `types<T>()` entries. Events become a map only when they are written as an inline union literal. When a member cannot be migrated, the leftover `types` key is reported as a manual site.                                                                                                                         |
+| `types-to-schemas`    | Converts `types: {} as { ... }` and the per-key form `types: { context: {} as C, events: {} as E }` to `schemas` with `types<T>()` entries. Events become a map when they are written as a union of object literals with a string-literal `type`, inline or through type aliases declared in the same file. Other event types become `events: types<E>()`, which loads but does not type-check as a v6 event map, so the entry is reported as a manual site to rewrite as a map by hand. A `types` value in any other shape, such as a variable, is reported as a manual site. |
 | `report-removed-apis` | Reports, without rewriting, uses of `assign`, `raise`, `sendTo`, `sendParent`, `forwardTo`, `emit`, `log`, `cancel`, `spawnChild`, `stop`, `stopChild`, `enqueueActions`, `and`, `or`, `not`, `stateIn`, `fromPromise`, `fromTransition`, `toObserver`, `pathToStateValue`, and `SpecialTargets`, with a suggested replacement. |
 | `report-id-path-targets` | Reports, without rewriting, `#a.b` targets and `matches('#a.b')` or `stateIn('#a.b')` arguments that are not whole state ids of the machine config that contains them. References outside a `createMachine` or `createStateConfig` config are always reported. v6 resolves `#` targets by exact id only. |
 | `report-suffixed-lifecycle-events` | Reports, without rewriting, `on` keys that use suffixed v5 lifecycle event types: `xstate.done.state.<id>`, `xstate.done.actor.<id>`, `xstate.error.actor.<id>`, and `xstate.after.<delay>.<id>`. v6 raises the category type with the id in a payload field, so these transitions never fire (see [Internal lifecycle events](#internal-lifecycle-events)). |
-| `report-action-shapes` | Reports, without rewriting, `entry` and `exit` values that are not functions (strings, arrays, objects, identifiers, or calls such as `assign(...)`), and `actions` on transition objects under `on`, `after`, `always`, `onDone`, `onError`, `onSnapshot`, or an object `initial`. v6 rejects both shapes: `entry` and `exit` take a single function `(args, enq) => { ... }`, and transitions queue effects on `enq` instead of listing `actions`. |
+| `report-action-shapes` | Reports, without rewriting, `entry` and `exit` values that are not functions (strings, arrays, objects, identifiers, or calls such as `assign(...)`), and `actions`, `guard`, and `cond` keys on transition objects under `on`, `after`, `always`, `onDone`, `onError`, `onSnapshot`, or an object `initial`, including each element of a transition array. v6 rejects these shapes: `entry` and `exit` take a single function `(args, enq) => { ... }`, and transitions queue effects on `enq` and return `{ target }` or `undefined` instead of listing `actions` and `guard`. |
+| `report-implementations` | Reports, without rewriting, a second argument to `createMachine(config, implementations)`, which v6 ignores, and named actions and guards in `setup({ actions, guards })` or in that second argument whose first parameter is a destructuring pattern such as `({ context, event })` or that take two parameters such as `(_, params)`. v6 calls named actions and guards with `params` only. |
 
 `string-targets` wraps string elements inside transition arrays but keeps the arrays. The v6 `createMachine` types reject transition arrays in `on` and `always` (for example, `on: { X: [ … ] }`), and no transform reports them. Find them by hand and replace each with one transition function (§15, §16).
 
@@ -1659,11 +1660,13 @@ npx @xstate/codemod verify --baseline .xstate-migrate/checkout.json src/checkout
 
 When both versions exist as separate files, `verify v5-file v6-file` records the baseline and replays it in one run.
 
-The loaded module must export the machine. `--export name` selects an export. Otherwise the commands use the `default` export, then the first export that is actor logic.
+The loaded module must export the machine. `--export name` selects an export. Otherwise the commands use the `default` export, then the first export that is actor logic. When the module exports more than one machine and `--export` is not passed, the baseline's `notes` and the text output name the exports and the one used.
 
 #### Sequences
 
-Sequences come from the v5 machine's shortest paths, its simple paths, and seeded random walks. Random walks also advance a simulated clock to the next pending timer, so they cover delayed transitions. `--walks` (default `25`), `--steps` (default `12`), and `--seed` (default `1`) control the walks. `--max-sequences` (default `200`) caps the total.
+Sequences come from the v5 machine's shortest paths, its simple paths, and seeded random walks. Random walks also advance a simulated clock to the next pending timer, so they cover delayed transitions. `--walks` (default `25`), `--steps` (default `12`), and `--seed` (default `1`) control the walks. `--max-sequences` (default `200`) caps the total. Simple paths grow quickly with payload cases and parallel states; when `baseline` fails with `CHILD_TIMEOUT`, pass `--no-simple-paths` to skip them. The baseline stores the setting as `simplePaths: false` in `options`.
+
+While an actor runs, in both versions, `Date.now()` returns `1700000000000` plus the simulated clock's time, `performance.now()` returns the simulated clock's time, and `Math.random()` returns values from a generator seeded by `--seed` and the sequence index. A machine that stores these values in `context` records the same values under v5 and v6. `new Date()` without arguments still reads the real clock.
 
 Events are sent as `{ type }` unless an events file supplies payloads. Pass `--events events.json`, an object that maps each event type to a list of payloads:
 
@@ -1671,7 +1674,7 @@ Events are sent as `{ type }` unless an events file supplies payloads. Pass `--e
 { "ADD_ITEM": [{ "type": "ADD_ITEM", "sku": "A1" }, { "type": "ADD_ITEM", "sku": "B2" }] }
 ```
 
-Event types without cases are listed in the report under `eventsWithoutCases`. When a guard throws because an event has no payload, the graph traversal that hit it is dropped and the event is left out of the random walks that reach it; each such case is listed under `generationErrors`. Add payload cases for those events to cover the transitions behind them.
+Event types without cases are listed in the report under `eventsWithoutCases`. When a guard throws because an event has no payload, the graph traversal that hit it is dropped and the event is left out of the random walks that reach it; each such case is listed under `generationErrors`. Add payload cases for those events to cover the transitions behind them. A graph traversal that hits its limit, usually because `context` changes on every step, is also listed there; random walks still cover those paths.
 
 #### Trace
 
@@ -1699,7 +1702,9 @@ Invoked and spawned actors that are referenced by name are replaced by stubs. A 
 }
 ```
 
-`done` resolves with the given output, and `error` rejects with the given value. `delays` sets named delays on both versions.
+`done` resolves with the given output, and `error` rejects with the given value. `{}` resolves with `undefined`, and `{ "done": null }` resolves with `null`. `delays` sets named delays on both versions.
+
+A baseline records one outcome per actor. To cover both the `onDone` and `onError` paths, record a second baseline with a different `--stubs` file.
 
 #### Input
 
@@ -1729,6 +1734,7 @@ A diff that matches a known v6 change is classified with a rule instead of `uncl
 | `context-reference` | `context` that is equal after removing actor-reference keys (`$actor`). |
 | `done-event-session` | Processed events that are equal after dropping `sessionId`. |
 | `final-state-output` | `output` that is undefined in v5 and set in v6, because v6 uses a top-level final state's `output` when the root has none (see [Machine output](#machine-output)). |
+| `root-send-parent` | `status` and `error` where v5 errored with `Unable to send event to actor '#_parent'` and v6 did not, because v6 makes a send to a missing parent a dead letter (see [Sending to a missing target](#sending-to-a-missing-target)). Later fields of that step, such as `value`, can still differ. |
 
 Fix the v6 code for each unclassified diff. Do not edit the baseline.
 

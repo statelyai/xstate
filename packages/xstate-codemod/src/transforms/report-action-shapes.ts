@@ -6,6 +6,8 @@ const ENTRY_EXIT_HINT =
   'v6 `entry`/`exit` is a single function `(args, enq) => { ... }`; call named actions with `enq(actions.name, params)`.';
 const TRANSITION_ACTIONS_HINT =
   'transition `actions` was removed; use an inline transition function `(args, enq) => { ... }` and queue effects on `enq`; call named actions with `enq(actions.name, params)`.';
+const TRANSITION_GUARD_HINT =
+  'transition `guard` was removed; return `{ target }` from an inline transition function when the condition holds, or `undefined` to reject the event; named guards are plain predicates called as `guards.name(params)`.';
 
 function getKeyText(node: Node): string | undefined {
   if (!Node.isPropertyAssignment(node)) return undefined;
@@ -27,12 +29,13 @@ function getProperty(object: Node, key: string): Node | undefined {
 
 /**
  * Reports (does NOT transform) v5 action shapes that v6 rejects: non-function
- * `entry` / `exit` values, and `actions` on transition objects.
+ * `entry` / `exit` values, and `actions`, `guard` or `cond` on transition
+ * objects.
  */
 export const reportActionShapes: Transform = {
   name: 'report-action-shapes',
   description:
-    'Detect (report only) non-function `entry`/`exit` values and transition `actions`, which v6 rejects.',
+    'Detect (report only) non-function `entry`/`exit` values and transition `actions`/`guard`/`cond`, which v6 rejects.',
   apply(sourceFile: SourceFile): TransformResult {
     const notes: string[] = [];
     const sites: ManualSite[] = [];
@@ -57,8 +60,11 @@ export const reportActionShapes: Transform = {
       }
       if (!Node.isObjectLiteralExpression(value)) return;
       for (const property of value.getProperties()) {
-        if (getKeyText(property) === 'actions') {
+        const key = getKeyText(property);
+        if (key === 'actions') {
           report(property, 'actions', TRANSITION_ACTIONS_HINT);
+        } else if (key === 'guard' || key === 'cond') {
+          report(property, key, TRANSITION_GUARD_HINT);
         }
       }
     };

@@ -121,19 +121,21 @@ describe('diffTraces errored steps', () => {
 });
 
 describe('classify', () => {
+  const steps = { expected: step(), actual: step() };
   it('matches the intentional delta table', () => {
     expect(
       classify(
         'children',
         [{ id: 'w:0', src: 'w' }],
         [{ id: 'w:1', src: 'w' }],
-        1
+        1,
+        steps
       )
     ).toMatchObject({
       rule: 'anonymous-child-id'
     });
     expect(
-      classify('context', { a: 1, ref: { $actor: 'c' } }, { a: 1 }, 1)
+      classify('context', { a: 1, ref: { $actor: 'c' } }, { a: 1 }, 1, steps)
     ).toMatchObject({
       rule: 'context-reference'
     });
@@ -142,10 +144,35 @@ describe('classify', () => {
         'processed',
         [{ type: 'xstate.done.actor', sessionId: 'a' }],
         [{ type: 'xstate.done.actor' }],
-        1
+        1,
+        steps
       )
     ).toMatchObject({ rule: 'done-event-session' });
-    expect(classify('context', { a: 1 }, { a: 2 }, 1)).toBe('unclassified');
-    expect(classify('error', 'Error: a', 'Error: b', 1)).toBe('unclassified');
+    expect(classify('context', { a: 1 }, { a: 2 }, 1, steps)).toBe(
+      'unclassified'
+    );
+    expect(classify('error', 'Error: a', 'Error: b', 1, steps)).toBe(
+      'unclassified'
+    );
+  });
+
+  it('classifies a v5 root sendParent error as root-send-parent', () => {
+    const errored = {
+      expected: step({
+        status: 'error',
+        error:
+          "Error: Unable to send event to actor '#_parent' from machine 'm'."
+      }),
+      actual: step()
+    };
+    expect(classify('status', 'error', 'active', 0, errored)).toMatchObject({
+      rule: 'root-send-parent'
+    });
+    expect(
+      classify('status', 'error', 'active', 0, {
+        expected: step({ status: 'error', error: 'Error: boom' }),
+        actual: step()
+      })
+    ).toBe('unclassified');
   });
 });

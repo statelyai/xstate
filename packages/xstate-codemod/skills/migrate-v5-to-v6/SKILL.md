@@ -17,9 +17,11 @@ Run these steps for one machine file at a time. `<name>` is a short name for the
 
    Add `--stubs stubs.json` when the machine invokes or spawns actors by name. Each actor is `"pending"` (the default), `{ "done": output }`, or `{ "error": value }`:
    `{ "actors": { "fetchUser": { "done": { "id": 1 } } }, "delays": { "RETRY": 100 } }`.
-   `delays` sets named delays in milliseconds.
+   `delays` sets named delays in milliseconds. `{}` resolves with `undefined` and `{ "done": null }` resolves with `null`. One baseline holds one outcome per actor, so cover `onError` paths with a second baseline that uses a different `--stubs` file.
 
    Add `--input input.json` when the machine reads `input`.
+
+   If baseline times out, pass `--no-simple-paths`.
 
 2. Convert the file:
 
@@ -35,6 +37,7 @@ Run these steps for one machine file at a time. `<name>` is a short name for the
    npx @xstate/codemod verify --baseline .xstate-migrate/<name>.json <file> --json
    ```
 
+   - If the report has `startError`, exit 0 proves nothing: fix the input/stubs until it clears, then rerun.
    - Exit 0: done.
    - Exit 4: fix the load or run error described in `error.message`, then rerun.
    - Exit 3: for each `diffs[]` entry with `classification: "unclassified"`, reproduce it with `witness` (the events and clock advances up to `step`), compare `expected` (v5) with `actual` (v6) for `field`, fix the v6 code, then rerun step 3.
