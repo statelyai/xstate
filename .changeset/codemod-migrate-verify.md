@@ -8,18 +8,16 @@ A new report transform, `report-suffixed-lifecycle-events`, flags `on` keys writ
 
 A new report transform, `report-implementations`, flags a second `createMachine` argument, which v6 ignores.
 
-A new transform, `lower-actions`, rewrites v5 transitions with `actions` or `guard`, transition arrays, and `entry`/`exit` lists as v6 functions, converting `assign`, `raise`, `sendTo`, `sendParent`, `forwardTo`, `emit`, `log`, `cancel`, `stopChild`, `spawnChild`, `and`, `or`, `not`, and `stateIn`. Named actions and guards keep their v5 signatures, and a named `assign` action becomes a function that returns a context patch. It also moves an object-literal second `createMachine` argument into the config and rewrites `fromPromise(fn)` as `createAsyncLogic({ run: fn })`. Code it cannot rewrite, such as `enqueueActions`, is left unchanged and reported.
+A new transform, `lower-actions`, rewrites v5 transitions with `actions` or `guard`, transition arrays, and `entry`/`exit` lists as v6 functions, converting `assign`, `enqueueActions`, `raise`, `sendTo`, `sendParent`, `forwardTo`, `emit`, `log`, `cancel`, `stopChild`, `spawnChild`, `and`, `or`, `not`, and `stateIn`, including named implementations and module-level constants defined in the same file. Named actions and guards keep their v5 signatures, and a named `assign` action becomes a function that returns a context patch. It also moves an object-literal second `createMachine` argument into the config and rewrites `fromPromise(fn)` as `createAsyncLogic({ run: fn })`. Code it cannot rewrite is left unchanged and reported.
 
 ```ts
 // before
 on: { INC: { target: 'active', guard: 'canInc', actions: assign({ count: ({ context }) => context.count + 1 }) } }
 // after
 on: {
-  INC: (args, enq) => {
-    let context = args.context;
+  INC: (args) => {
     if (!args.guards.canInc(args)) return;
-    context = { ...context, count: context.count + 1 };
-    return { target: 'active', context };
+    return { target: 'active', context: { count: args.context.count + 1 } };
   }
 }
 ```
