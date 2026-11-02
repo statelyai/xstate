@@ -95,7 +95,7 @@ describe('lower-actions', () => {
       const { output } = lower(
         machine(`GO: { guard: ({ context }) => context.ok }`)
       );
-      expect(output).toContain(`GO: (args, enq) => {
+      expect(output).toContain(`GO: (args) => {
           const { context } = args;
           if (!context.ok) return;
           return {};
@@ -109,6 +109,17 @@ describe('lower-actions', () => {
       expect(output).toContain(`GO: (args, enq) => {
           enq(() => console.log('x'));
         }`);
+    });
+
+    it('omits unused parameters of generated functions', () => {
+      const { output } = lower(
+        machine(
+          `GO: { guard: () => true, target: 'b' }, X: { guard: ({ context }) => context.ok }`
+        )
+      );
+      expect(output).toContain(`GO: () => {`);
+      expect(output).toContain(`X: (args) => {`);
+      expect(lower(output).changed).toBe(false);
     });
 
     it('turns transition arrays into an if-chain and drops unreachable candidates', () => {
@@ -150,7 +161,7 @@ const m = createMachine({
       expect(output).not.toContain('actions:');
       expect(output).not.toContain('guard:');
       expect(output).toContain(`100: (args, enq) => {`);
-      expect(output).toContain(`always: (args, enq) => {
+      expect(output).toContain(`always: () => {
         if (!false) return;
         return { target: 'b' };
       }`);
@@ -473,7 +484,7 @@ const m = setup({
       expect(output).toContain(
         `mixed: (args, params) => ({ n: ((_, params) => params.n)(args, params) })`
       );
-      expect(output).toContain(`GO: (args, enq) => {
+      expect(output).toContain(`GO: (args) => {
     let context = args.context;
     let patch = {};
     patch = { ...patch, ...args.actions.inc(args) };

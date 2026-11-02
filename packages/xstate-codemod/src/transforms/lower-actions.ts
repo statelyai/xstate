@@ -196,8 +196,15 @@ function render(
   lowered: Lowered
 ): Edit {
   const indent = indentAt(sourceFile, property.getStart());
+  const text = lowered.body.join('\n');
+  const usesEnq = /\benq\b/.test(text);
+  const params = usesEnq
+    ? '(args, enq)'
+    : /\bargs\b/.test(text)
+      ? '(args)'
+      : '()';
   const fn = [
-    '(args, enq) => {',
+    `${params} => {`,
     ...lowered.body.map((line) => `${indent}  ${line}`),
     `${indent}}`
   ].join('\n');
