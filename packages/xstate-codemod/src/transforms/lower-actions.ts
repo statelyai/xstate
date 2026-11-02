@@ -2,6 +2,7 @@ import {
   CallExpression,
   Node,
   ObjectLiteralExpression,
+  PropertyAssignment,
   SourceFile,
   SyntaxKind
 } from 'ts-morph';
@@ -14,6 +15,7 @@ import {
   getXstateImports,
   isFunctionLike,
   resolveConstInitializer,
+  resolveStringConstant,
   unwrap,
   xstateCallee,
   collectImplementations,
@@ -223,10 +225,14 @@ function lowerMachines(sourceFile: SourceFile, notes: string[]): boolean {
   const edits: Edit[] = [];
   const assignDefs = new Set<ImplDef>();
 
+  const inlined = new Map<Node, string>();
   const attempt = (property: Node, value: Node, lower: () => Lowered) => {
     try {
       const lowered = lower();
       edits.push(render(sourceFile, property, value, lowered));
+      for (const def of lowered.inlined) {
+        inlined.set(def.property, implName(def));
+      }
       for (const note of lowered.notes) {
         notes.push(`${where(sourceFile, value)} — ${note}`);
       }
@@ -359,7 +365,100 @@ function lowerMachines(sourceFile: SourceFile, notes: string[]): boolean {
     }
   }
 
+  // Definitions only referenced from other removed definitions go too.
+  const removed: Node[] = [];
+  for (let grew = true; grew;) {
+    grew = false;
+    const ranges = [
+      ...edits,
+      ...removed.map((p) => ({ start: p.getStart(), end: p.getEnd() }))
+    ];
+    for (const [property, name] of inlined) {
+      if (removed.includes(property)) continue;
+      if (!hasOtherReferences(sourceFile, name, property, ranges)) {
+        removed.push(property);
+        grew = true;
+      }
+    }
+  }
+  for (const [property, name] of inlined) {
+    if (!removed.includes(property)) {
+      notes.push(
+        `${where(sourceFile, property)} — kept '${name}': referenced where it was not inlined`
+      );
+    }
+  }
+  edits.push(...removeProperties(removed));
+
   return applyEdits(sourceFile, edits);
+}
+
+function implName(def: ImplDef): string {
+  const name = (def.property as PropertyAssignment).getNameNode();
+  return Node.isComputedPropertyName(name)
+    ? (resolveStringConstant(name.getExpression()) ?? '')
+    : (getKeyText(def.property) ?? '');
+}
+
+/** Whether `name` still appears outside `def` and the replaced ranges. */
+function hasOtherReferences(
+  sourceFile: SourceFile,
+  name: string,
+  def: Node,
+  edits: Array<{ start: number; end: number }>
+): boolean {
+  const replaced = (node: Node) =>
+    (node.getStart() >= def.getStart() && node.getEnd() <= def.getEnd()) ||
+    edits.some((e) => node.getStart() >= e.start && node.getEnd() <= e.end);
+  return (
+    sourceFile.forEachDescendant((node) => {
+      const matches =
+        ((Node.isStringLiteral(node) ||
+          Node.isNoSubstitutionTemplateLiteral(node)) &&
+          node.getLiteralText() === name) ||
+        (Node.isIdentifier(node) && node.getText() === name) ||
+        (Node.isPropertyAccessExpression(node) &&
+          resolveStringConstant(node) === name);
+      return matches && !replaced(node) ? true : undefined;
+    }) ?? false
+  );
+}
+
+/** Deletes object literal properties with their separating commas. */
+function removeProperties(properties: Node[]): Edit[] {
+  const edits: Edit[] = [];
+  const objects = new Set(properties.map((p) => p.getParentOrThrow()));
+  for (const object of objects) {
+    if (!Node.isObjectLiteralExpression(object)) continue;
+    const props: Node[] = object.getProperties();
+    const gone = props.map((p) => properties.includes(p));
+    if (gone.every(Boolean)) {
+      edits.push({
+        start: object.getStart() + 1,
+        end: object.getEnd() - 1,
+        text: ''
+      });
+      continue;
+    }
+    const lastKept = gone.lastIndexOf(false);
+    props.forEach((p, i) => {
+      if (gone[i] && i < lastKept) {
+        edits.push({
+          start: p.getFullStart(),
+          end: props[i + 1].getFullStart(),
+          text: ''
+        });
+      }
+    });
+    if (lastKept < props.length - 1) {
+      edits.push({
+        start: props[lastKept].getEnd(),
+        end: props.at(-1)!.getEnd(),
+        text: ''
+      });
+    }
+  }
+  return edits;
 }
 
 // ---- F: fromPromise → createAsyncLogic ---------------------------------------

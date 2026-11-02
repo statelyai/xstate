@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createActor, createMachine } from 'xstate';
+import { createActor, createMachine, matchesState } from 'xstate';
 import { lowerActions } from '../src/transforms/lower-actions.ts';
 import { applyTransform, normalize } from './helpers.ts';
 
@@ -569,6 +569,66 @@ const m = setup({ guards: { [Guards.Ok]: () => true } }).createMachine({
   on: { GO: { guard: Guards.Ok } }
 });`);
       expect(changed).toBe(false);
+    });
+  });
+
+  describe('P3. combinator guard definitions', () => {
+    it('inlines a named combinator guard and deletes the definition', () => {
+      const { output } =
+        lower(`import { setup, not, stateIn, and } from 'xstate';
+const m = setup({
+  guards: {
+    ok: ({ context }) => context.ok,
+    editable: not(stateIn('locked')),
+    both: and(['ok', 'editable'])
+  }
+}).createMachine({
+  on: { GO: { guard: 'both', target: '.b' }, X: { guard: 'editable', target: '.b' } }
+});`);
+      expect(output).toContain(
+        "if (!(args.guards.ok(args) && !matchesState('locked', args.value))) return;"
+      );
+      expect(output).toContain(
+        "if (!!matchesState('locked', args.value)) return;"
+      );
+      expect(output).not.toContain('editable:');
+      expect(output).not.toContain('both:');
+      expect(output).toContain('ok: ({ context }) => context.ok');
+      expect(output).toContain("import { setup, matchesState } from 'xstate';");
+      expect(lower(output).changed).toBe(false);
+    });
+
+    it('keeps the definition when a reference was not lowered', () => {
+      const { output, notes } =
+        lower(`import { setup, not, stateIn } from 'xstate';
+const m = setup({
+  guards: { editable: not(stateIn('locked')) }
+}).createMachine({
+  on: { GO: { guard: 'editable', target: '.b' }, X: { guard: 'editable', unknown: 1 } }
+});`);
+      expect(output).toContain("editable: not(stateIn('locked'))");
+      expect(output).toContain(
+        "if (!!matchesState('locked', args.value)) return;"
+      );
+      expect(notes.join('\n')).toContain("kept 'editable'");
+    });
+
+    it('behaves like v5 for the inlined guard', () => {
+      const m = createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            on: {
+              GO: (args) =>
+                matchesState('a', args.value) ? { target: 'b' } : undefined
+            }
+          },
+          b: {}
+        }
+      });
+      const actor = createActor(m).start();
+      actor.send({ type: 'GO' });
+      expect(actor.getSnapshot().value).toBe('b');
     });
   });
 

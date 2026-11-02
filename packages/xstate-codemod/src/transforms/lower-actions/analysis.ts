@@ -3,7 +3,8 @@ import {
   Node,
   ObjectLiteralExpression,
   SourceFile,
-  SyntaxKind
+  SyntaxKind,
+  ts
 } from 'ts-morph';
 
 /** Thrown to abandon lowering of one node; the report transforms then flag it. */
@@ -76,16 +77,25 @@ export function access(name: string): string {
     : `[${JSON.stringify(name)}]`;
 }
 
-export type ImplKind = 'fn' | 'assign' | 'other';
+export type ImplKind = 'fn' | 'assign' | 'inline' | 'other';
 export interface ImplDef {
   kind: ImplKind;
+  /** For `inline`: the creator/combinator call lowered at each call site. */
+  expr?: Node;
   /** The property (assignment or method) declaring the implementation. */
   property: Node;
   /** For `assign(...)`: the argument. */
   assignArg?: Node;
 }
 
-function classify(property: Node, xs: Map<string, string>): ImplDef {
+/** Guard combinators a named guard may be defined as, inlined at call sites. */
+const INLINE_GUARDS = new Set(['and', 'or', 'not', 'stateIn']);
+
+function classify(
+  property: Node,
+  xs: Map<string, string>,
+  group: 'actions' | 'guards'
+): ImplDef {
   if (Node.isMethodDeclaration(property)) return { kind: 'fn', property };
   if (Node.isShorthandPropertyAssignment(property)) {
     return {
@@ -102,6 +112,10 @@ function classify(property: Node, xs: Map<string, string>): ImplDef {
   }
   if (Node.isIdentifier(value) && resolveIdentifier(value) === 'fn') {
     return { kind: 'fn', property };
+  }
+  const callee = xstateCallee(value, xs);
+  if (group === 'guards' && callee && INLINE_GUARDS.has(callee)) {
+    return { kind: 'inline', property, expr: value };
   }
   return { kind: 'other', property };
 }
@@ -136,7 +150,7 @@ function collectFrom(
     for (const property of map.getProperties()) {
       const key = implKey(property);
       if (key === undefined || impls[group].has(key)) continue;
-      impls[group].set(key, classify(property, xs));
+      impls[group].set(key, classify(property, xs, group));
     }
   }
 }
@@ -338,4 +352,42 @@ function isConst(decl: Node): boolean {
     Node.isVariableDeclarationList(list) &&
     !!(list.getFlags() & 2) /* NodeFlags.Const */
   );
+}
+
+/**
+ * Free identifiers in `node` that are declared inside a function or block
+ * other than the module (so inlining the node elsewhere could not see them).
+ */
+export function nonModuleReferences(node: Node): string[] {
+  const found = new Set<string>();
+  const start = node.getPos();
+  const end = node.getEnd();
+  for (const id of node.getDescendantsOfKind(SyntaxKind.Identifier)) {
+    if (!isReferenceIdentifier(id)) continue;
+    const parent = id.getParent();
+    const symbol = Node.isShorthandPropertyAssignment(parent)
+      ? id
+          .getProject()
+          .getTypeChecker()
+          .compilerObject.getShorthandAssignmentValueSymbol(parent.compilerNode)
+      : id.getSymbol()?.compilerSymbol;
+    for (const decl of symbol?.declarations ?? []) {
+      if (decl.pos >= start && decl.end <= end) continue;
+      if (decl.getSourceFile() !== node.getSourceFile().compilerNode) continue;
+      let scope = decl.parent;
+      while (scope && !ts.isSourceFile(scope)) {
+        if (
+          ts.isFunctionLike(scope) ||
+          ts.isBlock(scope) ||
+          ts.isClassLike(scope) ||
+          ts.isModuleBlock(scope)
+        ) {
+          found.add(id.getText());
+          break;
+        }
+        scope = scope.parent;
+      }
+    }
+  }
+  return [...found];
 }

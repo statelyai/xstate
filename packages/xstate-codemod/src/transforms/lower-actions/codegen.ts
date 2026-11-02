@@ -5,6 +5,7 @@ import {
   access,
   getKeyText,
   isFunctionLike,
+  nonModuleReferences,
   outerReferences,
   resolveIdentifier,
   resolveStringConstant,
@@ -144,6 +145,8 @@ class Branch {
 /** Builds one generated `(args, enq) => { ... }` function. */
 export class FunctionBuilder {
   hoist = new Set<string>();
+  /** Named definitions inlined into this function. */
+  inlinedDefs = new Set<ImplDef>();
   /** True when some branch keeps a running `context` and `patch`. */
   threaded = false;
   inline: boolean;
@@ -289,9 +292,35 @@ export class FunctionBuilder {
     return skip(`unsupported guard '${value.getText()}'`);
   }
 
+  /** Throws unless a named definition can be inlined at a call site. */
+  private inlineCheck(def: ImplDef, name: string) {
+    const expr = def.expr!;
+    const local = nonModuleReferences(expr);
+    if (local.length) {
+      skip(
+        `'${name}' references '${local.join("', '")}', which are not module-scope`
+      );
+    }
+    const shadowed = outerReferences(
+      expr,
+      new Set([...RESERVED, ...HOISTABLE, 'params'])
+    );
+    if (shadowed.size) {
+      skip(
+        `'${name}' references outer '${[...shadowed].join("', '")}', which the generated function would shadow`
+      );
+    }
+  }
+
   private namedGuard(ref: NameRef, params: Node | undefined, br: Branch) {
     const { name } = ref;
     const def = this.ctx.impls.guards.get(name);
+    if (def?.kind === 'inline') {
+      if (params) return skip(`guard '${name}' is a combinator given params`);
+      this.inlineCheck(def, name);
+      this.inlinedDefs.add(def);
+      return this.guard(def.expr!, br);
+    }
     if (!def || def.kind !== 'fn') {
       return skip(`guard '${name}' is not a function defined in this file`);
     }
@@ -675,6 +704,8 @@ export interface Lowered {
   /** Comment lines to place above the property (single transitions only). */
   above: string[];
   notes: string[];
+  /** Named definitions inlined at this site. */
+  inlined: Set<ImplDef>;
 }
 
 /** Lowers a transition object or array to a function body. */
@@ -695,7 +726,8 @@ export function lowerTransition(ctx: FileContext, value: Node): Lowered {
     return {
       body: [...fb.header(), ...body],
       above: descriptionComments(b.description),
-      notes
+      notes,
+      inlined: fb.inlinedDefs
     };
   }
   if (!Node.isArrayLiteralExpression(value)) {
@@ -731,7 +763,12 @@ export function lowerTransition(ctx: FileContext, value: Node): Lowered {
       '}'
     );
   }
-  return { body: [...fb.header(), ...body], above: [], notes };
+  return {
+    body: [...fb.header(), ...body],
+    above: [],
+    notes,
+    inlined: fb.inlinedDefs
+  };
 }
 
 /** Lowers an `entry`/`exit` value to a function body. */
@@ -742,7 +779,12 @@ export function lowerEntryExit(ctx: FileContext, value: Node): Lowered {
   const { lines, context } = br.finish(fb);
   const body = [...lines];
   if (context) body.push(`return { ${context} };`);
-  return { body: [...fb.header(), ...body], above: [], notes: [] };
+  return {
+    body: [...fb.header(), ...body],
+    above: [],
+    notes: [],
+    inlined: fb.inlinedDefs
+  };
 }
 
 /** Rewrites a named `assign(...)` definition as a patch-returning function. */
