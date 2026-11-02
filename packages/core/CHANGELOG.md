@@ -1,5 +1,17 @@
 # xstate
 
+## 6.0.0-alpha.73
+
+### Patch Changes
+
+- 6ef5f1f: Async logic that resolves `null` now reports `null` as its output instead of `undefined`. Rejecting with `null` likewise reports `null` as the error.
+  
+  ```ts
+  const logic = createAsyncLogic({ run: async () => null });
+  // snapshot.output === null
+  // parent receives { type: 'xstate.done.actor', output: null, ... }
+  ```
+
 ## 6.0.0-alpha.72
 
 ### Patch Changes
