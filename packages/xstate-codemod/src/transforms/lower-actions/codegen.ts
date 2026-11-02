@@ -169,6 +169,12 @@ class Branch {
   enqueued = false;
   /** Patches written from nested control flow: always accumulate in `patch`. */
   forcePatch = false;
+  /** Literal child ids spawned so far → index of the spawning entry. */
+  spawns = new Map<string, number>();
+  /** An assigner received `spawn`, so child ids are unknown statically. */
+  spawnAssign = false;
+  /** A `stopChild('id')` was lowered to `args.children[id]`. */
+  stringStop = false;
   /** Arguments text for guards evaluated against an earlier context. */
   argsOverride: string | undefined;
   argsObj() {
@@ -577,11 +583,27 @@ export class FunctionBuilder {
       case 'stopChild': {
         arity(1, 1);
         const target = unwrap(args[0]);
-        return br.push(
-          Node.isStringLiteral(target)
-            ? `enq.stop(args.children[${target.getText()}]);`
-            : `enq.stop(${this.dynamic(args[0], br)});`
-        );
+        if (!Node.isStringLiteral(target)) {
+          return br.push(`enq.stop(${this.dynamic(args[0], br)});`);
+        }
+        if (br.spawnAssign) {
+          return skip(
+            'stopChild by id after an assign that spawns: the child may not exist in args.children yet'
+          );
+        }
+        const at = br.spawns.get(target.getLiteralText());
+        if (at !== undefined) {
+          // v5 adds spawned children immediately; v6 queues the spawn, so
+          // stop the ref it returns instead of reading args.children.
+          const line = br.entries[at] as string;
+          const name = `child${at}`;
+          if (line.startsWith('enq.spawn(')) {
+            br.entries[at] = `const ${name} = ${line}`;
+          }
+          return br.push(`enq.stop(${name});`);
+        }
+        br.stringStop = true;
+        return br.push(`enq.stop(args.children[${target.getText()}]);`);
       }
       case 'spawnChild': {
         arity(1, 2);
@@ -589,9 +611,19 @@ export class FunctionBuilder {
         if (!Node.isStringLiteral(src) && !Node.isIdentifier(src)) {
           return skip('spawnChild source is not a name or identifier');
         }
-        return br.push(
+        br.push(
           `enq.spawn(${args[0].getText()}${this.options(args[1], br, ['id', 'input'])});`
         );
+        const options = args[1] && unwrap(args[1]);
+        const id =
+          options &&
+          Node.isObjectLiteralExpression(options) &&
+          getInit(options, 'id');
+        const idValue = id && unwrap(id);
+        if (idValue && Node.isStringLiteral(idValue)) {
+          br.spawns.set(idValue.getLiteralText(), br.entries.length - 1);
+        }
+        return;
       }
       case 'enqueueActions':
         arity(1, 1);
@@ -994,6 +1026,10 @@ function mentionsSpawn(node: Node): boolean {
 }
 
 function spawnArgs(br: Branch): string {
+  if (br.stringStop) {
+    skip('an assign spawns after stopChild by id; child ids are not static');
+  }
+  br.spawnAssign = true;
   return br.assigned
     ? '{ ...args, context, spawn: enq.spawn }'
     : '{ ...args, spawn: enq.spawn }';

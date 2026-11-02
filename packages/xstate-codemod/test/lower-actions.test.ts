@@ -933,6 +933,49 @@ const m = setup({ actions: { init, again: init as any } }).createMachine({
     });
   });
 
+  describe('R4. stopChild after spawnChild', () => {
+    it('stops the ref of a child spawned earlier in the same body', () => {
+      const { output } = lower(
+        machine(
+          `GO: { actions: [spawnChild('worker', { id: 'c' }), stopChild('c'), stopChild('other')] }`,
+          '',
+          'createMachine, spawnChild, stopChild'
+        )
+      );
+      expect(output).toContain(
+        "const child0 = enq.spawn('worker', { id: 'c' });"
+      );
+      expect(output).toContain('enq.stop(child0);');
+      expect(output).toContain("enq.stop(args.children['other']);");
+    });
+
+    it('v6: stopping the ref returned by enq.spawn removes the child', () => {
+      const actor = createActor(
+        createMachine({
+          on: {
+            GO: (_args: any, enq: any) => {
+              const c = enq.spawn(createMachine({}), { id: 'c' });
+              enq.stop(c);
+            }
+          }
+        })
+      ).start();
+      actor.send({ type: 'GO' });
+      expect(actor.getSnapshot().children.c).toBeUndefined();
+    });
+
+    it('does not lower stopChild by id when an assign spawns', () => {
+      const { changed } = lower(
+        machine(
+          `GO: { actions: [assign({ ref: ({ spawn }) => spawn('w', { id: 'c' }) }), stopChild('c')] }`,
+          '',
+          'createMachine, assign, stopChild'
+        )
+      );
+      expect(changed).toBe(false);
+    });
+  });
+
   describe('G. imports and idempotence', () => {
     it('keeps imports still referenced elsewhere', () => {
       const { output } = lower(
