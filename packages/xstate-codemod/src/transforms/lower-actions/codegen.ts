@@ -928,6 +928,9 @@ export class FunctionBuilder {
     if (Node.isIdentifier(value) && resolveIdentifier(value) === 'fn') {
       return br.pushPatch({ expr: `${value.getText()}(${argsText})` });
     }
+    if (Node.isIdentifier(value) && isPlainObjectConst(value)) {
+      return br.pushPatch({ expr: value.getText() });
+    }
     return skip(`unsupported assign argument '${value.getText()}'`);
   }
 
@@ -1206,6 +1209,9 @@ export function lowerEntryExit(ctx: FileContext, value: Node): Lowered {
 /** Rewrites a named `assign(...)` definition as a patch-returning function. */
 export function lowerAssignDefinition(def: ImplDef): string | undefined {
   const arg = unwrap(def.assignArg!);
+  if (Node.isIdentifier(arg) && isPlainObjectConst(arg)) {
+    return `() => ${arg.getText()}`;
+  }
   if (isFunctionLike(arg)) return def.assignArg!.getText();
   if (Node.isIdentifier(arg) && resolveIdentifier(arg) === 'fn') {
     return arg.getText();
@@ -1243,4 +1249,36 @@ export function lowerAssignDefinition(def: ImplDef): string | undefined {
     return `${p.getNameNode().getText()}: (${value.getText()})(args, params)`;
   });
   return `(args, params) => ({ ${generic.join(', ')} })`;
+}
+
+/**
+ * A module-level `const` object literal with no function, spread or method
+ * members: `assign(x)` then merges exactly `x`.
+ */
+function isPlainObjectConst(id: Node): boolean {
+  const decls = id.getSymbol()?.getDeclarations() ?? [];
+  if (decls.length !== 1 || !Node.isVariableDeclaration(decls[0])) return false;
+  const decl = decls[0];
+  const list = decl.getParent();
+  const statement = decl.getVariableStatement();
+  if (
+    !Node.isVariableDeclarationList(list) ||
+    !(list.getFlags() & 2) ||
+    !statement ||
+    !Node.isSourceFile(statement.getParent())
+  )
+    return false;
+  const init = decl.getInitializer();
+  const value = init && unwrap(init);
+  return (
+    !!value &&
+    Node.isObjectLiteralExpression(value) &&
+    value
+      .getProperties()
+      .every(
+        (p) =>
+          Node.isPropertyAssignment(p) &&
+          !isFunctionLike(unwrap(p.getInitializer()!))
+      )
+  );
 }

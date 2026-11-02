@@ -86,6 +86,8 @@ export interface ImplDef {
   property: Node;
   /** For `assign(...)`: the argument. */
   assignArg?: Node;
+  /** For an action bound to `const x = assign(...)`: that declaration. */
+  constDecl?: Node;
 }
 
 /** Guard combinators a named guard may be defined as, inlined at call sites. */
@@ -98,6 +100,10 @@ function classify(
 ): ImplDef {
   if (Node.isMethodDeclaration(property)) return { kind: 'fn', property };
   if (Node.isShorthandPropertyAssignment(property)) {
+    if (group === 'actions') {
+      const constAssign = implConstAssign(property.getNameNode(), xs);
+      if (constAssign) return { kind: 'assign', property, ...constAssign };
+    }
     return {
       kind: resolveIdentifier(property.getNameNode()) === 'fn' ? 'fn' : 'other',
       property
@@ -112,6 +118,10 @@ function classify(
   }
   if (Node.isIdentifier(value) && resolveIdentifier(value) === 'fn') {
     return { kind: 'fn', property };
+  }
+  if (group === 'actions' && Node.isIdentifier(value)) {
+    const constAssign = implConstAssign(value, xs);
+    if (constAssign) return { kind: 'assign', property, ...constAssign };
   }
   const callee = xstateCallee(value, xs);
   if (
@@ -544,4 +554,51 @@ export function onlyConfigReferences(decl: Node): boolean {
         Node.isSatisfiesExpression(parent)
       );
     });
+}
+
+/**
+ * `name` in an actions map bound to a module `const name = assign(...)` whose
+ * only references are entries of implementation maps.
+ */
+function implConstAssign(
+  id: Node,
+  xs: Map<string, string>
+): { assignArg: Node; constDecl: Node } | undefined {
+  const parent = id.getParent();
+  const symbol = Node.isShorthandPropertyAssignment(parent)
+    ? parent.getValueSymbol()
+    : id.getSymbol();
+  const decls = symbol?.getDeclarations() ?? [];
+  if (decls.length !== 1) return undefined;
+  const nameId = Node.isVariableDeclaration(decls[0])
+    ? decls[0].getNameNode()
+    : undefined;
+  if (!nameId) return undefined;
+  const found = resolveConstAction(nameId, xs);
+  if (!found || found.callee !== 'assign') return undefined;
+  const [arg, ...rest] = found.call.getArguments();
+  if (!arg || rest.length) return undefined;
+  const refsOk = id
+    .getSourceFile()
+    .getDescendantsOfKind(SyntaxKind.Identifier)
+    .filter((r) => r !== nameId && r.getText() === nameId.getText())
+    .every((r) => {
+      const p = r.getParent();
+      const s = Node.isShorthandPropertyAssignment(p)
+        ? p.getValueSymbol()
+        : r.getSymbol();
+      if (s !== symbol) return true;
+      const owner = Node.isShorthandPropertyAssignment(p)
+        ? p
+        : Node.isPropertyAssignment(p) && p.getInitializer() === r
+          ? p
+          : undefined;
+      const map = owner?.getParent()?.getParent();
+      return (
+        !!owner &&
+        Node.isPropertyAssignment(map) &&
+        getKeyText(map) === 'actions'
+      );
+    });
+  return refsOk ? { assignArg: arg, constDecl: found.decl } : undefined;
 }

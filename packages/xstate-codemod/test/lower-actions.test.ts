@@ -908,6 +908,31 @@ const m = createMachine({ entry: entryActions });`);
     });
   });
 
+  describe('R3. assign of consts', () => {
+    it('lowers assign(plainObjectConst) to a patch of that const', () => {
+      const { output } = lower(`import { setup, assign } from 'xstate';
+const initial = { n: 0, label: 'x' };
+const m = setup({ actions: { reset: assign(initial) } }).createMachine({
+  context: initial,
+  on: { GO: { actions: assign(initial) }, R: { actions: 'reset' } }
+});`);
+      expect(output).toContain('return { context: initial };');
+      expect(output).toContain('reset: () => initial');
+      expect(output).toContain('return { context: args.actions.reset(args) };');
+    });
+
+    it('treats a named action bound to a const assign like a named assign', () => {
+      const { output } = lower(`import { setup, assign } from 'xstate';
+const init = assign(({ event }) => ({ n: event.n }));
+const m = setup({ actions: { init } }).createMachine({
+  on: { GO: { actions: 'init' } }
+});`);
+      expect(output).toContain('const init = ({ event }) => ({ n: event.n });');
+      expect(output).toContain('return { context: args.actions.init(args) };');
+      expect(output).toContain("import { setup } from 'xstate';");
+    });
+  });
+
   describe('G. imports and idempotence', () => {
     it('keeps imports still referenced elsewhere', () => {
       const { output } = lower(

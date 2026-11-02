@@ -425,6 +425,11 @@ function planMachines(
     visitState(config);
 
     for (const [def, text] of rewrites) {
+      if (def.constDecl && Node.isVariableDeclaration(def.constDecl)) {
+        const init = def.constDecl.getInitializer()!;
+        edits.push({ start: init.getStart(), end: init.getEnd(), text });
+        continue;
+      }
       if (!Node.isPropertyAssignment(def.property)) continue;
       const init = def.property.getInitializer()!;
       edits.push({ start: init.getStart(), end: init.getEnd(), text });
