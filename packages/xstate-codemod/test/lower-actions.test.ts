@@ -992,6 +992,20 @@ const m = X.createMachine({ on: { GO: { target: '.b', guard: () => true } } });`
     });
   });
 
+  describe('R4. provide overrides', () => {
+    it('keeps named assigns that provide(...) overrides', () => {
+      const { output, notes } = lower(`import { setup, assign } from 'xstate';
+const m = setup({ actions: { inc: assign({ n: 1 }), other: assign({ n: 2 }) } }).createMachine({
+  on: { GO: { actions: 'inc' }, X: { actions: 'other' } }
+});
+export const custom = m.provide({ actions: { inc: assign({ n: 5 }) } });`);
+      expect(output).toContain('inc: assign({ n: 1 })');
+      expect(output).toContain("GO: { actions: 'inc' }");
+      expect(output).toContain('other: () => ({ n: 2 })');
+      expect(notes.join('\n')).toContain("'inc' is overridden through provide");
+    });
+  });
+
   describe('G. imports and idempotence', () => {
     it('keeps imports still referenced elsewhere', () => {
       const { output } = lower(

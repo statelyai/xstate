@@ -277,6 +277,27 @@ function planMachines(
     }
   };
 
+  const provided = sourceFile
+    .getDescendantsOfKind(SyntaxKind.CallExpression)
+    .filter((call) => {
+      const callee = call.getExpression();
+      return (
+        (Node.isIdentifier(callee) && callee.getText() === 'provide') ||
+        (Node.isPropertyAccessExpression(callee) &&
+          callee.getName() === 'provide')
+      );
+    })
+    .map((call) =>
+      call
+        .getArguments()
+        .map((a) => a.getText())
+        .join(',')
+    );
+  const mentions = (text: string, name: string) =>
+    new RegExp(
+      `(^|[^\\w$])${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}($|[^\\w$])`
+    ).test(text);
+
   for (const config of findMachineConfigObjects(sourceFile)) {
     if (!isXstateMachineCall(config.getParentOrThrow())) {
       notes.push(
@@ -286,8 +307,17 @@ function planMachines(
     }
     const impls = collectImplementations(config, xs);
     const rewrites = new Map<ImplDef, string>();
-    for (const def of impls.actions.values()) {
+    for (const [name, def] of impls.actions) {
       if (def.kind !== 'assign') continue;
+      if (provided.some((text) => mentions(text, name))) {
+        // `.provide({ actions: { name } })` elsewhere would still pass a v5
+        // assign where call sites expect a patch function.
+        def.kind = 'other';
+        notes.push(
+          `${where(sourceFile, def.property)} — not lowered: '${name}' is overridden through provide(...)`
+        );
+        continue;
+      }
       const text = lowerAssignDefinition(def);
       if (text === undefined) def.kind = 'other';
       else rewrites.set(def, text);
