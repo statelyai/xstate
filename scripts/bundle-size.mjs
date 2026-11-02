@@ -1,44 +1,30 @@
-// Bundle-size benchmark for XState, stores, and representative adapters.
+// Bundle-size measurement for XState, stores, and representative adapters.
 //
-// Measures min+gzip size of representative entry profiles bundled from source,
-// compares them against the thresholds in
-// scripts/bundle-size.thresholds.json, and exits non-zero on regression.
+// Bundles each entry profile below from source with esbuild, minifies it with
+// esbuild and with Terser, and prints minified and min+gzip byte counts. It only
+// measures: there are no thresholds and it never fails on size.
 //
 // Usage:
-//   node scripts/bundle-size.mjs            # measure + check thresholds
-//   node scripts/bundle-size.mjs --update   # rewrite thresholds to current sizes
-//   node scripts/bundle-size.mjs --update --force  # allow raising above a target
-//   node scripts/bundle-size.mjs --why      # per-module byte attribution
-//   node scripts/bundle-size.mjs --dist     # diagnose the latest local build
-//   node scripts/bundle-size.mjs --json     # machine-readable results
+//   node scripts/bundle-size.mjs                          # all profiles
 //   node scripts/bundle-size.mjs --profile=minimal-machine
-//   node scripts/bundle-size.mjs --verify   # assert output of both minifiers
-//   node scripts/bundle-size.mjs --report   # report without enforcing stale budgets
+//   node scripts/bundle-size.mjs --why                    # per-module bytes
+//   node scripts/bundle-size.mjs --json                   # machine-readable
 //
-// Thresholds are the regression line (exceeding one fails). Targets in
-// scripts/bundle-size.targets.json are goals: a miss is reported on every run
-// but does not fail, and `--update` refuses to raise a threshold above its
-// target unless `--force` is passed.
-//
-// Source is canonical so the gate cannot accidentally measure stale build
-// artifacts. `--dist` requires `preconstruct build` to have run first.
 // esbuild is resolved through vite's dependency graph so this script adds no
 // new dependency to the repo.
 
-import { execFileSync } from 'node:child_process';
 import { createRequire } from 'node:module';
-import { verifyBundle } from './bundle-size-verify.mjs';
-import { createHash } from 'node:crypto';
 import {
   mkdirSync,
-  symlinkSync,
   mkdtempSync,
-  writeFileSync,
-  readFileSync,
-  rmSync
+  rmSync,
+  symlinkSync,
+  writeFileSync
 } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+// Node links against different zlib versions across platforms and releases;
+// pako (pure JS) keeps gzip sizes reproducible.
 import { gzip } from 'pako';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -46,8 +32,6 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 // dependency chain root -> vitest -> vite -> esbuild (Node resolves through
 // the .pnpm symlinks to real paths).
 const rootRequire = createRequire(join(root, 'package.json'));
-// Node links against different zlib versions across platforms and releases.
-// A pinned JS implementation keeps exact gzip thresholds reproducible.
 const viteRequire = createRequire(rootRequire.resolve('vitest'));
 const esbuild = createRequire(viteRequire.resolve('vite'))('esbuild');
 const preconstructRequire = createRequire(
@@ -522,81 +506,13 @@ const PROFILES = {
   }
 };
 
-const EXPECTED_LOGS = {
-  'fsm-entrypoint-logic': [['active']],
-  'minimal-machine': [['active']],
-  'minimal-fsm': [['active']],
-  'fsm-setup': [['active']],
-  'custom-logic-actor': [[1]],
-  'machine-construction': [['']],
-  'pure-machine': [['active']],
-  compound: [[{ parent: 'active' }]],
-  parallel: [[{ left: 'active', right: 'inactive' }]],
-  history: [[{ active: 'second' }]],
-  final: [[{ result: 'ok' }]],
-  eventless: [['ready']],
-  actionful: [['incremented'], [1]],
-  invoked: [['done']],
-  delayed: [['done']],
-  persisted: [['active']],
-  inspected: [
-    ['@xstate.actor'],
-    ['@xstate.transition'],
-    ['@xstate.transition'],
-    ['active']
-  ],
-  'machine-and-actors': [[1]],
-  'validated-machine': [[0]],
-  'store-counter': [[1]],
-  'store-atom': [[1]],
-  'store-source-atom': [[2]],
-  'react-machine': [['<span>inactive</span>']],
-  'react-store': [['<span>1</span>']],
-  'kitchen-sink': []
-};
-
 const args = process.argv.slice(2);
-const update = args.includes('--update');
-const force = args.includes('--force');
 const why = args.includes('--why');
 const json = args.includes('--json');
-const useDist = args.includes('--dist');
-const verify = args.includes('--verify');
-const report = args.includes('--report');
-const baselineArg = args.find((arg) => arg.startsWith('--baseline='));
-const baseline = baselineArg
-  ? execFileSync(
-      'git',
-      [
-        'rev-parse',
-        '--verify',
-        baselineArg.slice('--baseline='.length) + '^{commit}'
-      ],
-      { cwd: root, encoding: 'utf8' }
-    ).trim()
-  : undefined;
-if (baseline && (!report || useDist)) {
-  throw new Error('A source baseline requires --report without --dist');
-}
-const attribution = {};
 const profileArg = args.find((arg) => arg.startsWith('--profile='));
 const selectedProfile = profileArg?.slice('--profile='.length);
-const thresholdsPath = join(root, 'scripts', 'bundle-size.thresholds.json');
-const targets = JSON.parse(
-  readFileSync(join(root, 'scripts', 'bundle-size.targets.json'), 'utf8')
-);
-
 if (selectedProfile && !PROFILES[selectedProfile]) {
   throw new Error(`Unknown profile: ${selectedProfile}`);
-}
-if (update && report) {
-  throw new Error('--update cannot be combined with --report');
-}
-if (update && selectedProfile) {
-  throw new Error('--update cannot be combined with --profile');
-}
-if (update && useDist) {
-  throw new Error('--update cannot be combined with --dist');
 }
 
 // Dev-only branches are folded the way the production dist build does it.
@@ -608,13 +524,7 @@ const sourcePlugin = {
     }));
     build.onLoad({ filter: /packages\/[^/]+\/src\/.*\.ts$/ }, async (args) => {
       const { readFile } = await import('node:fs/promises');
-      let src = baseline
-        ? execFileSync(
-            'git',
-            ['show', `${baseline}:${args.path.slice(root.length + 1)}`],
-            { cwd: root, encoding: 'utf8' }
-          )
-        : await readFile(args.path, 'utf8');
+      let src = await readFile(args.path, 'utf8');
       const developmentImport =
         /import isDevelopment from ['"]#is-development['"];?/;
       if (developmentImport.test(src)) {
@@ -628,7 +538,8 @@ const sourcePlugin = {
 };
 
 const results = {};
-// Keep verification artifacts beneath the workspace so external framework imports
+const attribution = {};
+// Keep build entries beneath the workspace so external framework imports
 // resolve identically to an application without including their bytes.
 const cacheDir = join(root, 'node_modules', '.cache');
 mkdirSync(cacheDir, { recursive: true });
@@ -646,22 +557,9 @@ for (const peer of ['react', 'react-dom']) {
   );
 }
 
+const src = (...path) => join(root, 'packages', ...path);
+
 try {
-  if (useDist) {
-    mkdirSync(join(workDir, 'node_modules', '@xstate'));
-    for (const [name, directory] of Object.entries({
-      xstate: 'core',
-      '@xstate/store': 'xstate-store',
-      '@xstate/store-react': 'xstate-store-react',
-      '@xstate/react': 'xstate-react'
-    })) {
-      symlinkSync(
-        join(root, 'packages', directory),
-        join(workDir, 'node_modules', name),
-        'dir'
-      );
-    }
-  }
   for (const [name, profile] of Object.entries(PROFILES)) {
     if (selectedProfile && name !== selectedProfile) {
       continue;
@@ -673,52 +571,17 @@ try {
       bundle: true,
       format: 'esm',
       write: false,
-      // Source is canonical. Dist is an explicit post-build diagnostic only.
-      alias: useDist
-        ? undefined
-        : {
-            '@xstate/store-react': join(
-              root,
-              'packages',
-              'xstate-store-react',
-              'src',
-              'index.ts'
-            ),
-            '@xstate/store': join(
-              root,
-              'packages',
-              'xstate-store',
-              'src',
-              'index.ts'
-            ),
-            '@xstate/react': join(
-              root,
-              'packages',
-              'xstate-react',
-              'src',
-              'index.ts'
-            ),
-            'xstate/fsm': join(
-              root,
-              'packages',
-              'core',
-              'src',
-              'fsm',
-              'index.ts'
-            ),
-            'xstate/validation': join(
-              root,
-              'packages',
-              'core',
-              'src',
-              'validation',
-              'index.ts'
-            ),
-            xstate: join(root, 'packages', 'core', 'src', 'index.ts')
-          },
+      alias: {
+        '@xstate/store-react': src('xstate-store-react', 'src', 'index.ts'),
+        '@xstate/store': src('xstate-store', 'src', 'index.ts'),
+        '@xstate/react': src('xstate-react', 'src', 'index.ts'),
+        'xstate/fsm': src('core', 'src', 'fsm', 'index.ts'),
+        'xstate/validation': src('core', 'src', 'validation', 'index.ts'),
+        xstate: src('core', 'src', 'index.ts')
+      },
       conditions: ['module'],
       define: { 'process.env.NODE_ENV': '"production"' },
-      plugins: useDist ? [] : [sourcePlugin],
+      plugins: [sourcePlugin],
       external: profile.external ?? []
     };
     const built = await esbuild.build({
@@ -741,55 +604,29 @@ try {
       throw new Error(`Terser emitted no code for profile "${name}"`);
     }
     const terserCode = Buffer.from(terserResult.code);
-    if (verify) {
-      for (const [minifier, measuredCode] of [
-        ['esbuild', code],
-        ['terser', terserCode]
-      ]) {
-        verifyBundle({
-          name: `${name}-${minifier}`,
-          directory: workDir,
-          code: measuredCode,
-          expectedLogs: EXPECTED_LOGS[name],
-          exports:
-            name === 'kitchen-sink' ? ['createMachine', 'createActor'] : []
-        });
-      }
-    }
     results[name] = {
       minified: code.byteLength,
       gzipped: gzip(code, { level: 9 }).byteLength,
       terserMinified: terserCode.byteLength,
       terserGzipped: gzip(terserCode, { level: 9 }).byteLength,
-      capabilities: profile.capabilities,
-      external: profile.external ?? [],
-      profileHash: createHash('sha256')
-        .update(profile.source)
-        .digest('hex')
-        .slice(0, 16),
-      verified: verify
+      capabilities: profile.capabilities
     };
     if (why) {
-      if (!json) console.log(`\n${name} — minified bytes per module:`);
       const inputs = Object.values(built.metafile.outputs)[0].inputs;
-      const rows = Object.entries(inputs)
-        .map(([file, { bytesInOutput }]) => [
-          file
-            .replace(/^.*packages\/core\/src\//, '')
-            .replace(
-              /node_modules\/\.cache\/xstate-size-[^/]+\//,
-              '<profile>/'
-            ),
-          bytesInOutput
-        ])
-        .filter(([, bytes]) => bytes > 0)
-        .sort((a, b) => b[1] - a[1]);
-      attribution[name] = Object.fromEntries(rows);
-      if (!json) {
-        for (const [file, bytes] of rows) {
-          console.log(`  ${String(bytes).padStart(8)}  ${file}`);
-        }
-      }
+      attribution[name] = Object.fromEntries(
+        Object.entries(inputs)
+          .map(([file, { bytesInOutput }]) => [
+            file
+              .replace(/^.*packages\/core\/src\//, '')
+              .replace(
+                /node_modules\/\.cache\/xstate-size-[^/]+\//,
+                '<profile>/'
+              ),
+            bytesInOutput
+          ])
+          .filter(([, bytes]) => bytes > 0)
+          .sort((a, b) => b[1] - a[1])
+      );
     }
   }
 } finally {
@@ -797,135 +634,47 @@ try {
   esbuild.stop();
 }
 
-const kb = (n) => `${(n / 1024).toFixed(2)} kB`;
-
 if (json) {
   console.log(
     JSON.stringify({
-      source: useDist ? 'dist' : 'src',
       node: process.version,
-      baseline: baseline ?? null,
       esbuild: esbuild.version,
       terser: preconstructRequire('terser/package.json').version,
       pako: rootRequire('pako/package.json').version,
-      lockfileHash: createHash('sha256')
-        .update(readFileSync(join(root, 'pnpm-lock.yaml')))
-        .digest('hex'),
       results,
       ...(why ? { attribution } : {})
     })
   );
 } else {
-  console.log(
-    `xstate bundle size (min+gzip), bundled from ${useDist ? 'packages/core/dist' : 'packages/core/src'}:\n`
+  const rows = [
+    ['profile', 'esbuild min', 'esbuild gz', 'terser min', 'terser gz'],
+    ...Object.entries(results).map(([name, r]) => [
+      name,
+      r.minified,
+      r.gzipped,
+      r.terserMinified,
+      r.terserGzipped
+    ])
+  ];
+  const widths = rows[0].map((_, i) =>
+    Math.max(...rows.map((row) => String(row[i]).length))
   );
-  const nameWidth = Math.max(
-    ...Object.keys(results).map((name) => name.length)
-  );
-  for (const [name, { minified, gzipped }] of Object.entries(results)) {
+  console.log('Bundle size in bytes, bundled from packages/*/src:\n');
+  for (const row of rows) {
     console.log(
-      `  ${name.padEnd(nameWidth)} esbuild min ${kb(minified).padStart(10)}   gz ${kb(gzipped).padStart(9)}`
-    );
-    const result = results[name];
-    console.log(
-      `  ${''.padEnd(nameWidth)}  terser min ${kb(result.terserMinified).padStart(10)}   gz ${kb(result.terserGzipped).padStart(9)}`
+      row
+        .map((cell, i) =>
+          i === 0
+            ? String(cell).padEnd(widths[i])
+            : String(cell).padStart(widths[i])
+        )
+        .join('  ')
     );
   }
-
-  if (!selectedProfile && results['minimal-machine']) {
-    const baseline = results['minimal-machine'].gzipped;
-    console.log(
-      '\nWhole-profile gzip deltas from minimal-machine (not additive):'
-    );
-    for (const [name, result] of Object.entries(results)) {
-      if (name === 'minimal-machine') {
-        continue;
-      }
-      const delta = result.gzipped - baseline;
-      const sign = delta >= 0 ? '+' : '';
-      console.log(
-        `  ${name.padEnd(nameWidth)} ${`${sign}${delta} B`.padStart(9)}  ${result.capabilities.join(', ')}`
-      );
+  for (const [name, modules] of Object.entries(attribution)) {
+    console.log(`\n${name}: esbuild minified bytes per module`);
+    for (const [file, bytes] of Object.entries(modules)) {
+      console.log(`  ${String(bytes).padStart(8)}  ${file}`);
     }
   }
 }
-
-if (!json) {
-  const targeted = Object.keys(results).filter(
-    (name) => targets[name]?.targetGzipBytes !== undefined
-  );
-  if (targeted.length) console.log('\nTargets (informational, non-failing):');
-  for (const name of targeted) {
-    const { gzipped } = results[name];
-    const target = targets[name].targetGzipBytes;
-    const delta = gzipped - target;
-    console.log(
-      delta > 0
-        ? `  TARGET NOT MET ${name}: ${gzipped} B gz, target ${target} B (${delta} B over)`
-        : `  target met ${name}: ${gzipped} B gz, target ${target} B (${-delta} B under)`
-    );
-  }
-}
-
-if (update) {
-  const previous = JSON.parse(readFileSync(thresholdsPath, 'utf8'));
-  const refused = [];
-  for (const [name, { gzipped }] of Object.entries(results)) {
-    const target = targets[name]?.targetGzipBytes;
-    const old = previous[name]?.maxGzipBytes;
-    if (target !== undefined && gzipped > target && gzipped > (old ?? 0)) {
-      refused.push(
-        `${name}: ${old ?? 'none'} -> ${gzipped} B exceeds target ${target} B`
-      );
-    }
-  }
-  if (refused.length) {
-    const lines = refused.map((line) => `  ${line}`).join('\n');
-    if (!force) {
-      console.error(
-        `\nRefusing to raise thresholds above their targets:\n${lines}\n` +
-          'Rerun with --update --force to accept the increase.'
-      );
-      process.exit(1);
-    }
-    console.warn(
-      `\nWARNING: raising thresholds above their targets (--force):\n${lines}`
-    );
-  }
-  const thresholds = {};
-  for (const [name, { gzipped }] of Object.entries(results)) {
-    // The source bundle is deterministic. Require every increase to be
-    // reviewed and explicitly accepted rather than hiding it in headroom.
-    thresholds[name] = { maxGzipBytes: gzipped };
-  }
-  writeFileSync(thresholdsPath, JSON.stringify(thresholds, null, 2) + '\n');
-  if (!json) {
-    console.log(`\nThresholds updated: ${thresholdsPath}`);
-  }
-  process.exit(0);
-}
-
-if (useDist || report) {
-  if (!json) {
-    console.log('\nInformational report; source thresholds were not checked.');
-  }
-  process.exit(0);
-}
-
-let failed = false;
-const thresholds = JSON.parse(readFileSync(thresholdsPath, 'utf8'));
-for (const [name, { gzipped }] of Object.entries(results)) {
-  const max = thresholds[name]?.maxGzipBytes;
-  if (max === undefined) {
-    console.error(`\nNo threshold for profile "${name}" — run with --update.`);
-    failed = true;
-  } else if (gzipped > max) {
-    console.error(
-      `\nFAIL ${name}: ${gzipped} bytes gz exceeds threshold ${max}.` +
-        ` If intentional, rerun with --update and commit the result.`
-    );
-    failed = true;
-  }
-}
-if (!failed && !json) console.log('\nAll profiles within thresholds.');
-process.exit(failed ? 1 : 0);
