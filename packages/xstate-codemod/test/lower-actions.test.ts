@@ -882,6 +882,32 @@ const m = setup({
     });
   });
 
+  describe('R3. config held in module consts', () => {
+    it('lowers transition maps, states and entry held in consts in place', () => {
+      const { output } = lower(`import { createMachine, raise } from 'xstate';
+const transitions = { GO: { target: 'b', actions: raise({ type: 'X' }) } } as const;
+const entryActions = [raise({ type: 'Y' })];
+const b = { entry: entryActions };
+const m = createMachine({
+  initial: 'a',
+  states: { a: { on: { ...transitions } }, b }
+});`);
+      expect(output).toContain(`const transitions = { GO: (args, enq) => {`);
+      expect(output).toContain("enq.raise({ type: 'X' });");
+      expect(output).toContain(`const entryActions = (args, enq) => {`);
+      expect(output).toContain('const b = { entry: entryActions };');
+      expect(lower(output).changed).toBe(false);
+    });
+
+    it('leaves consts referenced elsewhere', () => {
+      const { output } = lower(`import { createMachine, raise } from 'xstate';
+const entryActions = [raise({ type: 'Y' })];
+export const more = [...entryActions];
+const m = createMachine({ entry: entryActions });`);
+      expect(output).toContain("const entryActions = [raise({ type: 'Y' })];");
+    });
+  });
+
   describe('G. imports and idempotence', () => {
     it('keeps imports still referenced elsewhere', () => {
       const { output } = lower(

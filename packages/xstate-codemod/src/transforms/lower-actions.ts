@@ -17,6 +17,9 @@ import {
   isFunctionLike,
   resolveConstInitializer,
   resolveStringConstant,
+  derefConfig,
+  isIndirect,
+  onlyConfigReferences,
   unwrap,
   xstateCallee,
   collectImplementations,
@@ -279,8 +282,23 @@ function planMachines(
     }
     const ctx: FileContext = { xs, impls, assignDefs, disabledConsts };
 
+    /** Literal behind an in-file const reference, when safe to edit in place. */
+    const resolve = (value: Node): Node | undefined => {
+      if (!isIndirect(value)) return value;
+      const target = derefConfig(value);
+      if (!target) return value;
+      if (!onlyConfigReferences(target.decl)) return undefined;
+      return target.node;
+    };
+
     const transition = (property: Node, value: Node | undefined) => {
       if (!value) return;
+      if (isIndirect(value)) {
+        const target = resolve(value);
+        if (!target || target === value || isFunctionLike(target)) return;
+        // Lowered in place inside the const: replace the literal only.
+        return transition(target, target);
+      }
       const v = unwrap(value);
       const candidates = Node.isArrayLiteralExpression(v)
         ? v.getElements().map(unwrap)
@@ -318,29 +336,40 @@ function planMachines(
       }
     };
 
-    const transitionMap = (value: Node | undefined) => {
+    const transitionMap = (map: Node | undefined) => {
+      const value = map && resolve(map);
       if (!value || !Node.isObjectLiteralExpression(value)) return;
       for (const property of value.getProperties()) {
         if (Node.isPropertyAssignment(property)) {
           transition(property, property.getInitializer());
+        } else if (Node.isSpreadAssignment(property)) {
+          transitionMap(property);
         }
       }
     };
 
-    const visitState = (state: Node | undefined) => {
+    const visitState = (node: Node | undefined) => {
+      const state = node && resolve(node);
       if (!state || !Node.isObjectLiteralExpression(state)) return;
       for (const property of state.getProperties()) {
+        if (Node.isSpreadAssignment(property)) {
+          visitState(property);
+          continue;
+        }
         const key = getKeyText(property);
         if (!key || !Node.isPropertyAssignment(property)) continue;
         const value = property.getInitializer();
         if (!value) continue;
         switch (key) {
           case 'entry':
-          case 'exit':
-            if (!isFunctionLike(unwrap(value))) {
-              attempt(property, value, () => lowerEntryExit(ctx, value));
+          case 'exit': {
+            const target = resolve(value);
+            if (target && !isFunctionLike(unwrap(target))) {
+              const at = target === value ? property : target;
+              attempt(at, target, () => lowerEntryExit(ctx, target));
             }
             break;
+          }
           case 'on':
           case 'after':
             transitionMap(value);
@@ -352,11 +381,14 @@ function planMachines(
             transition(property, value);
             break;
           case 'invoke': {
-            const invokes = Node.isArrayLiteralExpression(value)
-              ? value.getElements()
-              : [value];
+            const list = resolve(value);
+            const invokes = !list
+              ? []
+              : Node.isArrayLiteralExpression(list)
+                ? list.getElements().map(resolve)
+                : [list];
             for (const invoke of invokes) {
-              if (!Node.isObjectLiteralExpression(invoke)) continue;
+              if (!invoke || !Node.isObjectLiteralExpression(invoke)) continue;
               for (const p of invoke.getProperties()) {
                 const k = getKeyText(p);
                 if (
@@ -370,14 +402,22 @@ function planMachines(
             break;
           }
           case 'states':
-            if (Node.isObjectLiteralExpression(value)) {
-              for (const child of value.getProperties()) {
-                if (Node.isPropertyAssignment(child)) {
-                  visitState(child.getInitializer());
-                }
-              }
-            }
+            visitStates(value);
             break;
+        }
+      }
+    };
+
+    const visitStates = (node: Node) => {
+      const states = resolve(node);
+      if (!states || !Node.isObjectLiteralExpression(states)) return;
+      for (const child of states.getProperties()) {
+        if (Node.isPropertyAssignment(child)) {
+          visitState(child.getInitializer());
+        } else if (Node.isShorthandPropertyAssignment(child)) {
+          visitState(child);
+        } else if (Node.isSpreadAssignment(child)) {
+          visitStates(child);
         }
       }
     };

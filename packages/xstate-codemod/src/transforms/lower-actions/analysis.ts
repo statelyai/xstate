@@ -451,3 +451,97 @@ export function resolveConstAction(
     return undefined;
   return { decl, call: call as CallExpression, callee };
 }
+
+/** Whether a config value is a reference rather than written inline. */
+export function isIndirect(node: Node): boolean {
+  const value = unwrap(node);
+  return (
+    (Node.isIdentifier(value) && value.getText() !== 'undefined') ||
+    Node.isPropertyAccessExpression(value) ||
+    Node.isElementAccessExpression(value) ||
+    Node.isShorthandPropertyAssignment(value) ||
+    Node.isSpreadAssignment(value) ||
+    Node.isSpreadElement(value)
+  );
+}
+
+export interface Deref {
+  /** The literal (or function) the reference resolves to. */
+  node: Node;
+  /** The module-level `const` declaration holding it. */
+  decl: Node;
+}
+
+/**
+ * Resolves a config reference (identifier, shorthand property or spread) to
+ * the object/array literal or function of a module-level `const` in this file.
+ */
+export function derefConfig(node: Node): Deref | undefined {
+  let value = unwrap(node);
+  let symbol;
+  if (Node.isShorthandPropertyAssignment(value)) {
+    symbol = value.getValueSymbol();
+  } else {
+    if (Node.isSpreadAssignment(value) || Node.isSpreadElement(value)) {
+      value = unwrap(value.getExpression());
+    }
+    if (!Node.isIdentifier(value)) return undefined;
+    symbol = value.getSymbol();
+  }
+  let decl: Node | undefined;
+  for (let depth = 0; depth < 5; depth++) {
+    const decls = symbol?.getDeclarations() ?? [];
+    if (decls.length !== 1) return undefined;
+    const d = decls[0];
+    if (Node.isFunctionDeclaration(d)) return { node: d, decl: decl ?? d };
+    if (!Node.isVariableDeclaration(d) || !isConst(d)) return undefined;
+    const statement = d.getVariableStatement();
+    if (!statement || !Node.isSourceFile(statement.getParent()))
+      return undefined;
+    const init = d.getInitializer();
+    if (!init) return undefined;
+    decl ??= d;
+    value = unwrap(init);
+    if (!Node.isIdentifier(value)) break;
+    symbol = value.getSymbol();
+  }
+  if (
+    Node.isObjectLiteralExpression(value) ||
+    Node.isArrayLiteralExpression(value) ||
+    isFunctionLike(value)
+  )
+    return { node: value, decl: decl! };
+  return undefined;
+}
+
+/**
+ * Whether every reference to a module const sits where a config value or a
+ * spread of one goes, so rewriting its literal in place is safe.
+ */
+export function onlyConfigReferences(decl: Node): boolean {
+  if (!Node.isVariableDeclaration(decl)) return false;
+  const name = decl.getNameNode();
+  const symbol = name.getSymbol();
+  return decl
+    .getSourceFile()
+    .getDescendantsOfKind(SyntaxKind.Identifier)
+    .filter((id) => {
+      if (id === name || id.getText() !== name.getText()) return false;
+      const parent = id.getParent();
+      return (
+        (Node.isShorthandPropertyAssignment(parent)
+          ? parent.getValueSymbol()
+          : id.getSymbol()) === symbol
+      );
+    })
+    .every((id) => {
+      const parent = id.getParent()!;
+      return (
+        Node.isShorthandPropertyAssignment(parent) ||
+        Node.isSpreadAssignment(parent) ||
+        (Node.isPropertyAssignment(parent) && parent.getInitializer() === id) ||
+        Node.isAsExpression(parent) ||
+        Node.isSatisfiesExpression(parent)
+      );
+    });
+}

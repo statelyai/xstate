@@ -141,4 +141,18 @@ const machine = setup({
     const { sites } = applyTransform(reportActionShapes, input);
     expect(sites).toEqual([]);
   });
+
+  it('reports config values it cannot see into', () => {
+    const input = `import { createMachine } from 'xstate';
+import { shared, idle } from './shared';
+const m = createMachine({
+  on: shared,
+  states: { idle }
+});`;
+    const { sites } = applyTransform(reportActionShapes, input, 'src/a.ts');
+    expect(sites?.map((s) => s.api)).toEqual([
+      'indirect-config',
+      'indirect-config'
+    ]);
+  });
 });
