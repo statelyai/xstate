@@ -3,6 +3,7 @@ import { Actor, ActorOptions, AnyActorLogic, SnapshotFrom } from 'xstate';
 import { useActorRef } from './useActorRef';
 import { useSelector as useSelectorUnbound } from './useSelector';
 
+/** @public */
 export function createActorContext<TLogic extends AnyActorLogic>(
   actorLogic: TLogic,
   actorOptions?: ActorOptions<TLogic>

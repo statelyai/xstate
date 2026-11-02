@@ -42,7 +42,11 @@ import { EventRejectedError } from './errors.ts';
 const XSTATE_TIMER = 'xstate.timer';
 const XSTATE_INIT = 'xstate.init';
 
-/** Options for {@link createEffectActor}. */
+/**
+ * Options for {@link createEffectActor}.
+ *
+ * @experimental
+ */
 export type EffectActorOptions<TLogic extends AnyActorLogic> = {
   readonly input?: InputFrom<TLogic>;
   /**
@@ -76,6 +80,8 @@ export type EffectActorOptionsArgs<TLogic extends AnyActorLogic> = [
  * The actor is a scoped resource: it stops, and every Effect it hosts is
  * interrupted, when the enclosing `Scope` closes. The returned Effect never
  * fails; the actor's own outcome is its snapshot status, read with `join`.
+ *
+ * @experimental
  */
 export function createEffectActor<TLogic extends AnyActorLogic>(
   logic: TLogic,

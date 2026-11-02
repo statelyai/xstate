@@ -11,6 +11,7 @@ import {
 } from 'xstate';
 import { useActorRef } from './useActorRef.ts';
 
+/** @public */
 export function useActor<TLogic extends AnyActorLogic>(
   logic: TLogic,
   ...[options]: ConditionalRequired<

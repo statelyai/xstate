@@ -13,6 +13,7 @@ import {
   type RequiredActorOptionsFor
 } from 'xstate';
 
+/** @public */
 export function useActorRef<TLogic extends AnyActorLogic>(
   actorLogic: TLogic,
   ...[options, observerOrListener]: IsNotNever<

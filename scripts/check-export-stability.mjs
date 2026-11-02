@@ -1,6 +1,8 @@
-// Verifies that every public export of the `xstate` and `@xstate/test`
-// packages carries a stability tag (`@public`, `@experimental`, `@internal`; `@deprecated` must
-// be paired with `@public` or `@experimental`).
+// Verifies that every public export of the `xstate`, `@xstate/scxml`,
+// `@xstate/test`, `@xstate/effect`, `@xstate/react`, `@xstate/vue`,
+// `@xstate/svelte` and `@xstate/solid` packages carries a stability tag
+// (`@public`, `@experimental`, `@internal`; `@deprecated` must be paired with
+// `@public` or `@experimental`).
 //
 // Usage: node scripts/check-export-stability.mjs [--json] [--list]
 import { createRequire } from 'node:module';
@@ -30,6 +32,16 @@ const entries = [
       'playwright.ts',
       'effect-schema.ts'
     ].map((file) => join(root, 'packages/xstate-test/src', file))
+  )
+  .concat(
+    ['index.ts', 'atom.ts', 'test.ts', 'oxlint.ts'].map((file) =>
+      join(root, 'packages/xstate-effect/src', file)
+    )
+  )
+  .concat(
+    ['xstate-react', 'xstate-vue', 'xstate-svelte', 'xstate-solid'].map((pkg) =>
+      join(root, 'packages', pkg, 'src/index.ts')
+    )
   );
 
 const STABILITY = ['public', 'experimental', 'internal'];

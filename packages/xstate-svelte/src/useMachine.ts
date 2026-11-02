@@ -8,7 +8,11 @@ import {
 } from 'xstate';
 import { useActor } from './useActor.ts';
 
-/** @alias useActor */
+/**
+ * @alias useActor
+ *
+ * @public
+ */
 export function useMachine<TMachine extends AnyStateMachine>(
   machine: TMachine,
   ...[options]: ConditionalRequired<
