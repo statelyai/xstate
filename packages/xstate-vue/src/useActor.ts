@@ -13,6 +13,7 @@ import {
 import { useActorRef } from './useActorRef.ts';
 import { useSelector } from './useSelector.ts';
 
+/** @public */
 export function useActor<TLogic extends AnyActorLogic>(
   actorLogic: TLogic,
   ...[options]: ConditionalRequired<

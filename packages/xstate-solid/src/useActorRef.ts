@@ -10,6 +10,7 @@ import type {
 } from 'xstate';
 import { createActor } from 'xstate';
 
+/** @public */
 export function useActorRef<TLogic extends AnyActorLogic>(
   logic: TLogic,
   ...[options]: ConditionalRequired<

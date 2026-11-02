@@ -90,8 +90,10 @@ Before entering beta, run the built and packed consumer checks with both TypeScr
 
 `pnpm check:templates` installs and builds all four standalone starter templates with their own frozen lockfiles.
 
-`pnpm check:exports` requires every public `xstate` export to carry exactly one
-`@public`, `@experimental`, or `@internal` stability tag. `@deprecated` must be
+`pnpm check:exports` requires every public export of `xstate`, `@xstate/scxml`,
+`@xstate/test`, `@xstate/effect`, `@xstate/react`, `@xstate/vue`,
+`@xstate/svelte` and `@xstate/solid` to carry exactly one `@public`,
+`@experimental`, or `@internal` stability tag. `@deprecated` must be
 paired with `@public` or `@experimental`.
 
 After `pnpm build`, `pnpm check:packed` packs `xstate` and `@xstate/react`, then

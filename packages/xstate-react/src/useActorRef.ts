@@ -125,6 +125,7 @@ export function useActorLifecycle<TLogic extends AnyActorLogic>(
   }, [actorRef]);
 }
 
+/** @public */
 export function useActorRef<TLogic extends AnyActorLogic>(
   machine: TLogic,
   ...[options, observerOrListener]: IsNotNever<
