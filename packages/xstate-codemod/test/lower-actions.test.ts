@@ -832,6 +832,24 @@ const m = createMachine({
     }`);
     });
 
+    it('renames context inside enqueue calls after an assign', () => {
+      const { output } =
+        lower(`import { createMachine, enqueueActions } from 'xstate';
+const m = createMachine({
+  context: { n: 0 },
+  on: {
+    GO: {
+      actions: enqueueActions(({ enqueue, context }) => {
+        enqueue.assign({ n: context.n + 1 });
+        enqueue.raise({ type: 'N', n: context.n });
+      })
+    }
+  }
+});`);
+      expect(output).toContain('patch = { ...patch, n: contextBefore.n + 1 };');
+      expect(output).toContain("enq.raise({ type: 'N', n: contextBefore.n });");
+    });
+
     it('inlines named enqueueActions with params', () => {
       const { output } = lower(`import { setup, enqueueActions } from 'xstate';
 const m = setup({

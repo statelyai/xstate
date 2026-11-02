@@ -70,6 +70,16 @@ function spliceText(
     .filter(
       (r) => r.node.getStart() >= start && r.node.getEnd() <= node.getEnd()
     )
+    .filter(
+      (r, _, all) =>
+        !all.some(
+          (o) =>
+            o !== r &&
+            o.node.getStart() <= r.node.getStart() &&
+            o.node.getEnd() >= r.node.getEnd() &&
+            o.node !== r.node
+        )
+    )
     .sort((a, b) => b.node.getStart() - a.node.getStart());
   for (const r of inside) {
     text =
@@ -227,6 +237,20 @@ export class FunctionBuilder {
   /** True when some branch keeps a running `context` and `patch`. */
   threaded = false;
   inline: boolean;
+  /** Identifier renames applied to source text this builder copies. */
+  private renames: Array<{ node: Node; text: string }> = [];
+
+  /** Source text of `node`, with active renames applied. */
+  t(node: Node): string {
+    return this.renames.length
+      ? spliceText(node, this.renames)
+      : node.getText();
+  }
+
+  paren(node: Node): string {
+    return isAtomic(node) ? this.t(node) : `(${this.t(node)})`;
+  }
+
   /** `params` of the named action being inlined, passed to its dynamic values. */
   private paramsText: string | undefined;
   private ctx: FileContext;
@@ -256,21 +280,21 @@ export class FunctionBuilder {
     if (isFunctionLike(value)) {
       const inline = this.inlined(value);
       const p = this.paramsText ? `, ${this.paramsText}` : '';
-      if (inline) return inline.body.getText();
-      return `(${value.getText()})(${argsText}${p})`;
+      if (inline) return this.t(inline.body);
+      return `(${this.t(value)})(${argsText}${p})`;
     }
     if (Node.isIdentifier(value)) {
       if (value.getText() === 'undefined') return 'undefined';
       const kind = resolveIdentifier(value);
       const p = this.paramsText ? `, ${this.paramsText}` : '';
       if (kind === 'fn') return `${value.getText()}(${argsText}${p})`;
-      if (kind === 'value') return node.getText();
+      if (kind === 'value') return this.t(node);
       return skip(`cannot tell whether '${value.getText()}' is a function`);
     }
     if (Node.isCallExpression(value) || Node.isNewExpression(value)) {
       return skip(`'${value.getText()}' may evaluate to a function`);
     }
-    return node.getText();
+    return this.t(node);
   }
 
   private options(node: Node | undefined, br: Branch, keys: string[]): string {
@@ -302,9 +326,9 @@ export class FunctionBuilder {
     if (isFunctionLike(value)) {
       const inline = this.inlined(value);
       if (inline) {
-        return { text: inline.body.getText(), atomic: isAtomic(inline.body) };
+        return { text: this.t(inline.body), atomic: isAtomic(inline.body) };
       }
-      return { text: `(${value.getText()})(${br.argsObj()})`, atomic: true };
+      return { text: `(${this.t(value)})(${br.argsObj()})`, atomic: true };
     }
     if (Node.isIdentifier(value)) {
       if (resolveIdentifier(value) === 'fn') {
@@ -490,9 +514,9 @@ export class FunctionBuilder {
         (contextIsFinal || !candidate.names.includes('context'))
       ) {
         const inline = this.inlined(value);
-        if (inline) return br.push(`enq(() => ${inline.body.getText()});`);
+        if (inline) return br.push(`enq(() => ${this.t(inline.body)});`);
       }
-      return br.push(`enq(${value.getText()}, ${br.argsObj()});`);
+      return br.push(`enq(${this.t(value)}, ${br.argsObj()});`);
     }
     const callee = xstateCallee(value, this.ctx.xs);
     if (!callee || !Node.isCallExpression(value)) {
@@ -708,14 +732,6 @@ export class FunctionBuilder {
     );
     const contextRefs = refsTo('context');
     const needSnapshot = contextRefs.length > 0 && (assigns || br.assigned);
-    if (
-      needSnapshot &&
-      contextRefs.some((r) => calls.some((c) => within(r, c.call)))
-    ) {
-      return skip(
-        'enqueueActions reads `context` inside an enqueue call after an assign'
-      );
-    }
     for (const k of hoistable) this.hoist.add(k);
     if (contextRefs.length && !needSnapshot) {
       if (!this.inline) {
@@ -735,6 +751,19 @@ export class FunctionBuilder {
       this.threaded = true;
     }
     const replacements: Array<{ node: Node; text: string }> = [];
+    if (needSnapshot) {
+      for (const r of contextRefs) {
+        replacements.push({
+          node: r,
+          text: Node.isShorthandPropertyAssignment(r.getParent())
+            ? `context: ${snapshot}`
+            : snapshot
+        });
+      }
+    }
+    // Source text copied into enqueue/check lowering sees the renames too.
+    const savedRenames = this.renames;
+    this.renames = [...savedRenames, ...replacements];
     for (const { call, kind, args } of calls) {
       if (kind === 'check') {
         const cb = new Branch();
@@ -781,16 +810,7 @@ export class FunctionBuilder {
         return skip('enqueue call is not a statement');
       }
     }
-    if (needSnapshot) {
-      for (const r of contextRefs) {
-        replacements.push({
-          node: r,
-          text: Node.isShorthandPropertyAssignment(r.getParent())
-            ? `context: ${snapshot}`
-            : snapshot
-        });
-      }
-    }
+    this.renames = savedRenames;
     const pre: string[] = [];
     if (needSnapshot) pre.push(`const ${snapshot} = ${snapshotValue};`);
     if (
@@ -881,7 +901,7 @@ export class FunctionBuilder {
     if (Node.isObjectLiteralExpression(value)) {
       const props = value.getProperties().map((property) => {
         if (Node.isShorthandPropertyAssignment(property)) {
-          return property.getText();
+          return this.t(property);
         }
         const key = getKeyText(property);
         if (!Node.isPropertyAssignment(property) || key === undefined) {
@@ -898,12 +918,12 @@ export class FunctionBuilder {
         return br.pushPatch({
           props: body
             .getProperties()
-            .map((p) => p.getText())
+            .map((p) => this.t(p))
             .join(', ')
         });
       }
-      if (inline) return br.pushPatch({ expr: paren(inline.body) });
-      return br.pushPatch({ expr: `(${value.getText()})(${argsText})` });
+      if (inline) return br.pushPatch({ expr: this.paren(inline.body) });
+      return br.pushPatch({ expr: `(${this.t(value)})(${argsText})` });
     }
     if (Node.isIdentifier(value) && resolveIdentifier(value) === 'fn') {
       return br.pushPatch({ expr: `${value.getText()}(${argsText})` });
