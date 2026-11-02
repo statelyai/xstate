@@ -160,10 +160,6 @@ function isAtomic(node: Node): boolean {
     Node.isPrefixUnaryExpression(node)
   );
 }
-
-const paren = (node: Node) =>
-  isAtomic(node) ? node.getText() : `(${node.getText()})`;
-
 /** A context patch: object-literal properties, or an expression evaluating to one. */
 type Patch = { props: string } | { expr: string };
 
