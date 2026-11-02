@@ -17,8 +17,8 @@
   },
   "exports": {
     ".": "./dist/xstate-codemod.js",
-    "./skills/*": "./skills/*",
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./skills/*": "./skills/*"
   },
   "files": [
     "dist",
@@ -45,6 +45,11 @@
     "umdName": "XStateCodemod",
     "entrypoints": [
       "./index.ts"
-    ]
+    ],
+    "exports": {
+      "extra": {
+        "./skills/*": "./skills/*"
+      }
+    }
   }
 }
