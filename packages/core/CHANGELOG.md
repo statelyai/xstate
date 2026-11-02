@@ -1,5 +1,17 @@
 # xstate
 
+## 6.0.0-alpha.72
+
+### Patch Changes
+
+- 129fd6b: Events sent by a child actor to a parent started with `createEffectActor` now retain their send order, including bursts from promise continuations.
+  
+  Durable hosts with a single FIFO mailbox can route all root events through their adapter:
+  
+  ```ts
+  const durable = createDurable(machine, adapter, { captureRootEvents: false });
+  ```
+
 ## 6.0.0-alpha.71
 
 ### Minor Changes
