@@ -7,6 +7,8 @@ import {
   isFunctionLike,
   nonModuleReferences,
   outerReferences,
+  Skip,
+  resolveConstAction,
   resolveIdentifier,
   resolveStringConstant,
   skip,
@@ -35,6 +37,8 @@ export interface FileContext {
   impls: Implementations;
   /** Named `assign` definitions whose call sites were rewritten. */
   assignDefs: Set<ImplDef>;
+  /** Module-level action consts that must not be lowered (some use is not). */
+  disabledConsts: Set<Node>;
 }
 
 interface Inline {
@@ -147,6 +151,8 @@ export class FunctionBuilder {
   hoist = new Set<string>();
   /** Named definitions inlined into this function. */
   inlinedDefs = new Set<ImplDef>();
+  /** Module-level action consts called here, with the referencing identifiers. */
+  constRefs = new Map<Node, Node[]>();
   /** True when some branch keeps a running `context` and `patch`. */
   threaded = false;
   inline: boolean;
@@ -337,6 +343,12 @@ export class FunctionBuilder {
   isAssign(node: Node): boolean {
     const value = unwrap(node);
     if (xstateCallee(value, this.ctx.xs) === 'assign') return true;
+    if (Node.isIdentifier(value)) {
+      const constAction = resolveConstAction(value, this.ctx.xs);
+      if (constAction?.callee === 'assign') {
+        return !this.ctx.disabledConsts.has(constAction.decl);
+      }
+    }
     const name = Node.isObjectLiteralExpression(value)
       ? nameRef(getInit(value, 'type'))?.name
       : Node.isIdentifier(value)
@@ -377,6 +389,19 @@ export class FunctionBuilder {
           undefined,
           br
         );
+      }
+      const constAction = resolveConstAction(value, this.ctx.xs);
+      if (constAction && !this.ctx.disabledConsts.has(constAction.decl)) {
+        const refs = this.constRefs.get(constAction.decl) ?? [];
+        refs.push(value);
+        this.constRefs.set(constAction.decl, refs);
+        if (constAction.callee === 'assign') {
+          const argsText = mentionsSpawn(constAction.call)
+            ? spawnArgs(br)
+            : br.argsObj();
+          return br.pushPatch({ expr: `${value.getText()}(${argsText})` });
+        }
+        return br.push(`${value.getText()}(${br.argsObj()}, enq);`);
       }
       if (resolveIdentifier(value) !== 'fn') {
         return skip(`unresolved action '${value.getText()}'`);
@@ -706,6 +731,29 @@ export interface Lowered {
   notes: string[];
   /** Named definitions inlined at this site. */
   inlined: Set<ImplDef>;
+  constRefs: Map<Node, Node[]>;
+}
+
+/** Rewrites `const x = raise(...)` (or another creator) as `(args, enq) => {...}`. */
+export function lowerConstCreator(
+  ctx: FileContext,
+  call: Node
+): string | undefined {
+  try {
+    const fb = new FunctionBuilder(ctx, call);
+    const br = new Branch();
+    fb.actions(call, br);
+    const { lines, context } = br.finish(fb);
+    if (context) return undefined;
+    return [
+      '(args, enq) => {',
+      ...[...fb.header(), ...lines].map((l) => `  ${l}`),
+      '}'
+    ].join('\n');
+  } catch (error) {
+    if (error instanceof Skip) return undefined;
+    throw error;
+  }
 }
 
 /** Lowers a transition object or array to a function body. */
@@ -727,7 +775,8 @@ export function lowerTransition(ctx: FileContext, value: Node): Lowered {
       body: [...fb.header(), ...body],
       above: descriptionComments(b.description),
       notes,
-      inlined: fb.inlinedDefs
+      inlined: fb.inlinedDefs,
+      constRefs: fb.constRefs
     };
   }
   if (!Node.isArrayLiteralExpression(value)) {
@@ -767,7 +816,8 @@ export function lowerTransition(ctx: FileContext, value: Node): Lowered {
     body: [...fb.header(), ...body],
     above: [],
     notes,
-    inlined: fb.inlinedDefs
+    inlined: fb.inlinedDefs,
+    constRefs: fb.constRefs
   };
 }
 
@@ -783,7 +833,8 @@ export function lowerEntryExit(ctx: FileContext, value: Node): Lowered {
     body: [...fb.header(), ...body],
     above: [],
     notes: [],
-    inlined: fb.inlinedDefs
+    inlined: fb.inlinedDefs,
+    constRefs: fb.constRefs
   };
 }
 

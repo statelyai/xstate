@@ -632,6 +632,72 @@ const m = setup({
     });
   });
 
+  describe('P2. module-level action consts', () => {
+    it('rewrites assign and creator consts to functions the call sites invoke', () => {
+      const { output } =
+        lower(`import { createMachine, assign, raise } from 'xstate';
+const inc = assign({ n: ({ context }) => context.n + 1 });
+const ping = raise({ type: 'PING' });
+const m = createMachine({
+  context: { n: 0 },
+  on: { GO: { actions: [inc, ping] } },
+  entry: ping
+});`);
+      expect(output).toContain(
+        'const inc = ({ context }) => ({ n: context.n + 1 });'
+      );
+      expect(output).toContain(`const ping = (args, enq) => {
+  enq.raise({ type: 'PING' });
+};`);
+      expect(output).toContain(`GO: (args, enq) => {
+    let context = args.context;
+    let patch = {};
+    patch = { ...patch, ...inc(args) };
+    context = { ...args.context, ...patch };
+    ping({ ...args, context }, enq);
+    return { context: patch };
+  }`);
+      expect(output).toContain(`entry: (args, enq) => {
+    ping(args, enq);
+  }`);
+      expect(output).toContain("import { createMachine } from 'xstate';");
+      expect(lower(output).changed).toBe(false);
+    });
+
+    it('leaves the const and its call sites when another reference is not lowered', () => {
+      const { output } = lower(`import { createMachine, raise } from 'xstate';
+const ping = raise({ type: 'PING' });
+export const all = [ping];
+const m = createMachine({ on: { GO: { actions: ping } } });`);
+      expect(output).toContain("const ping = raise({ type: 'PING' });");
+      expect(output).toContain('GO: { actions: ping }');
+    });
+
+    it('matches v5: a raised event from the const is processed', () => {
+      const ping = (args: any, enq: any) => {
+        enq.raise({ type: 'PING' });
+      };
+      const actor = createActor(
+        createMachine({
+          initial: 'a',
+          states: {
+            a: {
+              on: {
+                GO: (args, enq) => {
+                  ping(args, enq);
+                },
+                PING: () => ({ target: 'b' })
+              }
+            },
+            b: {}
+          }
+        })
+      ).start();
+      actor.send({ type: 'GO' });
+      expect(actor.getSnapshot().value).toBe('b');
+    });
+  });
+
   describe('G. imports and idempotence', () => {
     it('keeps imports still referenced elsewhere', () => {
       const { output } = lower(

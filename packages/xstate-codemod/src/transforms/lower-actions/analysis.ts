@@ -391,3 +391,51 @@ export function nonModuleReferences(node: Node): string[] {
   }
   return [...found];
 }
+
+/** Action creators (besides `assign`) that lower to `enq` statements. */
+export const ACTION_CREATORS = new Set([
+  'raise',
+  'sendTo',
+  'sendParent',
+  'forwardTo',
+  'emit',
+  'log',
+  'cancel',
+  'stopChild',
+  'stop',
+  'spawnChild'
+]);
+
+export interface ConstAction {
+  decl: Node;
+  call: CallExpression;
+  callee: string;
+}
+
+/**
+ * `const x = assign(...)` (or another action creator) declared at module
+ * level and not exported, for an identifier used as an action.
+ */
+export function resolveConstAction(
+  id: Node,
+  xs: Map<string, string>
+): ConstAction | undefined {
+  const decls = id.getSymbol()?.getDeclarations() ?? [];
+  if (decls.length !== 1) return undefined;
+  const decl = decls[0];
+  if (!Node.isVariableDeclaration(decl) || !isConst(decl)) return undefined;
+  const statement = decl.getVariableStatement();
+  if (
+    !statement ||
+    !Node.isSourceFile(statement.getParent()) ||
+    statement.isExported() ||
+    statement.getDeclarations().length !== 1
+  )
+    return undefined;
+  const init = decl.getInitializer();
+  const call = init && unwrap(init);
+  const callee = call && xstateCallee(call, xs);
+  if (!callee || !(callee === 'assign' || ACTION_CREATORS.has(callee)))
+    return undefined;
+  return { decl, call: call as CallExpression, callee };
+}

@@ -4,7 +4,8 @@ import {
   ObjectLiteralExpression,
   PropertyAssignment,
   SourceFile,
-  SyntaxKind
+  SyntaxKind,
+  VariableDeclaration
 } from 'ts-morph';
 import type { Transform, TransformResult } from '../types.ts';
 import { ensureNamedImport, findMachineConfigObjects } from '../util.ts';
@@ -27,6 +28,7 @@ import {
   MATCHES_STATE,
   hasLowerableKeys,
   lowerAssignDefinition,
+  lowerConstCreator,
   lowerEntryExit,
   lowerTransition
 } from './lower-actions/codegen.ts';
@@ -221,9 +223,27 @@ function render(
 }
 
 function lowerMachines(sourceFile: SourceFile, notes: string[]): boolean {
+  // A module-level action const is rewritten only when every reference to it
+  // is a call site that got lowered; otherwise plan again without it.
+  const disabledConsts = new Set<Node>();
+  for (;;) {
+    const plan = planMachines(sourceFile, disabledConsts);
+    if (plan.edits) {
+      notes.push(...plan.notes);
+      return applyEdits(sourceFile, plan.edits);
+    }
+  }
+}
+
+function planMachines(
+  sourceFile: SourceFile,
+  disabledConsts: Set<Node>
+): { edits?: Edit[]; notes: string[] } {
+  const notes: string[] = [];
   const xs = getXstateImports(sourceFile);
   const edits: Edit[] = [];
   const assignDefs = new Set<ImplDef>();
+  const constRefs = new Map<Node, Set<Node>>();
 
   const inlined = new Map<Node, string>();
   const attempt = (property: Node, value: Node, lower: () => Lowered) => {
@@ -232,6 +252,11 @@ function lowerMachines(sourceFile: SourceFile, notes: string[]): boolean {
       edits.push(render(sourceFile, property, value, lowered));
       for (const def of lowered.inlined) {
         inlined.set(def.property, implName(def));
+      }
+      for (const [decl, ids] of lowered.constRefs) {
+        const set = constRefs.get(decl) ?? new Set();
+        ids.forEach((id) => set.add(id));
+        constRefs.set(decl, set);
       }
       for (const note of lowered.notes) {
         notes.push(`${where(sourceFile, value)} — ${note}`);
@@ -251,7 +276,7 @@ function lowerMachines(sourceFile: SourceFile, notes: string[]): boolean {
       if (text === undefined) def.kind = 'other';
       else rewrites.set(def, text);
     }
-    const ctx: FileContext = { xs, impls, assignDefs };
+    const ctx: FileContext = { xs, impls, assignDefs, disabledConsts };
 
     const transition = (property: Node, value: Node | undefined) => {
       if (!value) return;
@@ -365,6 +390,53 @@ function lowerMachines(sourceFile: SourceFile, notes: string[]): boolean {
     }
   }
 
+  let retry = false;
+  for (const [decl, ids] of constRefs) {
+    const declaration = decl as VariableDeclaration;
+    const nameNode = declaration.getNameNode();
+    const symbol = nameNode.getSymbol();
+    const unlowered = sourceFile
+      .getDescendantsOfKind(SyntaxKind.Identifier)
+      .some(
+        (id) =>
+          id !== nameNode &&
+          id.getText() === nameNode.getText() &&
+          id.getSymbol() === symbol &&
+          !ids.has(id)
+      );
+    const call = unwrap(declaration.getInitializer()!) as CallExpression;
+    const text = unlowered
+      ? undefined
+      : xstateCallee(call, xs) === 'assign'
+        ? call.getArguments().length !== 1
+          ? undefined
+          : lowerAssignDefinition({
+              kind: 'assign',
+              property: decl,
+              assignArg: call.getArguments()[0]
+            })
+        : lowerConstCreator(
+            {
+              xs,
+              impls: { actions: new Map(), guards: new Map() },
+              assignDefs,
+              disabledConsts
+            },
+            call
+          );
+    if (text === undefined) {
+      disabledConsts.add(decl);
+      retry = true;
+      continue;
+    }
+    const init = declaration.getInitializer()!;
+    edits.push({ start: init.getStart(), end: init.getEnd(), text });
+    notes.push(
+      `${where(sourceFile, decl)} — rewrote '${nameNode.getText()}' as a function its call sites invoke`
+    );
+  }
+  if (retry) return { notes };
+
   // Definitions only referenced from other removed definitions go too.
   const removed: Node[] = [];
   for (let grew = true; grew;) {
@@ -390,7 +462,7 @@ function lowerMachines(sourceFile: SourceFile, notes: string[]): boolean {
   }
   edits.push(...removeProperties(removed));
 
-  return applyEdits(sourceFile, edits);
+  return { edits, notes };
 }
 
 function implName(def: ImplDef): string {
