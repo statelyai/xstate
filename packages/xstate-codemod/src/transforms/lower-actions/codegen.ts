@@ -1123,6 +1123,9 @@ const descriptionComments = (description: string | undefined) =>
 const returnStatement = (fields: string[]) =>
   fields.length ? `return { ${fields.join(', ')} };` : 'return {};';
 
+const DESCRIPTION_NOTE =
+  'dropped a transition `description` (kept as a comment); v6 transition functions carry no description';
+
 export interface Lowered {
   /** Lines of the function body, without the outer indentation. */
   body: string[];
@@ -1162,6 +1165,7 @@ export function lowerTransition(ctx: FileContext, value: Node): Lowered {
   const notes: string[] = [];
   if (Node.isObjectLiteralExpression(value)) {
     const b = lowerBranch(fb, value);
+    if (b.description !== undefined) notes.push(DESCRIPTION_NOTE);
     const body = [...b.comments];
     if (b.guard) {
       const { text, atomic } = b.guard;
@@ -1190,6 +1194,7 @@ export function lowerTransition(ctx: FileContext, value: Node): Lowered {
       return skip('transition array element is not an object literal');
     }
     const b = lowerBranch(fb, element);
+    if (b.description !== undefined) notes.push(DESCRIPTION_NOTE);
     const inner = [
       ...leadingComments(elements[i]),
       ...descriptionComments(b.description),

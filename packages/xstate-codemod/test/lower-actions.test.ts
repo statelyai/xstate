@@ -1006,6 +1006,16 @@ export const custom = m.provide({ actions: { inc: assign({ n: 5 }) } });`);
     });
   });
 
+  describe('R4. descriptions', () => {
+    it('keeps the comment and notes the dropped description', () => {
+      const { output, notes } = lower(
+        machine(`GO: { target: 'b', guard: () => true, description: 'go on' }`)
+      );
+      expect(output).toContain('// go on');
+      expect(notes.join('\n')).toContain('dropped a transition `description`');
+    });
+  });
+
   describe('G. imports and idempotence', () => {
     it('keeps imports still referenced elsewhere', () => {
       const { output } = lower(
