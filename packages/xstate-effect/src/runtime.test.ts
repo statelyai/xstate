@@ -12,8 +12,10 @@ import {
 import { TestClock } from 'effect/testing';
 import {
   createActor,
+  createCallbackLogic,
   createMachine,
   setup,
+  types,
   type AnyActorRef,
   type EventRejection
 } from 'xstate';
@@ -65,6 +67,48 @@ const runScoped = async <A, E>(
 };
 
 describe('@xstate/effect runtime', () => {
+  it.each([20, 1000])(
+    'receives %i asynchronous child events in send order',
+    async (count) => {
+      const child = createCallbackLogic(({ sendBack }) => {
+        void (async () => {
+          for (let n = 1; n <= count; n++) {
+            await Promise.resolve();
+            sendBack({ type: 'NUMBER', n });
+          }
+          sendBack({ type: 'DONE' });
+        })();
+      });
+      const machine = setup({
+        schemas: {
+          context: types<{ received: number[] }>(),
+          events: { NUMBER: types<{ n: number }>(), DONE: types<{}>() }
+        },
+        actors: { child }
+      }).createMachine({
+        context: { received: [] },
+        invoke: { src: 'child' },
+        initial: 'listening',
+        states: {
+          listening: {
+            on: {
+              NUMBER: ({ context, event }) => ({
+                context: { received: [...context.received, event.n] }
+              }),
+              DONE: { target: 'finished' }
+            }
+          },
+          finished: { type: 'final' }
+        }
+      });
+      const actor = await runScoped(createEffectActor(machine));
+      await until(() => actor.getSnapshot().matches('finished'));
+      expect(actor.getSnapshot().context.received).toEqual(
+        Array.from({ length: count }, (_, i) => i + 1)
+      );
+    }
+  );
+
   it('finishes task cleanup before releasing resources in the owning actor scope', async () => {
     const order: string[] = [];
     let started = false;

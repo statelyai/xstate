@@ -233,6 +233,8 @@ export function createEffectActor<TLogic extends AnyActorLogic>(
             })
         },
         {
+          // A live actor needs one FIFO for child events, sends and timers.
+          captureRootEvents: false,
           inspect: (event) => {
             // The pure step scope re-materializes the root ref per step and
             // announces it again; observers should see the root once.
