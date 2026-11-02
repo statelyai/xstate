@@ -67,7 +67,7 @@ describe('lower-actions', () => {
           'createMachine, assign'
         )
       );
-      expect(output).toContain('return { context: patch };');
+      expect(output).toContain('return { context: { a: 1, b: 2 } };');
       expect(output).not.toContain('return { context };');
     });
 
@@ -101,8 +101,7 @@ describe('lower-actions', () => {
         machine(`GO: { guard: ({ context }) => context.ok }`)
       );
       expect(output).toContain(`GO: (args) => {
-          const { context } = args;
-          if (!context.ok) return;
+          if (!args.context.ok) return;
           return {};
         }`);
     });
@@ -149,8 +148,7 @@ describe('lower-actions', () => {
         )
       );
       expect(output).toContain(`GO: (args, enq) => {
-          const { context } = args;
-          if (context.n > 1) {
+          if (args.context.n > 1) {
             return { target: 'b', context: { n: 0 } };
           }
           enq.raise({ type: 'X' });
@@ -211,11 +209,11 @@ const m = createMachine({
       ],
       [
         `{ type: 'b', params: ({ context }) => ({ b: context.b }) }`,
-        `if (!args.guards.b(args, ({ b: context.b }))) return;`
+        `if (!args.guards.b(args, ({ b: args.context.b }))) return;`
       ],
       [
         `and(['a', or([{ type: 'b' }, ({ event }) => event.x > 1])])`,
-        `if (!(args.guards.a(args) && (args.guards.b(args) || (event.x > 1)))) return;`
+        `if (!(args.guards.a(args) && (args.guards.b(args) || (args.event.x > 1)))) return;`
       ],
       [`not('a')`, `if (!!args.guards.a(args)) return;`],
       [
@@ -272,7 +270,7 @@ const m = createMachine({
       [`'track'`, `enq(args.actions.track, args);`],
       [
         `{ type: 'track', params: ({ event }) => ({ id: event.id }) }`,
-        `enq(args.actions.track, args, ({ id: event.id }));`
+        `enq(args.actions.track, args, ({ id: args.event.id }));`
       ],
       [`({ event }) => console.log(event)`, `enq(() => console.log(event));`],
       [
@@ -285,12 +283,12 @@ const m = createMachine({
       ],
       [
         `raise(({ event }) => ({ type: event.next }))`,
-        `enq.raise(({ type: event.next }));`
+        `enq.raise(({ type: args.event.next }));`
       ],
       [`sendTo('child', { type: 'X' })`, `enq.sendTo('child', { type: 'X' });`],
       [
         `sendTo(({ context }) => context.ref, { type: 'X' }, { delay: 5 })`,
-        `enq.sendTo(context.ref, { type: 'X' }, { delay: 5 });`
+        `enq.sendTo(args.context.ref, { type: 'X' }, { delay: 5 });`
       ],
       [
         `sendParent({ type: 'UP' })`,
@@ -301,15 +299,18 @@ const m = createMachine({
       [`log('hi')`, `enq.log('hi');`],
       [
         `log(({ event }) => event.type, 'label')`,
-        `enq.log('label', event.type);`
+        `enq.log('label', args.event.type);`
       ],
       [`log()`, `enq.log({ context: args.context, event: args.event });`],
       [`cancel('r')`, `enq.cancel('r');`],
       [`stopChild('child')`, `enq.stop(args.children['child']);`],
-      [`stopChild(({ context }) => context.ref)`, `enq.stop(context.ref);`],
+      [
+        `stopChild(({ context }) => context.ref)`,
+        `enq.stop(args.context.ref);`
+      ],
       [
         `spawnChild('worker', { id: 'w', input: ({ context }) => context.n })`,
-        `enq.spawn('worker', { id: 'w', input: context.n });`
+        `enq.spawn('worker', { id: 'w', input: args.context.n });`
       ]
     ])('%s', (action, expected) => {
       const { output } = lower(
@@ -339,13 +340,12 @@ const m = createMachine({
         )
       );
       expect(output).toContain(`GO: (args, enq) => {
-          const { event } = args;
           let context = args.context;
           let patch = {};
           enq(({ context }) => console.log(context), args);
           patch = { ...patch, n: context.n + 1, fixed: 'x' };
           context = { ...args.context, ...patch };
-          patch = { ...patch, m: context.n * event.k };
+          patch = { ...patch, m: context.n * args.event.k };
           context = { ...args.context, ...patch };
           enq(args.actions.track, { ...args, context });
           enq(() => console.log(context));
@@ -794,10 +794,9 @@ const m = setup({
   }
 });`);
       expect(output).toContain(`GO: (args, enq) => {
-      const { event } = args;
       if (args.guards.pos(args)) {
         enq(args.actions.track, args);
-        enq.raise({ type: 'DONE', id: event.id });
+        enq.raise({ type: 'DONE', id: args.event.id });
       }
       enq.sendTo(args.parent, { type: 'UP' });
     }`);
@@ -1013,6 +1012,46 @@ export const custom = m.provide({ actions: { inc: assign({ n: 5 }) } });`);
       );
       expect(output).toContain('// go on');
       expect(notes.join('\n')).toContain('dropped a transition `description`');
+    });
+  });
+
+  describe('R4. output shape', () => {
+    it('returns a single assign patch directly, guard first', () => {
+      const { output } = lower(`import { setup, assign, raise } from 'xstate';
+const m = setup({ guards: { canInc: () => true } }).createMachine({
+  context: { count: 0 },
+  initial: 'idle',
+  states: {
+    idle: {
+      on: {
+        INC: { target: 'active', guard: 'canInc', actions: [assign({ count: ({ context }) => context.count + 1 }), raise({ type: 'PING' })] }
+      }
+    },
+    active: {}
+  }
+});`);
+      expect(output).toContain(`INC: (args, enq) => {
+          if (!args.guards.canInc(args)) return;
+          enq.raise({ type: 'PING' });
+          return { target: 'active', context: { count: args.context.count + 1 } };
+        }`);
+      expect(lower(output).changed).toBe(false);
+    });
+
+    it('declares threaded context inside the guarded candidate that needs it', () => {
+      const { output } = lower(
+        machine(
+          `GO: [
+          { guard: () => true, actions: [assign({ n: 1 }), ({ context }) => console.log(context)] },
+          { target: 'b' }
+        ]`,
+          '',
+          'createMachine, assign'
+        )
+      );
+      expect(output).toContain(`          if (true) {
+            let context = args.context;
+            let patch = {};`);
     });
   });
 

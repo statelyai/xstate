@@ -195,24 +195,50 @@ class Branch {
    * of parallel regions against the same context and merges their patches,
    * so returning every key would undo a sibling region's update.
    */
-  finish(fb: FunctionBuilder): { lines: string[]; context?: string } {
+  finish(fb: FunctionBuilder): {
+    lines: string[];
+    context?: string;
+    threaded: boolean;
+  } {
     const patches = this.entries.filter((e) => typeof e !== 'string');
-    const last = this.entries[this.entries.length - 1];
-    if (patches.length === 1 && typeof last !== 'string' && !this.forcePatch) {
-      const lines = this.entries.slice(0, -1) as string[];
-      return {
-        lines,
-        context:
-          'props' in last
-            ? `context: { ${last.props} }`
-            : `context: ${last.expr}`
-      };
-    }
     if (!patches.length && !this.forcePatch) {
-      return { lines: this.entries as string[] };
+      return { lines: this.entries as string[], threaded: false };
+    }
+    if (!this.forcePatch) {
+      // Nothing after the first assign reads `context`: the patches can be
+      // merged straight into the returned object (effects are queued anyway).
+      const first = this.entries.findIndex((e) => typeof e !== 'string');
+      const reads = this.entries
+        .slice(first + 1)
+        .some((e) =>
+          /\bcontext\b/.test(
+            typeof e === 'string' ? e : 'props' in e ? e.props : e.expr
+          )
+        );
+      if (!reads) {
+        const merged =
+          patches.length === 1
+            ? 'props' in patches[0]
+              ? `{ ${patches[0].props} }`
+              : patches[0].expr
+            : `{ ${patches.map((p) => ('props' in p ? p.props : `...${p.expr}`)).join(', ')} }`;
+        return {
+          lines: this.entries.filter((e) => typeof e === 'string'),
+          context: `context: ${merged}`,
+          threaded: false
+        };
+      }
     }
     fb.threaded = true;
-    return { lines: threadedLines(this.entries), context: 'context: patch' };
+    return {
+      lines: [
+        'let context = args.context;',
+        'let patch = {};',
+        ...threadedLines(this.entries)
+      ],
+      context: 'context: patch',
+      threaded: true
+    };
   }
 }
 
@@ -964,17 +990,41 @@ export class FunctionBuilder {
 
   // ---- assembly -------------------------------------------------------------
 
-  header(): string[] {
-    const names = [...this.hoist].filter(
-      (name) => !(this.threaded && name === 'context')
-    );
-    const lines: string[] = [];
-    if (names.length)
-      lines.push(`const { ${names.sort().join(', ')} } = args;`);
-    if (this.threaded) {
-      lines.push('let context = args.context;', 'let patch = {};');
+  /**
+   * Header plus body. Hoisted names used once as `name.x` are written as
+   * `args.name.x` instead. `guard` goes first when it needs no hoisted name.
+   * `dropContext`: a function-scope `let context` exists, so `context` is not
+   * destructured.
+   */
+  assemble(body: string[], dropContext: boolean, guard?: string): string[] {
+    const all = guard ? [guard, ...body] : body;
+    const names: string[] = [];
+    let lines = all;
+    for (const name of [...this.hoist].sort()) {
+      if (dropContext && name === 'context') continue;
+      // Property keys such as the returned `context:` are not references.
+      const re = new RegExp(
+        `(?<![.\\w$])(?<![{,]\\s*)${name}(?![\\w$])|(?<![.\\w$])${name}(?![\\w$])(?!\\s*:)`,
+        'g'
+      );
+      const count = lines.reduce((n, l) => n + (l.match(re)?.length ?? 0), 0);
+      if (count === 0) continue;
+      const single = new RegExp(`(?<![.\\w$])${name}(?=\\.)`);
+      if (count === 1 && lines.some((l) => single.test(l))) {
+        lines = lines.map((l) => l.replace(single, `args.${name}`));
+        continue;
+      }
+      names.push(name);
     }
-    return lines;
+    const header = names.length
+      ? [`const { ${names.join(', ')} } = args;`]
+      : [];
+    if (!guard) return [...header, ...lines];
+    const [g, ...rest] = lines;
+    const usesHoisted = names.some((n) =>
+      new RegExp(`(?<![.\\w$])${n}(?![\\w$])`).test(g)
+    );
+    return usesHoisted ? [...header, g, ...rest] : [g, ...header, ...rest];
   }
 }
 
@@ -1062,6 +1112,7 @@ interface LoweredBranch {
   lines: string[];
   enqueued: boolean;
   returnFields: string[];
+  threaded: boolean;
 }
 
 function lowerBranch(
@@ -1103,7 +1154,7 @@ function lowerBranch(
     const value = getInit(object, key);
     if (value) returnFields.push(`${key}: ${value.getText()}`);
   }
-  const { lines, context } = br.finish(fb);
+  const { lines, context, threaded } = br.finish(fb);
   if (context) returnFields.push(context);
   return {
     guard,
@@ -1111,7 +1162,8 @@ function lowerBranch(
     comments,
     lines,
     enqueued: br.enqueued,
-    returnFields
+    returnFields,
+    threaded
   };
 }
 
@@ -1150,7 +1202,7 @@ export function lowerConstCreator(
     if (context) return undefined;
     return [
       '(args, enq) => {',
-      ...[...fb.header(), ...lines].map((l) => `  ${l}`),
+      ...fb.assemble(lines, false).map((l) => `  ${l}`),
       '}'
     ].join('\n');
   } catch (error) {
@@ -1166,17 +1218,15 @@ export function lowerTransition(ctx: FileContext, value: Node): Lowered {
   if (Node.isObjectLiteralExpression(value)) {
     const b = lowerBranch(fb, value);
     if (b.description !== undefined) notes.push(DESCRIPTION_NOTE);
-    const body = [...b.comments];
-    if (b.guard) {
-      const { text, atomic } = b.guard;
-      body.push(`if (!${atomic ? text : `(${text})`}) return;`);
-    }
-    body.push(...b.lines);
+    const guardLine = b.guard
+      ? `if (!${b.guard.atomic ? b.guard.text : `(${b.guard.text})`}) return;`
+      : undefined;
+    const body = [...b.lines];
     if (b.returnFields.length || !b.enqueued) {
       body.push(returnStatement(b.returnFields));
     }
     return {
-      body: [...fb.header(), ...body],
+      body: [...b.comments, ...fb.assemble(body, b.threaded, guardLine)],
       above: descriptionComments(b.description),
       notes,
       inlined: fb.inlinedDefs,
@@ -1203,7 +1253,11 @@ export function lowerTransition(ctx: FileContext, value: Node): Lowered {
       returnStatement(b.returnFields)
     ];
     if (!b.guard) {
-      body.push(...inner);
+      if (b.threaded) {
+        body.push('{', ...inner.map((line) => `  ${line}`), '}');
+      } else {
+        body.push(...inner);
+      }
       if (i < elements.length - 1) {
         notes.push(
           `dropped ${elements.length - 1 - i} unreachable transition candidate(s) after an unguarded one`
@@ -1218,7 +1272,7 @@ export function lowerTransition(ctx: FileContext, value: Node): Lowered {
     );
   }
   return {
-    body: [...fb.header(), ...body],
+    body: fb.assemble(body, false),
     above: [],
     notes,
     inlined: fb.inlinedDefs,
@@ -1231,11 +1285,11 @@ export function lowerEntryExit(ctx: FileContext, value: Node): Lowered {
   const fb = new FunctionBuilder(ctx, value);
   const br = new Branch();
   fb.actions(value, br);
-  const { lines, context } = br.finish(fb);
+  const { lines, context, threaded } = br.finish(fb);
   const body = [...lines];
   if (context) body.push(`return { ${context} };`);
   return {
-    body: [...fb.header(), ...body],
+    body: fb.assemble(body, threaded),
     above: [],
     notes: [],
     inlined: fb.inlinedDefs,
