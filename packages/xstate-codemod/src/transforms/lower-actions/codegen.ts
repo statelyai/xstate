@@ -6,8 +6,8 @@ import {
   getKeyText,
   isFunctionLike,
   outerReferences,
-  resolveConstInitializer,
   resolveIdentifier,
+  resolveStringConstant,
   skip,
   unwrap,
   xstateCallee
@@ -209,15 +209,11 @@ export class FunctionBuilder {
 
   guard(node: Node, br: Branch): { text: string; atomic: boolean } {
     const value = unwrap(node);
-    if (
-      Node.isStringLiteral(value) ||
-      Node.isNoSubstitutionTemplateLiteral(value)
-    ) {
-      return this.namedGuard(value.getLiteralText(), undefined, br);
-    }
+    const ref = Node.isIdentifier(value) ? undefined : nameRef(value);
+    if (ref) return this.namedGuard(ref, undefined, br);
     if (Node.isObjectLiteralExpression(value)) {
-      const { name, params } = typeAndParams(value, 'guard');
-      return this.namedGuard(name, params, br);
+      const { ref, params } = typeAndParams(value, 'guard');
+      return this.namedGuard(ref, params, br);
     }
     if (isFunctionLike(value)) {
       const inline = this.inlined(value);
@@ -230,9 +226,13 @@ export class FunctionBuilder {
       if (resolveIdentifier(value) === 'fn') {
         return { text: `${value.getText()}(${br.argsObj()})`, atomic: true };
       }
-      const init = resolveConstInitializer(value);
-      if (init && Node.isStringLiteral(init)) {
-        return this.namedGuard(init.getLiteralText(), undefined, br);
+      const named = resolveStringConstant(value);
+      if (named !== undefined) {
+        return this.namedGuard(
+          { name: named, access: access(named) },
+          undefined,
+          br
+        );
       }
       return skip(`unresolved guard '${value.getText()}'`);
     }
@@ -289,14 +289,15 @@ export class FunctionBuilder {
     return skip(`unsupported guard '${value.getText()}'`);
   }
 
-  private namedGuard(name: string, params: Node | undefined, br: Branch) {
+  private namedGuard(ref: NameRef, params: Node | undefined, br: Branch) {
+    const { name } = ref;
     const def = this.ctx.impls.guards.get(name);
     if (!def || def.kind !== 'fn') {
       return skip(`guard '${name}' is not a function defined in this file`);
     }
     const p = params ? `, ${this.dynamic(params, br)}` : '';
     return {
-      text: `args.guards${access(name)}(${br.argsObj()}${p})`,
+      text: `args.guards${ref.access}(${br.argsObj()}${p})`,
       atomic: true
     };
   }
@@ -307,12 +308,11 @@ export class FunctionBuilder {
   isAssign(node: Node): boolean {
     const value = unwrap(node);
     if (xstateCallee(value, this.ctx.xs) === 'assign') return true;
-    let name: string | undefined;
-    if (Node.isStringLiteral(value)) name = value.getLiteralText();
-    else if (Node.isObjectLiteralExpression(value)) {
-      const type = unwrap(getInit(value, 'type') ?? value);
-      if (Node.isStringLiteral(type)) name = type.getLiteralText();
-    }
+    const name = Node.isObjectLiteralExpression(value)
+      ? nameRef(getInit(value, 'type'))?.name
+      : Node.isIdentifier(value)
+        ? undefined
+        : nameRef(value)?.name;
     return !!name && this.ctx.impls.actions.get(name)?.kind === 'assign';
   }
 
@@ -334,17 +334,21 @@ export class FunctionBuilder {
 
   private action(node: Node, br: Branch, contextIsFinal: boolean) {
     const value = unwrap(node);
-    if (
-      Node.isStringLiteral(value) ||
-      Node.isNoSubstitutionTemplateLiteral(value)
-    ) {
-      return this.namedAction(value.getLiteralText(), undefined, br);
-    }
+    const ref = Node.isIdentifier(value) ? undefined : nameRef(value);
+    if (ref) return this.namedAction(ref, undefined, br);
     if (Node.isObjectLiteralExpression(value)) {
-      const { name, params } = typeAndParams(value, 'action');
-      return this.namedAction(name, params, br);
+      const { ref, params } = typeAndParams(value, 'action');
+      return this.namedAction(ref, params, br);
     }
     if (Node.isIdentifier(value)) {
+      const named = resolveStringConstant(value);
+      if (named !== undefined) {
+        return this.namedAction(
+          { name: named, access: access(named) },
+          undefined,
+          br
+        );
+      }
       if (resolveIdentifier(value) !== 'fn') {
         return skip(`unresolved action '${value.getText()}'`);
       }
@@ -451,12 +455,13 @@ export class FunctionBuilder {
     return this.dynamic(node, br);
   }
 
-  private namedAction(name: string, params: Node | undefined, br: Branch) {
+  private namedAction(ref: NameRef, params: Node | undefined, br: Branch) {
+    const { name } = ref;
     const def = this.ctx.impls.actions.get(name);
     if (!def) return skip(`action '${name}' is not defined in this file`);
     if (def.kind === 'fn') {
       const p = params ? `, ${this.dynamic(params, br)}` : '';
-      return br.push(`enq(args.actions${access(name)}, ${br.argsObj()}${p});`);
+      return br.push(`enq(args.actions${ref.access}, ${br.argsObj()}${p});`);
     }
     if (def.kind === 'assign') {
       const argsText = mentionsSpawn(def.assignArg!)
@@ -465,7 +470,7 @@ export class FunctionBuilder {
       const p = params ? `, ${this.dynamic(params, br, argsText)}` : '';
       this.ctx.assignDefs.add(def);
       return br.pushPatch({
-        expr: `args.actions${access(name)}(${argsText}${p})`
+        expr: `args.actions${ref.access}(${argsText}${p})`
       });
     }
     return skip(`action '${name}' is not a plain function or assign`);
@@ -523,6 +528,24 @@ export class FunctionBuilder {
   }
 }
 
+/** A reference to a named implementation: its name and how to access it. */
+interface NameRef {
+  name: string;
+  /** `.name`, or `[Expr.X]` when written as a constant expression. */
+  access: string;
+}
+
+function nameRef(node: Node | undefined): NameRef | undefined {
+  if (!node) return undefined;
+  const value = unwrap(node);
+  const name = resolveStringConstant(value);
+  if (name === undefined) return undefined;
+  return Node.isStringLiteral(value) ||
+    Node.isNoSubstitutionTemplateLiteral(value)
+    ? { name, access: access(name) }
+    : { name, access: `[${value.getText()}]` };
+}
+
 function getInit(object: ObjectLiteralExpression, key: string) {
   const property = object.getProperties().find((p) => getKeyText(p) === key);
   return Node.isPropertyAssignment(property)
@@ -533,7 +556,7 @@ function getInit(object: ObjectLiteralExpression, key: string) {
 function typeAndParams(
   object: ObjectLiteralExpression,
   what: string
-): { name: string; params: Node | undefined } {
+): { ref: NameRef; params: Node | undefined } {
   for (const property of object.getProperties()) {
     const key = getKeyText(property);
     if (
@@ -543,12 +566,9 @@ function typeAndParams(
       return skip(`unsupported ${what} object key '${property.getText()}'`);
     }
   }
-  const type = getInit(object, 'type');
-  const value = type && unwrap(type);
-  if (!value || !Node.isStringLiteral(value)) {
-    return skip(`${what} object has no string 'type'`);
-  }
-  return { name: value.getLiteralText(), params: getInit(object, 'params') };
+  const ref = nameRef(getInit(object, 'type'));
+  if (!ref) return skip(`${what} object has no string 'type'`);
+  return { ref, params: getInit(object, 'params') };
 }
 
 function mentionsSpawn(node: Node): boolean {

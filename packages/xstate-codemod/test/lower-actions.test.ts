@@ -122,6 +122,15 @@ describe('lower-actions', () => {
       expect(lower(output).changed).toBe(false);
     });
 
+    it('collapses unguarded transition arrays to their first candidate', () => {
+      const { output, notes } = lower(
+        machine(`GO: [{ target: 'b' }, { target: 'a' }], X: ['b']`)
+      );
+      expect(output).toContain(`GO: { target: 'b' }, X: 'b'`);
+      expect(notes.join('\n')).toContain('never reaches the other 1');
+      expect(lower(output).changed).toBe(false);
+    });
+
     it('turns transition arrays into an if-chain and drops unreachable candidates', () => {
       const { output, notes } = lower(
         machine(
@@ -531,6 +540,35 @@ export const m = setup({ actors: { load, keep } }).createMachine({});`);
       expect(output).toContain(
         `import { setup, fromPromise, createAsyncLogic } from 'xstate';`
       );
+    });
+  });
+
+  describe('P4. constant names', () => {
+    it('resolves enum and const-object computed keys for named implementations', () => {
+      const { output } = lower(`import { setup } from 'xstate';
+enum Guards { Ok = 'ok' }
+const Actions = { Track: 'track' } as const;
+const m = setup({
+  guards: { [Guards.Ok]: () => true },
+  actions: { [Actions.Track]: () => {} }
+}).createMachine({
+  on: { GO: { guard: Guards.Ok, actions: [Actions.Track, { type: Actions.Track, params: { a: 1 } }] } }
+});`);
+      expect(output).toContain('if (!args.guards[Guards.Ok](args)) return;');
+      expect(output).toContain('enq(args.actions[Actions.Track], args);');
+      expect(output).toContain(
+        'enq(args.actions[Actions.Track], args, { a: 1 });'
+      );
+      expect(output).toContain('[Guards.Ok]: () => true');
+    });
+
+    it('leaves non-constant computed names alone', () => {
+      const { changed } = lower(`import { setup } from 'xstate';
+let Guards = { Ok: 'ok' };
+const m = setup({ guards: { [Guards.Ok]: () => true } }).createMachine({
+  on: { GO: { guard: Guards.Ok } }
+});`);
+      expect(changed).toBe(false);
     });
   });
 

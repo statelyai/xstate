@@ -134,7 +134,7 @@ function collectFrom(
     const map = getProperty(object, group);
     if (!map || !Node.isObjectLiteralExpression(map)) continue;
     for (const property of map.getProperties()) {
-      const key = getKeyText(property);
+      const key = implKey(property);
       if (key === undefined || impls[group].has(key)) continue;
       impls[group].set(key, classify(property, xs));
     }
@@ -265,4 +265,77 @@ export function outerReferences(node: Node, names: Set<string>): Set<string> {
     }
   }
   return found;
+}
+
+/** Key of an implementation map entry, resolving `[Enum.X]` computed keys. */
+function implKey(property: Node): string | undefined {
+  if (
+    (Node.isPropertyAssignment(property) ||
+      Node.isMethodDeclaration(property)) &&
+    Node.isComputedPropertyName(property.getNameNode())
+  ) {
+    const name = property.getNameNode();
+    return Node.isComputedPropertyName(name)
+      ? resolveStringConstant(name.getExpression())
+      : undefined;
+  }
+  return getKeyText(property);
+}
+
+/**
+ * The string an expression always evaluates to: a string literal, a `const`
+ * bound to one, a member of a string enum, or a property of a `const` object
+ * literal declared in this file.
+ */
+export function resolveStringConstant(node: Node): string | undefined {
+  const value = unwrap(node);
+  if (
+    Node.isStringLiteral(value) ||
+    Node.isNoSubstitutionTemplateLiteral(value)
+  )
+    return value.getLiteralText();
+  if (Node.isIdentifier(value)) {
+    const decls = value.getSymbol()?.getDeclarations() ?? [];
+    if (decls.length !== 1 || !Node.isVariableDeclaration(decls[0])) return;
+    if (!isConst(decls[0])) return;
+    const init = decls[0].getInitializer();
+    const literal = init && unwrap(init);
+    return literal && Node.isStringLiteral(literal)
+      ? literal.getLiteralText()
+      : undefined;
+  }
+  if (!Node.isPropertyAccessExpression(value)) return undefined;
+  const object = value.getExpression();
+  if (!Node.isIdentifier(object)) return undefined;
+  const member = value.getName();
+  const decls = object.getSymbol()?.getDeclarations() ?? [];
+  if (decls.length !== 1) return undefined;
+  const decl = decls[0];
+  if (Node.isEnumDeclaration(decl)) {
+    const m = decl.getMember(member);
+    const init = m?.getInitializer();
+    return init && Node.isStringLiteral(init)
+      ? init.getLiteralText()
+      : undefined;
+  }
+  if (!Node.isVariableDeclaration(decl) || !isConst(decl)) return undefined;
+  const init = decl.getInitializer();
+  const literal = init && unwrap(init);
+  if (!literal || !Node.isObjectLiteralExpression(literal)) return undefined;
+  const property = literal
+    .getProperties()
+    .find((candidate) => getKeyText(candidate) === member);
+  if (!Node.isPropertyAssignment(property)) return undefined;
+  const v = unwrap(property.getInitializer()!);
+  return Node.isStringLiteral(v) || Node.isNoSubstitutionTemplateLiteral(v)
+    ? v.getLiteralText()
+    : undefined;
+}
+
+function isConst(decl: Node): boolean {
+  const list = decl.getParent();
+  return (
+    Node.isVariableDeclarationList(list) &&
+    !!(list.getFlags() & 2) /* NodeFlags.Const */
+  );
 }

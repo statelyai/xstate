@@ -253,8 +253,37 @@ function lowerMachines(sourceFile: SourceFile, notes: string[]): boolean {
       const candidates = Node.isArrayLiteralExpression(v)
         ? v.getElements().map(unwrap)
         : [v];
-      if (!candidates.some(hasLowerableKeys)) return;
+      if (!candidates.some(hasLowerableKeys)) {
+        if (Node.isArrayLiteralExpression(v)) collapseArray(v, candidates);
+        return;
+      }
       attempt(property, value, () => lowerTransition(ctx, v));
+    };
+
+    // v5 takes the first enabled candidate; with no guards that is always the
+    // first one, so the rest are unreachable.
+    const collapseArray = (array: Node, candidates: Node[]) => {
+      const [first] = candidates;
+      if (
+        !first ||
+        !candidates.every(
+          (c) =>
+            Node.isObjectLiteralExpression(c) ||
+            Node.isStringLiteral(c) ||
+            Node.isNoSubstitutionTemplateLiteral(c)
+        )
+      )
+        return;
+      edits.push({
+        start: array.getStart(),
+        end: array.getEnd(),
+        text: first.getText()
+      });
+      if (candidates.length > 1) {
+        notes.push(
+          `${where(sourceFile, array)} — collapsed an unguarded transition array to its first candidate; v5 never reaches the other ${candidates.length - 1}`
+        );
+      }
     };
 
     const transitionMap = (value: Node | undefined) => {
