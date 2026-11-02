@@ -19,6 +19,7 @@ import {
   resolveStringConstant,
   derefConfig,
   isIndirect,
+  isXstateMachineCall,
   onlyConfigReferences,
   unwrap,
   xstateCallee,
@@ -131,7 +132,12 @@ function moveImplementations(sourceFile: SourceFile, notes: string[]): boolean {
         ? expr.getName()
         : undefined;
     const args = call.getArguments();
-    if (name !== 'createMachine' || args.length !== 2) continue;
+    if (
+      name !== 'createMachine' ||
+      args.length !== 2 ||
+      !isXstateMachineCall(call)
+    )
+      continue;
     const [config, impls] = args.map(unwrap);
     if (
       !Node.isObjectLiteralExpression(config) ||
@@ -272,6 +278,12 @@ function planMachines(
   };
 
   for (const config of findMachineConfigObjects(sourceFile)) {
+    if (!isXstateMachineCall(config.getParentOrThrow())) {
+      notes.push(
+        `${where(sourceFile, config)} — not lowered: the machine call does not resolve to an 'xstate' import`
+      );
+      continue;
+    }
     const impls = collectImplementations(config, xs);
     const rewrites = new Map<ImplDef, string>();
     for (const def of impls.actions.values()) {

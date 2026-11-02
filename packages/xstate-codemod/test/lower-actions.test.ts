@@ -976,6 +976,22 @@ const m = setup({ actions: { init, again: init as any } }).createMachine({
     });
   });
 
+  describe('R4. only xstate machines', () => {
+    it('leaves configs passed to another library', () => {
+      const input = `import { createMachine } from 'other-lib';
+import { assign } from 'xstate';
+const m = createMachine({ on: { GO: { actions: assign({ n: 1 }) } } });`;
+      const { changed } = lower(input);
+      expect(changed).toBe(false);
+    });
+
+    it('lowers namespace and setup-chained xstate calls', () => {
+      const { output } = lower(`import * as X from 'xstate';
+const m = X.createMachine({ on: { GO: { target: '.b', guard: () => true } } });`);
+      expect(output).toContain('GO: () => {');
+    });
+  });
+
   describe('G. imports and idempotence', () => {
     it('keeps imports still referenced elsewhere', () => {
       const { output } = lower(

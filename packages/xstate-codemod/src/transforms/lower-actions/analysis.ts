@@ -610,3 +610,65 @@ function implConstAssign(
     });
   return refsOk ? { assignArg: arg, constDecl: found.decl } : undefined;
 }
+
+/** The `'xstate'` export an identifier is a value import of, if any. */
+export function xstateImportOf(id: Node): string | undefined {
+  if (!Node.isIdentifier(id)) return undefined;
+  for (const decl of id.getSymbol()?.getDeclarations() ?? []) {
+    if (!Node.isImportSpecifier(decl) || decl.isTypeOnly()) continue;
+    const imp = decl.getImportDeclaration();
+    if (imp.getModuleSpecifierValue() === 'xstate' && !imp.isTypeOnly()) {
+      return decl.getName();
+    }
+  }
+  return undefined;
+}
+
+function isXstateNamespace(id: Node): boolean {
+  if (!Node.isIdentifier(id)) return false;
+  return (id.getSymbol()?.getDeclarations() ?? []).some(
+    (decl) =>
+      Node.isNamespaceImport(decl) &&
+      decl
+        .getFirstAncestorByKind(SyntaxKind.ImportDeclaration)
+        ?.getModuleSpecifierValue() === 'xstate'
+  );
+}
+
+/** `xstate`'s `name` called as `name(...)` or `ns.name(...)`. */
+function callsXstate(call: Node, names: string[]): boolean {
+  if (!Node.isCallExpression(call)) return false;
+  const callee = call.getExpression();
+  if (Node.isIdentifier(callee)) {
+    return names.includes(xstateImportOf(callee) ?? '');
+  }
+  return (
+    Node.isPropertyAccessExpression(callee) &&
+    names.includes(callee.getName()) &&
+    isXstateNamespace(callee.getExpression())
+  );
+}
+
+/**
+ * Whether a config object is the first argument of xstate's `createMachine` /
+ * `createStateConfig`, directly or chained on xstate's `setup(...)`.
+ */
+export function isXstateMachineCall(call: Node): boolean {
+  if (!Node.isCallExpression(call)) return false;
+  if (callsXstate(call, ['createMachine', 'createStateConfig'])) return true;
+  const callee = call.getExpression();
+  if (!Node.isPropertyAccessExpression(callee)) return false;
+  if (!['createMachine', 'createStateConfig'].includes(callee.getName()))
+    return false;
+  let receiver: Node = unwrap(callee.getExpression());
+  if (Node.isIdentifier(receiver)) {
+    const decl = receiver
+      .getSymbol()
+      ?.getDeclarations()
+      .find(Node.isVariableDeclaration);
+    const init = decl?.getInitializer();
+    if (!init) return false;
+    receiver = unwrap(init);
+  }
+  return callsXstate(receiver, ['setup']);
+}
