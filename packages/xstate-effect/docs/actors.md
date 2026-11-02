@@ -5,6 +5,10 @@ description: Create actors whose lifetime and dependencies belong to an Effect a
 
 `createEffectActor(logic, options?)` starts an actor and returns its handle as a scoped Effect.
 
+The actor processes events through one FIFO mailbox. Events sent by a child
+keep their send order, including when each send runs in a separate promise
+continuation while the parent executes transition effects.
+
 - Pass `options.input` when the logic requires input.
 - Pass `options.snapshot` to resume an actor from a persisted snapshot. See [persisting and restoring](#persisting-and-restoring).
 - Provide the services required by its declared actions and child actors.
