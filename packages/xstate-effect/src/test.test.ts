@@ -274,7 +274,7 @@ it('rejects pending receipts when the owning scope closes', async () => {
   );
 });
 
-it('settles receipts queued before failed initialization finishes', async () => {
+it('acknowledges sends queued before an initialization failure event', async () => {
   await scoped(
     Effect.gen(function* () {
       const actor = yield* createEffectActor(
@@ -283,9 +283,14 @@ it('settles receipts queued before failed initialization finishes', async () => 
       const result = yield* Effect.exit(
         sendAndAwait(actor, { type: 'IGNORED' })
       );
-      expect(
-        Exit.isFailure(result) && Cause.squash(result.cause)
-      ).toBeInstanceOf(ActorStoppedError);
+      expect(Exit.isSuccess(result) && result.value.status).toBe('active');
+      expect(Exit.isFailure(yield* Effect.exit(join(actor)))).toBe(true);
+      const later = yield* Effect.exit(
+        sendAndAwait(actor, { type: 'IGNORED' })
+      );
+      expect(Exit.isFailure(later) && Cause.squash(later.cause)).toBeInstanceOf(
+        ActorStoppedError
+      );
       expect(actor.getSnapshot().status).toBe('error');
     })
   );
