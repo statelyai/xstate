@@ -485,6 +485,17 @@ const m = setup({
       expect(output).toContain(`import { setup } from 'xstate';`);
     });
 
+    it('resolves shorthand implementations declared in the file', () => {
+      const { output } = lower(`import { setup } from 'xstate';
+const isOk = ({ context }) => context.ok;
+function track() {}
+const m = setup({ guards: { isOk }, actions: { track } }).createMachine({
+  on: { GO: { guard: 'isOk', actions: 'track' } }
+});`);
+      expect(output).toContain(`if (!args.guards.isOk(args)) return;
+    enq(args.actions.track, args);`);
+    });
+
     it('does not lower sites that use a named action creator', () => {
       const input = `import { setup, raise } from 'xstate';
 const m = setup({ actions: { go: raise({ type: 'X' }) } }).createMachine({

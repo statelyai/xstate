@@ -87,6 +87,12 @@ export interface ImplDef {
 
 function classify(property: Node, xs: Map<string, string>): ImplDef {
   if (Node.isMethodDeclaration(property)) return { kind: 'fn', property };
+  if (Node.isShorthandPropertyAssignment(property)) {
+    return {
+      kind: resolveIdentifier(property.getNameNode()) === 'fn' ? 'fn' : 'other',
+      property
+    };
+  }
   if (!Node.isPropertyAssignment(property)) return { kind: 'other', property };
   const value = unwrap(property.getInitializer()!);
   if (isFunctionLike(value)) return { kind: 'fn', property };
@@ -171,7 +177,11 @@ export function collectImplementations(
 
 /** What an identifier's in-file declaration is: a function, a plain value, or unknown. */
 export function resolveIdentifier(id: Node): 'fn' | 'value' | 'unknown' {
-  const decls = id.getSymbol()?.getDeclarations() ?? [];
+  const parent = id.getParent();
+  const symbol = Node.isShorthandPropertyAssignment(parent)
+    ? parent.getValueSymbol()
+    : id.getSymbol();
+  const decls = symbol?.getDeclarations() ?? [];
   if (decls.length !== 1) return 'unknown';
   const decl = decls[0];
   if (Node.isFunctionDeclaration(decl)) return 'fn';
