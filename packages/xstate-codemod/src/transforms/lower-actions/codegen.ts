@@ -448,7 +448,7 @@ export class FunctionBuilder {
     });
   }
 
-  private action(node: Node, br: Branch, contextIsFinal: boolean) {
+  private action(node: Node, br: Branch, contextIsFinal: boolean): void {
     const value = unwrap(node);
     const ref = Node.isIdentifier(value) ? undefined : nameRef(value);
     if (ref) return this.namedAction(ref, undefined, br);
@@ -839,7 +839,11 @@ export class FunctionBuilder {
     return this.dynamic(node, br);
   }
 
-  private namedAction(ref: NameRef, params: Node | undefined, br: Branch) {
+  private namedAction(
+    ref: NameRef,
+    params: Node | undefined,
+    br: Branch
+  ): void {
     const { name } = ref;
     const def = this.ctx.impls.actions.get(name);
     if (!def) return skip(`action '${name}' is not defined in this file`);
