@@ -54,6 +54,7 @@ const REMOVABLE_IMPORTS = new Set([
   'stopChild',
   'stop',
   'spawnChild',
+  'enqueueActions',
   'and',
   'or',
   'not',

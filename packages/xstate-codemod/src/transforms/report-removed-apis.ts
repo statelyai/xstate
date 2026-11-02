@@ -1,4 +1,4 @@
-import { SourceFile, SyntaxKind } from 'ts-morph';
+import { Node, SourceFile, SyntaxKind } from 'ts-morph';
 import type { ManualSite, Transform, TransformResult } from '../types.ts';
 
 /**
@@ -75,8 +75,17 @@ export const reportRemovedApis: Transform = {
       if (!api) {
         continue;
       }
+      // Skip member names such as `enq.emit`; they are not the import.
+      const parent = ident.getParent();
+      if (
+        (Node.isPropertyAccessExpression(parent) ||
+          Node.isPropertyAssignment(parent)) &&
+        parent.getNameNode() === ident
+      ) {
+        continue;
+      }
       // Skip the import specifier declarations themselves.
-      const parentKind = ident.getParent()?.getKind();
+      const parentKind = parent?.getKind();
       if (
         parentKind === SyntaxKind.ImportSpecifier ||
         parentKind === SyntaxKind.ImportClause

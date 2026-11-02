@@ -1,4 +1,4 @@
-import { Node, ObjectLiteralExpression, ts } from 'ts-morph';
+import { Node, ObjectLiteralExpression, SyntaxKind, ts } from 'ts-morph';
 import {
   type ImplDef,
   type Implementations,
@@ -18,6 +18,67 @@ import {
 
 /** Replaced by the local name of `matchesState` once the import is ensured. */
 export const MATCHES_STATE = '__xstate_codemod_matchesState__';
+
+/** What v5's `enqueueActions` callback may destructure. */
+const ENQUEUE_ARGS = new Set([
+  'enqueue',
+  'check',
+  'context',
+  'event',
+  'self',
+  'system'
+]);
+const ENQUEUE_METHODS = new Set([
+  'assign',
+  'raise',
+  'sendTo',
+  'sendParent',
+  'emit',
+  'log',
+  'cancel',
+  'stopChild',
+  'spawnChild'
+]);
+
+/** Indentation of the line a node starts on. */
+function indentOf(node: Node): string {
+  const text = node.getSourceFile().getFullText();
+  const lineStart = text.lastIndexOf('\n', node.getStart() - 1) + 1;
+  return /^[ \t]*/.exec(text.slice(lineStart))![0];
+}
+
+/** The symbol a (possibly shorthand-property) identifier refers to. */
+function valueSymbol(id: Node) {
+  const parent = id.getParent();
+  if (Node.isShorthandPropertyAssignment(parent)) {
+    return id
+      .getProject()
+      .getTypeChecker()
+      .compilerObject.getShorthandAssignmentValueSymbol(parent.compilerNode);
+  }
+  return id.getSymbol()?.compilerSymbol;
+}
+
+/** `node`'s text with non-overlapping descendant ranges replaced. */
+function spliceText(
+  node: Node,
+  replacements: Array<{ node: Node; text: string }>
+): string {
+  const start = node.getStart();
+  let text = node.getText();
+  const inside = replacements
+    .filter(
+      (r) => r.node.getStart() >= start && r.node.getEnd() <= node.getEnd()
+    )
+    .sort((a, b) => b.node.getStart() - a.node.getStart());
+  for (const r of inside) {
+    text =
+      text.slice(0, r.node.getStart() - start) +
+      r.text +
+      text.slice(r.node.getEnd() - start);
+  }
+  return text;
+}
 
 /** Names v5 passed to actions and guards that the v6 `args` object also has. */
 const HOISTABLE = new Set(['context', 'event', 'self', 'system']);
@@ -100,7 +161,12 @@ class Branch {
   entries: Array<string | Patch> = [];
   assigned = false;
   enqueued = false;
+  /** Patches written from nested control flow: always accumulate in `patch`. */
+  forcePatch = false;
+  /** Arguments text for guards evaluated against an earlier context. */
+  argsOverride: string | undefined;
   argsObj() {
+    if (this.argsOverride) return this.argsOverride;
     return this.assigned ? '{ ...args, context }' : 'args';
   }
   push(line: string, enqueues = true) {
@@ -120,7 +186,7 @@ class Branch {
   finish(fb: FunctionBuilder): { lines: string[]; context?: string } {
     const patches = this.entries.filter((e) => typeof e !== 'string');
     const last = this.entries[this.entries.length - 1];
-    if (patches.length === 1 && typeof last !== 'string') {
+    if (patches.length === 1 && typeof last !== 'string' && !this.forcePatch) {
       const lines = this.entries.slice(0, -1) as string[];
       return {
         lines,
@@ -130,20 +196,25 @@ class Branch {
             : `context: ${last.expr}`
       };
     }
-    if (!patches.length) return { lines: this.entries as string[] };
+    if (!patches.length && !this.forcePatch) {
+      return { lines: this.entries as string[] };
+    }
     fb.threaded = true;
-    const lines = this.entries.flatMap((e) =>
-      typeof e === 'string'
-        ? [e]
-        : [
-            'props' in e
-              ? `patch = { ...patch, ${e.props} };`
-              : `patch = { ...patch, ...${e.expr} };`,
-            'context = { ...args.context, ...patch };'
-          ]
-    );
-    return { lines, context: 'context: patch' };
+    return { lines: threadedLines(this.entries), context: 'context: patch' };
   }
+}
+
+function threadedLines(entries: Array<string | Patch>): string[] {
+  return entries.flatMap((e) =>
+    typeof e === 'string'
+      ? [e]
+      : [
+          'props' in e
+            ? `patch = { ...patch, ${e.props} };`
+            : `patch = { ...patch, ...${e.expr} };`,
+          'context = { ...args.context, ...patch };'
+        ]
+  );
 }
 
 /** Builds one generated `(args, enq) => { ... }` function. */
@@ -427,7 +498,11 @@ export class FunctionBuilder {
     if (!callee || !Node.isCallExpression(value)) {
       return skip(`unsupported action '${value.getText()}'`);
     }
-    const args = value.getArguments();
+    return this.creator(callee, value.getArguments(), br);
+  }
+
+  /** Rule C for `callee(...args)`, an action creator call. */
+  private creator(callee: string, args: Node[], br: Branch): void {
     const arity = (min: number, max: number) => {
       if (args.length < min || args.length > max) {
         skip(`unsupported ${callee}(...) arity`);
@@ -498,8 +573,259 @@ export class FunctionBuilder {
           `enq.spawn(${args[0].getText()}${this.options(args[1], br, ['id', 'input'])});`
         );
       }
+      case 'enqueueActions':
+        arity(1, 1);
+        return this.enqueueActions(args[0], br);
     }
     return skip(`'${callee}(...)' cannot be lowered`);
+  }
+
+  /**
+   * `enqueueActions(({ enqueue, check, ... }, params) => BODY)`: BODY is kept
+   * with every `enqueue...(...)` call replaced by its rule-C statements and
+   * every `check(g)` by its rule-B expression. v5's `context` and `check` see
+   * the context from before the callback, even after `enqueue.assign`.
+   */
+  private enqueueActions(node: Node, br: Branch): void {
+    const fn = unwrap(node);
+    if (!Node.isArrowFunction(fn) && !Node.isFunctionExpression(fn)) {
+      return skip('enqueueActions argument is not an inline function');
+    }
+    if (fn.isAsync()) return skip('enqueueActions callback is async');
+    const [first, second, ...more] = fn.getParameters();
+    if (more.length) return skip('enqueueActions callback has extra params');
+    const bound = new Map<string, Node>();
+    if (first) {
+      const pattern = first.getNameNode();
+      if (!Node.isObjectBindingPattern(pattern) || first.getInitializer()) {
+        return skip(
+          'enqueueActions callback does not destructure its argument'
+        );
+      }
+      for (const element of pattern.getElements()) {
+        const name = element.getNameNode();
+        const key = (element.getPropertyNameNode() ?? name).getText();
+        if (
+          element.getPropertyNameNode() ||
+          element.getInitializer() ||
+          element.getDotDotDotToken() ||
+          !Node.isIdentifier(name) ||
+          !ENQUEUE_ARGS.has(key)
+        ) {
+          return skip(
+            `unsupported enqueueActions binding '${element.getText()}'`
+          );
+        }
+        bound.set(key, name);
+      }
+    }
+    let paramsName: string | undefined;
+    if (second) {
+      const name = second.getNameNode();
+      if (!Node.isIdentifier(name) || second.getInitializer()) {
+        return skip('enqueueActions params is not a plain identifier');
+      }
+      paramsName = name.getText();
+    }
+    const refsTo = (key: string): Node[] => {
+      const id = bound.get(key);
+      if (!id) return [];
+      const symbol = valueSymbol(id);
+      return fn
+        .getDescendantsOfKind(SyntaxKind.Identifier)
+        .filter((r) => r !== id && valueSymbol(r) === symbol);
+    };
+    // Calls to replace: enqueue(...), enqueue.x(...), check(...).
+    const calls: Array<{ call: Node; kind: string; args: Node[] }> = [];
+    for (const ref of refsTo('enqueue')) {
+      const parent = ref.getParentOrThrow();
+      if (Node.isCallExpression(parent) && parent.getExpression() === ref) {
+        calls.push({
+          call: parent,
+          kind: 'enqueue',
+          args: parent.getArguments()
+        });
+        continue;
+      }
+      const call = parent.getParent();
+      if (
+        Node.isPropertyAccessExpression(parent) &&
+        Node.isCallExpression(call) &&
+        call.getExpression() === parent &&
+        ENQUEUE_METHODS.has(parent.getName())
+      ) {
+        calls.push({ call, kind: parent.getName(), args: call.getArguments() });
+        continue;
+      }
+      return skip('enqueueActions uses `enqueue` other than by calling it');
+    }
+    for (const ref of refsTo('check')) {
+      const parent = ref.getParentOrThrow();
+      if (
+        !Node.isCallExpression(parent) ||
+        parent.getExpression() !== ref ||
+        parent.getArguments().length !== 1
+      ) {
+        return skip('enqueueActions uses `check` other than as check(guard)');
+      }
+      calls.push({ call: parent, kind: 'check', args: parent.getArguments() });
+    }
+    const within = (inner: Node, outer: Node) =>
+      inner !== outer &&
+      inner.getStart() >= outer.getStart() &&
+      inner.getEnd() <= outer.getEnd();
+    if (calls.some((a) => calls.some((b) => within(a.call, b.call)))) {
+      return skip('enqueueActions nests enqueue/check calls');
+    }
+    const body = fn.getBody();
+    if (
+      Node.isBlock(body) &&
+      body
+        .getDescendantsOfKind(SyntaxKind.ReturnStatement)
+        .some(
+          (r) =>
+            r.getFirstAncestor(
+              (a) =>
+                Node.isArrowFunction(a) ||
+                Node.isFunctionExpression(a) ||
+                Node.isFunctionDeclaration(a) ||
+                Node.isMethodDeclaration(a)
+            ) === fn
+        )
+    ) {
+      return skip('enqueueActions callback returns early');
+    }
+    const hoistable = ['event', 'self', 'system'].filter(
+      (k) => refsTo(k).length
+    );
+    if (hoistable.length && !this.inline) {
+      return skip('enqueueActions reads event/self/system shadowed outside');
+    }
+    const assigns = calls.some(
+      (c) =>
+        c.kind === 'assign' ||
+        (c.kind === 'enqueue' && c.args[0] && this.isAssign(c.args[0]))
+    );
+    const contextRefs = refsTo('context');
+    const needSnapshot = contextRefs.length > 0 && (assigns || br.assigned);
+    if (
+      needSnapshot &&
+      contextRefs.some((r) => calls.some((c) => within(r, c.call)))
+    ) {
+      return skip(
+        'enqueueActions reads `context` inside an enqueue call after an assign'
+      );
+    }
+    for (const k of hoistable) this.hoist.add(k);
+    if (contextRefs.length && !needSnapshot) {
+      if (!this.inline) {
+        return skip('enqueueActions reads `context` shadowed outside');
+      }
+      this.hoist.add('context');
+    }
+    const fnText = fn.getText();
+    let snapshot = 'contextBefore';
+    for (let i = 2; new RegExp(`\\b${snapshot}\\b`).test(fnText); i++) {
+      snapshot = `contextBefore${i}`;
+    }
+    const snapshotValue = br.assigned ? 'context' : 'args.context';
+    if (assigns) {
+      br.assigned = true;
+      br.forcePatch = true;
+      this.threaded = true;
+    }
+    const replacements: Array<{ node: Node; text: string }> = [];
+    for (const { call, kind, args } of calls) {
+      if (kind === 'check') {
+        const cb = new Branch();
+        cb.argsOverride = needSnapshot
+          ? `{ ...args, context: ${snapshot} }`
+          : snapshotValue === 'context'
+            ? '{ ...args, context }'
+            : 'args';
+        const saved = this.inline;
+        if (needSnapshot) this.inline = false;
+        try {
+          const g = this.guard(args[0], cb);
+          replacements.push({
+            node: call,
+            text: g.atomic ? g.text : `(${g.text})`
+          });
+        } finally {
+          this.inline = saved;
+        }
+        continue;
+      }
+      const sub = new Branch();
+      sub.assigned = br.assigned;
+      if (kind === 'enqueue') {
+        if (args.length !== 1) return skip('enqueue(...) takes one action');
+        this.action(args[0], sub, false);
+      } else {
+        this.creator(kind, args, sub);
+      }
+      if (sub.enqueued) br.enqueued = true;
+      const lines = threadedLines(sub.entries);
+      const statement = call.getParent();
+      if (Node.isExpressionStatement(statement) || statement === fn) {
+        const target = statement === fn ? call : statement;
+        const indent = indentOf(target);
+        replacements.push({ node: target, text: lines.join(`\n${indent}`) });
+      } else if (
+        lines.length === 1 &&
+        lines[0].endsWith(';') &&
+        typeof sub.entries[0] === 'string'
+      ) {
+        replacements.push({ node: call, text: lines[0].slice(0, -1) });
+      } else {
+        return skip('enqueue call is not a statement');
+      }
+    }
+    if (needSnapshot) {
+      for (const r of contextRefs) {
+        replacements.push({
+          node: r,
+          text: Node.isShorthandPropertyAssignment(r.getParent())
+            ? `context: ${snapshot}`
+            : snapshot
+        });
+      }
+    }
+    const pre: string[] = [];
+    if (needSnapshot) pre.push(`const ${snapshot} = ${snapshotValue};`);
+    if (
+      paramsName &&
+      fn
+        .getDescendantsOfKind(SyntaxKind.Identifier)
+        .some((i) => i.getText() === paramsName && i !== second!.getNameNode())
+    ) {
+      pre.push(`const ${paramsName} = ${this.paramsText ?? 'undefined'};`);
+    }
+    const statements = Node.isBlock(body) ? body.getStatements() : [body];
+    const texts = statements.map((st) => {
+      const text = spliceText(st, replacements);
+      const indent = indentOf(st);
+      const lines = text
+        .split('\n')
+        .map((l) => (l.startsWith(indent) ? l.slice(indent.length) : l));
+      return Node.isBlock(body) || replacements.some((r) => r.node === body)
+        ? lines
+        : [`${lines.join('\n')};`];
+    });
+    const declares = statements.some(
+      (st) =>
+        Node.isVariableStatement(st) ||
+        Node.isFunctionDeclaration(st) ||
+        Node.isClassDeclaration(st)
+    );
+    const flat = texts.flatMap((t) => t.flatMap((l) => l.split('\n')));
+    if (pre.length || declares) {
+      br.push('{', false);
+      for (const line of [...pre, ...flat]) br.push(`  ${line}`, false);
+      br.push('}', false);
+    } else {
+      for (const line of flat) br.push(line, false);
+    }
   }
 
   private target(node: Node, br: Branch): string {

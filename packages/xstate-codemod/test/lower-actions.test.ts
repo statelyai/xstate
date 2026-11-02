@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { createActor, createMachine, matchesState } from 'xstate';
+import {
+  createActor as createActor5,
+  enqueueActions as enqueueActions5,
+  setup as setup5
+} from 'xstate5';
 import { lowerActions } from '../src/transforms/lower-actions.ts';
 import { applyTransform, normalize } from './helpers.ts';
 
@@ -362,9 +367,9 @@ const m = createMachine({
       );
     });
 
-    it('does not lower enqueueActions, unknown calls or undefined named actions', () => {
+    it('does not lower unsupported enqueueActions, unknown calls or undefined named actions', () => {
       for (const action of [
-        `enqueueActions(({ enqueue }) => enqueue('x'))`,
+        `enqueueActions(({ enqueue }) => run(enqueue))`,
         `helper()`,
         `'missing'`,
         `sendTo('#system', { type: 'X' })`
@@ -745,6 +750,117 @@ function make(ref) {
 }`);
       expect(output).toContain("tell: sendTo(ref, { type: 'X' })");
       expect(output).toContain("GO: { actions: 'tell' }");
+    });
+  });
+
+  describe('P5. enqueueActions', () => {
+    it('v5: context and check see the pre-callback context; enqueued actions see assigns', () => {
+      const seen: unknown[] = [];
+      const m = setup5({
+        guards: { pos: ({ context }: any) => context.n > 0 }
+      }).createMachine({
+        context: { n: 0 },
+        on: {
+          GO: {
+            actions: enqueueActions5(({ context, enqueue, check }: any) => {
+              enqueue.assign({ n: 5 });
+              seen.push(context.n, check('pos'));
+              enqueue(({ context }: any) => seen.push(context.n));
+            })
+          }
+        }
+      });
+      const actor = createActor5(m).start();
+      actor.send({ type: 'GO' });
+      expect(seen).toEqual([0, false, 5]);
+    });
+
+    it('lowers enqueue calls, check and the destructured args', () => {
+      const { output } = lower(`import { setup, enqueueActions } from 'xstate';
+const m = setup({
+  guards: { pos: ({ context }) => context.n > 0 },
+  actions: { track: () => {} }
+}).createMachine({
+  on: {
+    GO: {
+      actions: enqueueActions(({ enqueue, check, event }) => {
+        if (check('pos')) {
+          enqueue('track');
+          enqueue.raise({ type: 'DONE', id: event.id });
+        }
+        enqueue.sendParent({ type: 'UP' });
+      })
+    }
+  }
+});`);
+      expect(output).toContain(`GO: (args, enq) => {
+      const { event } = args;
+      if (args.guards.pos(args)) {
+        enq(args.actions.track, args);
+        enq.raise({ type: 'DONE', id: event.id });
+      }
+      enq.sendTo(args.parent, { type: 'UP' });
+    }`);
+      expect(output).toContain("import { setup } from 'xstate';");
+      expect(lower(output).changed).toBe(false);
+    });
+
+    it('snapshots context across enqueue.assign and threads the patch', () => {
+      const { output } =
+        lower(`import { createMachine, enqueueActions } from 'xstate';
+const m = createMachine({
+  context: { n: 0 },
+  on: {
+    GO: {
+      actions: enqueueActions(({ enqueue, context }) => {
+        enqueue.assign({ n: 5 });
+        console.log(context.n);
+      })
+    }
+  }
+});`);
+      expect(output).toContain(`GO: (args) => {
+      let context = args.context;
+      let patch = {};
+      {
+        const contextBefore = args.context;
+        patch = { ...patch, n: 5 };
+        context = { ...args.context, ...patch };
+        console.log(contextBefore.n);
+      }
+      return { context: patch };
+    }`);
+    });
+
+    it('inlines named enqueueActions with params', () => {
+      const { output } = lower(`import { setup, enqueueActions } from 'xstate';
+const m = setup({
+  actions: {
+    fire: enqueueActions(({ enqueue }, params) => {
+      enqueue.raise({ type: params.t });
+    })
+  }
+}).createMachine({
+  on: { GO: { actions: { type: 'fire', params: { t: 'X' } } } }
+});`);
+      expect(output).toContain(`GO: (args, enq) => {
+    {
+      const params = { t: 'X' };
+      enq.raise({ type: params.t });
+    }
+  }`);
+      expect(output).not.toContain('fire:');
+    });
+
+    it('leaves callbacks that return early', () => {
+      const { changed } = lower(
+        machine(
+          `GO: { actions: enqueueActions(({ enqueue }) => { if (1) return; enqueue('x'); }) }`,
+          '',
+          'createMachine, enqueueActions'
+        )
+      );
+      expect(changed).toBe(false);
     });
   });
 

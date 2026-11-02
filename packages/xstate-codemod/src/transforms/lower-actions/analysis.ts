@@ -116,7 +116,9 @@ function classify(
   const callee = xstateCallee(value, xs);
   if (
     callee &&
-    (group === 'guards' ? INLINE_GUARDS : ACTION_CREATORS).has(callee)
+    (group === 'guards'
+      ? INLINE_GUARDS.has(callee)
+      : ACTION_CREATORS.has(callee) || callee === 'enqueueActions')
   ) {
     return { kind: 'inline', property, expr: value };
   }
@@ -438,7 +440,14 @@ export function resolveConstAction(
   const init = decl.getInitializer();
   const call = init && unwrap(init);
   const callee = call && xstateCallee(call, xs);
-  if (!callee || !(callee === 'assign' || ACTION_CREATORS.has(callee)))
+  if (
+    !callee ||
+    !(
+      callee === 'assign' ||
+      callee === 'enqueueActions' ||
+      ACTION_CREATORS.has(callee)
+    )
+  )
     return undefined;
   return { decl, call: call as CallExpression, callee };
 }
