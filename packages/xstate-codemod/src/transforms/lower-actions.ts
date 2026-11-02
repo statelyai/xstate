@@ -1,0 +1,460 @@
+import {
+  CallExpression,
+  Node,
+  ObjectLiteralExpression,
+  SourceFile,
+  SyntaxKind
+} from 'ts-morph';
+import type { Transform, TransformResult } from '../types.ts';
+import { ensureNamedImport, findMachineConfigObjects } from '../util.ts';
+import {
+  Skip,
+  getKeyText,
+  getProperty,
+  getXstateImports,
+  isFunctionLike,
+  resolveConstInitializer,
+  unwrap,
+  xstateCallee,
+  collectImplementations,
+  type ImplDef
+} from './lower-actions/analysis.ts';
+import {
+  type FileContext,
+  type Lowered,
+  MATCHES_STATE,
+  hasLowerableKeys,
+  lowerAssignDefinition,
+  lowerEntryExit,
+  lowerTransition
+} from './lower-actions/codegen.ts';
+
+interface Edit {
+  start: number;
+  end: number;
+  text: string;
+}
+
+const IMPLEMENTATION_KEYS = new Set(['actions', 'guards', 'actors', 'delays']);
+
+/** Action creators and helpers this transform can leave unreferenced. */
+const REMOVABLE_IMPORTS = new Set([
+  'assign',
+  'raise',
+  'sendTo',
+  'sendParent',
+  'forwardTo',
+  'emit',
+  'log',
+  'cancel',
+  'stopChild',
+  'stop',
+  'spawnChild',
+  'and',
+  'or',
+  'not',
+  'stateIn',
+  'fromPromise'
+]);
+
+function applyEdits(sourceFile: SourceFile, edits: Edit[]): boolean {
+  if (!edits.length) return false;
+  // Keep outermost edits only; nested ones are part of a replaced range.
+  const sorted = [...edits].sort((a, b) => a.start - b.start || b.end - a.end);
+  const kept: Edit[] = [];
+  for (const edit of sorted) {
+    const last = kept[kept.length - 1];
+    if (last && edit.start < last.end) continue;
+    kept.push(edit);
+  }
+  let text = sourceFile.getFullText();
+  for (const edit of kept.reverse()) {
+    text = text.slice(0, edit.start) + edit.text + text.slice(edit.end);
+  }
+  sourceFile.replaceWithText(text);
+  return true;
+}
+
+function indentAt(sourceFile: SourceFile, pos: number): string {
+  const text = sourceFile.getFullText();
+  const lineStart = text.lastIndexOf('\n', pos - 1) + 1;
+  return /^[ \t]*/.exec(text.slice(lineStart))![0];
+}
+
+function where(sourceFile: SourceFile, node: Node): string {
+  const { line, column } = sourceFile.getLineAndColumnAtPos(node.getStart());
+  return `${sourceFile.getFilePath()}:${line}:${column}`;
+}
+
+/** Appends property texts to an object literal, keeping its layout. */
+function appendProperties(
+  sourceFile: SourceFile,
+  object: ObjectLiteralExpression,
+  texts: string[]
+): Edit {
+  const last = object.getProperties().at(-1);
+  if (!last) {
+    const indent = indentAt(sourceFile, object.getStart());
+    return {
+      start: object.getStart() + 1,
+      end: object.getEnd() - 1,
+      text: `\n${texts.map((t) => `${indent}  ${t}`).join(',\n')}\n${indent}`
+    };
+  }
+  const indent = indentAt(sourceFile, last.getStart());
+  return {
+    start: last.getEnd(),
+    end: last.getEnd(),
+    text: texts.map((t) => `,\n${indent}${t}`).join('')
+  };
+}
+
+// ---- F: move createMachine's second argument into the config -----------------
+
+function moveImplementations(sourceFile: SourceFile, notes: string[]): boolean {
+  const edits: Edit[] = [];
+  for (const call of sourceFile.getDescendantsOfKind(
+    SyntaxKind.CallExpression
+  )) {
+    const expr = call.getExpression();
+    const name = Node.isIdentifier(expr)
+      ? expr.getText()
+      : Node.isPropertyAccessExpression(expr)
+        ? expr.getName()
+        : undefined;
+    const args = call.getArguments();
+    if (name !== 'createMachine' || args.length !== 2) continue;
+    const [config, impls] = args.map(unwrap);
+    if (
+      !Node.isObjectLiteralExpression(config) ||
+      !Node.isObjectLiteralExpression(impls)
+    ) {
+      notes.push(
+        `${where(sourceFile, args[1])} — left the second createMachine argument: not an object literal`
+      );
+      continue;
+    }
+    const plan: Edit[] = [];
+    const newKeys: string[] = [];
+    let ok = true;
+    for (const property of impls.getProperties()) {
+      const key = getKeyText(property);
+      if (
+        !key ||
+        !IMPLEMENTATION_KEYS.has(key) ||
+        !(
+          Node.isPropertyAssignment(property) ||
+          Node.isShorthandPropertyAssignment(property)
+        )
+      ) {
+        ok = false;
+        break;
+      }
+      const existing = getProperty(config, key);
+      if (!existing) {
+        newKeys.push(property.getText());
+        continue;
+      }
+      const value = Node.isPropertyAssignment(property)
+        ? unwrap(property.getInitializer()!)
+        : undefined;
+      const target = unwrap(existing);
+      if (
+        !value ||
+        !Node.isObjectLiteralExpression(value) ||
+        !Node.isObjectLiteralExpression(target)
+      ) {
+        ok = false;
+        break;
+      }
+      const texts = value.getProperties().map((p) => p.getText());
+      if (texts.length) plan.push(appendProperties(sourceFile, target, texts));
+    }
+    if (!ok) {
+      notes.push(
+        `${where(sourceFile, args[1])} — left the second createMachine argument: keys other than actions/guards/actors/delays, or a non-literal map`
+      );
+      continue;
+    }
+    if (newKeys.length)
+      plan.push(appendProperties(sourceFile, config, newKeys));
+    plan.push({ start: args[0].getEnd(), end: args[1].getEnd(), text: '' });
+    edits.push(...plan);
+    notes.push(
+      `${where(sourceFile, args[1])} — moved the second createMachine argument into the config`
+    );
+  }
+  return applyEdits(sourceFile, edits);
+}
+
+// ---- A–E: transitions and entry/exit --------------------------------------------
+
+function render(
+  sourceFile: SourceFile,
+  property: Node,
+  value: Node,
+  lowered: Lowered
+): Edit {
+  const indent = indentAt(sourceFile, property.getStart());
+  const fn = [
+    '(args, enq) => {',
+    ...lowered.body.map((line) => `${indent}  ${line}`),
+    `${indent}}`
+  ].join('\n');
+  if (!lowered.above.length || !Node.isPropertyAssignment(property)) {
+    return { start: value.getStart(), end: value.getEnd(), text: fn };
+  }
+  return {
+    start: property.getStart(),
+    end: value.getEnd(),
+    text: `${lowered.above.join(`\n${indent}`)}\n${indent}${property.getNameNode().getText()}: ${fn}`
+  };
+}
+
+function lowerMachines(sourceFile: SourceFile, notes: string[]): boolean {
+  const xs = getXstateImports(sourceFile);
+  const edits: Edit[] = [];
+  const assignDefs = new Set<ImplDef>();
+
+  const attempt = (property: Node, value: Node, lower: () => Lowered) => {
+    try {
+      const lowered = lower();
+      edits.push(render(sourceFile, property, value, lowered));
+      for (const note of lowered.notes) {
+        notes.push(`${where(sourceFile, value)} — ${note}`);
+      }
+    } catch (error) {
+      if (!(error instanceof Skip)) throw error;
+      notes.push(`${where(sourceFile, value)} — not lowered: ${error.message}`);
+    }
+  };
+
+  for (const config of findMachineConfigObjects(sourceFile)) {
+    const impls = collectImplementations(config, xs);
+    const rewrites = new Map<ImplDef, string>();
+    for (const def of impls.actions.values()) {
+      if (def.kind !== 'assign') continue;
+      const text = lowerAssignDefinition(def);
+      if (text === undefined) def.kind = 'other';
+      else rewrites.set(def, text);
+    }
+    const ctx: FileContext = { xs, impls, assignDefs };
+
+    const transition = (property: Node, value: Node | undefined) => {
+      if (!value) return;
+      const v = unwrap(value);
+      const candidates = Node.isArrayLiteralExpression(v)
+        ? v.getElements().map(unwrap)
+        : [v];
+      if (!candidates.some(hasLowerableKeys)) return;
+      attempt(property, value, () => lowerTransition(ctx, v));
+    };
+
+    const transitionMap = (value: Node | undefined) => {
+      if (!value || !Node.isObjectLiteralExpression(value)) return;
+      for (const property of value.getProperties()) {
+        if (Node.isPropertyAssignment(property)) {
+          transition(property, property.getInitializer());
+        }
+      }
+    };
+
+    const visitState = (state: Node | undefined) => {
+      if (!state || !Node.isObjectLiteralExpression(state)) return;
+      for (const property of state.getProperties()) {
+        const key = getKeyText(property);
+        if (!key || !Node.isPropertyAssignment(property)) continue;
+        const value = property.getInitializer();
+        if (!value) continue;
+        switch (key) {
+          case 'entry':
+          case 'exit':
+            if (!isFunctionLike(unwrap(value))) {
+              attempt(property, value, () => lowerEntryExit(ctx, value));
+            }
+            break;
+          case 'on':
+          case 'after':
+            transitionMap(value);
+            break;
+          case 'always':
+          case 'onDone':
+          case 'onError':
+          case 'onSnapshot':
+            transition(property, value);
+            break;
+          case 'invoke': {
+            const invokes = Node.isArrayLiteralExpression(value)
+              ? value.getElements()
+              : [value];
+            for (const invoke of invokes) {
+              if (!Node.isObjectLiteralExpression(invoke)) continue;
+              for (const p of invoke.getProperties()) {
+                const k = getKeyText(p);
+                if (
+                  Node.isPropertyAssignment(p) &&
+                  (k === 'onDone' || k === 'onError' || k === 'onSnapshot')
+                ) {
+                  transition(p, p.getInitializer());
+                }
+              }
+            }
+            break;
+          }
+          case 'states':
+            if (Node.isObjectLiteralExpression(value)) {
+              for (const child of value.getProperties()) {
+                if (Node.isPropertyAssignment(child)) {
+                  visitState(child.getInitializer());
+                }
+              }
+            }
+            break;
+        }
+      }
+    };
+
+    visitState(config);
+
+    for (const [def, text] of rewrites) {
+      if (!Node.isPropertyAssignment(def.property)) continue;
+      const init = def.property.getInitializer()!;
+      edits.push({ start: init.getStart(), end: init.getEnd(), text });
+    }
+  }
+
+  return applyEdits(sourceFile, edits);
+}
+
+// ---- F: fromPromise → createAsyncLogic ---------------------------------------
+
+function promiseFunction(arg: Node): Node | undefined {
+  const value = unwrap(arg);
+  if (isFunctionLike(value)) return value;
+  if (Node.isIdentifier(value)) {
+    const init = resolveConstInitializer(value);
+    if (init && isFunctionLike(init)) return init;
+    const decl = value
+      .getSymbol()
+      ?.getDeclarations()
+      .find(Node.isFunctionDeclaration);
+    return decl;
+  }
+  return undefined;
+}
+
+function usesSystemOrEmit(fn: Node): boolean {
+  if (
+    !Node.isArrowFunction(fn) &&
+    !Node.isFunctionExpression(fn) &&
+    !Node.isFunctionDeclaration(fn)
+  )
+    return true;
+  const [param, ...rest] = fn.getParameters();
+  if (rest.length) return true;
+  if (!param) return false;
+  const name = param.getNameNode();
+  if (Node.isObjectBindingPattern(name)) {
+    return name.getElements().some((element) => {
+      const key = (
+        element.getPropertyNameNode() ?? element.getNameNode()
+      ).getText();
+      return (
+        !!element.getDotDotDotToken() || key === 'system' || key === 'emit'
+      );
+    });
+  }
+  return /\b(system|emit)\b/.test(fn.getText());
+}
+
+function lowerFromPromise(sourceFile: SourceFile, notes: string[]): boolean {
+  const find = () => {
+    const xs = getXstateImports(sourceFile);
+    return sourceFile
+      .getDescendantsOfKind(SyntaxKind.CallExpression)
+      .filter((call) => {
+        if (xstateCallee(call, xs) !== 'fromPromise') return false;
+        const args = call.getArguments();
+        const fn = args.length === 1 && promiseFunction(args[0]);
+        if (!fn || usesSystemOrEmit(fn)) {
+          notes.push(
+            `${where(sourceFile, call)} — not lowered: fromPromise logic reads \`system\` or \`emit\`, or is not a local function`
+          );
+          return false;
+        }
+        return true;
+      });
+  };
+  if (!find().length) return false;
+  const local = ensureNamedImport(sourceFile, 'createAsyncLogic');
+  if (!local) return false;
+  const calls: CallExpression[] = find().reverse();
+  for (const call of calls) {
+    call.replaceWithText(
+      `${local}({ run: ${call.getArguments()[0].getText()} })`
+    );
+  }
+  return true;
+}
+
+// ---- G: imports -----------------------------------------------------------------
+
+function cleanupImports(sourceFile: SourceFile) {
+  const references = new Map<string, number>();
+  for (const id of sourceFile.getDescendantsOfKind(SyntaxKind.Identifier)) {
+    if (id.getFirstAncestorByKind(SyntaxKind.ImportDeclaration)) continue;
+    const parent = id.getParent();
+    if (
+      (Node.isPropertyAssignment(parent) ||
+        Node.isPropertyAccessExpression(parent) ||
+        Node.isMethodDeclaration(parent) ||
+        Node.isPropertySignature(parent)) &&
+      parent.getNameNode() === id
+    )
+      continue;
+    references.set(id.getText(), (references.get(id.getText()) ?? 0) + 1);
+  }
+  for (const imp of sourceFile.getImportDeclarations()) {
+    if (imp.getModuleSpecifierValue() !== 'xstate') continue;
+    for (const spec of imp.getNamedImports()) {
+      const local = (spec.getAliasNode() ?? spec.getNameNode()).getText();
+      if (REMOVABLE_IMPORTS.has(spec.getName()) && !references.get(local)) {
+        spec.remove();
+      }
+    }
+    if (
+      !imp.getNamedImports().length &&
+      !imp.getDefaultImport() &&
+      !imp.getNamespaceImport()
+    ) {
+      imp.remove();
+    }
+  }
+}
+
+/**
+ * Lowers v5 action creators, guards and transition objects to v6 transition
+ * and entry/exit functions. Anything it cannot lower is left untouched for the
+ * report transforms.
+ */
+export const lowerActions: Transform = {
+  name: 'lower-actions',
+  description:
+    'Rewrite v5 transition `actions`/`guard`, `entry`/`exit` lists, action creators, guard combinators, named `assign` actions, the second `createMachine` argument and `fromPromise` as v6 functions.',
+  apply(sourceFile: SourceFile): TransformResult {
+    const before = sourceFile.getFullText();
+    const notes: string[] = [];
+    let changed = moveImplementations(sourceFile, notes);
+    changed = lowerMachines(sourceFile, notes) || changed;
+    changed = lowerFromPromise(sourceFile, notes) || changed;
+    if (sourceFile.getFullText().includes(MATCHES_STATE)) {
+      const local =
+        ensureNamedImport(sourceFile, 'matchesState') ?? 'matchesState';
+      sourceFile.replaceWithText(
+        sourceFile.getFullText().split(MATCHES_STATE).join(local)
+      );
+    }
+    if (changed) cleanupImports(sourceFile);
+    return { changed: sourceFile.getFullText() !== before, notes };
+  }
+};

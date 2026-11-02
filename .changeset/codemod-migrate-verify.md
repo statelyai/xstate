@@ -4,9 +4,25 @@
 
 `xstate-codemod migrate` accepts `--json`, which prints one JSON report to stdout. The command exits with code `2` when manual migration is needed, and the report lists each site under `manualSites` with its file, line, column, API, and hint.
 
-A new report transform, `report-suffixed-lifecycle-events`, flags `on` keys written as `xstate.done.state.<id>`, `xstate.done.actor.<id>`, `xstate.error.actor.<id>`, or `xstate.after.<delay>.<id>`. v6 raises the plain event type with the id in a field, so those transitions never fire after migration. Another report transform, `report-action-shapes`, flags non-function `entry` and `exit` values and transition `actions`, `guard`, and `cond` keys, which v6 rejects.
+A new report transform, `report-suffixed-lifecycle-events`, flags `on` keys written as `xstate.done.state.<id>`, `xstate.done.actor.<id>`, `xstate.error.actor.<id>`, or `xstate.after.<delay>.<id>`. v6 raises the plain event type with the id in a field, so those transitions never fire after migration. Another report transform, `report-action-shapes`, flags non-function `entry` and `exit` values, transition arrays, and transition `actions`, `guard`, and `cond` keys, which v6 rejects.
 
-A new report transform, `report-implementations`, flags a second `createMachine` argument, which v6 ignores, and named actions and guards written with the v5 `({ context, event })` or `(_, params)` signature.
+A new report transform, `report-implementations`, flags a second `createMachine` argument, which v6 ignores.
+
+A new transform, `lower-actions`, rewrites v5 transitions with `actions` or `guard`, transition arrays, and `entry`/`exit` lists as v6 functions, converting `assign`, `raise`, `sendTo`, `sendParent`, `forwardTo`, `emit`, `log`, `cancel`, `stopChild`, `spawnChild`, `and`, `or`, `not`, and `stateIn`. Named actions and guards keep their v5 signatures, and a named `assign` action becomes a function that returns a context patch. It also moves an object-literal second `createMachine` argument into the config and rewrites `fromPromise(fn)` as `createAsyncLogic({ run: fn })`. Code it cannot rewrite, such as `enqueueActions`, is left unchanged and reported.
+
+```ts
+// before
+on: { INC: { target: 'active', guard: 'canInc', actions: assign({ count: ({ context }) => context.count + 1 }) } }
+// after
+on: {
+  INC: (args, enq) => {
+    let context = args.context;
+    if (!args.guards.canInc(args)) return;
+    context = { ...context, count: context.count + 1 };
+    return { target: 'active', context };
+  }
+}
+```
 
 `types-to-schemas` converts the per-key form `types: { context: {} as C, events: {} as E }`, builds an events map from same-file type aliases, and writes `events: types<E>()` for other event types instead of leaving `types` in place.
 

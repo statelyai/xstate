@@ -2,6 +2,7 @@ import type { Transform } from '../types.ts';
 import { renameImports } from './rename-imports.ts';
 import { stringTargets } from './string-targets.ts';
 import { typesToSchemas } from './types-to-schemas.ts';
+import { lowerActions } from './lower-actions.ts';
 import { reportRemovedApis } from './report-removed-apis.ts';
 import { reportIdPathTargets } from './report-id-path-targets.ts';
 import { reportSuffixedLifecycleEvents } from './report-suffixed-lifecycle-events.ts';
@@ -13,6 +14,7 @@ export const transforms: Transform[] = [
   renameImports,
   stringTargets,
   typesToSchemas,
+  lowerActions,
   reportRemovedApis,
   reportIdPathTargets,
   reportSuffixedLifecycleEvents,
@@ -28,6 +30,7 @@ export {
   renameImports,
   stringTargets,
   typesToSchemas,
+  lowerActions,
   reportRemovedApis,
   reportIdPathTargets,
   reportSuffixedLifecycleEvents,

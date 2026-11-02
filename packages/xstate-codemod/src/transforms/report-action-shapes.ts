@@ -9,6 +9,9 @@ const TRANSITION_ACTIONS_HINT =
 const TRANSITION_GUARD_HINT =
   'transition `guard` was removed; return `{ target }` from an inline transition function when the condition holds, or `undefined` to reject the event; named guards are plain predicates called as `guards.name(params)`.';
 
+const TRANSITION_ARRAY_HINT =
+  'v6 takes one transition function; combine the candidates into an if-chain: `(args, enq) => { if (cond) return { target }; return { target: other }; }`.';
+
 function getKeyText(node: Node): string | undefined {
   if (!Node.isPropertyAssignment(node)) return undefined;
   const name = node.getNameNode();
@@ -29,13 +32,13 @@ function getProperty(object: Node, key: string): Node | undefined {
 
 /**
  * Reports (does NOT transform) v5 action shapes that v6 rejects: non-function
- * `entry` / `exit` values, and `actions`, `guard` or `cond` on transition
- * objects.
+ * `entry` / `exit` values, transition arrays, and `actions`, `guard` or `cond`
+ * on transition objects.
  */
 export const reportActionShapes: Transform = {
   name: 'report-action-shapes',
   description:
-    'Detect (report only) non-function `entry`/`exit` values and transition `actions`/`guard`/`cond`, which v6 rejects.',
+    'Detect (report only) non-function `entry`/`exit` values, transition arrays and transition `actions`/`guard`/`cond`, which v6 rejects.',
   apply(sourceFile: SourceFile): TransformResult {
     const notes: string[] = [];
     const sites: ManualSite[] = [];
@@ -55,6 +58,7 @@ export const reportActionShapes: Transform = {
     const visitTransition = (value: Node | undefined) => {
       if (!value) return;
       if (Node.isArrayLiteralExpression(value)) {
+        report(value, 'transition-array', TRANSITION_ARRAY_HINT);
         value.getElements().forEach(visitTransition);
         return;
       }
