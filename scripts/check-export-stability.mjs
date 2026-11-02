@@ -5,6 +5,7 @@
 // `@public` or `@experimental`).
 //
 // Usage: node scripts/check-export-stability.mjs [--json] [--list]
+import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -45,6 +46,16 @@ const entries = [
   );
 
 const STABILITY = ['public', 'experimental', 'internal'];
+
+// Entries from several independently versioned packages share one manifest,
+// so each entry records the package it belongs to.
+function packageOf(entry) {
+  const dir = entry.slice(0, entry.lastIndexOf('/src/'));
+  const { name, version } = JSON.parse(
+    readFileSync(join(dir, 'package.json'), 'utf8')
+  );
+  return { package: name, version };
+}
 
 // Pure check on the set of JSDoc tag names attached to an export.
 export function checkStabilityTags(tags) {
@@ -135,7 +146,7 @@ function main() {
       .getExportsOfModule(moduleSymbol)
       .map((symbol) => ({ name: symbol.getName(), ...classify(symbol) }))
       .sort((a, b) => a.name.localeCompare(b.name));
-    report.push({ entry: relative(root, entry), exports });
+    report.push({ entry: relative(root, entry), ...packageOf(entry), exports });
   }
 
   const failures = report
@@ -159,8 +170,9 @@ function main() {
       JSON.stringify(
         {
           ok: failures.length === 0,
-          entries: report.map(({ entry, exports }) => ({
+          entries: report.map(({ entry, exports, ...pkg }) => ({
             entry,
+            ...pkg,
             counts: counts(exports),
             exports: listAll ? exports : undefined
           })),

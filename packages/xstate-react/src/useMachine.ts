@@ -13,6 +13,7 @@ import { useActor } from './useActor.ts';
 /**
  * @alias useActor
  *
+ * @deprecated Use `useActor(machine, options)`.
  * @public
  */
 export function useMachine<TMachine extends AnyStateMachine>(
