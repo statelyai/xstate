@@ -1038,6 +1038,17 @@ const m = setup({ guards: { canInc: () => true } }).createMachine({
       expect(lower(output).changed).toBe(false);
     });
 
+    it('keeps the destructure for spread references', () => {
+      const { output } = lower(
+        machine(
+          `GO: { actions: assign({ m: ({ context, event }) => ({ ...context.m, ...event.m }) }) }`,
+          '',
+          'createMachine, assign'
+        )
+      );
+      expect(output).toContain('m: ({ ...args.context.m, ...args.event.m })');
+    });
+
     it('declares threaded context inside the guarded candidate that needs it', () => {
       const { output } = lower(
         machine(

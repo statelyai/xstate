@@ -1004,12 +1004,12 @@ export class FunctionBuilder {
       if (dropContext && name === 'context') continue;
       // Property keys such as the returned `context:` are not references.
       const re = new RegExp(
-        `(?<![.\\w$])(?<![{,]\\s*)${name}(?![\\w$])|(?<![.\\w$])${name}(?![\\w$])(?!\\s*:)`,
+        `(?<![\\w$])(?<!(?:^|[^.])\\.)(?<![{,]\\s*)${name}(?![\\w$])|(?<![\\w$])(?<!(?:^|[^.])\\.)${name}(?![\\w$])(?!\\s*:)`,
         'g'
       );
       const count = lines.reduce((n, l) => n + (l.match(re)?.length ?? 0), 0);
       if (count === 0) continue;
-      const single = new RegExp(`(?<![.\\w$])${name}(?=\\.)`);
+      const single = new RegExp(`(?<![\\w$])(?<!(?:^|[^.])\\.)${name}(?=\\.)`);
       if (count === 1 && lines.some((l) => single.test(l))) {
         lines = lines.map((l) => l.replace(single, `args.${name}`));
         continue;
@@ -1022,7 +1022,7 @@ export class FunctionBuilder {
     if (!guard) return [...header, ...lines];
     const [g, ...rest] = lines;
     const usesHoisted = names.some((n) =>
-      new RegExp(`(?<![.\\w$])${n}(?![\\w$])`).test(g)
+      new RegExp(`(?<![\\w$])(?<!(?:^|[^.])\\.)${n}(?![\\w$])`).test(g)
     );
     return usesHoisted ? [...header, g, ...rest] : [g, ...header, ...rest];
   }
