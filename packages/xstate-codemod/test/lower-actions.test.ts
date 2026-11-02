@@ -516,9 +516,10 @@ const m = setup({ guards: { isOk }, actions: { track } }).createMachine({
     enq(args.actions.track, args);`);
     });
 
-    it('does not lower sites that use a named action creator', () => {
-      const input = `import { setup, raise } from 'xstate';
-const m = setup({ actions: { go: raise({ type: 'X' }) } }).createMachine({
+    it('does not lower sites that use an unknown named action value', () => {
+      const input = `import { setup } from 'xstate';
+import { makeAction } from './lib';
+const m = setup({ actions: { go: makeAction() } }).createMachine({
   on: { GO: { actions: 'go' } }
 });`;
       const { changed, notes } = lower(input);
@@ -695,6 +696,55 @@ const m = createMachine({ on: { GO: { actions: ping } } });`);
       ).start();
       actor.send({ type: 'GO' });
       expect(actor.getSnapshot().value).toBe('b');
+    });
+  });
+
+  describe('P1. named action creator definitions', () => {
+    it('inlines creator definitions at call sites, passing params', () => {
+      const { output } =
+        lower(`import { setup, raise, emit, sendTo } from 'xstate';
+const m = setup({
+  actions: {
+    ping: raise({ type: 'PING' }),
+    notify: emit(({ context }, params) => ({ type: 'N', id: params.id })),
+    tell: sendTo('child', ({ event }) => event)
+  }
+}).createMachine({
+  on: { GO: { actions: ['ping', { type: 'notify', params: { id: 1 } }] } },
+  entry: 'tell'
+});`);
+      expect(output).toContain(`GO: (args, enq) => {
+    enq.raise({ type: 'PING' });
+    enq.emit((({ context }, params) => ({ type: 'N', id: params.id }))(args, { id: 1 }));
+  }`);
+      expect(output).toContain(`entry: (args, enq) => {
+    const { event } = args;
+    enq.sendTo('child', event);
+  }`);
+      expect(output).not.toContain('ping:');
+      expect(output).not.toContain('notify:');
+      expect(output).toContain("import { setup } from 'xstate';");
+      expect(lower(output).changed).toBe(false);
+    });
+
+    it('keeps a definition still referenced elsewhere and reports it', () => {
+      const { output, notes } = lower(`import { setup, raise } from 'xstate';
+const m = setup({ actions: { ping: raise({ type: 'PING' }) } }).createMachine({
+  on: { GO: { actions: 'ping' }, X: { actions: 'ping', bogus: 1 } }
+});`);
+      expect(output).toContain("ping: raise({ type: 'PING' })");
+      expect(notes.join('\n')).toContain("kept 'ping'");
+    });
+
+    it('does not inline a definition that closes over a local', () => {
+      const { output } = lower(`import { setup, sendTo } from 'xstate';
+function make(ref) {
+  return setup({ actions: { tell: sendTo(ref, { type: 'X' }) } }).createMachine({
+    on: { GO: { actions: 'tell' } }
+  });
+}`);
+      expect(output).toContain("tell: sendTo(ref, { type: 'X' })");
+      expect(output).toContain("GO: { actions: 'tell' }");
     });
   });
 

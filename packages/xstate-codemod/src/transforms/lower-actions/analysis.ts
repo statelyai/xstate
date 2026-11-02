@@ -114,7 +114,10 @@ function classify(
     return { kind: 'fn', property };
   }
   const callee = xstateCallee(value, xs);
-  if (group === 'guards' && callee && INLINE_GUARDS.has(callee)) {
+  if (
+    callee &&
+    (group === 'guards' ? INLINE_GUARDS : ACTION_CREATORS).has(callee)
+  ) {
     return { kind: 'inline', property, expr: value };
   }
   return { kind: 'other', property };

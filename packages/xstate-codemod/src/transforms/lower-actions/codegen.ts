@@ -156,6 +156,8 @@ export class FunctionBuilder {
   /** True when some branch keeps a running `context` and `patch`. */
   threaded = false;
   inline: boolean;
+  /** `params` of the named action being inlined, passed to its dynamic values. */
+  private paramsText: string | undefined;
   private ctx: FileContext;
 
   constructor(ctx: FileContext, node: Node) {
@@ -182,13 +184,15 @@ export class FunctionBuilder {
     const value = unwrap(node);
     if (isFunctionLike(value)) {
       const inline = this.inlined(value);
+      const p = this.paramsText ? `, ${this.paramsText}` : '';
       if (inline) return inline.body.getText();
-      return `(${value.getText()})(${argsText})`;
+      return `(${value.getText()})(${argsText}${p})`;
     }
     if (Node.isIdentifier(value)) {
       if (value.getText() === 'undefined') return 'undefined';
       const kind = resolveIdentifier(value);
-      if (kind === 'fn') return `${value.getText()}(${argsText})`;
+      const p = this.paramsText ? `, ${this.paramsText}` : '';
+      if (kind === 'fn') return `${value.getText()}(${argsText}${p})`;
       if (kind === 'value') return node.getText();
       return skip(`cannot tell whether '${value.getText()}' is a function`);
     }
@@ -513,6 +517,17 @@ export class FunctionBuilder {
     const { name } = ref;
     const def = this.ctx.impls.actions.get(name);
     if (!def) return skip(`action '${name}' is not defined in this file`);
+    if (def.kind === 'inline') {
+      this.inlineCheck(def, name);
+      this.inlinedDefs.add(def);
+      const saved = this.paramsText;
+      this.paramsText = params ? this.dynamic(params, br) : undefined;
+      try {
+        return this.action(def.expr!, br, false);
+      } finally {
+        this.paramsText = saved;
+      }
+    }
     if (def.kind === 'fn') {
       const p = params ? `, ${this.dynamic(params, br)}` : '';
       return br.push(`enq(args.actions${ref.access}, ${br.argsObj()}${p});`);
