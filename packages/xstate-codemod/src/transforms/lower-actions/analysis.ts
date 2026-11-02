@@ -588,10 +588,18 @@ function implConstAssign(
         ? p.getValueSymbol()
         : r.getSymbol();
       if (s !== symbol) return true;
+      let value: Node = r;
+      while (
+        Node.isAsExpression(value.getParent()) ||
+        Node.isSatisfiesExpression(value.getParent()) ||
+        Node.isParenthesizedExpression(value.getParent())
+      )
+        value = value.getParent()!;
+      const outer = value.getParent();
       const owner = Node.isShorthandPropertyAssignment(p)
         ? p
-        : Node.isPropertyAssignment(p) && p.getInitializer() === r
-          ? p
+        : Node.isPropertyAssignment(outer) && outer.getInitializer() === value
+          ? outer
           : undefined;
       const map = owner?.getParent()?.getParent();
       return (

@@ -924,7 +924,7 @@ const m = setup({ actions: { reset: assign(initial) } }).createMachine({
     it('treats a named action bound to a const assign like a named assign', () => {
       const { output } = lower(`import { setup, assign } from 'xstate';
 const init = assign(({ event }) => ({ n: event.n }));
-const m = setup({ actions: { init } }).createMachine({
+const m = setup({ actions: { init, again: init as any } }).createMachine({
   on: { GO: { actions: 'init' } }
 });`);
       expect(output).toContain('const init = ({ event }) => ({ n: event.n });');
