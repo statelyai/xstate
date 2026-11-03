@@ -4342,6 +4342,114 @@ describe('actions', () => {
 `);
   });
 
+  it('should not warn when a custom action synchronously sends an event that resolves `enqueueActions` calling builtin action creators (#5343)', () => {
+    const warnSpy = vi.spyOn(console, 'warn');
+
+    const childMachine = createMachine({
+      types: {} as { events: { type: 'SET_VALUE' } },
+      context: { someValue: 0 },
+      initial: 'active',
+      states: {
+        active: {
+          on: {
+            SET_VALUE: {
+              actions: enqueueActions(({ enqueue }) => {
+                enqueue.assign({ someValue: 42 });
+              })
+            }
+          }
+        }
+      }
+    });
+
+    const parentMachine = setup({
+      types: {} as {
+        events: { type: 'CALL_CHILD' };
+      },
+      actions: {
+        callChild: (_, params: { child: AnyActorRef }) => {
+          params.child.send({ type: 'SET_VALUE' });
+        }
+      }
+    }).createMachine({
+      context: ({ spawn }) => ({ child: spawn(childMachine) }),
+      initial: 'active',
+      states: {
+        active: {
+          on: {
+            CALL_CHILD: {
+              actions: enqueueActions(({ enqueue, context }) => {
+                enqueue({
+                  type: 'callChild',
+                  params: { child: context.child }
+                });
+              })
+            }
+          }
+        }
+      }
+    });
+
+    const actor = createActor(parentMachine).start();
+    actor.send({ type: 'CALL_CHILD' });
+
+    expect(warnSpy).not.toHaveBeenCalled();
+  });
+
+  it('should not warn when `enqueue.sendTo(self, …)` is used inside `enqueueActions` of a synchronously triggered actor (#5343)', () => {
+    const warnSpy = vi.spyOn(console, 'warn');
+
+    const childMachine = createMachine({
+      types: {} as { events: { type: 'SET_VALUE' } | { type: 'PING' } },
+      initial: 'active',
+      states: {
+        active: {
+          on: {
+            SET_VALUE: {
+              actions: enqueueActions(({ enqueue, self }) => {
+                enqueue.sendTo(self, { type: 'PING' });
+              })
+            },
+            PING: {}
+          }
+        }
+      }
+    });
+
+    const parentMachine = setup({
+      types: {} as {
+        events: { type: 'CALL_CHILD' };
+      },
+      actions: {
+        callChild: (_, params: { child: AnyActorRef }) => {
+          params.child.send({ type: 'SET_VALUE' });
+        }
+      }
+    }).createMachine({
+      context: ({ spawn }) => ({ child: spawn(childMachine) }),
+      initial: 'active',
+      states: {
+        active: {
+          on: {
+            CALL_CHILD: {
+              actions: enqueueActions(({ enqueue, context }) => {
+                enqueue({
+                  type: 'callChild',
+                  params: { child: context.child }
+                });
+              })
+            }
+          }
+        }
+      }
+    });
+
+    const actor = createActor(parentMachine).start();
+    actor.send({ type: 'CALL_CHILD' });
+
+    expect(warnSpy).not.toHaveBeenCalled();
+  });
+
   it('inline actions should not leak into provided actions object', async () => {
     const actions = {};
 
