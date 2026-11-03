@@ -196,7 +196,10 @@ export function fromPromise<
 
       resolvedPromise.then(
         (response) => {
-          if (self.getSnapshot().status !== 'active') {
+          if (
+            controller.signal.aborted ||
+            self.getSnapshot().status !== 'active'
+          ) {
             return;
           }
           controllerMap.delete(self);
@@ -206,7 +209,10 @@ export function fromPromise<
           });
         },
         (errorData) => {
-          if (self.getSnapshot().status !== 'active') {
+          if (
+            controller.signal.aborted ||
+            self.getSnapshot().status !== 'active'
+          ) {
             return;
           }
           controllerMap.delete(self);
