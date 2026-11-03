@@ -651,8 +651,15 @@ describe('events', () => {
         'mouse.*': {
           actions: ({ event }) => {
             ((
-              _accept: 'mouse.click.up' | 'mouse.click.down' | 'mouse.move'
+              _accept:
+                | 'mouse.click.up'
+                | 'mouse.click.down'
+                | 'mouse.move'
+                | 'mouse'
             ) => {})(event.type);
+            if (event.type === 'mouse') {
+              event satisfies { type: 'mouse' };
+            }
             // @ts-expect-error
             ((_accept: 'not any') => {})(event.type);
           }
