@@ -1,5 +1,17 @@
 # xstate
 
+## 5.33.4
+
+### Patch Changes
+
+- [#5827](https://github.com/statelyai/xstate/pull/5827) [`9b3a88f`](https://github.com/statelyai/xstate/commit/9b3a88fa43f4be5433797acfba18f27c40494bd2) Thanks [@AlexRixten](https://github.com/AlexRixten)! - fix(core): fix `assertEvent` narrowing when the event type is behind a generic type parameter
+  
+  Previously, calling `assertEvent` inside a function whose event parameter was typed with a generic (e.g. `function f<TEvent extends SomeEventUnion>(event: TEvent)`) would compile, but every property access on `event` afterward would fail to type-check with a "Property does not exist" error. This is now fixed - `assertEvent` narrows generic event parameters the same way it narrows concrete ones, while still rejecting invalid event descriptors at compile time.
+  
+  `assertEvent` also keeps narrowing events whose `type` field is a union of literals (e.g. `{ type: 'a' | 'b'; value: string }`) when asserting one of those literals, for both concrete and generic event parameters.
+  
+  Partial wildcard descriptors now preserve the bare prefix event in the narrowed type, matching runtime behavior. For example, `assertEvent(event, 'FEEDBACK.*')` keeps both `FEEDBACK` and `FEEDBACK.GOOD`, so accessing a payload specific to `FEEDBACK.GOOD` requires further narrowing. This also applies to `ExtractEvent` and event types inferred for partial wildcard transitions.
+
 ## 5.33.3
 
 ### Patch Changes
