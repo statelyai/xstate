@@ -77,7 +77,7 @@ export function access(name: string): string {
     : `[${JSON.stringify(name)}]`;
 }
 
-export type ImplKind = 'fn' | 'assign' | 'inline' | 'other';
+type ImplKind = 'fn' | 'assign' | 'inline' | 'other';
 export interface ImplDef {
   kind: ImplKind;
   /** For `inline`: the creator/combinator call lowered at each call site. */
@@ -408,7 +408,7 @@ export function nonModuleReferences(node: Node): string[] {
 }
 
 /** Action creators (besides `assign`) that lower to `enq` statements. */
-export const ACTION_CREATORS = new Set([
+const ACTION_CREATORS = new Set([
   'raise',
   'sendTo',
   'sendParent',
@@ -612,7 +612,7 @@ function implConstAssign(
 }
 
 /** The `'xstate'` export an identifier is a value import of, if any. */
-export function xstateImportOf(id: Node): string | undefined {
+function xstateImportOf(id: Node): string | undefined {
   if (!Node.isIdentifier(id)) return undefined;
   for (const decl of id.getSymbol()?.getDeclarations() ?? []) {
     if (!Node.isImportSpecifier(decl) || decl.isTypeOnly()) continue;

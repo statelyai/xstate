@@ -256,7 +256,7 @@ function threadedLines(entries: Array<string | Patch>): string[] {
 }
 
 /** Builds one generated `(args, enq) => { ... }` function. */
-export class FunctionBuilder {
+class FunctionBuilder {
   hoist = new Set<string>();
   /** Named definitions inlined into this function. */
   inlinedDefs = new Set<ImplDef>();
@@ -1086,7 +1086,7 @@ function spawnArgs(br: Branch): string {
 }
 
 /** `//` and `/* *\/` comments directly before a node, as written. */
-export function leadingComments(node: Node): string[] {
+function leadingComments(node: Node): string[] {
   const text = node.getSourceFile().getFullText();
   return (ts.getLeadingCommentRanges(text, node.getPos()) ?? []).map((range) =>
     text.slice(range.pos, range.end)

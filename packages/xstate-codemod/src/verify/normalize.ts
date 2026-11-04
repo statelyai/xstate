@@ -11,7 +11,7 @@ export function normalizeId(id: string): string {
  * v5 gives an id-less machine the root id `(machine)` and prefixes every
  * implicit state id with it; v6 leaves the prefix out.
  */
-export function normalizeStateId(id: string): string {
+function normalizeStateId(id: string): string {
   if (id === '(machine)') return '';
   return id.startsWith('(machine).') ? id.slice('(machine).'.length) : id;
 }

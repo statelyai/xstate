@@ -34,9 +34,5 @@ export {
   typesToSchemas,
   lowerActions,
   reportRemovedApis,
-  reportIdPathTargets,
-  reportSuffixedLifecycleEvents,
-  reportActionShapes,
-  reportImplementations,
-  reportInspectionEvents
+  reportIdPathTargets
 };

@@ -19,6 +19,12 @@
     "packages/xstate-store": {
       "entry": ["src/index.ts"]
     },
+    "packages/xstate-codemod": {
+      // spawned by path as `node --import <alias-hook> <verify-child>`
+      "entry": ["bin/*.{js,mjs}"],
+      // the alias hook resolves `xstate` to `xstate5` at runtime
+      "ignoreDependencies": ["xstate5"]
+    },
     "packages/xstate-svelte": {
       "typescript": "test/tsconfig.json"
     }

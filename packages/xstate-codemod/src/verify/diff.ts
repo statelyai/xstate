@@ -8,7 +8,7 @@ import type {
   TraceStep
 } from './types.ts';
 
-export const FIELD_ORDER = [
+const FIELD_ORDER = [
   'status',
   'value',
   'context',
