@@ -240,10 +240,12 @@ type DistributiveOmit<T, K extends keyof any> = T extends any
 export interface MachineOptions {
   /**
    * Maximum number of microsteps one macrostep may take before an
-   * `InfiniteTransitionError` is thrown. Raise it for machines that
-   * legitimately take many eventless or raised-event steps per event.
+   * `InfiniteTransitionError` is thrown. Unbounded by default; development
+   * builds warn once per machine when a macrostep passes 1000 microsteps. Set
+   * a bound to turn a runaway cycle of eventless transitions or raised events
+   * into an error instead of a hang.
    *
-   * @default 1000
+   * @default Infinity
    */
   maxIterations?: number;
 }
