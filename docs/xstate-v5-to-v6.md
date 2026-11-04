@@ -1793,7 +1793,7 @@ In v5, the call did nothing. Calling `start()` on a running, done, or errored ac
 
 ### Microstep limit
 
-A macrostep that takes more than 1000 microsteps without reaching a stable state errors the actor with `InfiniteTransitionError`. In v5, the default limit was unbounded. A machine whose eventless transitions cycle now errors instead of hanging.
+The number of microsteps one event may take is unbounded by default, as in v5. In development builds, a macrostep that passes 1000 microsteps logs a warning once per machine. Set `createMachine({ options: { maxIterations } })` to turn a runaway cycle of eventless transitions or raised events into an `InfiniteTransitionError` instead of a hang.
 
 ### Delay names
 
@@ -1832,7 +1832,7 @@ In v5, an undeclared delay name resolved to `undefined`, and the delayed transit
 - [ ] Replace suffixed lifecycle event types (`xstate.done.actor.<id>`, `xstate.after.<delay>.<id>`, `xstate.done.state.<id>`) in `on` keys and `event.type` checks with category types and `matches`
 - [ ] Update inspection consumers to `@xstate.actor` and `@xstate.transition`
 - [ ] Review React components that pass a different machine on later renders; use `input`, `machine.provide()`, or a `key` (§18)
-- [ ] Review each item in [§30](#30-runtime-behavior-changes): promises returned from actions, parallel regions, final states, completed children, final-state output, actor ids, duplicate child ids, restarting stopped actors, the microstep limit, and delay names
+- [ ] Review each item in [§30](#30-runtime-behavior-changes): promises returned from actions, parallel regions, final states, completed children, final-state output, actor ids, duplicate child ids, restarting stopped actors, and delay names
 - [ ] Run `pnpm typecheck` and `pnpm test` to surface remaining issues
 
 ---
