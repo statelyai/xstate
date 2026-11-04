@@ -1213,8 +1213,10 @@ const [snapshot, send, actor] = useActor(machine, options);
 
 `useMachine`, `useActor` and `useActorRef` use the machine passed on the first render for the lifetime of the component, like a `useState` initializer. In v5, passing a machine with a different `config` on a later render stopped the actor and started a new one from its persisted snapshot. In v6, the later machine is ignored, and no error or warning is reported. A component that builds its machine from props, or wraps it in `useMemo` with dependencies, keeps running the first machine.
 
-- To vary one machine, pass `input`, or pass `machine.provide({ ... })`. Implementations provided this way are picked up on every render.
-- To switch to a different machine, change the component's `key`:
+- Pass values the actor needs at creation as `input`. The hooks read `input` once, when the actor is created; changing it on a later render does not update the running actor.
+- Pass implementations with `machine.provide({ ... })`. Provided implementations are picked up on every render.
+- Send an event to the actor when a prop changes after creation.
+- To restart the actor, or to switch to a different machine, change the component's `key`:
 
 ```tsx
 <Editor key={mode} machine={mode === 'draft' ? draftMachine : reviewMachine} />
