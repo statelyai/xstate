@@ -41,7 +41,7 @@ describe('cli', () => {
 export const m = createMachine({
   initial: 'a',
   states: {
-    a: { on: { 'xstate.done.state.a': { target: 'b' } } },
+    a: { on: { 'xstate.after.1000.a': { target: 'b' } } },
     b: {}
   }
 });
@@ -56,8 +56,8 @@ export const m = createMachine({
     expect(code).toBe(2);
     expect(JSON.parse(stdout).manualSites).toEqual([
       expect.objectContaining({
-        transform: 'report-suffixed-lifecycle-events',
-        api: 'xstate.done.state.a',
+        transform: 'suffixed-lifecycle-events',
+        api: 'xstate.after.1000.a',
         line: 5
       })
     ]);
