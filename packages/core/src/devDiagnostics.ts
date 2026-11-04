@@ -1,7 +1,9 @@
+import isDevelopment from '#is-development';
+
 /**
- * Development-only checks for leftover v5 configuration on hand-written
- * machine and setup configs. Only reachable behind `isDevelopment`, so
- * production builds drop this module.
+ * Checks for leftover v5 configuration on hand-written machine configs, setup
+ * configs and actor options. Keys that v6 would silently ignore throw in every
+ * build; harmless leftovers only warn in development.
  */
 
 const INLINE_TRANSITION =
@@ -28,15 +30,21 @@ const UNSUPPORTED_SETUP_KEYS: Record<string, string> = {
 
 const IGNORED_ROOT_KEYS: Record<string, string> = {
   services:
-    'was renamed; provide actor logic under "actors" (or `setup({ actors })`).',
-  activities: 'was removed; invoke an actor with "invoke" instead.',
+    '"services" was renamed. Provide actor logic under "actors" (or `setup({ actors })`).',
+  devTools:
+    '"devTools" was removed. Pass the "inspect" option to `createActor(...)` instead.'
+};
+
+const ACTIVITIES =
+  'uses "activities", which was removed. Invoke an actor with "invoke" instead.';
+
+// Leftovers that change nothing in v6; reported in development only.
+const HARMLESS_ROOT_KEYS: Record<string, string> = {
   predictableActionArguments:
     'was removed with no replacement; v6 always runs effects in order.',
   preserveActionOrder:
     'was removed with no replacement; v6 always runs effects in order.',
-  strict: 'was removed with no replacement.',
-  devTools:
-    'was removed; pass the "inspect" option to `createActor(...)` instead.'
+  strict: 'was removed with no replacement.'
 };
 
 const TRANSITION_KEYS = ['onDone', 'onError', 'onTimeout', 'always'] as const;
@@ -106,9 +114,7 @@ function checkInitialTransition(initial: any, stateId: string): void {
 function checkStateNode(node: any, stateId: string): void {
   checkInitialTransition(node.initial, stateId);
   if (node.activities !== undefined) {
-    console.warn(
-      `${capitalize(describeState(stateId))}: "activities" ${IGNORED_ROOT_KEYS.activities}`
-    );
+    throw new Error(`${capitalize(describeState(stateId))} ${ACTIVITIES}`);
   }
   for (const key of ['entry', 'exit'] as const) {
     const action = node[key];
@@ -171,8 +177,15 @@ export function diagnoseAuthorConfig(config: any): void {
     }
   }
   for (const key of Object.keys(IGNORED_ROOT_KEYS)) {
-    if (key !== 'activities' && config[key] !== undefined) {
-      console.warn(`Machine config "${key}" ${IGNORED_ROOT_KEYS[key]}`);
+    if (config[key] !== undefined) {
+      throw new Error(IGNORED_ROOT_KEYS[key]);
+    }
+  }
+  if (isDevelopment) {
+    for (const key of Object.keys(HARMLESS_ROOT_KEYS)) {
+      if (config[key] !== undefined) {
+        console.warn(`Machine config "${key}" ${HARMLESS_ROOT_KEYS[key]}`);
+      }
     }
   }
   checkStateNode(config, config.id ?? '');
@@ -188,5 +201,54 @@ export function diagnoseSetupConfig(config: any): void {
     if (config[key] !== undefined) {
       throw new Error(UNSUPPORTED_SETUP_KEYS[key]);
     }
+  }
+}
+
+const REMOVED_ACTOR_OPTIONS: Record<string, string> = {
+  parent:
+    'The "parent" actor option was removed. Create child actors through invoke, spawn, or enq.spawn instead.',
+  systemId:
+    'The "systemId" actor option was renamed. Use "registryKey": createActor(logic, { registryKey }), and look the actor up with system.get(registryKey).',
+  state:
+    'The "state" actor option was removed. Pass the persisted snapshot as "snapshot" instead: createActor(logic, { snapshot }).',
+  devTools:
+    'The "devTools" actor option was removed. Pass the "inspect" option instead: createActor(logic, { inspect }).',
+  deferEvents:
+    'The "deferEvents" actor option was removed. Events sent before start() are always queued until the actor starts.',
+  execute:
+    'The "execute" actor option was removed. Effects always run when the actor processes an event; use transition() for pure, effect-free steps.'
+};
+
+const ACTOR_OPTIONS = new Set([
+  'clock',
+  'logger',
+  'syncSnapshot',
+  'id',
+  'registryKey',
+  'input',
+  'snapshot',
+  'src',
+  'inspect',
+  'onRejectedEvent',
+  'onUnhandledEvent',
+  '_systemRef',
+  '_sessionId',
+  '_inert'
+]);
+
+/**
+ * Throws when `createActor(...)` options contain a key that v6 does not read,
+ * so a misspelled or v5-era option fails instead of being ignored.
+ */
+export function diagnoseActorOptions(options: any): void {
+  if (!options || typeof options !== 'object') return;
+  for (const key of Object.keys(options)) {
+    if (ACTOR_OPTIONS.has(key)) continue;
+    throw new Error(
+      REMOVED_ACTOR_OPTIONS[key] ??
+        `Unknown actor option "${key}". Supported options: ${[...ACTOR_OPTIONS]
+          .filter((name) => !name.startsWith('_'))
+          .join(', ')}.`
+    );
   }
 }

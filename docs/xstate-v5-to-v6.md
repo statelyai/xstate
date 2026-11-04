@@ -1135,7 +1135,7 @@ See [compact finite state machines](fsm.md) for its exact supported surface.
   The `report-id-path-targets` codemod transform lists `#a.b` targets and `matches('#a.b')` arguments it cannot confirm are whole state ids of the enclosing machine config.
 - State keys cannot contain an unescaped `.`. v5 accepted a key like `'foo.bar'` and targeted it as `'foo\\.bar'`; in v6, write the key itself escaped (`'foo\\.bar': {}`). The state value, implicit id (`foo\\.bar`) and persisted snapshots use that escaped key.
 - Implicit invoke ids are `<stateId>:<index>`, such as `checkout:0` or `shop.checkout:1` (v5: `0.(machine).checkout`). An invoke on the root is `:0`, or `shop:0` with a machine id. These ids key `snapshot.children`, completion events (`event.actorId`) and persisted children.
-- The `systemId` option is now `registryKey`, in `createActor(logic, { registryKey })`, `invoke: { registryKey }`, and `enq.spawn(logic, { registryKey })`. `actorRef.systemId` is now `actorRef.registryKey`. `system.get(registryKey)` looks the actor up (see §24). `systemId` is not accepted as an option.
+- The `systemId` option is now `registryKey`, in `createActor(logic, { registryKey })`, `invoke: { registryKey }`, and `enq.spawn(logic, { registryKey })`. `actorRef.systemId` is now `actorRef.registryKey`. `system.get(registryKey)` looks the actor up (see §24). Passing `systemId` throws.
 - The `spawn` function passed to a `context` factory accepts actor logic only. Replace `spawn('worker')` with `spawn(actors.worker)`, using the `actors` argument of the same factory.
 - The `createMachine` types do not accept transition arrays in `on` or `always`. Select among targets in one transition function (see §15). JSON configs passed to `machineFromJSON(...)` still accept transition arrays.
 - Actor `sessionId`s are unique across actor systems and have the form `<executionId>:<n>`, where `executionId` is random. v5 used `x:<n>`. Code that parsed or compared `sessionId`s across systems must not rely on the format.
@@ -1616,7 +1616,7 @@ Migrate one file at a time: run the codemod on it, finish the manual changes, th
 
 ## 28. Leftover v5 keys
 
-In development builds, `createMachine(...)` and `setup(...).createMachine(...)` check hand-written configs for v5 keys that v6 would otherwise ignore or misread. Machines built with `machineFromJSON(...)` or `createMachineFromSCXML(...)` are not checked. Production builds skip the check, except for `cond`, `actions` and a `guard` that is not a function on a transition object. Without the check, a production build would misread those (a transition with `cond` would always be taken), so they throw in every build, with a shorter message.
+`createMachine(...)` and `setup(...).createMachine(...)` check hand-written configs for v5 keys that v6 would otherwise ignore or misread, and `createActor(...)` checks its options. The checks run in every build. Machines built with `machineFromJSON(...)` or `createMachineFromSCXML(...)` are not checked.
 
 These keys throw an error:
 
@@ -1629,17 +1629,29 @@ These keys throw an error:
 | `types` | machine config | `schemas` (or `setup({ schemas })`) |
 | `tsTypes` | machine config | `schemas` (typegen was removed) |
 | `schema` | machine config | `schemas` |
+| `services` | machine config | `actors` (or `setup({ actors })`) |
+| `activities` | machine config or state node | `invoke` |
+| `devTools` | machine config | the `inspect` option on `createActor(...)` |
+| second argument | `createMachine(config, implementations)` | `setup({ actions, guards, actors, delays })` or `machine.provide({ ... })` |
+| `systemId` | `createActor` options | `registryKey` |
+| `state` | `createActor` options | `snapshot` |
+| `devTools` | `createActor` options | `inspect` |
+| `parent` | `createActor` options | `invoke`, `spawn` or `enq.spawn` |
+| `deferEvents`, `execute` | `createActor` options | removed |
 
-These keys log a warning:
+`createActor(...)` also throws on any option it does not read, and the message lists the supported options:
+
+```
+Unknown actor option "inptu". Supported options: clock, logger, syncSnapshot, id, registryKey, input, snapshot, src, inspect, onRejectedEvent, onUnhandledEvent.
+```
+
+These keys change nothing in v6. Development builds log a warning:
 
 | v5 key | v6 replacement |
 | --- | --- |
-| `services` | `actors` (or `setup({ actors })`) |
-| `activities` | `invoke` |
 | `predictableActionArguments` | removed; effects always run in order |
 | `preserveActionOrder` | removed; effects always run in order |
 | `strict` | removed |
-| `devTools` | the `inspect` option on `createActor(...)` |
 
 ## 29. Names changed during the v6 prereleases
 
@@ -1687,7 +1699,7 @@ The old persisted shapes are not read on restore. Convert or discard alpha snaps
 - [ ] Replace `fromPromise(...)` with `createAsyncLogic({ run: ... })`
 - [ ] Replace `types: {} as { ... }` with `schemas: { ... }` (Zod / Standard Schema)
 - [ ] If you used `events` as a **union**, restructure to a **map keyed by type**
-- [ ] Move implementations passed as the second argument of `createMachine(config, implementations)` (deprecated in v5) into `setup({ ... })`, the `createMachine({ ... })` config, or `machine.provide({ ... })` (§4). v6's `createMachine` takes one argument and ignores a second one at runtime
+- [ ] Move implementations passed as the second argument of `createMachine(config, implementations)` (deprecated in v5) into `setup({ ... })`, the `createMachine({ ... })` config, or `machine.provide({ ... })` (§4). v6's `createMachine` takes one argument and throws when it receives a second one
 - [ ] Audit `invoke.src` references - `src` may be a logic object, a registered name, or a resolver function
 - [ ] Drop dependencies on `@xstate/immer` and `@xstate/inspect`; update inspection to `actor.subscribe`, the `inspect` option, or `@statelyai/inspect`
 - [ ] Remove imports of `GuardArgs`, `GuardPredicate`, `Inspected*Event`, `PromiseActorLogic`, and `fromPromise` (use `createAsyncLogic`), and update the type arguments of any `SetupReturn<...>` annotation (§16)
