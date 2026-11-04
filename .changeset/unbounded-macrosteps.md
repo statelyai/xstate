@@ -6,7 +6,7 @@ Macrosteps are unbounded by default, as in v5. `options.maxIterations` no longer
 
 ```ts
 const machine = createMachine({
-  options: { maxIterations: 5000 }
+  options: { maxIterations: 5000 },
   // ...
 });
 ```
