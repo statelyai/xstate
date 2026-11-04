@@ -9,7 +9,7 @@ import type {
 } from './types.ts';
 
 /** Generation note for a graph traversal that never closed. */
-export const TRAVERSAL_LIMIT_NOTE =
+const TRAVERSAL_LIMIT_NOTE =
   'graph traversal hit its limit (context that changes on every step prevents the graph from closing); random walks still cover these paths';
 
 export function mulberry32(seed: number): () => number {

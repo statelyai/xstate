@@ -18,13 +18,13 @@ const require = createRequire(import.meta.url);
 // Resolved from this module, not cwd: the same lookup works from src and dist.
 const packageRoot = dirname(require.resolve('@xstate/codemod/package.json'));
 
-export const DEFAULT_OPTIONS: GenerateOptions = {
+const DEFAULT_OPTIONS: GenerateOptions = {
   seed: 1,
   walks: 25,
   steps: 12,
   maxSequences: 200
 };
-export const DEFAULT_TIMEOUT = 60_000;
+const DEFAULT_TIMEOUT = 60_000;
 
 export class VerifyError extends Error {
   phase: 'baseline' | 'replay';
@@ -47,7 +47,7 @@ export class VerifyError extends Error {
   }
 }
 
-export async function runChild(
+async function runChild(
   major: 5 | 6,
   job: ChildJob,
   timeout = DEFAULT_TIMEOUT

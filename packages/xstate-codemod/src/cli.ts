@@ -3,7 +3,7 @@ import { Project } from 'ts-morph';
 import { run, selectTransforms } from './runner.ts';
 import { transforms as allTransforms } from './transforms/index.ts';
 
-export interface ParsedArgs {
+interface ParsedArgs {
   command: string | undefined;
   globs: string[];
   dry: boolean;

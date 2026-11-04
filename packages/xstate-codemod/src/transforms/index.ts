@@ -29,8 +29,5 @@ export {
   stringTargets,
   typesToSchemas,
   reportRemovedApis,
-  reportIdPathTargets,
-  reportSuffixedLifecycleEvents,
-  reportActionShapes,
-  reportImplementations
+  reportIdPathTargets
 };

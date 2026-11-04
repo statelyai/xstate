@@ -1,7 +1,7 @@
 import { mulberry32 } from './generate.ts';
 
 /** `Date.now()` at simulated time 0. */
-export const EPOCH = 1_700_000_000_000;
+const EPOCH = 1_700_000_000_000;
 
 /**
  * Runs `fn` with `Date.now`, `performance.now`, and `Math.random` driven by
