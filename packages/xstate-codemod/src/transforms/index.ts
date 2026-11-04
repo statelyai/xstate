@@ -8,6 +8,7 @@ import { reportIdPathTargets } from './report-id-path-targets.ts';
 import { reportSuffixedLifecycleEvents } from './report-suffixed-lifecycle-events.ts';
 import { reportActionShapes } from './report-action-shapes.ts';
 import { reportImplementations } from './report-implementations.ts';
+import { reportInspectionEvents } from './report-inspection-events.ts';
 
 /** All transforms, in recommended application order. */
 export const transforms: Transform[] = [
@@ -19,7 +20,8 @@ export const transforms: Transform[] = [
   reportIdPathTargets,
   reportSuffixedLifecycleEvents,
   reportActionShapes,
-  reportImplementations
+  reportImplementations,
+  reportInspectionEvents
 ];
 
 export const transformsByName: Record<string, Transform> = Object.fromEntries(
@@ -35,5 +37,6 @@ export {
   reportIdPathTargets,
   reportSuffixedLifecycleEvents,
   reportActionShapes,
-  reportImplementations
+  reportImplementations,
+  reportInspectionEvents
 };

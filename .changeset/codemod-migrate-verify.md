@@ -34,3 +34,5 @@ npx @xstate/codemod migrate src/checkout.ts --json
 # fix the reported manualSites
 npx @xstate/codemod verify --baseline .xstate-migrate/checkout.json src/checkout.ts
 ```
+
+`migrate` reports string literals that name v5 inspection event types (`@xstate.snapshot`, `@xstate.event`, `@xstate.action`, `@xstate.microstep`, `@xstate.deadletter`), which v6 never emits.
