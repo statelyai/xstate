@@ -41,7 +41,9 @@ event received
   → subscribers are notified
 ```
 
-One event may take at most `maxIterations` microsteps (default `1000`). A machine that exceeds the bound, usually through a cycle of `always` transitions or raised events, throws an `InfiniteTransitionError` whose message names the actor, the event and the last five states visited. Raise the bound for machines that legitimately take more steps:
+The number of microsteps one event may take is unbounded by default. In development builds, a macrostep that passes 1000 microsteps logs a warning once per machine, naming the actor, the event and the last five states visited. A cycle of `always` transitions or raised events never reaches a stable state, so it runs until the process stops it.
+
+Set `maxIterations` to bound the macrostep. A macrostep that exceeds the bound throws an `InfiniteTransitionError` with the same details, and the actor's status becomes `'error'`:
 
 ```ts
 const machine = createMachine({
