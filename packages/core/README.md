@@ -122,6 +122,12 @@ and `advanceSystemTime` return an immutable system snapshot and external effects
 as data. Branch or replay actors, messages and virtual timers without starting live
 actors. See [pure system transitions](https://github.com/statelyai/xstate/blob/next/docs/system-transitions.md).
 
+<!-- snapshot restoration from packages/core/src/persist/index.ts -->
+
+The `xstate/persist` entry point provides `restoreActor(logic, persistedSnapshot, options?)`
+to resume any actor from a persisted snapshot, and `snapshotSchema(machine)` for the
+persisted snapshot contract. See [persistence](https://github.com/statelyai/xstate/blob/next/docs/persistence.md).
+
 <!-- durable execution and checkpoint restoration from packages/core/src/durable/index.ts -->
 
 For durable hosts, the experimental `xstate/durable` entry point provides

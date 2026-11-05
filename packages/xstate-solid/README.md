@@ -143,18 +143,17 @@ const Loader = () => {
 
 ## Persisted and Rehydrated State
 
-You can persist and rehydrate state with `useActor(...)` via `options.snapshot`:
+Restore an actor with `restoreActor(...)` from `xstate/persist` and pass it to `useActor(...)`:
 
 ```js
-// ...
+import { restoreActor } from 'xstate/persist';
 
-// Get the persisted state config object from somewhere, e.g. localStorage
-const persistedSnapshot = JSON.parse(localStorage.getItem('some-persisted-state-key')) || someMachine.initialState;
+// Get the persisted snapshot from somewhere, e.g. localStorage
+const persistedSnapshot = JSON.parse(localStorage.getItem('some-persisted-state-key'));
 
 const App = () => {
-  const [snapshot, send] = useActor(someMachine, {
-    snapshot: persistedSnapshot
-  });
+  const actor = restoreActor(someMachine, persistedSnapshot);
+  const [snapshot, send] = useActor(actor);
 
   // snapshot will rehydrate the provided persisted snapshot, it won't be the machine's initial snapshot
 

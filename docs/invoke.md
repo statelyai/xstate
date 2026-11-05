@@ -268,7 +268,7 @@ const paymentMachine = createMachine({
 
 ## Persistence
 
-Invoked children are persisted with the parent snapshot and restored by `createActor(machine, { snapshot })`. A child restored this way keeps its context but gets a new session.
+Invoked children are persisted with the parent snapshot and restored by `restoreActor(machine, persisted)` from `xstate/persist`. A child restored this way keeps its context but gets a new session.
 
 Register logic in `actors` and reference it by name when the persisted snapshot should stay readable and stable across refactors:
 
