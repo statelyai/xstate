@@ -1,6 +1,7 @@
 import { getTimerStart } from './timerClock.ts';
 import { getScheduledTimerKey, getTimerKey } from './timerKey.ts';
 import isDevelopment from '#is-development';
+import { xstateError } from './xstateError.ts';
 import { getStateValue, isStateId } from './stateUtils.ts';
 import type {
   AnyMachineSnapshot,
@@ -830,7 +831,11 @@ export function getPersistedSnapshot<
       !invoked &&
       (!options || !('__unsafeAllowInlineActors' in (options as object)))
     ) {
-      throw new Error('An inline child actor cannot be persisted.');
+      throw new Error(
+        isDevelopment
+          ? 'An inline child actor cannot be persisted.'
+          : xstateError(41, id)
+      );
     }
     // Children are referenced by their logical address. Embedding the child
     // state is the co-locating runtime's whole-tree checkpoint capability;
@@ -840,7 +845,9 @@ export function getPersistedSnapshot<
       // Fail where it is actionable: a by-address reference without a
       // registered source key could be persisted but never restored.
       throw new Error(
-        `Unable to persist child '${id}' by address: it requires a registered source key.`
+        isDevelopment
+          ? `Unable to persist child '${id}' by address: it requires a registered source key.`
+          : xstateError(42, id)
       );
     }
     childrenJson[id as keyof typeof childrenJson] = {
@@ -897,7 +904,9 @@ export function getPersistedSnapshot<
         target = { type: 'parent' };
       } else {
         throw new Error(
-          `Unable to persist timer ${timer.id !== undefined ? `'${timer.id}'` : `for event '${timer.event.type}'`}: target actor '${timer.target.id}' is no longer addressable from this snapshot.`
+          isDevelopment
+            ? `Unable to persist timer ${timer.id !== undefined ? `'${timer.id}'` : `for event '${timer.event.type}'`}: target actor '${timer.target.id}' is no longer addressable from this snapshot.`
+            : xstateError(43, timer.target.id)
         );
       }
     }
@@ -991,7 +1000,9 @@ function persistContext(
           : `${path}.${key}`;
         if (ancestors.includes(value)) {
           throw new Error(
-            `Cannot persist actor "${getActorId()}": circular reference at ${valuePath}`
+            isDevelopment
+              ? `Cannot persist actor "${getActorId()}": circular reference at ${valuePath}`
+              : xstateError(44, getActorId(), valuePath)
           );
         }
         const result = persistContext(

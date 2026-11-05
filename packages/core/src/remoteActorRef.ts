@@ -1,3 +1,5 @@
+import isDevelopment from '#is-development';
+import { xstateError } from './xstateError.ts';
 import type { AnyActorSystem } from './system.ts';
 import type {
   AnyActor,
@@ -52,9 +54,16 @@ export function getAddressId(address: string): string {
 /** @internal The error reported when no live actor has a serialized address. */
 export function createMissingAddressError(target: SerializedActorRef): Error {
   return new Error(
-    target.incarnation === undefined
-      ? `Unable to send event to actor '${target.$actor}': no live actor has that address`
-      : `Unable to send event to actor '${target.$actor}' (incarnation '${target.incarnation}'): no live actor has that address and incarnation`
+    !isDevelopment
+      ? xstateError(
+          50,
+          ...(target.incarnation === undefined
+            ? [target.$actor]
+            : [target.$actor, target.incarnation])
+        )
+      : target.incarnation === undefined
+        ? `Unable to send event to actor '${target.$actor}': no live actor has that address`
+        : `Unable to send event to actor '${target.$actor}' (incarnation '${target.incarnation}'): no live actor has that address and incarnation`
   );
 }
 
@@ -122,7 +131,9 @@ export function createInertActorRef(options: {
     toJSON(): SerializedActorRef {
       if (address === undefined) {
         throw new Error(
-          `Cannot serialize actor ref '${id}': it was returned by a spawn during speculative transition evaluation, which creates no actor and has no parent address.`
+          isDevelopment
+            ? `Cannot serialize actor ref '${id}': it was returned by a spawn during speculative transition evaluation, which creates no actor and has no parent address.`
+            : xstateError(51, id)
         );
       }
       return { $actor: address };
@@ -187,7 +198,9 @@ export function createRemoteActorRef(
     },
     _send(event: AnyEventObject) {
       throw new Error(
-        `Remote actor '${options.address}' has no local mailbox to receive "${event.type}". Its state lives with another runtime; install a runtime that can reach it (via \`createDurable\`'s adapter runtime operations, or \`system.runtime\`) before sending, ${restoreHint}`
+        isDevelopment
+          ? `Remote actor '${options.address}' has no local mailbox to receive "${event.type}". Its state lives with another runtime; install a runtime that can reach it (via \`createDurable\`'s adapter runtime operations, or \`system.runtime\`) before sending, ${restoreHint}`
+          : xstateError(52, options.address, event.type)
       );
     },
     getSnapshot(): Snapshot<undefined> {
@@ -195,24 +208,32 @@ export function createRemoteActorRef(
     },
     getPersistedSnapshot(): never {
       throw new Error(
-        `Cannot persist remote actor '${options.address}' from here: its state lives with the runtime that owns it. Persist it there, ${restoreHint}`
+        isDevelopment
+          ? `Cannot persist remote actor '${options.address}' from here: its state lives with the runtime that owns it. Persist it there, ${restoreHint}`
+          : xstateError(53, options.address)
       );
     },
     start() {},
     _stop() {},
     stop() {
       throw new Error(
-        `Cannot stop remote actor '${options.address}' directly: stopping is a co-located operation. Stop it through the system runtime that owns it (\`system.stopActor(ref)\`), ${restoreHint}`
+        isDevelopment
+          ? `Cannot stop remote actor '${options.address}' directly: stopping is a co-located operation. Stop it through the system runtime that owns it (\`system.stopActor(ref)\`), ${restoreHint}`
+          : xstateError(54, options.address)
       );
     },
     select() {
       throw new Error(
-        `Cannot select from remote actor '${options.address}': its snapshot is not synchronously readable because its state lives with another runtime. Read it on the runtime that owns it, ${restoreHint}`
+        isDevelopment
+          ? `Cannot select from remote actor '${options.address}': its snapshot is not synchronously readable because its state lives with another runtime. Read it on the runtime that owns it, ${restoreHint}`
+          : xstateError(55, options.address)
       );
     },
     get trigger(): never {
       throw new Error(
-        `Remote actor '${options.address}' has no \`trigger\` shorthand: it requires a co-located actor. Use \`send(...)\`, which routes through the system runtime.`
+        isDevelopment
+          ? `Remote actor '${options.address}' has no \`trigger\` shorthand: it requires a co-located actor. Use \`send(...)\`, which routes through the system runtime.`
+          : xstateError(56, options.address)
       );
     },
     // Observation is a co-location capability: a remote handle never emits,
