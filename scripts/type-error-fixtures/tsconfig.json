@@ -4,7 +4,9 @@
     "noEmit": true,
     "skipLibCheck": true,
     "module": "esnext",
-    "target": "es2020",
+    "target": "es2022",
+    "lib": ["esnext", "dom"],
+    "types": [],
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "noErrorTruncation": false,
@@ -13,5 +15,5 @@
       "zod": ["../../packages/core/node_modules/zod/index.d.ts"]
     }
   },
-  "include": ["./*.ts", "../../packages/core/src/**/*"]
+  "include": ["./*.ts"]
 }

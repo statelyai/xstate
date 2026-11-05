@@ -66,26 +66,13 @@ One check reads the built output on purpose: `pnpm typecheck:adapter-consumers` 
 
 ### Bundle measurements
 
-CI does not check bundle size. `pnpm bench:size` measures representative
-XState, store, and adapter entry points locally and reports esbuild and Terser
-sizes, minified and gzipped. By default it also fails when a profile exceeds
-`scripts/bundle-size.thresholds.json`; those thresholds are not maintained, so
-use `--report` to print sizes without failing.
-
-```bash
-pnpm bench:size --report --profile=minimal-machine # One profile
-pnpm bench:size --report --why                    # Attribute bytes to modules
-pnpm bench:size --report --baseline=<rev>         # Measure another revision's source
-```
-
-`--baseline` measures only that revision; run it and a plain `--report` to
-compare. `pnpm bench:size:update` rewrites the thresholds; it refuses to raise
-one above its entry in `scripts/bundle-size.targets.json` unless you pass
-`--force`.
+`pnpm bench:size` bundles representative XState, store, and adapter entry points from source and prints their minified and min+gzip sizes in bytes, for both esbuild and Terser. Pass `--profile=<name>` to measure one profile, `--why` to attribute bytes to modules, or `--json` for machine-readable output. The script only measures; it has no thresholds and CI does not run it.
 
 ### Publishing
 
 We are using [changesets](https://github.com/atlassian/changesets) to create "release intents" for our packages. The Publish workflow handles release intents on `main` and `next`; changes for the v6 alpha belong on `next`.
+
+Before entering beta, run the built and packed consumer checks with both TypeScript compilers, including `exactOptionalPropertyTypes: true` and `skipLibCheck: false`. After publishing from `next` with the Changesets prerelease tag set to `beta`, the Publish workflow runs `pnpm check:release-tags --tag beta`. This read-only check requires the beta tag of every coordinated v6 package to resolve to its workspace version; it retries briefly for registry propagation and fails if a tag is missing or stale. Resolve any publication or tag mismatch before announcing the release. The check does not publish packages or change tags.
 
 ### Persistence conformance
 
@@ -97,12 +84,16 @@ We are using [changesets](https://github.com/atlassian/changesets) to create "re
 
 `pnpm check:examples` typechecks and builds all 49 TypeScript examples, runs every discovered example regression test, and verifies donut persistence through a CLI restart. Run `pnpm build` first so standalone example compilers consume generated package declarations. Node-based writer and occupancy tests run separately through `pnpm test:tooling`; the remaining example tests use Vitest. New example test files are discovered automatically.
 
+`pnpm test:tooling` generates the bundled core documentation and API stability manifest before running the tooling tests, including the agent CLI checks. It can run after `pnpm install` without a separate package build.
+
 `node scripts/typecheck-examples.js` checks every example with a `tsconfig.json`, including referenced projects behind solution configs; pass project names or paths to select examples. Any compiler failure exits nonzero. `examples/readme.md` has no project configuration and is skipped. Every current TypeScript example has a build script and participates in the CI gate.
 
 `pnpm check:templates` installs and builds all four standalone starter templates with their own frozen lockfiles.
 
-`pnpm check:exports` requires every public `xstate` export to carry exactly one
-`@public`, `@experimental`, or `@internal` stability tag. `@deprecated` must be
+`pnpm check:exports` requires every public export of `xstate`, `@xstate/scxml`,
+`@xstate/test`, `@xstate/effect`, `@xstate/react`, `@xstate/vue`,
+`@xstate/svelte` and `@xstate/solid` to carry exactly one `@public`,
+`@experimental`, or `@internal` stability tag. `@deprecated` must be
 paired with `@public` or `@experimental`.
 
 After `pnpm build`, `pnpm check:packed` packs `xstate` and `@xstate/react`, then

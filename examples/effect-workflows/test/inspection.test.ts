@@ -10,7 +10,9 @@ const recorded = vi.hoisted(() => ({
   snapshots: [] as InspectedSnapshot[],
   messages: [] as unknown[],
   destroy: vi.fn(),
-  failConnection: false
+  failConnection: false,
+  waitForConnection: false,
+  connect: () => {}
 }));
 
 // Exercise the real SDK's actor discovery and serialization without a browser or relay.
@@ -40,12 +42,17 @@ vi.mock('@statelyai/sdk', async (importOriginal) => {
         recorded.destroy();
         destroy();
       };
+      const ready = recorded.waitForConnection
+        ? new Promise<void>((resolve) => {
+            recorded.connect = resolve;
+          })
+        : inspector.ready;
       return recorded.failConnection
         ? {
             ...inspector,
             ready: Promise.reject(new Error('Relay unavailable'))
           }
-        : inspector;
+        : { ...inspector, ready };
     })
   };
 });
@@ -57,6 +64,8 @@ beforeEach(() => {
   recorded.destroy.mockClear();
   vi.mocked(createInspector).mockClear();
   recorded.failConnection = false;
+  recorded.waitForConnection = false;
+  recorded.connect = () => {};
 });
 
 afterEach(() => vi.unstubAllEnvs());
@@ -104,4 +113,51 @@ it('destroys the inspector if connection fails', async () => {
     'Relay unavailable'
   );
   expect(recorded.destroy).toHaveBeenCalledOnce();
+});
+
+describe('custom action inspection', () => {
+  beforeEach(() => vi.resetModules());
+
+  it('runs offline by default', async () => {
+    vi.stubEnv('INSPECT', '');
+    const { result } = await import('../src/custom-actions.ts');
+    expect(result).toEqual(['saved']);
+    expect(createInspector).not.toHaveBeenCalled();
+    expect(recorded.messages).toEqual([]);
+    expect(recorded.destroy).not.toHaveBeenCalled();
+  });
+
+  it('waits for the inspector, records SAVE, then destroys it', async () => {
+    vi.stubEnv('INSPECT', '1');
+    recorded.waitForConnection = true;
+    const example = import('../src/custom-actions.ts');
+    await vi.waitFor(() => expect(recorded.actors).toHaveLength(1));
+    expect(recorded.snapshots).toEqual([]);
+    recorded.connect();
+    expect((await example).result).toEqual(['saved']);
+    expect(recorded.snapshots).toHaveLength(1);
+    expect(recorded.messages).toContainEqual(
+      expect.objectContaining({
+        type: '@statelyai.system.actorEvent',
+        event: { type: 'SAVE' }
+      })
+    );
+    expect(recorded.messages).toContainEqual(
+      expect.objectContaining({
+        type: '@statelyai.system.actorSnapshot',
+        snapshot: { value: {}, status: 'active' }
+      })
+    );
+    expect(recorded.destroy).toHaveBeenCalledOnce();
+  });
+
+  it('destroys the inspector if connection fails before SAVE', async () => {
+    vi.stubEnv('INSPECT', '1');
+    recorded.failConnection = true;
+    await expect(import('../src/custom-actions.ts')).rejects.toThrow(
+      'Relay unavailable'
+    );
+    expect(recorded.snapshots).toEqual([]);
+    expect(recorded.destroy).toHaveBeenCalledOnce();
+  });
 });

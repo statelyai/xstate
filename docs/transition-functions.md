@@ -67,7 +67,9 @@ Three checks answer different questions:
 
 In the example, source analysis can identify `editing → charging` and `editing → paid` without proving which event values will occur. A conservative graph may include edges that are never taken; it must not silently omit possible edges if it claims complete coverage.
 
-The runtime `toDirectedGraph(...)` API does not currently inspect transition function bodies, so it omits their edges. Literal targets inside a function are available only to source-analysis tooling that explicitly supports that syntax. Treat runtime graph output as incomplete when a machine uses transition functions.
+The runtime `toDirectedGraph(...)` API does not inspect transition function bodies, so it omits their edges. Its `analysis.transitionTargetsComplete` field is `false` when a transition function appears in the inspected subtree. `analysis.diagnostics` identifies each opaque transition by state ID, event descriptor and transition ID, without executing it. The analysis is also included in JSON graph exports. Static eventless transitions are included in the graph.
+
+Literal targets inside a function are available only to source-analysis tooling that explicitly supports that syntax. A `true` completeness flag means the represented event and eventless transition destinations are statically known; it does not prove guard reachability or describe invoked actors' own graphs.
 
 ## Proposed strict graph extraction
 

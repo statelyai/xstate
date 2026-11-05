@@ -2,6 +2,7 @@ import { EMPTY, interval, of, throwError } from 'rxjs';
 import { take } from 'rxjs/operators';
 import {
   AnyActorRef,
+  AnyEventObject,
   createMachine,
   createActor,
   AnyActorLogic,
@@ -349,6 +350,60 @@ describe('promise logic (createAsyncLogic)', () => {
     actor.start();
     const snapshot = await waitFor(actor, (s) => s.output === 42);
     expect(snapshot.output).toBe(42);
+  });
+  it('should report `null` as the output when resolving `null`', async () => {
+    const actor = createActor(
+      createAsyncLogic({ run: async () => null })
+    ).start();
+    const snapshot = await waitFor(actor, (s) => s.status === 'done');
+    expect(snapshot.output).toBe(null);
+  });
+  it('should send `output: null` to the parent when resolving `null`', async () => {
+    const { resolve, promise } = Promise.withResolvers<AnyEventObject>();
+    const machine = createMachine({
+      invoke: {
+        src: createAsyncLogic({ run: async () => null }),
+        onDone: ({ event }) => {
+          resolve(event);
+        }
+      }
+    });
+    createActor(machine).start();
+    const event = await promise;
+    expect('output' in event).toBe(true);
+    expect(event.output).toBe(null);
+  });
+  it('should report `null` as the error when rejecting with `null`', async () => {
+    const actor = createActor(
+      createAsyncLogic({ run: () => Promise.reject(null) })
+    );
+    const { resolve, promise } = Promise.withResolvers<unknown>();
+    actor.subscribe({ error: resolve });
+    actor.start();
+    expect(await promise).toBe(null);
+    expect(actor.getSnapshot().error).toBe(null);
+  });
+  it('should send `error: null` to the parent when rejecting with `null`', async () => {
+    const { resolve, promise } = Promise.withResolvers<AnyEventObject>();
+    const machine = createMachine({
+      initial: 'running',
+      states: {
+        running: {
+          invoke: {
+            src: createAsyncLogic({ run: () => Promise.reject(null) }),
+            onError: ({ event }) => {
+              resolve(event);
+              return { target: 'failed' };
+            }
+          }
+        },
+        failed: {}
+      }
+    });
+    createActor(machine).start();
+    const event = await promise;
+    expect('error' in event).toBe(true);
+    expect(event.error).toBe(null);
   });
   it('should not execute when reading initial state', async () => {
     let called = false;

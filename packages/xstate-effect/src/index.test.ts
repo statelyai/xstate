@@ -575,6 +575,7 @@ describe('@xstate/effect', () => {
     const recorded: number[] = [];
 
     const effectSetup = setupEffect({
+      schemas: { context: Schema.Struct({ count: Schema.Number }) },
       actions: {
         audit: ({ context }) =>
           Audit.use((audit) => Effect.sync(() => audit.record(context.count)))
@@ -609,6 +610,39 @@ describe('@xstate/effect', () => {
     await until(() => recorded.length === 1);
 
     expect(recorded).toEqual([1]);
+  });
+
+  it('hosts actions with schema-defined arguments in the owning actor', async () => {
+    const Audit = Context.Service<{ record: (message: string) => void }>(
+      'Audit'
+    );
+    const recorded: string[] = [];
+    const machine = setupEffect({
+      schemas: {
+        actions: {
+          audit: { params: Schema.Struct({ message: Schema.String }) }
+        }
+      },
+      actions: {
+        audit: ({ message }) =>
+          Audit.use((audit) => Effect.sync(() => audit.record(message)))
+      }
+    }).createMachine({
+      on: {
+        AUDIT: (args, enq) =>
+          enq(args.actions.audit, { self: args.self, message: 'saved' })
+      }
+    });
+    const actor = await runScoped(
+      createEffectActor(machine).pipe(
+        Effect.provideService(Audit, {
+          record: (message) => recorded.push(message)
+        })
+      )
+    );
+    actor.send({ type: 'AUDIT' });
+    await until(() => recorded.length === 1);
+    expect(recorded).toEqual(['saved']);
   });
 
   it('uses scoped Layer services while the caller-owned runtime is alive', async () => {

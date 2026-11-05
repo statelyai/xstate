@@ -8,6 +8,11 @@ Before writing code with an installed package, read `docs/index.md` beside this
 README, usually `node_modules/xstate/docs/index.md`. These bundled docs match the
 installed package version.
 
+For coding agents, start with `docs/agents.md`. Run `npx xstate docs` to locate
+the installed documentation and read its machine-readable stability manifest.
+The data-only CLI also supports `inspect`, `validate`, `simulate`, `test`,
+`replay` and `diff`; see the agent guide for their contracts and limits.
+
 Online, start with the [quick start](https://github.com/statelyai/xstate/blob/next/docs/quick-start.md)
 or the [v5 to v6 migration guide](https://github.com/statelyai/xstate/blob/next/docs/xstate-v5-to-v6.md).
 

@@ -57,15 +57,16 @@
     "test:store": "vitest run --project @xstate/store*",
     "test:store:watch": "vitest --project @xstate/store*",
     "bench:size": "node scripts/bundle-size.mjs",
-    "bench:size:update": "node scripts/bundle-size.mjs --update",
     "bench:core-runtime": "node scripts/bench-core-runtime.mjs",
     "bench:type-errors": "node scripts/type-error-quality.mjs",
     "check:exports": "node scripts/check-export-stability.mjs",
     "check:packed": "node scripts/check-packed-consumer.mjs",
+    "check:effect-oxlint": "node scripts/check-effect-oxlint-consumer.mjs",
+    "check:release-tags": "node scripts/check-release-tags.mjs",
     "changeset": "changeset",
     "release": "changeset publish",
     "version": "changeset version",
-    "test:tooling": "node --test scripts/typecheck-examples.test.cjs scripts/check-export-stability.test.mjs"
+    "test:tooling": "node scripts/build-package-docs.mjs && node --test scripts/typecheck-examples.test.cjs scripts/check-export-stability.test.mjs scripts/check-release-tags.test.mjs scripts/agent-cli.test.mjs"
   },
   "repository": {
     "type": "git",

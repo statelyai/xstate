@@ -161,8 +161,8 @@ runtime `start` hooks are never executed.
 
 Calls bound message/timer chains to 10,000 steps. Initialization and advancement
 accept `maxSteps`. Exhaustion throws without changing the input snapshot; there
-is no resumable partial result. Machine macrosteps retain their existing
-`options.maxIterations` bound.
+is no resumable partial result. Machine macrosteps use the machine's
+`options.maxIterations` bound, which is unbounded by default.
 
 For running-actor tests, `SimulatedClock.set`/`increment` likewise visit each
 deadline before reaching their destination, including new intermediate timers

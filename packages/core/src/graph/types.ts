@@ -48,17 +48,40 @@ export type DirectedGraphEdge = JSONSerializable<
 
 // Based on https://www.eclipse.org/elk/documentation/tooldevelopers/graphdatastructure/jsonformat.html
 /** @public */
+export interface DirectedGraphDiagnostic {
+  code: 'dynamic-target';
+  stateId: string;
+  eventType: string;
+  transitionId: string;
+  message: string;
+}
+
+/**
+ * Completeness of static transition destinations in this subtree. This does
+ * not establish guard reachability or include invoked actors' own graphs.
+ *
+ * @public
+ */
+export interface DirectedGraphAnalysis {
+  transitionTargetsComplete: boolean;
+  diagnostics: DirectedGraphDiagnostic[];
+}
+
+/** @public */
 export type DirectedGraphNode = JSONSerializable<
   {
     id: string;
     stateNode: StateNode;
     children: DirectedGraphNode[];
-    /** The edges representing all transitions from this `stateNode`. */
+    /** Statically known event and eventless transition edges. */
     edges: DirectedGraphEdge[];
+    analysis: DirectedGraphAnalysis;
   },
   {
     id: string;
     children: DirectedGraphNode[];
+    edges: DirectedGraphEdge[];
+    analysis: DirectedGraphAnalysis;
   }
 >;
 

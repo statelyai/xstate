@@ -13,12 +13,79 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const fixturesDir = join(root, 'scripts', 'type-error-fixtures');
 const tsc = join(root, 'node_modules', '.bin', 'tsc');
 const snapshotPath = join(root, 'scripts', 'type-error-quality.out.md');
 const check = process.argv.includes('--check');
+const fixtures = readdirSync(fixturesDir).filter((f) => f.endsWith('.ts'));
+
+// A negative fixture is useful only when repairing its intended mistake makes
+// it valid. Check the corrected sources in memory so obsolete syntax or a
+// second error cannot silently become the diagnostic baseline.
+const require = createRequire(import.meta.url);
+const ts = require('typescript');
+const repairs = JSON.parse(
+  readFileSync(join(fixturesDir, 'repairs.json'), 'utf8')
+);
+const fixedSources = new Map();
+for (const fixture of fixtures) {
+  const repair = repairs[fixture];
+  if (!repair || repair.length !== 2) {
+    throw new Error(`Missing diagnostic repair for ${fixture}`);
+  }
+  const file = join(fixturesDir, fixture);
+  const source = readFileSync(file, 'utf8');
+  const [before, after] = repair;
+  if (
+    !before ||
+    source.indexOf(before) < 0 ||
+    source.indexOf(before) !== source.lastIndexOf(before)
+  ) {
+    throw new Error(`Diagnostic repair must match exactly once in ${fixture}`);
+  }
+  fixedSources.set(file, source.replace(before, after));
+}
+const config = ts.readConfigFile(
+  join(fixturesDir, 'tsconfig.json'),
+  ts.sys.readFile
+);
+if (config.error)
+  throw new Error(
+    ts.flattenDiagnosticMessageText(config.error.messageText, '\n')
+  );
+const parsed = ts.parseJsonConfigFileContent(
+  config.config,
+  ts.sys,
+  fixturesDir
+);
+const host = ts.createCompilerHost(parsed.options);
+const readFile = host.readFile.bind(host);
+host.readFile = (file) => fixedSources.get(file) ?? readFile(file);
+const repairedProgram = ts.createProgram(
+  parsed.fileNames,
+  parsed.options,
+  host
+);
+const repairErrors = [
+  ...parsed.errors,
+  ...ts.getPreEmitDiagnostics(repairedProgram)
+];
+if (repairErrors.length) {
+  console.error(
+    ts.formatDiagnosticsWithColorAndContext(repairErrors, {
+      getCurrentDirectory: () => root,
+      getCanonicalFileName: (file) => file,
+      getNewLine: () => '\n'
+    })
+  );
+  throw new Error(
+    'Corrected type-error fixtures must compile without diagnostics.'
+  );
+}
+console.log(`${fixtures.length} corrected diagnostic fixtures compile.`);
 
 let raw = '';
 const start = Date.now();
@@ -32,7 +99,6 @@ try {
 }
 const elapsed = ((Date.now() - start) / 1000).toFixed(1);
 
-const fixtures = readdirSync(fixturesDir).filter((f) => f.endsWith('.ts'));
 const byFixture = Object.fromEntries(fixtures.map((f) => [f, []]));
 let current = null;
 for (const line of raw.split('\n')) {

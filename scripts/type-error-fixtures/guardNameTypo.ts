@@ -5,13 +5,15 @@ import { createMachine } from 'xstate';
 export const machine = createMachine({
   context: { ready: false },
   guards: {
-    isReady: ({ context }) => context.ready === true
+    isReady: (ready: boolean) => ready
   },
   initial: 'routing',
   states: {
     routing: {
       type: 'choice',
-      choices: [{ guard: { type: 'isRedy' }, target: 'go' }, { target: 'wait' }]
+      choice: ({ context, guards }) => ({
+        target: guards.isRedy(context.ready) ? 'go' : 'wait'
+      })
     },
     go: {},
     wait: {}

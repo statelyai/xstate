@@ -80,6 +80,7 @@ describe('runnable examples', () => {
       ]
     ],
     ['provided-actions', 'approval recorded'],
+    ['custom-actions', ['saved']],
     ['input-atoms', 'Prepared v1.2.0'],
     ['latest-stream', 100],
     ['event-stream', 'rollback requested'],

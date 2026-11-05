@@ -7,6 +7,8 @@ import {
   type AnySetupConfig,
   type EventObject,
   type MachineContext,
+  type InferEvents,
+  type StandardSchemaV1,
   type SetupConfig,
   type SetupReturn,
   type SetupSchemas,
@@ -15,7 +17,6 @@ import {
   type SystemRegistry,
   type SystemRuntime
 } from 'xstate';
-import { effectActionBrand } from './brands.ts';
 import { runHostedEffect } from './internal.ts';
 import type { EffectRequirements } from './types.ts';
 import {
@@ -35,6 +36,8 @@ import {
  * the actor itself and its family (`self`, `parent`, `children`), the
  * registered `actions`, `actors`, `guards` and `delays`, the actor `system`,
  * and the `params` and `output` the transition passed along.
+ *
+ * @experimental
  */
 export type EffectActionArgs<
   TContext extends MachineContext = MachineContext,
@@ -60,6 +63,8 @@ export type EffectActionArgs<
  * enqueued, and returns an Effect that runs afterwards in the actor's Effect
  * context. The Effect is interrupted when the actor stops; its failures and
  * defects route to the state's `onError`.
+ *
+ * @experimental
  */
 export type EffectAction<
   TContext extends MachineContext = MachineContext,
@@ -71,6 +76,51 @@ export type EffectAction<
 ) => Effect.Effect<void, TError, TRequirements>;
 
 type AnyEffectAction = EffectAction<any, any, any, any>;
+type EffectActionSource = (...args: never[]) => Effect.Effect<void, any, any>;
+
+type ActionContext<TSchemas> = TSchemas extends {
+  context: infer TContext extends StandardSchemaV1;
+}
+  ? Extract<StandardSchemaV1.InferOutput<TContext>, MachineContext>
+  : Record<string, unknown>;
+
+type ActionEvents<TSchemas> =
+  | (TSchemas extends {
+      events: infer TEvents extends Record<string, StandardSchemaV1>;
+    }
+      ? InferEvents<TEvents>
+      : EventObject)
+  | (TSchemas extends {
+      internalEvents: infer TEvents extends Record<string, StandardSchemaV1>;
+    }
+      ? string extends keyof TEvents
+        ? never
+        : InferEvents<TEvents>
+      : never);
+
+type ActionInput<TSchemas, TKey extends PropertyKey> = TSchemas extends {
+  actions: {
+    [K in TKey]: { params: infer TParams extends StandardSchemaV1 };
+  };
+}
+  ? StandardSchemaV1.InferOutput<TParams> & Pick<EffectActionArgs, 'self'>
+  : EffectActionArgs<ActionContext<TSchemas>, ActionEvents<TSchemas>>;
+
+type ActionSources<TSchemas, TActionMap> = {
+  [K in keyof TActionMap]: (
+    args: ActionInput<TSchemas, K>
+  ) => Effect.Effect<void, any, any>;
+};
+
+type AnnotatedActionSources<TSchemas, TActionMap> = TActionMap extends {
+  [K in keyof TActionMap]: TSchemas extends {
+    actions: { [P in K]: { params: StandardSchemaV1 } };
+  }
+    ? ActionSources<TSchemas, TActionMap>[K]
+    : AnyEffectAction;
+}
+  ? unknown
+  : never;
 
 type EffectActionRequirements<TAction> = TAction extends (
   ...args: any[]
@@ -78,34 +128,47 @@ type EffectActionRequirements<TAction> = TAction extends (
   ? EffectRequirements<TResult>
   : never;
 
-type CoreEffectAction<TAction> = TAction extends (...args: infer TArgs) => any
-  ? ((...args: TArgs) => void) & {
-      readonly [effectActionBrand]?: EffectActionRequirements<TAction>;
+type CoreEffectAction<TAction, TInput = never> = TAction extends (
+  ...args: infer TArgs
+) => any
+  ? ((...args: [TInput] extends [never] ? TArgs : [args: TInput]) => void) & {
+      // String key, not a `unique symbol`: inferred types in consumer
+      // declarations must be able to name it.
+      readonly '~effectRequirements'?: EffectActionRequirements<TAction>;
     }
   : never;
 
-type CoreEffectActionMap<TActionMap> = {
-  [K in keyof TActionMap]: CoreEffectAction<TActionMap[K]>;
+type CoreEffectActionMap<TActionMap, TSchemas> = {
+  [K in keyof TActionMap]: CoreEffectAction<
+    TActionMap[K],
+    TSchemas extends { actions: { [P in K]: { params: StandardSchemaV1 } } }
+      ? ActionInput<TSchemas, K>
+      : never
+  >;
 };
 
 type EffectSetupConfig<
   TSchemas extends EffectSetupSchemas,
   TStates extends Record<string, EffectSetupStateSchema>,
-  TActionMap extends Record<string, AnyEffectAction>,
+  TActionMap extends Record<string, EffectActionSource>,
   TActorMap extends Sources['actors'],
   TGuardMap extends Sources['guards'],
   TDelayMap extends Sources['delays'],
   TValidator extends ActorLogicValidator | undefined,
-  TSourceSchemas extends SetupSchemas = ToStandardSetupSchemas<TSchemas>
+  TSourceSchemas extends SetupSchemas = ToStandardSetupSchemas<TSchemas>,
+  TContextualActions extends boolean = true
 > = {
   validator?: TValidator;
-  actions?: TActionMap & Record<string, AnyEffectAction>;
+  actions?: TActionMap &
+    (TContextualActions extends true
+      ? ActionSources<NoInfer<TSourceSchemas>, TActionMap>
+      : AnnotatedActionSources<NoInfer<TSourceSchemas>, TActionMap>);
   actors?: TActorMap;
   guards?: NonNullable<
     SetupConfig<
       TSourceSchemas,
       ToStandardSetupStates<TStates>,
-      CoreEffectActionMap<TActionMap>,
+      CoreEffectActionMap<TActionMap, TSourceSchemas>,
       TActorMap,
       TGuardMap,
       TDelayMap,
@@ -116,7 +179,7 @@ type EffectSetupConfig<
     SetupConfig<
       TSourceSchemas,
       ToStandardSetupStates<TStates>,
-      CoreEffectActionMap<TActionMap>,
+      CoreEffectActionMap<TActionMap, TSourceSchemas>,
       TActorMap,
       TGuardMap,
       TDelayMap,
@@ -197,14 +260,15 @@ type EffectSetupExtensionConfig<
   TBaseValidator extends ActorLogicValidator | undefined,
   TExtensionSchemas extends EffectSetupSchemas,
   TExtensionStates extends Record<string, EffectSetupStateSchema>,
-  TExtensionActionMap extends Record<string, AnyEffectAction>,
+  TExtensionActionMap extends Record<string, EffectActionSource>,
   TExtensionActorMap extends Sources['actors'],
   TExtensionGuardMap extends Sources['guards'],
   TExtensionDelayMap extends Sources['delays'],
   TExtensionValidator extends
     | ActorLogicValidator
     | undefined
-    | InheritedEffectValidator
+    | InheritedEffectValidator,
+  TContextualActions extends boolean = true
 > = EffectSetupConfig<
   TExtensionSchemas,
   TExtensionStates,
@@ -213,7 +277,8 @@ type EffectSetupExtensionConfig<
   TExtensionGuardMap,
   TExtensionDelayMap,
   ResolveExtendedValidator<TBaseValidator, TExtensionValidator>,
-  MergeSetupSchemas<TBaseSchemas, ToStandardSetupSchemas<TExtensionSchemas>>
+  MergeSetupSchemas<TBaseSchemas, ToStandardSetupSchemas<TExtensionSchemas>>,
+  TContextualActions
 > &
   ExtendValidatorConfig<TExtensionValidator> &
   RuntimeValidationCompatibility<
@@ -227,6 +292,8 @@ type EffectSetupExtensionConfig<
  * that also accepts Effect schemas and Effect-returning actions. Call
  * `createMachine` on it to build a machine whose registered actions and actors
  * contribute to `RequirementsFrom`.
+ *
+ * @experimental
  */
 export type EffectSetupReturn<
   TStates extends Record<string, SetupStateSchema> = Record<
@@ -257,7 +324,7 @@ export type EffectSetupReturn<
   extend<
     const TExtensionSchemas extends EffectSetupSchemas = {},
     const TExtensionStates extends Record<string, EffectSetupStateSchema> = {},
-    TExtensionActionMap extends Record<string, AnyEffectAction> = {},
+    TExtensionActionMap extends Record<string, EffectActionSource> = {},
     TExtensionActorMap extends Sources['actors'] = {},
     TExtensionGuardMap extends Sources['guards'] = {},
     TExtensionDelayMap extends Sources['delays'] = {},
@@ -281,7 +348,54 @@ export type EffectSetupReturn<
   ): EffectSetupReturn<
     MergeRecord<TStates, ToStandardSetupStates<TExtensionStates>>,
     MergeSetupSchemas<TSchemas, ToStandardSetupSchemas<TExtensionSchemas>>,
-    MergeRecord<TSetupActionMap, CoreEffectActionMap<TExtensionActionMap>>,
+    MergeRecord<
+      TSetupActionMap,
+      CoreEffectActionMap<
+        TExtensionActionMap,
+        MergeSetupSchemas<TSchemas, ToStandardSetupSchemas<TExtensionSchemas>>
+      >
+    >,
+    MergeRecord<TSetupActorMap, TExtensionActorMap>,
+    MergeRecord<TSetupGuardMap, TExtensionGuardMap>,
+    MergeRecord<TSetupDelayMap, TExtensionDelayMap>,
+    TSetupDelays | Extract<keyof TExtensionDelayMap, string>,
+    ResolveExtendedValidator<TValidator, TExtensionValidator>
+  >;
+  extend<
+    const TExtensionSchemas extends EffectSetupSchemas = {},
+    const TExtensionStates extends Record<string, EffectSetupStateSchema> = {},
+    TExtensionActionMap extends Record<string, EffectActionSource> = {},
+    TExtensionActorMap extends Sources['actors'] = {},
+    TExtensionGuardMap extends Sources['guards'] = {},
+    TExtensionDelayMap extends Sources['delays'] = {},
+    const TExtensionValidator extends
+      | ActorLogicValidator
+      | undefined
+      | InheritedEffectValidator = InheritedEffectValidator
+  >(
+    config: EffectSetupExtensionConfig<
+      TSchemas,
+      TStates,
+      TValidator,
+      TExtensionSchemas,
+      TExtensionStates,
+      TExtensionActionMap,
+      TExtensionActorMap,
+      TExtensionGuardMap,
+      TExtensionDelayMap,
+      TExtensionValidator,
+      false
+    >
+  ): EffectSetupReturn<
+    MergeRecord<TStates, ToStandardSetupStates<TExtensionStates>>,
+    MergeSetupSchemas<TSchemas, ToStandardSetupSchemas<TExtensionSchemas>>,
+    MergeRecord<
+      TSetupActionMap,
+      CoreEffectActionMap<
+        TExtensionActionMap,
+        MergeSetupSchemas<TSchemas, ToStandardSetupSchemas<TExtensionSchemas>>
+      >
+    >,
     MergeRecord<TSetupActorMap, TExtensionActorMap>,
     MergeRecord<TSetupGuardMap, TExtensionGuardMap>,
     MergeRecord<TSetupDelayMap, TExtensionDelayMap>,
@@ -381,6 +495,8 @@ function decorateEffectSetup(effectSetup: SetupReturn): SetupReturn {
  * runs in the actor's Effect context. Everything else, including `actors`,
  * `guards`, `delays` and `extend`, behaves as in `setup`. Machines built from
  * it must be started with `createEffectActor`.
+ *
+ * @experimental
  */
 export function setupEffect(): EffectSetupReturn;
 export function setupEffect<
@@ -389,7 +505,7 @@ export function setupEffect<
     string,
     EffectSetupStateSchema
   >,
-  TActionMap extends Record<string, AnyEffectAction> = {},
+  TActionMap extends Record<string, EffectActionSource> = {},
   TActorMap extends Sources['actors'] = {},
   TGuardMap extends Sources['guards'] = {},
   TDelayMap extends Sources['delays'] = {},
@@ -407,7 +523,40 @@ export function setupEffect<
 ): EffectSetupReturn<
   ToStandardSetupStates<TStates>,
   ToStandardSetupSchemas<TSchemas>,
-  CoreEffectActionMap<TActionMap>,
+  CoreEffectActionMap<TActionMap, ToStandardSetupSchemas<TSchemas>>,
+  TActorMap,
+  TGuardMap,
+  TDelayMap,
+  Extract<keyof TDelayMap, string>,
+  TValidator
+>;
+export function setupEffect<
+  const TSchemas extends EffectSetupSchemas = {},
+  const TStates extends Record<string, EffectSetupStateSchema> = Record<
+    string,
+    EffectSetupStateSchema
+  >,
+  TActionMap extends Record<string, EffectActionSource> = {},
+  TActorMap extends Sources['actors'] = {},
+  TGuardMap extends Sources['guards'] = {},
+  TDelayMap extends Sources['delays'] = {},
+  const TValidator extends ActorLogicValidator | undefined = undefined
+>(
+  config: EffectSetupConfig<
+    TSchemas,
+    TStates,
+    TActionMap,
+    TActorMap,
+    TGuardMap,
+    TDelayMap,
+    TValidator,
+    ToStandardSetupSchemas<TSchemas>,
+    false
+  >
+): EffectSetupReturn<
+  ToStandardSetupStates<TStates>,
+  ToStandardSetupSchemas<TSchemas>,
+  CoreEffectActionMap<TActionMap, ToStandardSetupSchemas<TSchemas>>,
   TActorMap,
   TGuardMap,
   TDelayMap,

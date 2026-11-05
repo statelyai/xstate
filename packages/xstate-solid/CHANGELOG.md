@@ -1,5 +1,11 @@
 # @xstate/solid
 
+## 3.0.0-alpha.4
+
+### Patch Changes
+
+- ce9fab5: Public exports now carry `@public` or `@experimental` stability tags.
+
 ## 3.0.0-alpha.3
 
 ### Patch Changes

@@ -221,7 +221,9 @@ Let discovery functions infer their type arguments when supplying event lists. C
 
 Traversal covers the supplied samples, not every possible payload. TypeScript event types are erased at runtime; JavaScript callers must supply payload cases explicitly. Traversal does not infer required fields from erased types or validate payloads against schemas. Empty case arrays throw when their event type is applicable. Transition exceptions abort path discovery with the failing state, event, and original error as `cause`.
 
-Static directed graphs omit function transitions whose targets require execution. Microstep inspection records their resolved targets instead.
+The default traversal key includes state value, nonempty root context, state inputs and remembered history. A custom `serializeState` deliberately identifies snapshots as the same exploration state; preserve every distinction that can change the behavior being checked. Single-machine traversal does not explore child actor execution or timer interleavings.
+
+Static directed graphs omit function transitions whose targets require execution and report them through `analysis.diagnostics`; `analysis.transitionTargetsComplete` is false. Microstep inspection records their resolved targets instead.
 
 Graph traversal executes transition functions. If one throws, `getAdjacencyMap()`, `getShortestPaths()`, `getSimplePaths()` and `getPathsFromEvents()` throw an error that identifies the serialized source state and event. The original thrown value is available as `error.cause`. Payload-dependent transitions need representative events through the `events` option. A transition that returns `undefined` for a sample is refused; the returned paths only describe states reachable with the supplied samples.
 

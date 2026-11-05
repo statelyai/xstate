@@ -1,5 +1,11 @@
 # @xstate/vue
 
+## 6.0.0-alpha.5
+
+### Patch Changes
+
+- ce9fab5: Public exports now carry `@public` or `@experimental` stability tags.
+
 ## 6.0.0-alpha.4
 
 ### Patch Changes

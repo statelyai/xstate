@@ -15,8 +15,8 @@ const machine = createMachine({
   context: { count: 0 },
   initial: 'inactive',
   states: {
-    inactive: { on: { TOGGLE: 'active' } },
-    active: { on: { TOGGLE: 'inactive' } }
+    inactive: { on: { TOGGLE: { target: 'active' } } },
+    active: { on: { TOGGLE: { target: 'inactive' } } }
   }
 });
 

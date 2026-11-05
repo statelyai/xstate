@@ -1,0 +1,11 @@
+{
+  "afterDelayTypo.ts": ["retryDelya: {", "retryDelay: {"],
+  "eventNameTypo.ts": ["type: 'TOGLE'", "type: 'TOGGLE'"],
+  "guardNameTypo.ts": ["guards.isRedy(", "guards.isReady("],
+  "onEventKeyTypo.ts": ["TOGLE: {", "TOGGLE: {"],
+  "targetTypo.ts": ["target: 'activ'", "target: 'active'"],
+  "v5TypesKey.ts": [
+    "types: {} as {\n    context: { count: number };\n    events: { type: 'TOGGLE' };\n  },",
+    "schemas: { context: types<{ count: number }>(), events: { TOGGLE: types<{}>() } },"
+  ]
+}

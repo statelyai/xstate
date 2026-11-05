@@ -5,7 +5,7 @@ import { createMachine } from 'xstate';
 export const machine = createMachine({
   initial: 'inactive',
   states: {
-    inactive: { on: { TOGGLE: 'activ' } },
-    active: { on: { TOGGLE: 'inactive' } }
+    inactive: { on: { TOGGLE: { target: 'activ' } } },
+    active: { on: { TOGGLE: { target: 'inactive' } } }
   }
 });

@@ -14,22 +14,13 @@ scripts/type-error-fixtures/afterDelayTypo.ts(12,9): error TS2322: Type '{ targe
 ## eventNameTypo.ts
 
 ```
-scripts/type-error-fixtures/eventNameTypo.ts(17,3): error TS2769: No overload matches this call.
-  The last overload gave the following error.
-    Type '{ inactive: { on: { TOGGLE: "active"; }; }; active: { on: { TOGGLE: "inactive"; }; }; }' is not assignable to type '{ readonly inactive: { readonly on: { readonly TOGGLE: "active"; }; }; readonly active: { readonly on: { readonly TOGGLE: "inactive"; }; }; } & { [x: string]: Next_StateNodeConfig<{ count: number; }, InferEvents<{ readonly TOGGLE: ZodObject<{}, "strip", ZodTypeAny, {}, {}>; readonly SET_COUNT: ZodObject<...>; }>, .....'.
-      Property 'inactive' is incompatible with index signature.
-        Type '{ on: { TOGGLE: "active"; }; }' is not assignable to type 'Next_StateNodeConfig<{ count: number; }, InferEvents<{ readonly TOGGLE: ZodObject<{}, "strip", ZodTypeAny, {}, {}>; readonly SET_COUNT: ZodObject<{ count: ZodNumber; }, "strip", ZodTypeAny, { ...; }, { ...; }>; }>, ... 14 more ..., never>'.
-          The types of 'on.TOGGLE' are incompatible between these types.
-            Type '"active"' is not assignable to type 'Next_TransitionConfigOrTarget<{ count: number; }, Required<{}> & { type: "TOGGLE"; }, InferEvents<{ readonly TOGGLE: ZodObject<{}, "strip", ZodTypeAny, {}, {}>; readonly SET_COUNT: ZodObject<{ count: ZodNumber; }, "strip", ZodTypeAny, { ...; }, { ...; }>; }>, ... 7 more ..., { ...; }>'.
 scripts/type-error-fixtures/eventNameTypo.ts(25,14): error TS2820: Type '"TOGLE"' is not assignable to type '"SET_COUNT" | "TOGGLE"'. Did you mean '"TOGGLE"'?
 ```
 
 ## guardNameTypo.ts
 
 ```
-scripts/type-error-fixtures/guardNameTypo.ts(14,7): error TS2769: No overload matches this call.
-  The last overload gave the following error.
-    Object literal may only specify known properties, but 'choices' does not exist in type 'StateSchema & Next_ChoiceStateNodeConfig<{ ready: boolean; }, { type: string; }, string, never, never, Record<string, (...args: any[]) => void | { context?: any; children?: any; }>, Record<string, AnyActorLogic>, Record<...>, Record<...>>'. Did you mean to write 'choice'?
+scripts/type-error-fixtures/guardNameTypo.ts(15,24): error TS2551: Property 'isRedy' does not exist on type '{ readonly isReady: (ready: boolean) => boolean; }'. Did you mean 'isReady'?
 ```
 
 ## onEventKeyTypo.ts
@@ -42,31 +33,16 @@ scripts/type-error-fixtures/onEventKeyTypo.ts(19,9): error TS2322: Type '{ targe
 ## targetTypo.ts
 
 ```
-scripts/type-error-fixtures/targetTypo.ts(7,3): error TS2769: No overload matches this call.
+scripts/type-error-fixtures/targetTypo.ts(5,38): error TS2769: No overload matches this call.
   The last overload gave the following error.
-    Type '{ inactive: { on: { TOGGLE: "activ"; }; }; active: { on: { TOGGLE: "inactive"; }; }; }' is not assignable to type '{ readonly inactive: { readonly on: { readonly TOGGLE: "activ"; }; }; readonly active: { readonly on: { readonly TOGGLE: "inactive"; }; }; } & { [x: string]: Next_StateNodeConfig<never, { type: string; }, string, string, ... 12 more ..., never>; }'.
-      Property 'inactive' is incompatible with index signature.
-        Type '{ on: { TOGGLE: "activ"; }; }' is not assignable to type 'Next_StateNodeConfig<never, { type: string; }, string, string, any, { type: string; }, never, { [x: string]: AnyActor; }, Record<string, (...args: any[]) => void | { context?: any; children?: any; }>, ... 7 more ..., never>'.
-          Types of property 'on' are incompatible.
-            Type '{ TOGGLE: "activ"; }' is not assignable to type '{ [x: string]: Next_TransitionConfigOrTarget<never, { type: string; }, { type: string; }, { type: string; }, Record<string, (...args: any[]) => void | { context?: any; children?: any; }>, Record<string, AnyActorLogic>, ... 4 more ..., { ...; }>; }'.
-              Property 'TOGGLE' is incompatible with index signature.
-                Type '"activ"' is not assignable to type 'Next_TransitionConfigOrTarget<never, { type: string; }, { type: string; }, { type: string; }, Record<string, (...args: any[]) => void | { context?: any; children?: any; }>, Record<string, AnyActorLogic>, ... 4 more ..., { ...; }>'.
+    Argument of type '{ initial: string; states: { inactive: { on: { TOGGLE: { target: string; }; }; }; active: { on: { TOGGLE: { target: string; }; }; }; }; }' is not assignable to parameter of type 'never'.
 ```
 
 ## v5TypesKey.ts
 
 ```
-scripts/type-error-fixtures/v5TypesKey.ts(8,3): error TS2769: No overload matches this call.
+scripts/type-error-fixtures/v5TypesKey.ts(11,3): error TS2769: No overload matches this call.
   The last overload gave the following error.
     Type '{ context: { count: number; }; events: { type: "TOGGLE"; }; }' is not assignable to type '{ context: { count: number; }; events: { type: "TOGGLE"; }; } & "`types` was replaced by `schemas` in v6. Declare `context`, `events` and the other contracts under `schemas`, or run `xstate-codemod migrate --transform types-to-schemas`."'.
       Type '{ context: { count: number; }; events: { type: "TOGGLE"; }; }' is not assignable to type '"`types` was replaced by `schemas` in v6. Declare `context`, `events` and the other contracts under `schemas`, or run `xstate-codemod migrate --transform types-to-schemas`."'.
-scripts/type-error-fixtures/v5TypesKey.ts(14,3): error TS2769: No overload matches this call.
-  The last overload gave the following error.
-    Type '{ inactive: { on: { TOGGLE: "active"; }; }; active: { on: { TOGGLE: "inactive"; }; }; }' is not assignable to type '{ readonly inactive: { readonly on: { readonly TOGGLE: "active"; }; }; readonly active: { readonly on: { readonly TOGGLE: "inactive"; }; }; } & { [x: string]: Next_StateNodeConfig<{ count: number; }, { type: string; }, ... 14 more ..., never>; }'.
-      Property 'inactive' is incompatible with index signature.
-        Type '{ on: { TOGGLE: "active"; }; }' is not assignable to type 'Next_StateNodeConfig<{ count: number; }, { type: string; }, string, string, any, { type: string; }, never, { [x: string]: AnyActor; }, Record<string, (...args: any[]) => void | { context?: any; children?: any; }>, ... 7 more ..., never>'.
-          Types of property 'on' are incompatible.
-            Type '{ TOGGLE: "active"; }' is not assignable to type '{ [x: string]: Next_TransitionConfigOrTarget<{ count: number; }, { type: string; }, { type: string; }, { type: string; }, Record<string, (...args: any[]) => void | { context?: any; children?: any; }>, Record<string, AnyActorLogic>, ... 4 more ..., { ...; }>; }'.
-              Property 'TOGGLE' is incompatible with index signature.
-                Type '"active"' is not assignable to type 'Next_TransitionConfigOrTarget<{ count: number; }, { type: string; }, { type: string; }, { type: string; }, Record<string, (...args: any[]) => void | { context?: any; children?: any; }>, Record<string, AnyActorLogic>, ... 4 more ..., { ...; }>'.
 ```

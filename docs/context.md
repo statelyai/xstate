@@ -30,6 +30,10 @@ increment: ({ context }) => ({ context: { count: context.count + 1 } })
 
 The merge is shallow. A nested object in the returned patch replaces the current value of that key; spread the nested object yourself to keep its other fields.
 
+Context patches returned by entry functions follow the same merge rules. Previously captured snapshots keep their original context.
+
+While computing a transition, read the callback's `context` argument. `self.getSnapshot()` returns the last committed snapshot until the computation finishes.
+
 Do not mutate the current context. Keep resources that cannot be serialized outside context.
 
 In development builds, XState deep-freezes the plain objects and arrays in each snapshot's context, so a mutation such as `snapshot.context.count = 1` throws a `TypeError` in strict mode. Freezing also applies to objects you place into context, including restored snapshot context. Actor refs, class instances, `Map`, `Set`, `Date` and other non-plain objects are not frozen. Production builds do not freeze context.

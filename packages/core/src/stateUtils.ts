@@ -1,9 +1,5 @@
 import isDevelopment from '#is-development';
-import {
-  MachineSnapshot,
-  cloneMachineSnapshot,
-  freezeContext
-} from './State.ts';
+import { MachineSnapshot, cloneMachineSnapshot } from './State.ts';
 import type { StateNode } from './StateNode.ts';
 import {
   createAfterEvent,
@@ -1979,10 +1975,7 @@ function microstep(
         }
 
         if (contextChangedByEntry) {
-          nextState.context = context;
-          if (isDevelopment) {
-            freezeContext(context);
-          }
+          nextState = cloneMachineSnapshot(nextState, { context });
         }
 
         if (statesForDefaultEntry.has(stateNodeToEnter)) {
@@ -2009,13 +2002,9 @@ function microstep(
               internalQueue.push(...initialInternalEvents);
             }
             if (initialContext !== undefined) {
-              nextState.context = mergeContextPatch(
-                nextState.context,
-                initialContext
-              );
-              if (isDevelopment) {
-                freezeContext(nextState.context);
-              }
+              nextState = cloneMachineSnapshot(nextState, {
+                context: mergeContextPatch(nextState.context, initialContext)
+              });
             }
             if (initialInput && defaultTransition.target) {
               for (const targetNode of defaultTransition.target) {
@@ -2424,12 +2413,18 @@ export function getTransitionResult(
   };
 }
 
-/** The default microstep bound for one macrostep. */
-const DEFAULT_MAX_ITERATIONS = 1000;
+/**
+ * Microsteps one macrostep may take before development builds warn, when the
+ * machine sets no `maxIterations` bound.
+ */
+const LONG_MACROSTEP_WARNING = 1000;
+
+/** Machines that already logged the long-macrostep warning. */
+const warnedLongMacrostep = new WeakSet<object>();
 
 /**
  * Thrown when one macrostep takes more microsteps than the machine's
- * `options.maxIterations` (default `1000`) without reaching a stable state,
+ * `options.maxIterations` (unbounded by default) without reaching a stable state,
  * usually because eventless transitions or raised events form a cycle.
  *
  * @public
@@ -2694,8 +2689,7 @@ export function macrostep(
   }
 
   let shouldSelectEventlessTransitions = true;
-  const maxIterations =
-    snapshot.machine.options?.maxIterations ?? DEFAULT_MAX_ITERATIONS;
+  const maxIterations = snapshot.machine.options?.maxIterations ?? Infinity;
   let iterationCount = 0;
   // The last few state values visited, for the infinite-loop error.
   const recentStates: StateValue[] = [];
@@ -2708,6 +2702,21 @@ export function macrostep(
         event,
         maxIterations,
         recentStates
+      );
+    }
+    if (
+      isDevelopment &&
+      iterationCount === LONG_MACROSTEP_WARNING + 1 &&
+      maxIterations === Infinity &&
+      !warnedLongMacrostep.has(snapshot.machine)
+    ) {
+      warnedLongMacrostep.add(snapshot.machine);
+      console.warn(
+        `Actor "${actorScope.self?.id}" took more than ${LONG_MACROSTEP_WARNING} microsteps processing event "${event.type}" without reaching a stable state. Last states: ${recentStates
+          .map((value) => JSON.stringify(value))
+          .join(
+            ' -> '
+          )}. Check for a cycle of eventless transitions or raised events. To stop a runaway macrostep with an InfiniteTransitionError, set createMachine({ options: { maxIterations } }).`
       );
     }
     recentStates.push(nextSnapshot.value);

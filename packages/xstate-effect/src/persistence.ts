@@ -13,7 +13,11 @@ type SnapshotData<TMachine extends AnyStateMachine> = {
   readonly machine: { readonly id: TMachine['id']; readonly version: string };
 };
 
-/** A malformed transport, unsupported JSON value or missing persistence metadata. */
+/**
+ * A malformed transport, unsupported JSON value or missing persistence metadata.
+ *
+ * @experimental
+ */
 export class SnapshotCodecError extends Data.TaggedError('SnapshotCodecError')<{
   readonly stage: 'encode' | 'decode';
   readonly path: string;
@@ -286,6 +290,8 @@ function checked<A>(
  * Binds a full bidirectional snapshot schema to a versioned machine. The schema
  * owns rich values and supported historical versions. Decoding never migrates;
  * restore or `machineVersions` remains responsible for migration.
+ *
+ * @experimental
  */
 export function createSnapshotCodec<
   TMachine extends AnyStateMachine & { readonly version: string },

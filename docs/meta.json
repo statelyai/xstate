@@ -2,6 +2,7 @@
   "title": "XState",
   "pages": [
     "quick-start",
+    "agents",
     "choose-xstate",
     "frameworks",
     "examples",

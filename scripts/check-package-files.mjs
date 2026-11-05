@@ -10,6 +10,30 @@ for (const dir of readdirSync(packagesDir)) {
   const pkgPath = join(packagesDir, dir, 'package.json');
   if (!existsSync(pkgPath)) continue;
   const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'));
+  if (pkg.name === '@xstate/effect') {
+    for (const field of ['dependencies', 'optionalDependencies']) {
+      if (Object.keys(pkg[field] ?? {}).length) {
+        errors.push(`${pkg.name}: ${field} must stay empty`);
+      }
+    }
+    for (const name of ['effect', 'xstate']) {
+      if (
+        !pkg.peerDependencies?.[name] ||
+        pkg.peerDependenciesMeta?.[name]?.optional
+      ) {
+        errors.push(`${pkg.name}: ${name} must remain a required peer`);
+      }
+    }
+    for (const name of Object.keys(pkg.peerDependencies ?? {})) {
+      if (
+        name !== 'effect' &&
+        name !== 'xstate' &&
+        pkg.peerDependenciesMeta?.[name]?.optional !== true
+      ) {
+        errors.push(`${pkg.name}: ${name} must be an optional peer`);
+      }
+    }
+  }
   if (pkg.private || !pkg.files) continue;
 
   const exportKeys = new Set(Object.keys(pkg.exports ?? {}));

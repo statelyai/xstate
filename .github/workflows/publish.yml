@@ -89,3 +89,11 @@ jobs:
         uses: changesets/action/publish@22ccf9aa43179fe9e27dc62e575971d28cce197c # v2.0.0
         with:
           pack-dir-artifact-id: ${{ needs.pack.outputs.pack-dir-artifact-id }}
+
+      - name: Verify coordinated beta tags
+        if: github.ref == 'refs/heads/next'
+        run: |
+          release_tag="$(node -e "const fs = require('node:fs'); if (fs.existsSync('.changeset/pre.json')) console.log(JSON.parse(fs.readFileSync('.changeset/pre.json', 'utf8')).tag ?? '')")"
+          if [ "$release_tag" = beta ]; then
+            pnpm check:release-tags --tag beta
+          fi

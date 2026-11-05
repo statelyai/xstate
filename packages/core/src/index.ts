@@ -70,6 +70,8 @@ export type {
 export {
   machineConfigToJSON,
   machineToJSON,
+  getMachineSerializationDiagnostics,
+  type MachineSerializationDiagnostic,
   type CodeExpression
 } from './serialize.ts';
 export { mapState } from './mapState.ts';

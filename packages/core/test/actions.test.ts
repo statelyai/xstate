@@ -4297,7 +4297,7 @@ describe('actions', () => {
     });
   });
   // From https://github.com/statelyai/xstate/pull/5101
-  it('a raised event "handler" should be able to read updated snapshot of self', () => {
+  it('a raised event action should be able to read updated snapshot of self', () => {
     const spy = vi.fn();
     const machine = createMachine({
       schemas: {
@@ -4314,7 +4314,6 @@ describe('actions', () => {
           on: { NEXT: { target: 'b' } }
         },
         b: {
-          // entry: [assign({ counter: 1 }), raise({ type: 'EVENT' })],
           entry: (_, enq) => {
             enq.raise({ type: 'EVENT' });
             return {
@@ -4325,7 +4324,7 @@ describe('actions', () => {
           },
           on: {
             EVENT: ({ self }, enq) => {
-              enq(spy, self.getSnapshot().context);
+              enq(() => spy(self.getSnapshot().context));
               return {
                 target: 'c'
               };

@@ -43,7 +43,8 @@ Runtime operations you omit keep their local behavior — spawned machine
 children run in this process, for example.
 
 `enqueueRootEvent` is the narrow hook most co-located hosts need: it receives
-events sent to the execution root while the loop is parked. Implement
+events sent to the execution root while the loop is parked, or at any time
+when `captureRootEvents` is `false`. Implement
 `sendEvent` only when the host owns routing for every target. That override
 replaces local delivery completely; call `deliverEvent(source, target, event)`
 for co-located targets instead of `target.send(event)`, which re-enters the
@@ -329,7 +330,7 @@ that routes locally must call `deliverEvent`. When a remote runtime can
 deliver the same completion more than once (retries, replays), the host is
 responsible for deduplicating before handing it to the execution.
 
-Events addressed to the root actor do not reach `sendEvent` during
+By default, events addressed to the root actor do not reach `sendEvent` during
 `executeEffects`: the execution captures and retains them, and
 `waitForEvent()` hands them out — in capture order — before deferring to the
 adapter. While the loop is parked in the adapter's wait, a root-addressed
@@ -337,6 +338,13 @@ event reaches `enqueueRootEvent`, or `sendEvent` when the adapter implements
 the broader routing override, and belongs in the host's mailbox. Producing one
 without either hook throws, since delivering it locally to the inert root
 would silently lose it.
+
+For a live host with a FIFO mailbox, pass `{ captureRootEvents: false }` as
+the third argument to `createDurable`. Root events then reach the adapter's
+`sendEvent` or `enqueueRootEvent` during effect execution too. Put them in the
+same mailbox as external events so a later child event cannot overtake an
+earlier queued event. The host owns ordering and handling events from failed
+batches in this mode; they are delivered without waiting for batch success.
 
 Lifecycle operations do host bookkeeping and then call the local helper. They
 never compute transitions: calling `transition()` or `executeEffects()` inside

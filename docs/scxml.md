@@ -50,7 +50,7 @@ The returned value is an XState machine and can be passed to `createActor(...)`,
 | Execution errors | The nearest active `onError` can recover a failure. An unhandled failure errors the actor and stops its children. | Executable-content failures queue `error.execution` and stop the remaining content in that block. A failing `cond` evaluates to false and queues `error.execution`. |
 | Undeliverable sends | Missing or stopped targets produce dead letters through `onRejectedEvent`. The sender stays active. | Invalid send targets or unsupported processor types raise `error.execution`. An unreachable SCXML session address raises `error.communication`. |
 
-Both use XState's macrostep bound, which defaults to 1,000 microsteps. Exceeding the bound throws `InfiniteTransitionError`. SCXML itself does not prescribe this bound.
+Both use XState's macrostep bound, which is unbounded unless the machine sets `options.maxIterations`. Exceeding a set bound throws `InfiniteTransitionError`. SCXML does not prescribe a bound.
 
 Imported machines finish all state exits before running selected transition content in document order, then enter states. Transition content sees context changes from exit handlers. The `In(...)` condition during transition content reflects the active states after exits and before entry. Initial and history-default transition content runs during entry, after the parent state's entry content.
 
