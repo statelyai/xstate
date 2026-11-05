@@ -212,6 +212,50 @@ describe('v5 config diagnostics', () => {
     ).toThrowError("Child state 'nonexistent' does not exist");
   });
 
+  it('throws on suffixed lifecycle event keys', () => {
+    expect(() =>
+      createMachine({
+        initial: 'loading',
+        states: {
+          loading: { on: { 'xstate.done.actor.job': { target: 'done' } } },
+          done: {}
+        }
+      } as any)
+    ).toThrow(
+      `Transition "xstate.done.actor.job" in state "loading" never fires: v6 lifecycle event types carry the id in a payload field instead of the type. Key on 'xstate.done.actor' with \`matches: { actorId: 'job' }\`, or use the invoke's "onDone".`
+    );
+    for (const key of [
+      'xstate.error.actor.job',
+      'xstate.snapshot.job',
+      'xstate.done.state.form',
+      'xstate.after.1000.loading'
+    ]) {
+      expect(() =>
+        createMachine({
+          on: { [key]: { target: '.a' } },
+          initial: 'a',
+          states: { a: {} }
+        } as any)
+      ).toThrow('never fires');
+    }
+  });
+
+  it('accepts category lifecycle event keys', () => {
+    expect(() =>
+      createMachine({
+        initial: 'a',
+        on: {
+          'xstate.done.actor': { target: '.a' },
+          'xstate.done.actor.*': { target: '.a' },
+          'xstate.snapshot.actor': { target: '.a' },
+          'xstate.snapshot.actor.*': { target: '.a' },
+          'xstate.after': { target: '.a' }
+        },
+        states: { a: {} }
+      } as any)
+    ).not.toThrow();
+  });
+
   it('accepts v6 config without diagnostics', () => {
     const warn = warnSpy();
     const machine = createMachine({

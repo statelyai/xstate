@@ -28,6 +28,23 @@ const machine = createMachine({
 
 Use an actor instead of an action when work is async, can be canceled, sends snapshots or affects the next state. Common examples are payment authorization and file uploads.
 
+## Invoke or spawn
+
+Invoking and [spawning](spawn.md) both create a child actor. They differ in who controls the child's lifetime.
+
+- **Invoke** ties the child to a state. Entering the state starts the child, exiting the state stops it, and `onDone` and `onError` transitions handle its completion.
+- **Spawn** creates a child whose lifetime you manage. `enq.spawn(...)` in a transition function, or `spawn` in a context initializer, starts the child. It runs until it completes, until `enq.stop(ref)` stops it, or until the parent stops. Exiting the state that spawned it does not stop it.
+
+| | Invoke | Spawn |
+| --- | --- | --- |
+| Lifetime | The invoking state: started on entry, stopped on exit | Until it completes, `enq.stop(ref)`, or the parent stops |
+| Declared in | `invoke` on a state node or the machine root | `enq.spawn(...)` in a transition function, or `spawn` in a context initializer |
+| How many | Fixed by the config | Any number, decided at runtime |
+| Completion handling | `onDone`, `onError`, `onSnapshot` transitions | `enq.subscribeTo(...)`, `enq.listen(...)` |
+| Persistence | Restored with the parent, including inline logic | Restored with the parent when the source is registered in `actors`; inline logic cannot be persisted |
+
+Invoke a payment actor for the `authorizing` state. Spawn one upload actor per selected file, one participant actor per person in a call, or one track actor per queued item in a media player.
+
 ## Invoke properties
 
 | Property | Description |
