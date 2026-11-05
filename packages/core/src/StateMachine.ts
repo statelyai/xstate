@@ -1,6 +1,7 @@
 import { historicalEventSchemas } from './historicalEventSchemas.ts';
 import type { PublicEventFromMachine } from './eventTypes.ts';
 import isDevelopment from '#is-development';
+import { xstateError } from './xstateError.ts';
 import { createActor } from './createActor.ts';
 import {
   createErrorPlatformEvent,
@@ -286,6 +287,33 @@ export class InvalidSnapshotError extends Error {
   }
 }
 
+/**
+ * The development message for an id that matches no state. When a prefix of
+ * the id is a state id and the rest resolves beneath it as a relative path,
+ * suggests the target's own id.
+ */
+function describeUnknownStateId(
+  idMap: Map<string, AnyStateNode>,
+  id: string
+): string {
+  const message = `No state has id "${id}".`;
+  const segments = toStatePath(id);
+  for (let i = segments.length - 1; i > 0; i--) {
+    let node: AnyStateNode | undefined = idMap.get(
+      segments.slice(0, i).join(STATE_DELIMITER)
+    );
+    for (let j = i; node && j < segments.length; j++) {
+      node = node.states?.[segments[j]];
+    }
+    if (node) {
+      return node.config.id
+        ? `${message} Use "#${node.id}".`
+        : `${message} Use "#${node.id}", or give that state an id.`;
+    }
+  }
+  return message;
+}
+
 /** @public */
 export class StateMachine<
   TContext extends MachineContext,
@@ -425,7 +453,9 @@ export class StateMachine<
     if (config.version !== undefined && !config.id) {
       // Persisted snapshots record `{ id, version }`; a version needs an id.
       throw new Error(
-        `Machine with version '${config.version}' must declare an id.`
+        isDevelopment
+          ? `Machine with version '${config.version}' must declare an id.`
+          : xstateError(18, config.version)
       );
     }
     this.id = (config.id ?? '') as typeof this.id;
@@ -1568,40 +1598,22 @@ export class StateMachine<
 
     if (id === '' && hasPrefix) {
       throw new Error(
-        this.id
-          ? `State id '#' is empty. Target the root of ${describeMachine(this.id)} with '#${this.id}'.`
-          : "State id '#' is empty: the root of a machine without an `id` cannot be referenced by id. Give the machine an `id` to reference its root as '#<id>'."
+        !isDevelopment
+          ? xstateError(19, this.id)
+          : this.id
+            ? `State id '#' is empty. Target the root of ${describeMachine(this.id)} with '#${this.id}'.`
+            : "State id '#' is empty: the root of a machine without an `id` cannot be referenced by id. Give the machine an `id` to reference its root as '#<id>'."
       );
     }
     const stateNode = this.idMap.get(id);
     if (stateNode) {
       return stateNode as StateNode<TContext, TEvent, TMeta, TTransitionMeta>;
     }
-    throw new Error(this._describeUnknownStateId(id));
-  }
-
-  /**
-   * The error message for an id that matches no state. When a prefix of the
-   * id is a state id and the rest resolves beneath it as a relative path,
-   * suggests the target's own id.
-   */
-  private _describeUnknownStateId(id: string): string {
-    const message = `No state has id "${id}".`;
-    const segments = toStatePath(id);
-    for (let i = segments.length - 1; i > 0; i--) {
-      let node: AnyStateNode | undefined = this.idMap.get(
-        segments.slice(0, i).join(STATE_DELIMITER)
-      );
-      for (let j = i; node && j < segments.length; j++) {
-        node = node.states?.[segments[j]];
-      }
-      if (node) {
-        return node.config.id
-          ? `${message} Use "#${node.id}".`
-          : `${message} Use "#${node.id}", or give that state an id.`;
-      }
-    }
-    return message;
+    throw new Error(
+      isDevelopment
+        ? describeUnknownStateId(this.idMap, id)
+        : xstateError(20, id)
+    );
   }
 
   public getPersistedSnapshot(
@@ -1673,33 +1685,43 @@ export class StateMachine<
     if (typeof stateValue === 'string') {
       if (!node.states[stateValue]) {
         throw new InvalidSnapshotError(
-          `Persisted snapshot references state '${path.concat(stateValue).join('.')}' which does not exist on ${describeMachine(this.id)}.`
+          isDevelopment
+            ? `Persisted snapshot references state '${path.concat(stateValue).join('.')}' which does not exist on ${describeMachine(this.id)}.`
+            : xstateError(21, path.concat(stateValue).join('.'))
         );
       }
       return;
     }
-    const invalidValue = (reason: string) =>
+    const invalidValue = (code: 22 | 23) =>
       new InvalidSnapshotError(
-        `Persisted snapshot for ${describeMachine(this.id)} has an invalid state value${path.length ? ` at '${path.join('.')}'` : ''}: ${reason}.`
+        isDevelopment
+          ? `Persisted snapshot for ${describeMachine(this.id)} has an invalid state value${path.length ? ` at '${path.join('.')}'` : ''}: ${
+              code === 22
+                ? 'expected a state name or an object of state values'
+                : `state '${path.length ? path.join('.') : node.key}' is not parallel, so only one child state can be active`
+            }.`
+          : code === 22
+            ? xstateError(22, path.join('.'))
+            : xstateError(23, path.join('.'))
       );
     if (
       !stateValue ||
       typeof stateValue !== 'object' ||
       Array.isArray(stateValue)
     ) {
-      throw invalidValue('expected a state name or an object of state values');
+      throw invalidValue(22);
     }
     const keys = Object.keys(stateValue);
     if (keys.length > 1 && node.type !== 'parallel') {
-      throw invalidValue(
-        `state '${path.length ? path.join('.') : node.key}' is not parallel, so only one child state can be active`
-      );
+      throw invalidValue(23);
     }
     for (const key of keys) {
       const childNode = node.states[key];
       if (!childNode) {
         throw new InvalidSnapshotError(
-          `Persisted snapshot references state '${path.concat(key).join('.')}' which does not exist on ${describeMachine(this.id)}.`
+          isDevelopment
+            ? `Persisted snapshot references state '${path.concat(key).join('.')}' which does not exist on ${describeMachine(this.id)}.`
+            : xstateError(21, path.concat(key).join('.'))
         );
       }
       this._validatePersistedStateValue(
@@ -1716,12 +1738,16 @@ export class StateMachine<
   } {
     if (!isSnapshotRecord(snapshot)) {
       throw new InvalidSnapshotError(
-        `Persisted snapshot for ${describeMachine(this.id)} must be an object.`
+        isDevelopment
+          ? `Persisted snapshot for ${describeMachine(this.id)} must be an object.`
+          : xstateError(24, this.id)
       );
     }
     if (snapshot.value === undefined) {
       throw new InvalidSnapshotError(
-        `Persisted snapshot for ${describeMachine(this.id)} has no state value.`
+        isDevelopment
+          ? `Persisted snapshot for ${describeMachine(this.id)} has no state value.`
+          : xstateError(25, this.id)
       );
     }
     this._validatePersistedStateValue(snapshot.value, this.root, []);
@@ -1730,7 +1756,9 @@ export class StateMachine<
     );
     if (!isSnapshotRecord(snapshot.children)) {
       throw new InvalidSnapshotError(
-        "Persisted snapshot has invalid 'children'."
+        isDevelopment
+          ? "Persisted snapshot has invalid 'children'."
+          : xstateError(26)
       );
     }
     const childLogics = new Map<string, AnyActorLogic>();
@@ -1748,7 +1776,9 @@ export class StateMachine<
         (child.snapshot !== undefined && !isSnapshotRecord(child.snapshot))
       ) {
         throw new InvalidSnapshotError(
-          `Persisted snapshot has invalid child '${id}'.`
+          isDevelopment
+            ? `Persisted snapshot has invalid child '${id}'.`
+            : xstateError(27, id)
         );
       }
       if (child.remote === true) {
@@ -1757,7 +1787,9 @@ export class StateMachine<
           typeof child.src !== 'string'
         ) {
           throw new InvalidSnapshotError(
-            `Unable to restore remote child '${id}': a child referenced by address requires a registered source key and an address.`
+            isDevelopment
+              ? `Unable to restore remote child '${id}': a child referenced by address requires a registered source key and an address.`
+              : xstateError(28, id)
           );
         }
         continue;
@@ -1768,7 +1800,9 @@ export class StateMachine<
         !isActorLogic(child.src)
       ) {
         throw new InvalidSnapshotError(
-          `Persisted snapshot has invalid child '${id}'.`
+          isDevelopment
+            ? `Persisted snapshot has invalid child '${id}'.`
+            : xstateError(27, id)
         );
       }
       try {
@@ -1782,7 +1816,13 @@ export class StateMachine<
               : child.src;
         if (!logic) {
           throw new InvalidSnapshotError(
-            `Unable to restore child actor '${id}': child source '${typeof child.src === 'string' ? child.src : '<inline>'}' is not provided in ${describeMachine(this.id)}.`
+            isDevelopment
+              ? `Unable to restore child actor '${id}': child source '${typeof child.src === 'string' ? child.src : '<inline>'}' is not provided in ${describeMachine(this.id)}.`
+              : xstateError(
+                  29,
+                  id,
+                  typeof child.src === 'string' ? child.src : '<inline>'
+                )
           );
         }
         childLogics.set(id, logic);
@@ -1793,13 +1833,17 @@ export class StateMachine<
         throw new InvalidSnapshotError(
           error instanceof Error
             ? error.message
-            : `Unable to restore child actor '${id}'.`
+            : isDevelopment
+              ? `Unable to restore child actor '${id}'.`
+              : xstateError(30, id)
         );
       }
     }
     if (snapshot.timers !== undefined && !Array.isArray(snapshot.timers)) {
       throw new InvalidSnapshotError(
-        "Persisted snapshot has invalid 'timers'."
+        isDevelopment
+          ? "Persisted snapshot has invalid 'timers'."
+          : xstateError(31)
       );
     }
     for (const timer of snapshot.timers ?? []) {
@@ -1819,7 +1863,11 @@ export class StateMachine<
           isSerializedActorRef(timer.target)
         )
       ) {
-        throw new InvalidSnapshotError('Persisted snapshot has invalid timer.');
+        throw new InvalidSnapshotError(
+          isDevelopment
+            ? 'Persisted snapshot has invalid timer.'
+            : xstateError(32)
+        );
       }
       if (
         typeof timer.target === 'string' &&
@@ -1827,7 +1875,9 @@ export class StateMachine<
         !Object.hasOwn(snapshot.children, timer.target)
       ) {
         throw new InvalidSnapshotError(
-          `Unable to restore timer: target actor '${timer.target}' is unavailable.`
+          isDevelopment
+            ? `Unable to restore timer: target actor '${timer.target}' is unavailable.`
+            : xstateError(33, timer.target)
         );
       }
     }
@@ -1866,7 +1916,9 @@ export class StateMachine<
       createInertActorScope(this)) as NonNullable<typeof actorScope>;
     if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) {
       throw new InvalidSnapshotError(
-        `Persisted snapshot for ${describeMachine(this.id)} must be an object.`
+        isDevelopment
+          ? `Persisted snapshot for ${describeMachine(this.id)} must be an object.`
+          : xstateError(24, this.id)
       );
     }
     const snapshotMachine = (snapshot as any).machine;
@@ -1892,7 +1944,9 @@ export class StateMachine<
       persistedMachine.version !== legacyPersistedVersion
     ) {
       throw new Error(
-        `Persisted snapshot version '${legacyPersistedVersion}' conflicts with machine version '${persistedMachine.version}'.`
+        isDevelopment
+          ? `Persisted snapshot version '${legacyPersistedVersion}' conflicts with machine version '${persistedMachine.version}'.`
+          : xstateError(34, legacyPersistedVersion, persistedMachine.version)
       );
     }
     if (
@@ -1903,7 +1957,7 @@ export class StateMachine<
       throw new Error(
         isDevelopment
           ? `Machine ID mismatch: persisted snapshot was created by machine '${persistedMachine.id}', but machine '${this.id}' was provided.`
-          : `Machine ID mismatch: persisted snapshot machine '${persistedMachine.id}' does not match '${this.id}'.`
+          : xstateError(35, persistedMachine.id, this.id)
       );
     }
     if (persistedVersion !== this.version) {
@@ -1912,7 +1966,7 @@ export class StateMachine<
         throw new Error(
           isDevelopment
             ? `Persisted snapshot version '${persistedVersion}' does not match machine version '${this.version}' for machine '${this.id}'. Provide a \`migrate(persistedSnapshot, fromVersion)\` function in the machine config to migrate old snapshots.`
-            : `Persisted snapshot version '${persistedVersion}' does not match machine version '${this.version}'.`
+            : xstateError(36, persistedVersion, this.version)
         );
       }
       snapshot = migrate(snapshot, persistedVersion);
@@ -1943,7 +1997,9 @@ export class StateMachine<
           // Fail loudly instead of fabricating a source key that hosts would
           // route by.
           throw new Error(
-            `Unable to restore remote child '${actorId}': a child referenced by address requires a registered source key.`
+            isDevelopment
+              ? `Unable to restore remote child '${actorId}': a child referenced by address requires a registered source key.`
+              : xstateError(28, actorId)
           );
         }
         // The child's state lives with another runtime; restore a
@@ -2022,7 +2078,9 @@ export class StateMachine<
             ? timer.target
             : (timer.target as { type: string }).type;
         throw new InvalidSnapshotError(
-          `Unable to restore timer ${timer.id !== undefined ? `'${timer.id}'` : `for event '${timer.event.type}'`}: target actor '${targetDescription}' is unavailable.`
+          isDevelopment
+            ? `Unable to restore timer ${timer.id !== undefined ? `'${timer.id}'` : `for event '${timer.event.type}'`}: target actor '${targetDescription}' is unavailable.`
+            : xstateError(33, targetDescription)
         );
       }
       timers.push({ ...timer, event, target });

@@ -1,4 +1,6 @@
+import isDevelopment from '#is-development';
 import { hasAmbientInspector } from './inspectionAmbient.ts';
+import { xstateError } from './xstateError.ts';
 import type { AnyActor, Snapshot } from './types.ts';
 
 /** Snapshot-scoped actor identity and system view. @internal */
@@ -123,7 +125,9 @@ export function createSnapshotSystem(
       const existing = keyedActors.get(registryKey);
       if (existing && existing !== actor) {
         throw new Error(
-          `Actor with registry key '${String(registryKey)}' already exists.`
+          isDevelopment
+            ? `Actor with registry key '${String(registryKey)}' already exists.`
+            : xstateError(45, String(registryKey))
         );
       }
       keyedActors.set(registryKey, actor);
