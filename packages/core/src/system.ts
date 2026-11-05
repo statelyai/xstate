@@ -1,4 +1,5 @@
 import isDevelopment from '#is-development';
+import { xstateError } from './xstateError.ts';
 import { protectSelectionRelay } from './transitionSelection.ts';
 import type { InspectionEvent, SentRecord } from './inspection.ts';
 import type { StandardSchemaV1 } from './schema.types.ts';
@@ -858,7 +859,9 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
     const existing = this._keyedActors?.get(registryKey);
     if (existing && existing !== actor) {
       throw new Error(
-        `Actor with registry key '${registryKey as string}' already exists.`
+        isDevelopment
+          ? `Actor with registry key '${registryKey as string}' already exists.`
+          : xstateError(45, String(registryKey))
       );
     }
 

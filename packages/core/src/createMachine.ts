@@ -1,4 +1,6 @@
+import isDevelopment from '#is-development';
 import { diagnoseAuthorConfig } from './devDiagnostics.ts';
+import { xstateError } from './xstateError.ts';
 import { StandardSchemaV1 } from './schema.types.ts';
 import { StateMachine } from './StateMachine.ts';
 import type { Spawner } from './spawn.ts';
@@ -370,7 +372,9 @@ export function createMachine<
 export function createMachine(config: any, ...rest: unknown[]): any {
   if (rest[0] !== undefined) {
     throw new Error(
-      'createMachine(config) takes one argument; the second argument (implementations) was removed. Declare implementations with setup({ actions, guards, actors, delays }).createMachine(config), or pass them to machine.provide({ ... }).'
+      isDevelopment
+        ? 'createMachine(config) takes one argument; the second argument (implementations) was removed. Declare implementations with setup({ actions, guards, actors, delays }).createMachine(config), or pass them to machine.provide({ ... }).'
+        : xstateError(71)
     );
   }
   diagnoseAuthorConfig(config);

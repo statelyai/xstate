@@ -1,4 +1,5 @@
 import isDevelopment from '#is-development';
+import { xstateError } from './xstateError.ts';
 import { publishEmittedEvent } from './runtimeHelpers.ts';
 import { assertSendToEvent, builtInActions } from './actions.ts';
 import { resolveRegisteredActorSource } from './actorSource.ts';
@@ -188,9 +189,11 @@ function createMissingTargetEffect(
     detail: {
       targetId,
       error: new Error(
-        targetId !== undefined
-          ? `Unable to send event to unknown child '${targetId}'`
-          : 'Unable to send event to an undefined actor'
+        !isDevelopment
+          ? xstateError(65, targetId)
+          : targetId !== undefined
+            ? `Unable to send event to unknown child '${targetId}'`
+            : 'Unable to send event to an undefined actor'
       )
     },
     params: undefined,
@@ -404,7 +407,7 @@ function applyChildUpdate(
     throw new Error(
       isDevelopment
         ? `Cannot stop child actor ${update.actor.id} of ${actorScope.self.id} because it is not a child`
-        : `Cannot stop non-child actor ${update.actor.id}`
+        : xstateError(47, update.actor.id, actorScope.self.id)
     );
   }
   actorScope.system._unregister(update.actor);
@@ -507,7 +510,11 @@ function resolveTransitionSpawnSource(
   if (typeof source === 'string') {
     const logic = registeredActors?.[source];
     if (!logic) {
-      throw new Error(`Actor source '${source}' is not provided`);
+      throw new Error(
+        isDevelopment
+          ? `Actor source '${source}' is not provided`
+          : xstateError(66, source)
+      );
     }
     return { logic, src: source };
   }
@@ -638,7 +645,7 @@ export function assertChildIdFree(
     throw new Error(
       isDevelopment
         ? `Cannot spawn child actor with id '${id}': the id is already in use by another child of '${actorScope.self.id}'. Stop the existing child before reusing its id.`
-        : `Child actor id '${id}' is already in use`
+        : xstateError(67, id, actorScope.self.id)
     );
   }
   allocation.explicitIds.add(id);
@@ -719,7 +726,7 @@ export function assertRaiseEvent(event: unknown): void {
     throw new Error(
       isDevelopment
         ? `Only event objects may be used with raise; use raise({ type: "${event}" }) instead`
-        : `Only event objects may be used with raise`
+        : xstateError(68, event)
     );
   }
 }
@@ -1135,7 +1142,11 @@ export function createTerminationEffect(
   snapshot: Snapshot<unknown>
 ): TerminateExecutableEffect {
   if (snapshot.status !== 'done' && snapshot.status !== 'error') {
-    throw new Error('Cannot terminate an active or stopped actor');
+    throw new Error(
+      isDevelopment
+        ? 'Cannot terminate an active or stopped actor'
+        : xstateError(69, actorScope.self.id, snapshot.status)
+    );
   }
   const termination: ActorTermination =
     snapshot.status === 'done'
