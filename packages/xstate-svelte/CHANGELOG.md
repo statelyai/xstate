@@ -1,5 +1,24 @@
 # @xstate/svelte
 
+## 6.0.0-beta.0
+
+### Minor Changes
+
+- 81dd3dd: `useActorRef`, `useActor` and `useMachine` accept an already-created actor, such as one from `restoreActor`. The `snapshot` option is removed; restore the actor with `restoreActor` from `xstate/persist` and pass it to the hook. The hook starts the actor and stops it when the component is destroyed, as it does for actors it creates. Create the actor once per component instance.
+  
+  ```svelte
+  <script lang="ts">
+    import { useActor } from '@xstate/svelte';
+    import { restoreActor } from 'xstate/persist';
+  
+    const { snapshot, send } = useActor(restoreActor(machine, persisted));
+  </script>
+  ```
+
+### Patch Changes
+
+- 6cf6982: XState v6 enters beta. No further breaking changes are planned for APIs tagged `@public`; any that are needed will be called out with a migration path. APIs tagged `@experimental` may still change.
+
 ## 6.0.0-alpha.5
 
 ### Patch Changes
