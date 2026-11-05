@@ -38,7 +38,6 @@ import {
   MetaObject,
   OutputFrom,
   SnapshotEvent,
-  StateSchema,
   StateValue,
   TransitionContextMapper,
   TransitionContextPatch,
@@ -483,7 +482,7 @@ export type InvokeInputArgs<
       string,
       unknown,
       MetaObject,
-      StateSchema
+      any // the machine's state schema is not in scope; `any` keeps every state id indexable
     >,
     TEvent,
     TEmitted

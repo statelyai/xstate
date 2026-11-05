@@ -123,7 +123,7 @@ export type UnifiedArg<
       string,
       unknown,
       MetaObject, // TMeta
-      StateSchema // State schema
+      any // the machine's state schema is not in scope; `any` keeps every state id indexable
     >,
     TEvent,
     AnyEventObject
@@ -711,7 +711,7 @@ type TransitionFunctionArgs<
       string,
       unknown,
       MetaObject,
-      StateSchema
+      any // the machine's state schema is not in scope; `any` keeps every state id indexable
     >,
     TEvent
   >;
@@ -1264,7 +1264,7 @@ export type ContextFactory<
       string,
       unknown,
       MetaObject, // TMeta
-      StateSchema // State schema
+      any // the machine's state schema is not in scope; `any` keeps every state id indexable
     >,
     TEvent,
     AnyEventObject
@@ -1621,7 +1621,7 @@ export type Mapper<
         string,
         unknown,
         MetaObject, // TMeta
-        StateSchema // State schema
+        any // the machine's state schema is not in scope; `any` keeps every state id indexable
       >,
       TEvent,
       AnyEventObject
@@ -3583,7 +3583,7 @@ export type Action<
         string,
         unknown,
         MetaObject,
-        StateSchema
+        any // the machine's state schema is not in scope; `any` keeps every state id indexable
       >,
       TEvent
     >;
