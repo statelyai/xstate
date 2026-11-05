@@ -231,6 +231,8 @@ describe('v5 config diagnostics', () => {
         on: {
           'xstate.done.actor': { target: '.a' },
           'xstate.done.actor.*': { target: '.a' },
+          'xstate.snapshot.actor': { target: '.a' },
+          'xstate.snapshot.actor.*': { target: '.a' },
           'xstate.after': { target: '.a' }
         },
         states: { a: {} }

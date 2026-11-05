@@ -53,11 +53,13 @@ const SUFFIXED_LIFECYCLE =
 function checkLifecycleEventKey(eventType: string, stateId: string): void {
   const match = SUFFIXED_LIFECYCLE.exec(eventType);
   // `xstate.done.actor.*` is a wildcard over the category type and still matches.
-  // `xstate.snapshot.actor` is the v6 category type itself.
+  // `xstate.snapshot.actor` is the v6 category type itself, and
+  // `xstate.snapshot.actor.*` is a wildcard over it.
   if (
     !match ||
     match[2] === '*' ||
-    (match[1] === 'snapshot' && match[2] === 'actor')
+    (match[1] === 'snapshot' &&
+      (match[2] === 'actor' || match[2] === 'actor.*'))
   )
     return;
   const [, category, suffix] = match;

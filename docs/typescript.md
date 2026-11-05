@@ -91,7 +91,7 @@ on: {
 }
 ```
 
-Known reserved descriptors in `on` carry their actual event payloads: actor completion, error and snapshot events; execution errors; state completion; delayed events; and state or actor timeouts. Bare `xstate.error.actor` handlers receive `event.error` and `event.actorId`. Known actor-specific completion aliases preserve the actor output type. Legacy suffixed descriptors and their wildcards match runtime actor/state aliases; the event itself retains its stable bare type. Use `xstate.error.actor` and filter `event.actorId` explicitly when handling a particular child.
+Known reserved descriptors in `on` carry their actual event payloads: actor completion, error and snapshot events; execution errors; state completion; delayed events; and state or actor timeouts. Bare `xstate.error.actor` handlers receive `event.error` and `event.actorId`. Suffixed v5 descriptors such as `xstate.done.actor.fetchUser` never match, because v6 lifecycle event types carry the id in a payload field; development builds throw in `createMachine` when `on` uses one. Wildcards over a category type, such as `xstate.done.actor.*`, still match. Use `xstate.error.actor` and filter `event.actorId` explicitly when handling a particular child.
 
 ## Child completion events
 
