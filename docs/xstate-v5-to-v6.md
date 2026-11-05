@@ -4,9 +4,9 @@ description: Every API change from v5 to v6, organized by area, with before-and-
 ---
 
 
-XState v6 is currently in alpha (`npm install xstate@alpha`). It is a major release that simplifies the authoring experience and unifies actions, guards, and transitions under a single **inline function** model. Most v5 concepts still exist - they are expressed differently.
+XState v6 is currently in beta (`npm install xstate@beta`). It is a major release that simplifies the authoring experience and unifies actions, guards, and transitions under a single **inline function** model. Most v5 concepts still exist - they are expressed differently.
 
-This guide is organized by area. Skim the **Quick reference** below, then jump to the sections relevant to your codebase. Upgrade one machine at a time and run its tests after each change. To install v6 next to v5 and to automate part of the migration, see [§27](#27-codemod-and-side-by-side-installs).
+This guide is organized by area. Skim the **Quick reference** below and read [§30](#30-runtime-behavior-changes), which lists changes that run without a type error or a thrown error, then jump to the sections relevant to your codebase. Upgrade one machine at a time and run its tests after each change. To install v6 next to v5 and to automate part of the migration, see [§27](#27-codemod-and-side-by-side-installs).
 
 ---
 
@@ -41,6 +41,11 @@ This guide is organized by area. Skim the **Quick reference** below, then jump t
 | `snapshot._nodes`                                       | `snapshot.nodes`                                                                                                                    |
 | `systemId` (`createActor`, `invoke`, spawn options)     | `registryKey`; look up with `system.get(registryKey)`                                                                               |
 | `spawn('name')` in a `context` factory                  | `spawn(actors.name)`                                                                                                                |
+| `createMachine(config, implementations)`                | `setup({ ... })` or `machine.provide({ ... })`; a second argument is ignored at runtime (§4)                                        |
+| `on: { 'xstate.done.actor.job': ... }`                  | `on: { 'xstate.done.actor': { matches: { actorId: 'job' }, ... } }`; suffixed types never match ([Internal lifecycle events](#internal-lifecycle-events)) |
+| `(machine).checkout` state ids, `0.(machine).checkout` invoke ids | `checkout` (or `shop.checkout` with `id: 'shop'`), `checkout:0` ([Renamed members](#renamed-members-and-identifiers))     |
+| `@xstate.event`, `@xstate.snapshot`, `@xstate.action`, `@xstate.microstep` inspection events | `@xstate.actor` and `@xstate.transition` ([`@xstate/inspect` removed](#xstateinspect---removed)) |
+| React hooks recreate the actor when the machine changes | the first machine is used for the component's lifetime (§18)                                                                        |
 
 ---
 
@@ -573,7 +578,7 @@ const machine = s.createMachine({
   initial: { target: 'loading', input: { userId: 'u1' } },
   states: { loading },
   on: {
-    LOAD: '.loading'
+    LOAD: { target: '.loading', input: { userId: 'u1' } }
   }
 });
 ```
@@ -938,7 +943,7 @@ const machine = createMachine({
         START: (_, enq) => {
           enq.raise({ type: 'tick' });
         },
-        tick: 'done'
+        tick: { target: 'done' }
       }
     },
     done: {}
@@ -1200,14 +1205,24 @@ The granular v5 inspection-event subtypes (`@xstate.event`, `@xstate.snapshot`, 
 
 ### React (`@xstate/react`)
 
-In v6, `useActor` creates a fresh actor when the previous one has stopped:
+The hook signatures are unchanged:
 
 ```ts
-// API surface unchanged
 const [snapshot, send, actor] = useActor(machine, options);
 ```
 
-The hook signatures remained stable. Most application-level changes you make will be in the **machine** itself, not the hook.
+`useMachine`, `useActor` and `useActorRef` use the machine passed on the first render for the lifetime of the component, like a `useState` initializer. In v5, passing a machine with a different `config` on a later render stopped the actor and started a new one from its persisted snapshot. In v6, the later machine is ignored, and no error or warning is reported. A component that builds its machine from props, or wraps it in `useMemo` with dependencies, keeps running the first machine.
+
+- Pass values the actor needs at creation as `input`. The hooks read `input` once, when the actor is created; changing it on a later render does not update the running actor.
+- Pass implementations with `machine.provide({ ... })`. Provided implementations are picked up on every render.
+- Send an event to the actor when a prop changes after creation.
+- To restart the actor, or to switch to a different machine, change the component's `key`:
+
+```tsx
+<Editor key={mode} machine={mode === 'draft' ? draftMachine : reviewMachine} />
+```
+
+Creating the machine inside the component no longer resets state, so `useMemo` around `createMachine` is not needed. `useActor` creates a fresh actor when the previous one has stopped. `useMachine` is a deprecated alias of `useActor`.
 
 ### Vue / Svelte / Solid
 
@@ -1249,7 +1264,7 @@ Child actors, async logic with effects, and listener-resume semantics are all pa
 
 ### Persisted format
 
-`getPersistedSnapshot()` returns a JSON-shaped object, and `createActor(machine, { snapshot })` restores it leniently: the snapshot has no format version field, and XState reads the fields it recognizes. Snapshots persisted by v6 alphas restore without a migration step when the machine's states still resolve. Changes to your own states, context, and children are versioned with the machine `version` and migrated with `machineVersions()`, described below.
+`getPersistedSnapshot()` returns a JSON-shaped object, and `createActor(machine, { snapshot })` restores it leniently: the snapshot has no format version field, and XState reads the fields it recognizes. Snapshots persisted by v6 alphas do not restore unchanged: the beta changed the actor ref marker, the `timers` shape, the timer `startedAt` field (now `scheduledAt`) and several built-in event types. Discard alpha snapshots or convert them before restoring; see [Names changed during the v6 prereleases](#29-names-changed-during-the-v6-prereleases). Changes to your own states, context, and children are versioned with the machine `version` and migrated with `machineVersions()`, described below.
 
 The host serializes the payload. Development builds warn when `context`, `output`, `error`, or state input holds a value that does not survive a JSON round-trip: functions, symbols, `BigInt`, `Map`, `Set`, cycles, `NaN`, and `Infinity`. Persisting a snapshot whose `context` contains a circular reference throws an error that names the actor and the context path. See [Persistence](persistence.md) for the format rules.
 
@@ -1260,7 +1275,7 @@ Actor refs in persisted `context` are stored as `{ "$actor": "<address>" }`. v5 
 A machine may declare a `version`, which requires an `id`: `createMachine({ version: '1' })` is a type error and throws `Machine with version '1' must declare an id.` A versioned machine stamps every
 persisted snapshot with `machine: { id, version }` (which survives `JSON.stringify`), so
 a rollout can detect and migrate older snapshots instead of feeding them to an
-incompatible machine:
+incompatible machine. Persisted snapshots have no top-level `version` field:
 
 ```ts
 const machine = createMachine({
@@ -1272,9 +1287,10 @@ const machine = createMachine({
 
 const persisted = actor.getPersistedSnapshot();
 (persisted as any).machine; // { id: 'order', version: '1' }
+(persisted as any).version; // undefined
 ```
 
-Machines without a `version` produce snapshots with no `version` key.
+Machines without a `version` produce snapshots with no `machine` key.
 
 Pass `{ id, version, snapshotSchema, eventSchema }` to retain Standard Schema
 contracts for a historical version without retaining its old executable machine.
@@ -1577,8 +1593,8 @@ A failed child reaches its parent as an `xstate.error.actor` event with `actorId
 The `@xstate/codemod` package provides the `xstate-codemod` CLI. Review the changes with `--dry`, then run it again without `--dry` to write them:
 
 ```bash
-npx @xstate/codemod migrate "src/**/*.ts" --dry
-npx @xstate/codemod migrate "src/**/*.ts"
+npx @xstate/codemod@beta migrate "src/**/*.ts" --dry
+npx @xstate/codemod@beta migrate "src/**/*.ts"
 ```
 
 It runs these transforms in order. `--transform name,name` selects a subset.
@@ -1600,17 +1616,17 @@ The codemod does not convert action creators or guard combinators. Rewrite each 
 Install v6 under an npm alias next to v5:
 
 ```bash
-npm install xstate-v6@npm:xstate@alpha
+npm install xstate-v6@npm:xstate@beta
 ```
 
-`package.json` then lists `"xstate-v6": "npm:xstate@^6.0.0-alpha.<n>"` next to `"xstate"`. Import each version by its package name:
+`package.json` then lists `"xstate-v6": "npm:xstate@^6.0.0-beta.<n>"` next to `"xstate"`. Import each version by its package name:
 
 ```ts
 import { createMachine as createV5Machine } from 'xstate';
 import { createMachine } from 'xstate-v6';
 ```
 
-Migrate one file at a time: run the codemod on it, finish the manual changes, then change its `'xstate'` imports to `'xstate-v6'`. When no v5 imports remain, remove the alias and install `xstate@alpha` as `xstate`.
+Migrate one file at a time: run the codemod on it, finish the manual changes, then change its `'xstate'` imports to `'xstate-v6'`. When no v5 imports remain, remove the alias and install `xstate@beta` as `xstate`.
 
 ---
 
@@ -1675,6 +1691,123 @@ The old persisted shapes are not read on restore. Convert or discard alpha snaps
 
 ---
 
+## 30. Runtime behavior changes
+
+The changes in this section compile without type errors. Most of them also run without a thrown error or a warning. Check each one against machines that use the feature.
+
+### Promises returned from actions
+
+A function queued with `enq(fn)` that returns a promise now has that promise observed. If it rejects, the error is handled like an error thrown by the action: the nearest state `onError` handles it, or the actor's status becomes `'error'`. In v5, the returned promise was ignored.
+
+An arrow function with an expression body returns its promise:
+
+```ts
+on: {
+  SAVE: (_, enq) => {
+    enq(() => api.track('save')); // returns the promise from api.track
+  }
+}
+```
+
+If `api.track` rejects, the actor errors. To keep a fire-and-forget call, catch the rejection in the action, or use a block body that returns nothing:
+
+```ts
+enq(() => {
+  api.track('save').catch(() => {});
+});
+```
+
+To handle the failure in the machine, add `onError` to the state, or run the call in a `createAsyncLogic` actor.
+
+### Parallel regions
+
+Transitions inside parallel states exit fewer states than in v5. Entry and exit actions and the resulting state value can differ for the same events.
+
+- A transition whose targets are all inside one region exits and reenters only that region. In v5, sibling regions were also exited and reset to their initial states.
+- A transition from one region to a target in another region exits only the region that contains the target. The source region stays in its current state. Add `reenter: true` to exit the full transition domain as v5 did.
+- A `reenter: true` transition inside one region reenters only that region. Sibling regions do not run their entry actions again.
+- A transition from a final state yields to a conflicting transition from a sibling region that is still active.
+
+```ts
+const machine = createMachine({
+  id: 'p',
+  type: 'parallel',
+  on: {
+    ARCHIVE: { target: '#p.phase.archive' }
+  },
+  states: {
+    phase: { initial: 'inquiry', states: { inquiry: {}, archive: {} } },
+    mode: { initial: 'new', states: { new: {}, edit: {} } }
+  }
+});
+// v5: ARCHIVE from { phase: 'inquiry', mode: 'edit' } → { phase: 'archive', mode: 'new' }
+// v6: ARCHIVE from { phase: 'inquiry', mode: 'edit' } → { phase: 'archive', mode: 'edit' }
+```
+
+### Final states are inert
+
+A state with `type: 'final'` takes no transitions and does not start its invoked actors. This includes final states inside parallel regions. In v5, a final state inside a parallel region still took transitions and started its invoked actors. In development, `createMachine` warns when a final state declares `on`, `after` or `invoke`. Move those to a non-final state.
+
+### Completed children are removed
+
+A child actor is removed from `snapshot.children` after its `xstate.done.actor` or `xstate.error.actor` event is processed. It is also unregistered from the actor system. In v5, the child stayed in `snapshot.children` until the state that invoked it was exited or the child was stopped. Read the child's output or error from the event:
+
+```ts
+invoke: {
+  id: 'job',
+  src: 'job',
+  onDone: ({ event }) => ({ context: { result: event.output } })
+}
+```
+
+### Machine output from a final state
+
+When the root state does not define `output`, reaching a top-level final state sets `snapshot.output` to that final state's `output`. In v5, `snapshot.output` was `undefined` unless the root defined `output`.
+
+### Actor ids
+
+- The root actor's `id` is the machine `id` when the machine has one. In v5, the root actor's `id` was its `sessionId`, such as `x:0`, unless `createActor` received an `id` option.
+- A child spawned without an `id` from a registered source gets the id `<sourceKey>:<n>`, counted per parent, such as `worker:0`. A child spawned from inline logic without an `id` gets `x:<n>`.
+- Implicit state and invoke ids are listed in [Renamed members and identifiers](#renamed-members-and-identifiers).
+
+Logs, inspection consumers, and code that keys data by actor id see the new values.
+
+### Duplicate child ids
+
+Spawning or invoking a child with an explicit `id` that a running sibling already has errors the parent actor:
+
+```
+Cannot spawn child actor with id 'w': the id is already in use by another child of 'checkout'. Stop the existing child before reusing its id.
+```
+
+In v5, a second actor started with the same id. Stop the existing child before reusing its id, or give each child a distinct id.
+
+### Actors are single-use
+
+Calling `start()` after `stop()` throws in all builds:
+
+```
+Actor checkout was stopped and cannot be restarted. Create a new actor with createActor().
+```
+
+In v5, the call did nothing. Calling `start()` on a running, done, or errored actor is still a no-op. Create a new actor with `createActor()` instead of restarting a stopped one. This affects code that creates an actor once, starts it in a React effect, and stops it in the effect's cleanup: React Strict Mode runs the effect, the cleanup, and the effect again. The `@xstate/react` hooks handle this case.
+
+### Microstep limit
+
+The number of microsteps one event may take is unbounded by default, as in v5. In development builds, a macrostep that passes 1000 microsteps logs a warning once per machine. Set `createMachine({ options: { maxIterations } })` to turn a runaway cycle of eventless transitions or raised events into an `InfiniteTransitionError` instead of a hang.
+
+### Delay names
+
+An `after` key that is neither a declared delay name nor a valid duration errors the actor:
+
+```
+Invalid delay "retryDelya": not a configured delay name or a valid duration string (e.g. "500ms", "1.5s", "PT1M30S").
+```
+
+In v5, an undeclared delay name resolved to `undefined`, and the delayed transition fired immediately. When delays are declared in `setup({ delays })` or `createMachine({ delays })`, an undeclared name is also a type error.
+
+---
+
 ## Migration checklist
 
 - [ ] Run `xstate-codemod migrate --dry`, apply it, and migrate the APIs it reports by hand (§27)
@@ -1697,6 +1830,10 @@ The old persisted shapes are not read on restore. Convert or discard alpha snaps
 - [ ] Replace transition arrays in `on` and `always` with one transition function
 - [ ] Rename `machine.implementations` to `machine.sources` and `snapshot._nodes` to `snapshot.nodes`; replace `spawn('name')` in `context` factories with `spawn(actors.name)`
 - [ ] Check for optional children before `enq.sendTo`, or report `missingTarget` dead letters from `onRejectedEvent`
+- [ ] Replace suffixed lifecycle event types (`xstate.done.actor.<id>`, `xstate.after.<delay>.<id>`, `xstate.done.state.<id>`) in `on` keys and `event.type` checks with category types and `matches`
+- [ ] Update inspection consumers to `@xstate.actor` and `@xstate.transition`
+- [ ] Review React components that pass a different machine on later renders; use `input`, `machine.provide()`, or a `key` (§18)
+- [ ] Review each item in [§30](#30-runtime-behavior-changes): promises returned from actions, parallel regions, final states, completed children, final-state output, actor ids, duplicate child ids, restarting stopped actors, and delay names
 - [ ] Run `pnpm typecheck` and `pnpm test` to surface remaining issues
 
 ---
@@ -1758,7 +1895,7 @@ const machine = createMachine({
           enq.raise({ type: 'DONE' });
           return { context: { count: 0 } };
         },
-        DONE: 'finished'
+        DONE: { target: 'finished' }
       }
     },
     finished: { type: 'final' }

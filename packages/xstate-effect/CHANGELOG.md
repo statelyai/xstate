@@ -1,5 +1,11 @@
 # @xstate/effect
 
+## 1.0.0-alpha.12
+
+### Patch Changes
+
+- ce9fab5: Public exports now carry `@public` or `@experimental` stability tags.
+
 ## 1.0.0-alpha.11
 
 ### Patch Changes

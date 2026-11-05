@@ -65,6 +65,7 @@ interface BaseActorAtoms<TLogic extends AnyActorLogic, ER> {
   ) => Atom.Atom<AsyncResult.AsyncResult<T, ER>>;
 }
 
+/** @experimental */
 export type ActorAtoms<
   TLogic extends AnyActorLogic,
   ER = never
@@ -93,6 +94,8 @@ interface MissingRequirements<T> {
  * when the atom is released. Wrap the atoms with `Atom.keepAlive` to pin the
  * actor for the registry's lifetime, or with `Atom.family` to create one
  * actor per input.
+ *
+ * @experimental
  */
 export function createActorAtoms<TLogic extends AnyActorLogic, R, ER = never>(
   runtime: Atom.AtomRuntime<R, ER> &

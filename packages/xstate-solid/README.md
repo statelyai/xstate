@@ -9,7 +9,7 @@ The [@xstate/solid package](https://github.com/statelyai/xstate/tree/main/packag
 1. Install `xstate` and `@xstate/solid`:
 
 ```bash
-npm i xstate @xstate/solid
+npm i xstate@beta @xstate/solid@beta
 ```
 
 2. Import the `useActor` hook:

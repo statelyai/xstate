@@ -1,5 +1,11 @@
 # Changelog
 
+## 7.0.0-alpha.7
+
+### Patch Changes
+
+- ce9fab5: Public exports now carry `@public` or `@experimental` stability tags.
+
 ## 7.0.0-alpha.6
 
 ### Patch Changes

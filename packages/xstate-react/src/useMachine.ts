@@ -10,7 +10,12 @@ import {
 } from 'xstate';
 import { useActor } from './useActor.ts';
 
-/** @alias useActor */
+/**
+ * @alias useActor
+ *
+ * @deprecated Use `useActor(machine, options)`.
+ * @public
+ */
 export function useMachine<TMachine extends AnyStateMachine>(
   machine: TMachine,
   ...[options]: ConditionalRequired<
