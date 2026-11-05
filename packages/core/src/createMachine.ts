@@ -1,4 +1,3 @@
-import isDevelopment from '#is-development';
 import { diagnoseAuthorConfig } from './devDiagnostics.ts';
 import { StandardSchemaV1 } from './schema.types.ts';
 import { StateMachine } from './StateMachine.ts';
@@ -368,10 +367,13 @@ export function createMachine<
     } & MachineIdentity<TSS>;
 
 // Implementation
-export function createMachine(config: any): any {
-  if (isDevelopment) {
-    diagnoseAuthorConfig(config);
+export function createMachine(config: any, ...rest: unknown[]): any {
+  if (rest[0] !== undefined) {
+    throw new Error(
+      'createMachine(config) takes one argument; the second argument (implementations) was removed. Declare implementations with setup({ actions, guards, actors, delays }).createMachine(config), or pass them to machine.provide({ ... }).'
+    );
   }
+  diagnoseAuthorConfig(config);
   return new StateMachine(config) as any;
 }
 

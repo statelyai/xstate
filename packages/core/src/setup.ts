@@ -1,4 +1,3 @@
-import isDevelopment from '#is-development';
 import { diagnoseAuthorConfig, diagnoseSetupConfig } from './devDiagnostics.ts';
 import { SetupStateSchemas, StandardSchemaV1 } from './schema.types.ts';
 import type {
@@ -5339,9 +5338,7 @@ export const setup = function setupImplementation<
   SystemRegistry,
   TValidator
 > {
-  if (isDevelopment) {
-    diagnoseSetupConfig(config);
-  }
+  diagnoseSetupConfig(config);
   const {
     validator,
     states = {} as TStates,
@@ -5396,7 +5393,12 @@ export const setup = function setupImplementation<
         ResolveExtendedValidator<TValidator, TExtendValidator>
       >;
     },
-    createMachine(machineConfig) {
+    createMachine(machineConfig, ...rest: unknown[]) {
+      if (rest[0] !== undefined) {
+        throw new Error(
+          'createMachine(config) takes one argument; the second argument (implementations) was removed. Declare implementations in setup({ actions, guards, actors, delays }), or pass them to machine.provide({ ... }).'
+        );
+      }
       const configSchemas = machineConfig.schemas;
       const mergedSchemas = mergeSchemas(configSchemas, schemas);
       const mergedStates = mergeStateSchemas(machineConfig.states, states);
@@ -5414,9 +5416,7 @@ export const setup = function setupImplementation<
         ...(mergedGuards ? { guards: mergedGuards } : undefined),
         ...(mergedDelays ? { delays: mergedDelays } : undefined)
       } as any;
-      if (isDevelopment) {
-        diagnoseAuthorConfig(config);
-      }
+      diagnoseAuthorConfig(config);
       return new StateMachine(config, undefined, validator) as any;
     },
     createInvoke(
