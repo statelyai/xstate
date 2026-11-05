@@ -1661,7 +1661,7 @@ These keys throw an error:
 `createActor(...)` also throws on any option it does not read, and the message lists the supported options:
 
 ```
-Unknown actor option "inptu". Supported options: clock, logger, syncSnapshot, id, registryKey, input, snapshot, src, inspect, onRejectedEvent, onUnhandledEvent.
+Unknown actor option "inptu". Supported options: clock, logger, syncSnapshot, id, registryKey, input, src, inspect, onRejectedEvent, onUnhandledEvent.
 ```
 
 These keys change nothing in v6. Development builds log a warning:

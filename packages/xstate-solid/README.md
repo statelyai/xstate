@@ -146,16 +146,19 @@ const Loader = () => {
 Restore an actor with `restoreActor(...)` from `xstate/persist` and pass it to `useActor(...)`:
 
 ```js
+import { createActor } from 'xstate';
 import { restoreActor } from 'xstate/persist';
 
 // Get the persisted snapshot from somewhere, e.g. localStorage
-const persistedSnapshot = JSON.parse(localStorage.getItem('some-persisted-state-key'));
+const stored = localStorage.getItem('some-persisted-state-key');
 
 const App = () => {
-  const actor = restoreActor(someMachine, persistedSnapshot);
+  const actor = stored
+    ? restoreActor(someMachine, JSON.parse(stored))
+    : createActor(someMachine);
   const [snapshot, send] = useActor(actor);
 
-  // snapshot will rehydrate the provided persisted snapshot, it won't be the machine's initial snapshot
+  // With a stored value, snapshot starts from the persisted snapshot instead of the machine's initial snapshot
 
   return (/* ... */)
 }
