@@ -53,8 +53,7 @@ import type {
   DoNotInfer,
   IsNever,
   NonReducibleUnknown,
-  SingleOrArray,
-  TODO
+  SingleOrArray
 } from './typeUtils.ts';
 import { MachineContext, Mapper } from './types';
 import type { LowInfer } from './typeUtils.ts';
@@ -482,8 +481,8 @@ export type InvokeInputArgs<
       StateValue,
       string,
       unknown,
-      TODO,
-      TODO
+      MetaObject,
+      any // the machine's state schema is not in scope; `any` keeps every state id indexable
     >,
     TEvent,
     TEmitted
@@ -1435,7 +1434,7 @@ export interface Next_RegularStateNodeConfig<
           TContext,
           AfterEvent,
           TEvent,
-          TODO, // TEmitted
+          TEmitted,
           TActionMap,
           TActorMap,
           TGuardMap,
