@@ -6,12 +6,14 @@ description: Restore a workflow, process an event and persist the next snapshot.
 Backend workflows usually have a longer lifetime than one request. Persist their snapshots between requests.
 
 ```ts
+import { createActor } from 'xstate';
+import { restoreActor } from 'xstate/persist';
+
 export async function handleOrderEvent(orderId: string, event: unknown) {
   const stored = await database.orders.find(orderId);
-  const order = createActor(orderMachine, {
-    input: { orderId },
-    snapshot: stored?.snapshot
-  }).start();
+  const order = stored
+    ? restoreActor(orderMachine, stored.snapshot).start()
+    : createActor(orderMachine, { input: { orderId } }).start();
 
   order.send(event as { type: string });
   await database.orders.save(orderId, {
@@ -93,8 +95,9 @@ Some endpoints have to answer with the result, not just acknowledge the event. S
 
 ```ts
 import { waitFor } from 'xstate';
+import { restoreActor } from 'xstate/persist';
 
-const order = createActor(orderMachine, { snapshot: stored?.snapshot }).start();
+const order = restoreActor(orderMachine, stored.snapshot).start();
 order.send({ type: 'confirm' });
 
 const settled = await waitFor(

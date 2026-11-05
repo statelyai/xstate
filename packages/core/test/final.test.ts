@@ -7,6 +7,7 @@ import {
   transition
 } from '../src/index.ts';
 import { trackEntries } from './utils.ts';
+import { restoreActor } from '../src/persist/index.ts';
 
 describe('final states', () => {
   it('status of a machine with a root state being final should be done', () => {
@@ -400,9 +401,7 @@ describe('final states', () => {
 
     expect(persistedSnapshot.output).toBe('persisted output');
 
-    const restoredActorRef = createActor(machine, {
-      snapshot: persistedSnapshot
-    }).start();
+    const restoredActorRef = restoreActor(machine, persistedSnapshot).start();
 
     expect(restoredActorRef.getSnapshot().output).toBe('persisted output');
   });

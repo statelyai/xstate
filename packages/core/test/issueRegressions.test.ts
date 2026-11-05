@@ -14,6 +14,7 @@ import {
 } from '../src/index.ts';
 import { getShortestPaths } from '../src/graph/index.ts';
 import { z } from 'zod';
+import { restoreActor } from '../src/persist/index.ts';
 
 function roundTrip(persisted: unknown): any {
   return JSON.parse(JSON.stringify(persisted));
@@ -42,7 +43,7 @@ describe('persistence', () => {
     const persisted = roundTrip(actor.getPersistedSnapshot());
     actor.stop();
 
-    const restored = createActor(machine, { snapshot: persisted }).start();
+    const restored = restoreActor(machine, persisted).start();
 
     expect(restored.getSnapshot().getMeta()).toEqual({
       b: { title: 'B' }
@@ -74,7 +75,7 @@ describe('persistence', () => {
     const persisted = roundTrip(actor.getPersistedSnapshot());
     expect(persisted.children.w1.src).toBe('worker');
 
-    const restored = createActor(machine, { snapshot: persisted }).start();
+    const restored = restoreActor(machine, persisted).start();
     expect(restored.getSnapshot().children.w1).toBeDefined();
 
     // Raw inline logic has no source identity, so persisting it still throws

@@ -71,16 +71,21 @@ function loadSnapshot() {
 }
 ```
 
-> **Note:** A snapshot that cannot represent a state of the machine (not an object, no valid `value`, a `value` naming states the machine does not have, malformed children or timers, or a local child source that cannot be restored) restores to an actor whose snapshot has `status: 'error'` and an `InvalidSnapshotError` as `error`; `createActor(...)` does not throw. Unknown fields are ignored. Validating first lets you fall back to the initial state instead.
+> **Note:** A snapshot that cannot represent a state of the machine (not an object, no valid `value`, a `value` naming states the machine does not have, malformed children or timers, or a local child source that cannot be restored) restores to an actor whose snapshot has `status: 'error'` and an `InvalidSnapshotError` as `error`; `restoreActor(...)` does not throw. Unknown fields are ignored. Validating first lets you fall back to the initial state instead.
 
 ## 3. Restore on startup
 
-Pass the snapshot to `createActor(...)` with the `snapshot` option. When there is nothing to restore, the actor starts from its initial state.
+Pass the snapshot to `restoreActor(...)` from `xstate/persist`. When there is nothing to restore, create the actor with `createActor(...)` so it starts from its initial state.
 
 ```ts
-const checkout = createActor(checkoutMachine, {
-  snapshot: loadSnapshot()
-}).start();
+import { restoreActor } from 'xstate/persist';
+
+const persisted = loadSnapshot();
+const checkout = (
+  persisted
+    ? restoreActor(checkoutMachine, persisted)
+    : createActor(checkoutMachine)
+).start();
 
 const stopSaving = saveOnChange(checkout);
 ```

@@ -133,8 +133,8 @@ actor.send({ type: 'toggle' }); // logs 'active'
 
 The pure `transition(logic, snapshot, event)` and `initialTransition(logic)`
 functions from `xstate` also accept an FSM. `actor.getPersistedSnapshot()`
-returns the FSM snapshot as is, and `createActor(machine, { snapshot })`
-restores it.
+returns the FSM snapshot as is, and `restoreActor(machine, persisted)` from
+`xstate/persist` restores it.
 
 `xstate/fsm` itself does not import the actor runtime. Importing `createActor`
 from `xstate` adds the runtime to your bundle.

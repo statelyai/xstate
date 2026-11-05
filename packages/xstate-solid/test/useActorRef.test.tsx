@@ -1,10 +1,37 @@
 /* @jsxImportSource solid-js */
-import { createMachine } from 'xstate';
+import { createActor, createMachine } from 'xstate';
+import { restoreActor } from 'xstate/persist';
 import { render, fireEvent, screen } from '@solidjs/testing-library';
-import { useActorRef } from '../src/index.ts';
+import { useActor, useActorRef } from '../src/index.ts';
 import { createEffect } from 'solid-js';
 
 describe('useActorRef', () => {
+  it('uses a ready actor as is, starting it on mount and stopping it on unmount', () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: { a: { on: { NEXT: { target: 'b' } } }, b: {} }
+    });
+    const source = createActor(machine).start();
+    source.send({ type: 'NEXT' });
+    const actor = restoreActor(machine, source.getPersistedSnapshot());
+    source.stop();
+    let received: unknown;
+
+    const App = () => {
+      const [snapshot, , actorRef] = useActor(actor);
+      received = actorRef;
+      return <div data-testid="value">{String(snapshot.value)}</div>;
+    };
+
+    const { unmount } = render(() => <App />);
+    expect(received).toBe(actor);
+    expect(screen.getByTestId('value').textContent).toBe('b');
+    expect(actor.getSnapshot().status).toBe('active');
+
+    unmount();
+    expect(actor.getSnapshot().status).toBe('stopped');
+  });
+
   it('observer should be called with next state', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
     const machine = createMachine({

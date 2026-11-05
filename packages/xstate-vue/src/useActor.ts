@@ -13,7 +13,20 @@ import {
 import { useActorRef } from './useActorRef.ts';
 import { useSelector } from './useSelector.ts';
 
-/** @public */
+/**
+ * Creates an actor from `logic`, or uses an already-created actor (e.g. from
+ * `restoreActor`), and subscribes to its snapshot. Create a
+ * passed actor once per component instance.
+ *
+ * @public
+ */
+export function useActor<TLogic extends AnyActorLogic>(
+  actor: Actor<TLogic>
+): {
+  snapshot: Ref<SnapshotFrom<TLogic>>;
+  send: Actor<TLogic>['send'];
+  actorRef: Actor<TLogic>;
+};
 export function useActor<TLogic extends AnyActorLogic>(
   actorLogic: TLogic,
   ...[options]: ConditionalRequired<
@@ -26,20 +39,24 @@ export function useActor<TLogic extends AnyActorLogic>(
   actorRef: Actor<TLogic>;
 };
 export function useActor(
-  actorLogic: AnyActorLogic,
+  actorLogic: AnyActorLogic | Actor<AnyActorLogic>,
   options: ActorOptions<any> = {}
 ) {
+  const readyActor = actorLogic instanceof Actor;
   if (
     isDevelopment &&
+    !readyActor &&
     'send' in actorLogic &&
     typeof actorLogic.send === 'function'
   ) {
     throw new Error(
-      `useActor() expects actor logic (e.g. a machine), but received an ActorRef. Use the useSelector(actorRef, ...) hook instead to read the ActorRef's snapshot.`
+      `useActor() expects actor logic (e.g. a machine), but received an ActorRef. Pass an Actor created with createActor()/restoreActor(), or use the useSelector(actorRef, ...) hook to read an ActorRef's snapshot.`
     );
   }
 
-  const actorRef = useActorRef(actorLogic, options);
+  const actorRef = readyActor
+    ? useActorRef(actorLogic)
+    : useActorRef(actorLogic, options);
   const snapshot = useSelector(actorRef, (s) => s);
 
   return {

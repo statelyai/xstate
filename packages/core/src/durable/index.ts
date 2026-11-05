@@ -1,3 +1,4 @@
+import { restoreLogicSnapshot } from '../persist/index.ts';
 import { getTimerStart, recordTimerStart } from '../timerClock.ts';
 import {
   describeExecutableEffect,
@@ -702,9 +703,11 @@ export function createDurable<TLogic extends AnyActorLogic>(
       const { snapshot, scope } = withSystemInspector(inspect, () =>
         withExecutionIdentity(executionIdentity, () => {
           const scope = createInertActorScope(logic);
-          const snapshot = logic.restoreSnapshot
-            ? logic.restoreSnapshot(persistedSnapshot, scope)
-            : persistedSnapshot;
+          const snapshot = restoreLogicSnapshot(
+            logic,
+            persistedSnapshot,
+            scope
+          );
           setInertActorScopeSnapshot(scope, snapshot, false);
           return {
             snapshot: installSystemRuntime(

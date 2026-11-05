@@ -32,6 +32,7 @@ import {
 import { getSnapshotActorRef } from '../src/snapshotActorRef';
 import { setInertActorMaterializationObserver } from '../src/inertActorScope';
 import { z } from 'zod';
+import { restoreActor } from '../src/persist/index.ts';
 
 const isEffect =
   <T extends SpecialExecutableEffect['type']>(type: T) =>
@@ -2942,9 +2943,7 @@ describe('getNextTransitions', () => {
       states: { a: {} }
     });
     const persisted = createActor(machineV1).start().getPersistedSnapshot();
-    const errorSnapshot = createActor(machineV2, {
-      snapshot: persisted
-    }).getSnapshot();
+    const errorSnapshot = restoreActor(machineV2, persisted).getSnapshot();
 
     expect(errorSnapshot.status).toBe('error');
     expect(getNextTransitions(errorSnapshot)).toEqual([]);

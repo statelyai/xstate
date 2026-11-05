@@ -13,6 +13,7 @@ import {
 } from '../src/index.ts';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { z } from 'zod';
+import { restoreActor } from '../src/persist/index.ts';
 
 describe('rehydration', () => {
   describe('using persisted state', () => {
@@ -30,9 +31,7 @@ describe('rehydration', () => {
       const persistedState = JSON.stringify(actorRef.getPersistedSnapshot());
       actorRef.stop();
 
-      const service = createActor(machine, {
-        snapshot: JSON.parse(persistedState)
-      }).start();
+      const service = restoreActor(machine, JSON.parse(persistedState)).start();
 
       expect(service.getSnapshot().hasTag('foo')).toBe(true);
     });
@@ -55,9 +54,7 @@ describe('rehydration', () => {
       const persistedState = JSON.stringify(actorRef.getPersistedSnapshot());
       actorRef.stop();
 
-      createActor(machine, { snapshot: JSON.parse(persistedState) })
-        .start()
-        .stop();
+      restoreActor(machine, JSON.parse(persistedState)).start().stop();
 
       expect(actual).toEqual([]);
     });
@@ -76,9 +73,7 @@ describe('rehydration', () => {
         createActor(machine).start().getSnapshot()
       );
       const restoredState = JSON.parse(persistedState);
-      const service = createActor(machine, {
-        snapshot: restoredState
-      }).start();
+      const service = restoreActor(machine, restoredState).start();
 
       expect(service.getSnapshot().can({ type: 'FOO' })).toBe(true);
     });
@@ -99,9 +94,7 @@ describe('rehydration', () => {
       });
 
       const activeState = machine.resolveState({ value: 'active' });
-      const service = createActor(machine, {
-        snapshot: activeState
-      });
+      const service = restoreActor(machine, activeState);
 
       service.start();
 
@@ -125,9 +118,7 @@ describe('rehydration', () => {
         }
       });
 
-      createActor(machine, {
-        snapshot: machine.resolveState({ value: 'active' })
-      })
+      restoreActor(machine, machine.resolveState({ value: 'active' }))
         .start()
         .stop();
 
@@ -180,7 +171,7 @@ describe('rehydration', () => {
 
     actor.stop();
 
-    createActor(machine, { snapshot: persistedState }).start();
+    restoreActor(machine, persistedState).start();
 
     expect(entrySpy).toHaveBeenCalledTimes(1);
   });
@@ -207,9 +198,7 @@ describe('rehydration', () => {
     const persistedState = actor.getPersistedSnapshot();
     actor.stop();
 
-    const rehydratedActor = createActor(machine, {
-      snapshot: persistedState
-    }).start();
+    const rehydratedActor = restoreActor(machine, persistedState).start();
 
     expect(() =>
       rehydratedActor.send({
@@ -237,9 +226,7 @@ describe('rehydration', () => {
     const persistedState = actor.getPersistedSnapshot();
     actor.stop();
 
-    const rehydratedActor = createActor(machine, {
-      snapshot: persistedState
-    }).start();
+    const rehydratedActor = restoreActor(machine, persistedState).start();
 
     expect(rehydratedActor.system.get('mySystemId')).toBeDefined();
   });
@@ -261,9 +248,7 @@ describe('rehydration', () => {
     const persistedState = actor.getPersistedSnapshot();
     actor.stop();
 
-    const rehydratedActor = createActor(machine, {
-      snapshot: persistedState
-    }).start();
+    const rehydratedActor = restoreActor(machine, persistedState).start();
 
     expect(rehydratedActor.system.get('mySystemId')).toBeUndefined();
   });
@@ -292,9 +277,7 @@ describe('rehydration', () => {
 
     spy.mockClear();
 
-    createActor(machine, {
-      snapshot: persistedState
-    }).start();
+    restoreActor(machine, persistedState).start();
 
     expect(spy).not.toHaveBeenCalled();
   });
@@ -311,9 +294,10 @@ describe('rehydration', () => {
 
     const actor = createActor(machine).start();
 
-    const rehydratedActor = createActor(machine, {
-      snapshot: actor.getPersistedSnapshot()
-    }).start();
+    const rehydratedActor = restoreActor(
+      machine,
+      actor.getPersistedSnapshot()
+    ).start();
 
     const persistedChildren = (rehydratedActor.getPersistedSnapshot() as any)
       .children;
@@ -339,7 +323,7 @@ describe('rehydration', () => {
     const persistedState = actorRef.getPersistedSnapshot();
 
     const spy = vi.fn();
-    const actorRef2 = createActor(machine, { snapshot: persistedState });
+    const actorRef2 = restoreActor(machine, persistedState);
     actorRef2.subscribe({
       complete: spy
     });
@@ -368,7 +352,7 @@ describe('rehydration', () => {
     const persistedState = actorRef.getPersistedSnapshot();
 
     const spy = vi.fn();
-    const actorRef2 = createActor(machine, { snapshot: persistedState });
+    const actorRef2 = restoreActor(machine, persistedState);
     actorRef2.subscribe({
       error: spy
     });
@@ -398,7 +382,7 @@ describe('rehydration', () => {
     const persistedState = actorRef.getPersistedSnapshot();
     spy.mockClear();
 
-    const actorRef2 = createActor(machine, { snapshot: persistedState });
+    const actorRef2 = restoreActor(machine, persistedState);
     actorRef2.start();
 
     expect(spy).not.toHaveBeenCalled();
@@ -424,9 +408,7 @@ describe('rehydration', () => {
       ]
     });
 
-    createActor(machine, {
-      snapshot: createActor(machine).getPersistedSnapshot()
-    }).start();
+    restoreActor(machine, createActor(machine).getPersistedSnapshot()).start();
 
     spy.mockClear();
 
@@ -491,7 +473,7 @@ describe('rehydration', () => {
     actorRef.send({ type: 'INC' });
 
     const persistedState = actorRef.getPersistedSnapshot();
-    const actorRef2 = createActor(machine, { snapshot: persistedState });
+    const actorRef2 = restoreActor(machine, persistedState);
 
     expect(
       actorRef2
@@ -506,7 +488,7 @@ describe('rehydration', () => {
       machine: TLogic,
       snapshot: Snapshot<unknown> & RestorablePersistedSnapshotFor<TLogic>
     ) {
-      const restored = createActor(machine, { snapshot, input: undefined });
+      const restored = restoreActor(machine, snapshot);
       restored.subscribe({ error: () => {} });
       restored.start();
       return restored.getSnapshot();
@@ -662,10 +644,7 @@ describe('rehydration', () => {
       });
 
       function restoreMalformed(logic: AnyStateMachine, snapshot: unknown) {
-        const restored = createActor(logic, {
-          snapshot: snapshot as any,
-          input: undefined
-        });
+        const restored = restoreActor(logic, snapshot as any);
         restored.subscribe({ error: () => {} });
         restored.start();
         return restored;
@@ -825,7 +804,7 @@ describe('rehydration', () => {
       const snapshot = actorRef.getPersistedSnapshot();
       actorRef.stop();
 
-      const restored = createActor(machine, { snapshot }).start();
+      const restored = restoreActor(machine, snapshot).start();
 
       expect(restored.getSnapshot().status).toBe('active');
       expect(restored.getSnapshot().value).toEqual({
@@ -872,9 +851,10 @@ describe('inline invoke persistence', () => {
 
     expect(persisted.children.counter).not.toHaveProperty('src');
 
-    const restored = createActor(machine, {
-      snapshot: JSON.parse(JSON.stringify(persisted))
-    }).start();
+    const restored = restoreActor(
+      machine,
+      JSON.parse(JSON.stringify(persisted))
+    ).start();
     const child = restored.getSnapshot().children.counter as AnyActor;
     expect(restored.getSnapshot().status).toBe('active');
     expect(child.getSnapshot().context).toEqual({ count: 1 });
@@ -900,7 +880,7 @@ describe('inline invoke persistence', () => {
     expect(persisted.children.counter).not.toHaveProperty('src');
     expect(persisted.children.other).not.toHaveProperty('src');
 
-    const restored = createActor(machine, { snapshot: persisted }).start();
+    const restored = restoreActor(machine, persisted).start();
     const { children } = restored.getSnapshot();
     expect((children.counter as AnyActor).getSnapshot().context).toEqual({
       count: 1
@@ -935,7 +915,7 @@ describe('inline invoke persistence', () => {
     const persisted = actor.getPersistedSnapshot();
     actor.stop();
 
-    const restored = createActor(machine, { snapshot: persisted }).start();
+    const restored = restoreActor(machine, persisted).start();
     const child = restored.getSnapshot().children.worker as AnyActor;
     expect(child.getSnapshot().context).toEqual({ count: 1 });
     child.send({ type: 'INC' });
@@ -952,7 +932,7 @@ describe('inline invoke persistence', () => {
     const persisted = persistAfterIncrement(machine, 'counter');
     expect(persisted.children.counter.src).toBe('counter');
 
-    const restored = createActor(machine, { snapshot: persisted }).start();
+    const restored = restoreActor(machine, persisted).start();
     expect(
       (restored.getSnapshot().children.counter as AnyActor).getSnapshot()
         .context
@@ -973,9 +953,7 @@ describe('inline invoke persistence', () => {
     const persisted = actor.getPersistedSnapshot() as any;
     actor.stop();
 
-    const restored = createActor(machine, {
-      snapshot: { ...persisted, value: 'idle' }
-    });
+    const restored = restoreActor(machine, { ...persisted, value: 'idle' });
     restored.subscribe({ error: () => {} });
     restored.start();
 

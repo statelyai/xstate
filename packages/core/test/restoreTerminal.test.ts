@@ -1,5 +1,6 @@
 import { setTimeout as sleep } from 'node:timers/promises';
 import { createActor, createMachine } from '../src/index.ts';
+import { restoreActor } from '../src/persist/index.ts';
 
 const entry = vi.fn();
 const action = vi.fn();
@@ -38,7 +39,7 @@ describe('restoring terminal snapshots', () => {
   it.each(['done', 'error', 'stopped'] as const)(
     'keeps a restored %s snapshot terminal after start() without running transitions',
     (status) => {
-      const actor = createActor(machine, { snapshot: persistedWith(status) });
+      const actor = restoreActor(machine, persistedWith(status));
       actor.subscribe({ error: () => {} });
       actor.start();
       const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
@@ -53,7 +54,7 @@ describe('restoring terminal snapshots', () => {
   );
 
   it('delivers a restored error to subscribers added before and after start()', () => {
-    const actor = createActor(machine, { snapshot: persistedWith('error') });
+    const actor = restoreActor(machine, persistedWith('error'));
     const before = vi.fn();
     actor.subscribe({ error: before });
     actor.start();
@@ -74,7 +75,7 @@ describe('restoring terminal snapshots', () => {
 
     let actor!: ReturnType<typeof createActor<typeof machine>>;
     expect(() => {
-      actor = createActor(machine, { snapshot: invalid });
+      actor = restoreActor(machine, invalid);
     }).not.toThrow();
     const error = vi.fn();
     actor.subscribe({ error });
@@ -93,7 +94,7 @@ describe('restoring terminal snapshots', () => {
   it('restore failure yields a machine snapshot with matches()', () => {
     const persisted = createActor(machine).start().getPersistedSnapshot();
     const invalid = { ...persisted, value: 'missing' } as typeof persisted;
-    const actor = createActor(machine, { snapshot: invalid });
+    const actor = restoreActor(machine, invalid);
     const error = vi.fn();
     actor.subscribe({ error });
     actor.start();

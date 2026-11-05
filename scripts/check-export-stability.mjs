@@ -21,6 +21,7 @@ const entries = [
   'graph/index.ts',
   'fsm/index.ts',
   'durable/index.ts',
+  'persist/index.ts',
   'validation/index.ts'
 ]
   .map((file) => join(coreSrc, file))

@@ -1,6 +1,7 @@
 import { createFSM } from '../src/fsm.ts';
 import { createActor } from '../src/createActor.ts';
 import { initialTransition, transition } from '../src/transition.ts';
+import { restoreActor } from '../src/persist/index.ts';
 
 function createCounter() {
   return createFSM<
@@ -69,7 +70,7 @@ describe('createFSM as actor logic', () => {
     actor.send({ type: 'inc' });
     const persisted = JSON.parse(JSON.stringify(actor.getPersistedSnapshot()));
 
-    const restored = createActor(fsm, { snapshot: persisted }).start();
+    const restored = restoreActor(fsm, persisted).start();
     expect(restored.getSnapshot().value).toBe('active');
     expect(restored.getSnapshot().context).toEqual({ count: 1 });
 

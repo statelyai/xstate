@@ -6,7 +6,7 @@ How to host one persisted actor per entity on Cloudflare Workers: a Durable Obje
 
 ## XState features used
 
-- `getPersistedSnapshot()` and `createActor(machine, { snapshot })`
+- `getPersistedSnapshot()` and `restoreActor(machine, snapshot)` from `xstate/persist`
 - `snapshot.can()` to reject events the order cannot accept
 - transition functions that update context from event payloads
 - final states
