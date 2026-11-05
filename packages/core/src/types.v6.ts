@@ -38,6 +38,7 @@ import {
   MetaObject,
   OutputFrom,
   SnapshotEvent,
+  StateSchema,
   StateValue,
   TransitionContextMapper,
   TransitionContextPatch,
@@ -53,8 +54,7 @@ import type {
   DoNotInfer,
   IsNever,
   NonReducibleUnknown,
-  SingleOrArray,
-  TODO
+  SingleOrArray
 } from './typeUtils.ts';
 import { MachineContext, Mapper } from './types';
 import type { LowInfer } from './typeUtils.ts';
@@ -482,8 +482,8 @@ export type InvokeInputArgs<
       StateValue,
       string,
       unknown,
-      TODO,
-      TODO
+      MetaObject,
+      StateSchema
     >,
     TEvent,
     TEmitted
@@ -1435,7 +1435,7 @@ export interface Next_RegularStateNodeConfig<
           TContext,
           AfterEvent,
           TEvent,
-          TODO, // TEmitted
+          TEmitted,
           TActionMap,
           TActorMap,
           TGuardMap,

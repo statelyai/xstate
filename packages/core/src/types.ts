@@ -28,8 +28,7 @@ import type {
   DoNotInfer,
   ConditionalRequired,
   SingleOrArray,
-  HomomorphicOmit,
-  TODO
+  HomomorphicOmit
 } from './typeUtils.ts';
 // Referenced by framework adapter declarations and by emitted declarations of
 // inferred logic types, so the entry point keeps them.
@@ -123,8 +122,8 @@ export type UnifiedArg<
       StateValue,
       string,
       unknown,
-      TODO, // TMeta
-      TODO // State schema
+      MetaObject, // TMeta
+      StateSchema // State schema
     >,
     TEvent,
     AnyEventObject
@@ -553,7 +552,7 @@ export type DelayedTransitions<
         TContext,
         TEvent,
         TEvent,
-        TODO,
+        TEmitted,
         any,
         any,
         any,
@@ -704,7 +703,16 @@ type TransitionFunctionArgs<
   context: TContext;
   event: TCurrentEvent;
   self: ActorSelf<
-    MachineSnapshot<TContext, TEvent, TODO, TODO, TODO, TODO, TODO, TODO>,
+    MachineSnapshot<
+      TContext,
+      TEvent,
+      TChildren,
+      StateValue,
+      string,
+      unknown,
+      MetaObject,
+      StateSchema
+    >,
     TEvent
   >;
   parent: UnknownActorRef | undefined;
@@ -1255,8 +1263,8 @@ export type ContextFactory<
       StateValue,
       string,
       unknown,
-      TODO, // TMeta
-      TODO // State schema
+      MetaObject, // TMeta
+      StateSchema // State schema
     >,
     TEvent,
     AnyEventObject
@@ -1612,8 +1620,8 @@ export type Mapper<
         StateValue,
         string,
         unknown,
-        TODO, // TMeta
-        TODO // State schema
+        MetaObject, // TMeta
+        StateSchema // State schema
       >,
       TEvent,
       AnyEventObject
@@ -1631,12 +1639,12 @@ export interface TransitionDefinition<
     TContext,
     TEvent,
     TEvent,
-    TODO,
+    EventObject,
     TMeta,
-    TODO,
-    TODO,
-    TODO,
-    TODO
+    Sources['actions'],
+    Sources['actors'],
+    Sources['guards'],
+    Sources['delays']
   >,
   'target' | 'to'
 > {
@@ -3567,7 +3575,16 @@ export type Action<
     event: TEvent;
     parent: AnyActorRef | undefined;
     self: ActorSelf<
-      MachineSnapshot<_TCtx, TEvent, TODO, TODO, TODO, TODO, TODO, TODO>,
+      MachineSnapshot<
+        _TCtx,
+        TEvent,
+        Record<string, AnyActorRef | undefined>,
+        StateValue,
+        string,
+        unknown,
+        MetaObject,
+        StateSchema
+      >,
       TEvent
     >;
     children: Record<string, AnyActor | undefined>;
