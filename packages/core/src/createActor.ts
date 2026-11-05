@@ -1,4 +1,5 @@
 import isDevelopment from '#is-development';
+import { diagnoseActorOptions } from './devDiagnostics.ts';
 import { publishEmittedEvent } from './runtimeHelpers.ts';
 import type { ActionRecord, SentRecord } from './inspection.ts';
 import { Mailbox } from './Mailbox.ts';
@@ -293,11 +294,6 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
     public logic: TLogic,
     options?: ActorOptions<TLogic>
   ) {
-    if (isDevelopment && options && 'state' in options) {
-      throw new Error(
-        'The "state" actor option was removed. Pass the persisted snapshot as "snapshot" instead: createActor(logic, { snapshot }).'
-      );
-    }
     const resolvedOptions = (
       options ? { ...defaultOptions, ...options } : defaultOptions
     ) as InternalActorOptions<TLogic> & typeof defaultOptions;
@@ -1451,10 +1447,6 @@ export function createActor<TLogic extends AnyActorLogic>(
   logic: TLogic,
   ...[options]: CreateActorOptionsArgs<TLogic>
 ): Actor<TLogic> {
-  if (options && 'parent' in options) {
-    throw new Error(
-      'The "parent" actor option was removed. Create child actors through invoke, spawn, or enq.spawn instead.'
-    );
-  }
+  diagnoseActorOptions(options);
   return new Actor(logic, options);
 }

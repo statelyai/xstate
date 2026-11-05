@@ -95,8 +95,8 @@ handlers, guards, actions, `enq.raise` and [transitions](transitions.md).
 
 The top-level `internalEvents: ['tick']` list was removed before 6.0. Move
 each listed event's schema from `schemas.events` to `schemas.internalEvents`.
-In development builds, a machine config with a top-level `internalEvents` key
-throws an error naming `schemas.internalEvents`.
+A machine config with a top-level `internalEvents` key throws an error naming
+`schemas.internalEvents`.
 
 ## Internal events cheatsheet
 
