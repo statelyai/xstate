@@ -491,7 +491,7 @@ If you omit `schemas.context`, the context type is inferred from the literal `co
 
 ### Typegen removed
 
-`tsTypes` and generated `*.typegen.ts` files are not supported in v6. Declare types with `schemas`. In development builds, `createMachine(...)` throws on a leftover `tsTypes` key with the message ``"tsTypes" (typegen) was removed. Declare contracts under `schemas` (or `setup({ schemas })`).``
+`tsTypes` and generated `*.typegen.ts` files are not supported in v6. Declare types with `schemas`. `createMachine(...)` throws on a leftover `tsTypes` key with the message ``"tsTypes" (typegen) was removed. Declare contracts under `schemas` (or `setup({ schemas })`).``
 
 ### Per-state context types
 
@@ -966,8 +966,8 @@ Raised, self-targeted and transition-handler event types include both schema
 maps. `actor.send(...)` and `actor.trigger` include only `schemas.events`.
 The top-level `internalEvents` descriptor list from the v6 alphas was removed.
 Move each listed event's schema from `schemas.events` to
-`schemas.internalEvents`. In development builds, a config with a top-level
-`internalEvents` key throws an error naming `schemas.internalEvents`.
+`schemas.internalEvents`. A config with a top-level `internalEvents` key
+throws an error naming `schemas.internalEvents`.
 
 ---
 
@@ -1073,7 +1073,7 @@ These exports have been **removed** from `xstate`:
 - Promise actor logic surface: `fromPromise`, `PromiseActorLogic`, `PromiseActorRef`, `PromiseSnapshot`
 - Transition actor logic surface: `fromTransition`, `TransitionActorLogic`, `TransitionActorRef`, `TransitionSnapshot`
 - Inspection-event subtypes: `InspectedActionEvent`, `InspectedActorEvent`, `InspectedEventEvent`, `InspectedMicrostepEvent`, `InspectedSnapshotEvent` are gone. The remaining `InspectionEvent` type was reshaped: its `type` is now only `'@xstate.actor' | '@xstate.transition'` (a discriminated union of `ActorInspectionEvent` and `TransitionInspectionEvent`, both also exported).
-- The `state` actor option. Use `snapshot`: `createActor(machine, { snapshot: persisted })`. In development builds, passing `state` throws an error naming `snapshot`.
+- The `state` actor option. Use `snapshot`: `createActor(machine, { snapshot: persisted })`. Passing `state` throws an error naming `snapshot`.
 - The top-level `internalEvents` machine config key. Use `schemas.internalEvents`; see [Internal events](#12-internal-events).
 - The `devTools` actor option and the `xstate/dev`, `xstate/actions`, and `xstate/guards` subpath exports
 - v5 definition/config types: `AnyState`, `StateMachineDefinition`, `StateNodeDefinition`, `StatesConfig`, `MachineOptions`, and related internals. The config types `MachineConfig`, `StateNodeConfig`, `InvokeConfig`, and `TransitionConfigOrTarget` are re-exported with their **v6 shapes** - same names, different structure.
