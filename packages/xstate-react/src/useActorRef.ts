@@ -25,6 +25,14 @@ function isStateMachine(logic: AnyActorLogic): logic is AnyStateMachine {
   );
 }
 
+/**
+ * An already-created actor (e.g. from `restoreActor`). Hooks use it as is
+ * instead of creating one from logic.
+ */
+export function isActor(value: unknown): value is Actor<AnyActorLogic> {
+  return value instanceof Actor;
+}
+
 // The hook updates the sources of its machine on later renders. A per-hook
 // copy keeps those updates from reaching the caller's machine, which may be
 // shared by other actors.
@@ -33,14 +41,16 @@ function ownLogic<TLogic extends AnyActorLogic>(logic: TLogic): TLogic {
 }
 
 export function useIdleActorRef<TLogic extends AnyActorLogic>(
-  logic: TLogic,
+  logicOrActor: TLogic | Actor<TLogic>,
   ...[options]: ConditionalRequired<
     [options?: ActorOptions<TLogic> & RequiredActorOptionsFor<TLogic>],
     IsNotNever<RequiredActorOptionsKeys<TLogic>>
   >
 ): [Actor<TLogic>, (actorRef: Actor<TLogic>) => void] {
   const [actorRef, setActorRef] = useState(() => {
-    return createActor(ownLogic(logic), options as ActorOptions<TLogic>);
+    return isActor(logicOrActor)
+      ? (logicOrActor as Actor<TLogic>)
+      : createActor(ownLogic(logicOrActor), options as ActorOptions<TLogic>);
   });
   // An object whose identity changes only when React Fast Refresh re-renders
   // this component. Fast Refresh ignores dependency lists while it applies an
@@ -54,6 +64,11 @@ export function useIdleActorRef<TLogic extends AnyActorLogic>(
   // `machine.provide()` for the same machine config.
   // TODO: consider using `useAsapEffect` that would do this in `useInsertionEffect` is that's available
   useIsomorphicLayoutEffect(() => {
+    // A ready actor is owned as is; its logic is not updated by later renders.
+    if (isActor(logicOrActor)) {
+      return;
+    }
+    const logic = logicOrActor;
     const currentLogic = actorRef.logic;
     const refreshed = refreshSignalRef.current !== refreshSignal;
     refreshSignalRef.current = refreshSignal;
@@ -125,7 +140,19 @@ export function useActorLifecycle<TLogic extends AnyActorLogic>(
   }, [actorRef]);
 }
 
-/** @public */
+/**
+ * Creates an actor from `logic` (or uses an already-created `actor`, e.g. from
+ * `restoreActor`), starts it on mount and stops it on unmount. Create a passed
+ * actor once, e.g. `useState(() => restoreActor(machine, persisted))[0]`.
+ *
+ * @public
+ */
+export function useActorRef<TLogic extends AnyActorLogic>(
+  actor: Actor<TLogic>,
+  observerOrListener?:
+    | Observer<SnapshotFrom<TLogic>>
+    | ((value: SnapshotFrom<TLogic>) => void)
+): Actor<TLogic>;
 export function useActorRef<TLogic extends AnyActorLogic>(
   machine: TLogic,
   ...[options, observerOrListener]: IsNotNever<
@@ -143,8 +170,18 @@ export function useActorRef<TLogic extends AnyActorLogic>(
           | Observer<SnapshotFrom<TLogic>>
           | ((value: SnapshotFrom<TLogic>) => void)
       ]
-): Actor<TLogic> {
-  const [actorRef, setActorRef] = useIdleActorRef(machine, options);
+): Actor<TLogic>;
+export function useActorRef(
+  logicOrActor: AnyActorLogic | Actor<AnyActorLogic>,
+  ...args: any[]
+): Actor<AnyActorLogic> {
+  const readyActor = isActor(logicOrActor);
+  const options = readyActor ? undefined : args[0];
+  const observerOrListener:
+    | Observer<unknown>
+    | ((value: unknown) => void)
+    | undefined = readyActor ? args[0] : args[1];
+  const [actorRef, setActorRef] = useIdleActorRef(logicOrActor, options);
 
   useEffect(() => {
     if (!observerOrListener) {

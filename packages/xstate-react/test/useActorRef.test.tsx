@@ -13,6 +13,7 @@ import {
 } from 'xstate';
 import { useActorRef, useMachine, useSelector } from '../src/index.ts';
 import { describeEachReactMode } from './utils.tsx';
+import { restoreActor } from 'xstate/persist';
 import { z } from 'zod';
 
 afterEach(() => {
@@ -20,6 +21,39 @@ afterEach(() => {
 });
 
 describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
+  it('uses a ready actor as is, starting it on mount and stopping it on unmount', async () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: { a: { on: { NEXT: { target: 'b' } } }, b: {} }
+    });
+    const source = createActor(machine).start();
+    source.send({ type: 'NEXT' });
+    const persisted = source.getPersistedSnapshot();
+    source.stop();
+
+    let actor: ActorRefFrom<typeof machine> | undefined;
+    let ref: ActorRefFrom<typeof machine> | undefined;
+    const App = () => {
+      const [restored] = React.useState(() => restoreActor(machine, persisted));
+      actor = restored;
+      ref = useActorRef(restored);
+      return (
+        <div data-testid="value">
+          {String(useSelector(ref, (s) => s.value))}
+        </div>
+      );
+    };
+
+    const { unmount } = render(<App />);
+    expect(ref).toBe(actor);
+    expect(screen.getByTestId('value').textContent).toBe('b');
+    expect(ref!.getSnapshot().status).toBe('active');
+
+    unmount();
+    await Promise.resolve();
+    expect(ref!.getSnapshot().status).toBe('stopped');
+  });
+
   it('rebinds a stable observer before a replacement actor starts', () => {
     const first = createMachine({ on: { PING: {} } });
     const second = createMachine({ on: { PING: {} } });

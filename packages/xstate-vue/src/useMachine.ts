@@ -17,6 +17,13 @@ import { useActor } from './useActor.ts';
  * @public
  */
 export function useMachine<TMachine extends AnyStateMachine>(
+  actor: Actor<TMachine>
+): {
+  snapshot: Ref<SnapshotFrom<TMachine>>;
+  send: Actor<TMachine>['send'];
+  actorRef: Actor<TMachine>;
+};
+export function useMachine<TMachine extends AnyStateMachine>(
   machine: TMachine,
   ...[options]: ConditionalRequired<
     [options?: ActorOptions<TMachine> & RequiredActorOptionsFor<TMachine>],
@@ -26,6 +33,10 @@ export function useMachine<TMachine extends AnyStateMachine>(
   snapshot: Ref<SnapshotFrom<TMachine>>;
   send: Actor<TMachine>['send'];
   actorRef: Actor<TMachine>;
-} {
-  return useActor(machine, options);
+};
+export function useMachine(
+  machine: AnyStateMachine | Actor<AnyStateMachine>,
+  options?: ActorOptions<AnyStateMachine>
+) {
+  return (useActor as any)(machine, options);
 }
