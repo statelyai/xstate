@@ -5,6 +5,7 @@ import type {
   Snapshot,
   SnapshotFrom
 } from 'xstate';
+import { restoreActor } from 'xstate/persist';
 import { XSTATE_INIT, XSTATE_STOP } from './constants.ts';
 import { createActor } from 'xstate';
 import { SimulatedClock } from 'xstate';
@@ -1212,14 +1213,19 @@ class PropertyExecutionEngine<
     /** Invoke sources replaced by outcome stubs; they wait by design. */
     private readonly stubbedSources: ReadonlySet<string> = new Set()
   ) {
-    const actor = createActor(logic as any, {
-      clock: this.clock,
-      input: input as never,
-      ...(startingSnapshot ? { snapshot: startingSnapshot as never } : {}),
-      inspect: (event: InspectionEvent) => {
-        this.buffer.push(event);
-      }
-    });
+    const inspect = (event: InspectionEvent) => {
+      this.buffer.push(event);
+    };
+    const actor = startingSnapshot
+      ? restoreActor(logic as any, startingSnapshot as never, {
+          clock: this.clock,
+          inspect
+        })
+      : createActor(logic as any, {
+          clock: this.clock,
+          input: input as never,
+          inspect
+        });
     this.rootRef = actor;
     this.actor = actor as unknown as typeof this.actor;
   }

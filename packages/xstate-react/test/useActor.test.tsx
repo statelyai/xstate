@@ -18,6 +18,7 @@ import {
 import { useActor, useSelector } from '../src/index.ts';
 import { describeEachReactMode } from './utils.tsx';
 import z from 'zod';
+import { restoreActor } from 'xstate/persist';
 
 afterEach(() => {
   vi.useRealTimers();
@@ -114,16 +115,17 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     },
     persistedState
   }) => {
-    const [current, send] = useActor(
-      fetchMachine.provide({
+    const [actor] = useState(() => {
+      const logic = fetchMachine.provide({
         actors: {
           fetchData: createAsyncLogic({ run: onFetch }) as any
         }
-      }),
-      {
-        snapshot: persistedState
-      }
-    );
+      });
+      return persistedState
+        ? restoreActor(logic, persistedState)
+        : createActor(logic);
+    });
+    const [current, send] = useActor(actor);
 
     switch (current.value) {
       case 'idle':
@@ -828,9 +830,10 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     let currentState: SnapshotFrom<typeof testMachine>;
 
     const Test = () => {
-      const [state, send] = useActor(testMachine, {
-        snapshot: JSON.parse(persistedState)
-      });
+      const [actor] = useState(() =>
+        restoreActor(testMachine, JSON.parse(persistedState))
+      );
+      const [state, send] = useActor(actor);
 
       currentState = state;
 

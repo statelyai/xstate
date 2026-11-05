@@ -5,6 +5,7 @@ import {
   setup,
   type AnyActor
 } from '../src/index.ts';
+import { restoreMachineSnapshot } from '../src/persist/index.ts';
 import {
   createDurable,
   type DurableExecutionAdapter
@@ -261,7 +262,7 @@ describe('restored children under a durable execution', () => {
         throw new Error('host-driven loop');
       }
     });
-    const restored = machine.restoreSnapshot(persisted as never);
+    const restored = restoreMachineSnapshot(machine, persisted as never);
     const [, effects] = durable.transition(restored as never, {
       type: 'KICK'
     });

@@ -14,17 +14,22 @@ Do not persist or migrate `actor.getSnapshot()`. A live snapshot carries
 runtime-only state, including its producing machine; `getPersistedSnapshot()`
 removes those associations and writes the machine's serializable identity.
 
-Restore the actor with the `snapshot` option.
+Restore the actor with `restoreActor(logic, persistedSnapshot, options?)` from `xstate/persist`. It works for any actor logic and accepts the `createActor` options except `input`. Machine snapshots are validated, migrated (with `migrate` in the machine config) and their children restored.
 
 ```ts
-const restored = createActor(machine, {
-  snapshot: JSON.parse(localStorage.getItem('checkout')!)
-}).start();
+import { restoreActor } from 'xstate/persist';
+
+const restored = restoreActor(
+  machine,
+  JSON.parse(localStorage.getItem('checkout')!)
+).start();
 ```
+
+Pass `system` (a `createSystem()` result) to restore the actor into that system.
 
 A restored snapshot is opaque: restoring runs no transitions and re-executes no actions. `always` transitions and choice states in the restored configuration are not re-evaluated until the next event, even if their guards would now pass. Development builds warn when the restored state has eventless transitions.
 
-Restoring a terminal snapshot keeps it terminal. A snapshot with `status: 'done'`, `'error'` or `'stopped'` restores to an actor with that status after `start()`; it runs no transitions and processes no events. For `'error'`, subscribers with an `error` observer receive the persisted error, whether they subscribe before or after `start()`. A snapshot that cannot be restored, such as one that is not an object, has no valid `value`, whose `value` names a state the machine does not have, or whose children or timers are malformed, produces an actor with an `'error'` snapshot whose `error` describes the failure (an `InvalidSnapshotError` for these structural cases); `createActor(...)` and `start()` do not throw. A `value` that stops at a compound state, such as `{ active: {} }`, is completed with that state's initial descendants, and the restored snapshot's `value` reflects the completed configuration.
+Restoring a terminal snapshot keeps it terminal. A snapshot with `status: 'done'`, `'error'` or `'stopped'` restores to an actor with that status after `start()`; it runs no transitions and processes no events. For `'error'`, subscribers with an `error` observer receive the persisted error, whether they subscribe before or after `start()`. A snapshot that cannot be restored, such as one that is not an object, has no valid `value`, whose `value` names a state the machine does not have, or whose children or timers are malformed, produces an actor with an `'error'` snapshot whose `error` describes the failure (an `InvalidSnapshotError` for these structural cases); `restoreActor(...)` and `start()` do not throw. A `value` that stops at a compound state, such as `{ active: {} }`, is completed with that state's initial descendants, and the restored snapshot's `value` reflects the completed configuration.
 
 Persisted snapshots may include child actor state. Keep the actor logic compatible with snapshots already stored by your application.
 
@@ -128,8 +133,9 @@ actual machine for each version that may be a target. Every entry must have the
 same stable `id` and its own `version`.
 
 Every lightweight entry satisfies `MachineVersionDescriptor`: `{ id, version }`
-plus at least one of `snapshotSchema` or `eventSchema`. Versioned machines expose
-both schemas themselves. For event histories, `machineVersions()` uses actual
+plus at least one of `snapshotSchema` or `eventSchema`. For a versioned machine,
+`snapshotSchema(machine)` from `xstate/persist` and `eventSchema(machine)` from
+`xstate` return both schemas. For event histories, `machineVersions()` uses actual
 machines' historical validation; their public input schema has a narrower
 contract. Only actual machines may be targets.
 
@@ -177,7 +183,7 @@ const snapshot = await checkoutVersions.migrateSnapshot(
   }
 );
 
-const actor = createActor(checkoutV2, { snapshot }).start();
+const actor = restoreActor(checkoutV2, snapshot).start();
 ```
 
 Exact version keys narrow the callback to that historical schema's output type.
@@ -188,7 +194,7 @@ A `snapshotSchema` describes the entire persisted contract, not only context:
 status/output/error, state value, context, children, history, timers, state
 inputs, counters and version metadata as applicable. Active state nodes are
 reconstructed from the state value, so `nodes` itself is not persisted. A
-versioned machine's generated `snapshotSchema` validates this durable shape,
+versioned machine's generated `snapshotSchema(machine)` validates this durable shape,
 its state value, child entries and local child sources, timer entries and its configured context schema. Local children must name a provided actor source or match an inline invoke in the active states. Child ids may be arbitrary when a provided source is recorded. Remote children require an address and a source key, which may belong to another runtime. Unknown extra fields remain allowed. It normalizes an omitted
 `historyValue` to an empty record and omitted `timers` to an empty list,
 matching restoration behavior.
@@ -283,7 +289,7 @@ operation may use its unknown `'*'` handler instead.
 Actual machines work directly as entries. `adaptEvents()` uses their historical
 validation, including `schemas.internalEvents` and runtime notifications, and
 infers adapter inputs from the full machine event union. This preserves replay
-compatibility. A machine's public `eventSchema` instead validates public input
+compatibility. A machine's public `eventSchema(machine)` instead validates public input
 (see [internal events](internal-events.md#validating-public-input)). Do not copy
 it into a historical descriptor whose histories include internal/runtime events;
 provide a schema describing that complete history instead.
@@ -299,6 +305,8 @@ events and does not produce a snapshot.
 ## Persistence cheatsheet
 
 ```ts
+import { restoreActor } from 'xstate/persist';
+
 const persisted = actor.getPersistedSnapshot();
-const restored = createActor(logic, { snapshot: persisted }).start();
+const restored = restoreActor(logic, persisted).start();
 ```

@@ -17,7 +17,7 @@ Pass the `signal` from `createAsyncLogic(...)` to the async API.
 
 ## A restored actor starts from the beginning
 
-Pass the persisted snapshot as the `snapshot` option before calling `start()`.
+Create the actor with `restoreActor(logic, persistedSnapshot)` from `xstate/persist` instead of `createActor(logic)`, then call `start()`.
 
 ## A nested state comparison fails
 
@@ -49,7 +49,7 @@ Move the contracts from `types`, `tsTypes`, or `schema` to `schemas`. Use `types
 
 ## Error: Unknown actor option "…"
 
-`createActor` throws on an option it does not support, in every build. Removed v5 options name their replacement: `snapshot` for `state`, `registryKey` for `systemId`, and `inspect` for `devTools`. The message for any other key lists the supported options.
+`createActor` throws on an option it does not support, in every build. Removed options name their replacement: `restoreActor(...)` from `xstate/persist` for `state` and `snapshot`, `registryKey` for `systemId`, and `inspect` for `devTools`. The message for any other key lists the supported options.
 
 ## Warning: Machine config "…" was removed
 

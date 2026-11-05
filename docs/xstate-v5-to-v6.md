@@ -1073,7 +1073,8 @@ These exports have been **removed** from `xstate`:
 - Promise actor logic surface: `fromPromise`, `PromiseActorLogic`, `PromiseActorRef`, `PromiseSnapshot`
 - Transition actor logic surface: `fromTransition`, `TransitionActorLogic`, `TransitionActorRef`, `TransitionSnapshot`
 - Inspection-event subtypes: `InspectedActionEvent`, `InspectedActorEvent`, `InspectedEventEvent`, `InspectedMicrostepEvent`, `InspectedSnapshotEvent` are gone. The remaining `InspectionEvent` type was reshaped: its `type` is now only `'@xstate.actor' | '@xstate.transition'` (a discriminated union of `ActorInspectionEvent` and `TransitionInspectionEvent`, both also exported).
-- The `state` actor option. Use `snapshot`: `createActor(machine, { snapshot: persisted })`. Passing `state` throws an error naming `snapshot`.
+- The `state` actor option (v5) and the `snapshot` actor option. Use `restoreActor(machine, persisted)` from `xstate/persist`. Passing either option throws an error naming `restoreActor`.
+- `machine.restoreSnapshot(...)`. Use `restoreActor(machine, persisted)` from `xstate/persist`.
 - The top-level `internalEvents` machine config key. Use `schemas.internalEvents`; see [Internal events](#12-internal-events).
 - The `devTools` actor option and the `xstate/dev`, `xstate/actions`, and `xstate/guards` subpath exports
 - v5 definition/config types: `AnyState`, `StateMachineDefinition`, `StateNodeDefinition`, `StatesConfig`, `MachineOptions`, and related internals. The config types `MachineConfig`, `StateNodeConfig`, `InvokeConfig`, and `TransitionConfigOrTarget` are re-exported with their **v6 shapes** - same names, different structure.
@@ -1249,22 +1250,24 @@ on: {
 
 ## 20. Persistence / rehydration
 
-Persisted snapshots round-trip through `JSON.stringify` and rehydrate via `createActor(machine, { snapshot })`. The internal shape changed, so v5 persisted snapshots are **not** binary-compatible with v6 - drain or migrate stored state during your rollout.
+Persisted snapshots round-trip through `JSON.stringify` and rehydrate via `restoreActor(machine, persisted)` from `xstate/persist`. The internal shape changed, so v5 persisted snapshots are **not** binary-compatible with v6 - drain or migrate stored state during your rollout.
 
 ```ts
+import { restoreActor } from 'xstate/persist';
+
 const snapshot = actor.getPersistedSnapshot();
 const json = JSON.stringify(snapshot);
 
 // later
 const restored = JSON.parse(json);
-const actor2 = createActor(machine, { snapshot: restored }).start();
+const actor2 = restoreActor(machine, restored).start();
 ```
 
 Child actors, async logic with effects, and listener-resume semantics are all part of the rehydrated surface.
 
 ### Persisted format
 
-`getPersistedSnapshot()` returns a JSON-shaped object, and `createActor(machine, { snapshot })` restores it leniently: the snapshot has no format version field, and XState reads the fields it recognizes. Snapshots persisted by v6 alphas do not restore unchanged: the beta changed the actor ref marker, the `timers` shape, the timer `startedAt` field (now `scheduledAt`) and several built-in event types. Discard alpha snapshots or convert them before restoring; see [Names changed during the v6 prereleases](#29-names-changed-during-the-v6-prereleases). Changes to your own states, context, and children are versioned with the machine `version` and migrated with `machineVersions()`, described below.
+`getPersistedSnapshot()` returns a JSON-shaped object, and `restoreActor(machine, persisted)` restores it leniently: the snapshot has no format version field, and XState reads the fields it recognizes. Snapshots persisted by v6 alphas do not restore unchanged: the beta changed the actor ref marker, the `timers` shape, the timer `startedAt` field (now `scheduledAt`) and several built-in event types. Discard alpha snapshots or convert them before restoring; see [Names changed during the v6 prereleases](#29-names-changed-during-the-v6-prereleases). Changes to your own states, context, and children are versioned with the machine `version` and migrated with `machineVersions()`, described below.
 
 The host serializes the payload. Development builds warn when `context`, `output`, `error`, or state input holds a value that does not survive a JSON round-trip: functions, symbols, `BigInt`, `Map`, `Set`, cycles, `NaN`, and `Infinity`. Persisting a snapshot whose `context` contains a circular reference throws an error that names the actor and the context path. See [Persistence](persistence.md) for the format rules.
 
@@ -1300,7 +1303,7 @@ the corresponding schema. Targets must be backed by actual machines, which also
 remain supported directly as entries. A `'*'` handler may asynchronously handle
 unknown data.
 
-Machines expose `eventSchema` for public input validation. It rejects declared
+`eventSchema(machine)` returns a schema for public input validation. It rejects declared
 internal events and reserved runtime events, except explicitly configured public
 routes. This changes the alpha contract: use actual machines with
 `machineVersions().adaptEvents()` for internal/runtime histories, or provide a
@@ -1650,7 +1653,7 @@ These keys throw an error:
 | `devTools` | machine config | the `inspect` option on `createActor(...)` |
 | second argument | `createMachine(config, implementations)` | `setup({ actions, guards, actors, delays })` or `machine.provide({ ... })` |
 | `systemId` | `createActor` options | `registryKey` |
-| `state` | `createActor` options | `snapshot` |
+| `state` | `createActor` options | `restoreActor(logic, snapshot)` from `xstate/persist` |
 | `devTools` | `createActor` options | `inspect` |
 | `parent` | `createActor` options | `invoke`, `spawn` or `enq.spawn` |
 | `deferEvents`, `execute` | `createActor` options | removed |
@@ -1658,7 +1661,7 @@ These keys throw an error:
 `createActor(...)` also throws on any option it does not read, and the message lists the supported options:
 
 ```
-Unknown actor option "inptu". Supported options: clock, logger, syncSnapshot, id, registryKey, input, snapshot, src, inspect, onRejectedEvent, onUnhandledEvent.
+Unknown actor option "inptu". Supported options: clock, logger, syncSnapshot, id, registryKey, input, src, inspect, onRejectedEvent, onUnhandledEvent.
 ```
 
 These keys change nothing in v6. Development builds log a warning:

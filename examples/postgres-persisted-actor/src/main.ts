@@ -4,6 +4,7 @@ import { createActor } from 'xstate';
 import { isOrderEvent, ORDER_EVENTS, orderMachine } from './orderMachine';
 import { TaskQueue } from './TaskQueue';
 import { createInspector } from '@statelyai/sdk';
+import { restoreActor } from 'xstate/persist';
 
 const inspector = process.env.INSPECT ? createInspector() : undefined;
 
@@ -39,10 +40,10 @@ console.log(
     : `No persisted state for ${actorId}. Starting from scratch.`
 );
 
-const actor = createActor(orderMachine, {
-  snapshot,
-  inspect: inspector?.inspect
-});
+const options = { inspect: inspector?.inspect };
+const actor = snapshot
+  ? restoreActor(orderMachine, snapshot, options)
+  : createActor(orderMachine, options);
 
 // Writes are queued so that snapshots reach the database in transition order.
 const taskQueue = new TaskQueue();

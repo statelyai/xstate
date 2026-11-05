@@ -3,6 +3,7 @@ import { createInterface } from 'node:readline';
 import { createActor } from 'xstate';
 import { donutMachine } from './donutMachine';
 import { createInspector } from '@statelyai/sdk';
+import { restoreActor } from 'xstate/persist';
 
 const inspector = process.env.INSPECT ? createInspector() : undefined;
 
@@ -15,10 +16,10 @@ try {
   console.log('No persisted state found.');
 }
 
-const actor = createActor(donutMachine, {
-  snapshot: restoredSnapshot,
-  inspect: inspector?.inspect
-});
+const options = { inspect: inspector?.inspect };
+const actor = restoredSnapshot
+  ? restoreActor(donutMachine, restoredSnapshot, options)
+  : createActor(donutMachine, options);
 
 const bold = (value: string) => `\x1b[1m${value}\x1b[0m`;
 

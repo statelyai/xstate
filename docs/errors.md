@@ -112,18 +112,19 @@ A state's `entry` or `exit` is an array, a string, or another non-function value
 
 ```text
 The "{key}" actor option was removed. ...
-Unknown actor option "{key}". Supported options: clock, logger, syncSnapshot, id, registryKey, input, snapshot, src, inspect, onRejectedEvent, onUnhandledEvent.
+Unknown actor option "{key}". Supported options: clock, logger, syncSnapshot, id, registryKey, input, src, inspect, onRejectedEvent, onUnhandledEvent.
 ```
 
 Values: the option name.
 
-`createActor(logic, options)` received an option that v6 does not read. Removed v5 options and their replacements:
+`createActor(logic, options)` or `restoreActor(logic, snapshot, options)` received an option that v6 does not read. Removed options and their replacements:
 
 | Option | Replacement |
 | --- | --- |
 | `parent` | Create child actors through `invoke`, `spawn`, or `enq.spawn`. |
 | `systemId` | Use `registryKey`, and look the actor up with `system.get(registryKey)`. |
-| `state` | Pass the persisted snapshot as `snapshot`. |
+| `state` | Restore with `restoreActor(logic, snapshot)` from `xstate/persist`. |
+| `snapshot` | Restore with `restoreActor(logic, snapshot)` from `xstate/persist`. |
 | `devTools` | Pass the `inspect` option. |
 | `deferEvents` | Remove it. Events sent before `start()` are always queued until the actor starts. |
 | `execute` | Remove it. Effects always run when the actor processes an event; use `transition()` for pure steps. |
@@ -295,7 +296,7 @@ Persisted snapshot for machine '{machineId}' must be an object.
 
 Values: the machine id.
 
-The error is an `InvalidSnapshotError`. `createActor(machine, { snapshot })` or `machine.restoreSnapshot(...)` received a value that is not an object. Pass the object from `getPersistedSnapshot()`; parse it first if it was stored as JSON.
+The error is an `InvalidSnapshotError`. `restoreActor(machine, snapshot)` received a value that is not an object. Pass the object from `getPersistedSnapshot()`; parse it first if it was stored as JSON.
 
 ## E25
 
@@ -509,7 +510,7 @@ Two actors in one system use the same `registryKey`. Registry keys are unique pe
 Persisted snapshot must be an object.
 ```
 
-`createActor(logic, { snapshot })` received a snapshot that is not an object. Pass the object from `getPersistedSnapshot()`; parse it first if it was stored as JSON.
+`restoreActor(logic, snapshot)` received a snapshot that is not an object (`null`) for logic that has no `restoreSnapshot`. Pass the object from `getPersistedSnapshot()`; parse it first if it was stored as JSON.
 
 ## E47
 

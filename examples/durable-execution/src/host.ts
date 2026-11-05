@@ -151,7 +151,9 @@ export async function runOnHost<TLogic extends AnyActorLogic>(options: {
   let effects;
 
   if (resume) {
-    snapshot = machine.restoreSnapshot(resume.snapshot);
+    // The host re-arms checkpointed timers itself below, so it does not run
+    // the restore batch.
+    [snapshot] = durable.restore(resume.snapshot);
     rootAddress = durable.getActorRef(snapshot)?.address;
     // Timers belong to the host, so it re-arms the ones the checkpoint
     // recorded as pending; XState does not reschedule them on a durable host.

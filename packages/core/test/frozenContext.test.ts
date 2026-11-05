@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { createActor, createMachine, setup } from '../src/index.ts';
+import { restoreActor } from '../src/persist/index.ts';
 
 class Counter {
   count = 0;
@@ -150,7 +151,7 @@ describe('frozen context (development)', () => {
     );
     const persistedCopy = JSON.parse(JSON.stringify(persisted));
 
-    const restored = createActor(machine, { snapshot: persisted }).start();
+    const restored = restoreActor(machine, persisted).start();
     const { context } = restored.getSnapshot();
 
     expect(Object.isFrozen(context)).toBe(true);
@@ -205,7 +206,7 @@ describe('development context freeze edge cases', () => {
         context: { $actor: 'missing' }
       })
     );
-    const actor = createActor(machine, { snapshot: persisted });
+    const actor = restoreActor(machine, persisted);
     expect(actor.getSnapshot().context).toEqual({ $actor: 'missing' });
   });
 
@@ -217,9 +218,7 @@ describe('development context freeze edge cases', () => {
         '"context":{"value":1,"__proto__":{"injected":true}}'
       )
     );
-    const context: any = createActor(machine, {
-      snapshot: persisted
-    }).getSnapshot().context;
+    const context: any = restoreActor(machine, persisted).getSnapshot().context;
     expect(Object.getPrototypeOf(context)).toBe(Object.prototype);
     expect(context.injected).toBeUndefined();
   });

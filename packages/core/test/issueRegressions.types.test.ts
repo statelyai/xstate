@@ -12,6 +12,7 @@ import {
   type ActorRefFrom,
   type AnyActorLogic
 } from '../src/index.ts';
+import { restoreActor } from '../src/persist/index.ts';
 
 function expectType<T>(_v: T) {}
 
@@ -29,7 +30,7 @@ describe('types', () => {
     const actor = createActor(machine, { input: { id: 'a' } }).start();
     const persisted = actor.getPersistedSnapshot();
 
-    const restored = createActor(machine, { snapshot: persisted }).start();
+    const restored = restoreActor(machine, persisted).start();
     expect(restored.getSnapshot().context.id).toBe('a');
   });
 

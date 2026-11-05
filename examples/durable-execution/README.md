@@ -10,7 +10,7 @@ How to drive a machine from `xstate/durable` through a host adapter, so that a w
 - host adapter operations: `sendEvent`, `scheduleTimer`, `cancelTimer`, `runLogic`, `executeAction`, `waitForEvent`
 - stable effect IDs (`2:1`) and stable actor addresses as journal keys
 - `executionId` for deterministic session ids across replays
-- checkpointing with `getPersistedSnapshot` plus `nextTransitionIndex`, and `restoreSnapshot` to resume
+- checkpointing with `getPersistedSnapshot` plus `nextTransitionIndex`, and `durable.restore()` to resume
 
 ## Run it
 

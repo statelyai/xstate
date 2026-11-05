@@ -29,7 +29,7 @@ const machine = setup({
 });
 ```
 
-A declared input schema whose inferred type does not accept `undefined` makes `input` required: `createActor(machine)` is a type error until you pass `{ input }` (or restore a `snapshot`). Framework hooks such as `useActor`, `useActorRef` and `useMachine` inherit the same requirement. `createActorContext` from `@xstate/react` is the exception: `input` stays optional because its options are merged from the context defaults and the `<Provider options>` prop, so a missing input surfaces at runtime as an initialization error instead.
+A declared input schema whose inferred type does not accept `undefined` makes `input` required: `createActor(machine)` is a type error until you pass `{ input }` (or restore a snapshot with `restoreActor(...)`). Framework hooks such as `useActor`, `useActorRef` and `useMachine` inherit the same requirement. `createActorContext` from `@xstate/react` is the exception: `input` stays optional because its options are merged from the context defaults and the `<Provider options>` prop, so a missing input surfaces at runtime as an initialization error instead.
 
 <!-- state-contract typing and declaration emit from packages/core/src/setup.ts and packages/core/test/declarations.test.ts -->
 

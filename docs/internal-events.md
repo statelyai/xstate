@@ -128,11 +128,11 @@ createMachine({
 
 ## Validating public input
 
-`machine.eventSchema` is a Standard Schema for complete public input event
+`eventSchema(machine)` is a Standard Schema for complete public input event
 objects. Validate untrusted input (including agent tool arguments) before sending:
 
 ```ts
-const result = await machine.eventSchema['~standard'].validate(input);
+const result = await eventSchema(machine)['~standard'].validate(input);
 if (result.issues) {
   throw new Error(result.issues[0]?.message);
 }
@@ -151,6 +151,6 @@ Validation is not authorization: a well-formed public event may still require
 application permission checks.
 
 `actor.send(event)` keeps supporting trusted runtime delivery and replay. It does
-not automatically run `machine.eventSchema`. For event histories,
+not automatically run `eventSchema(machine)`. For event histories,
 `machineVersions().adaptEvents()` retains historical internal/runtime validation
 when given actual machines.

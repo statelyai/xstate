@@ -1,4 +1,5 @@
 import type {
+  Actor,
   ActorOptions,
   AnyStateMachine,
   ConditionalRequired,
@@ -14,11 +15,18 @@ import { useActor } from './useActor.ts';
  * @public
  */
 export function useMachine<TMachine extends AnyStateMachine>(
+  actor: Actor<TMachine>
+): ReturnType<typeof useActor<TMachine>>;
+export function useMachine<TMachine extends AnyStateMachine>(
   machine: TMachine,
   ...[options]: ConditionalRequired<
     [options?: ActorOptions<TMachine> & RequiredActorOptionsFor<TMachine>],
     IsNotNever<RequiredActorOptionsKeys<TMachine>>
   >
+): ReturnType<typeof useActor<TMachine>>;
+export function useMachine(
+  machine: AnyStateMachine | Actor<AnyStateMachine>,
+  options?: ActorOptions<AnyStateMachine>
 ) {
-  return useActor(machine, options);
+  return (useActor as any)(machine, options);
 }

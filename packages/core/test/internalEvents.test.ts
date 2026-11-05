@@ -1,3 +1,4 @@
+import { eventSchema } from '../src/index.ts';
 import {
   createActor,
   createMachine,
@@ -102,7 +103,7 @@ describe('internalEvents', () => {
 
     expect(actor.getSnapshot().value).toBe('done');
     expect(
-      await machine.eventSchema['~standard'].validate({
+      await eventSchema(machine)['~standard'].validate({
         type: 'change.value',
         value: 'ready'
       })

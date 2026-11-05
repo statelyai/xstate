@@ -159,7 +159,7 @@ Do not wrap a machine by spreading it into a new object:
 const wrapped = { ...checkoutMachine, transition: myTransition };
 ```
 
-A machine is a `StateMachine` class instance. The spread copies only its own properties. `transition`, `initialTransition`, `getInitialSnapshot`, `getPersistedSnapshot`, `restoreSnapshot` and `start` are own properties bound to the original machine, so they are copied. The prototype methods are dropped: `provide`, `resolveState`, `microstep`, `getTransitionData`, `getStateNodeById`, `getExecutionErrorEvent` and `isInternalEventType`. An actor running the copy cannot read `getExecutionErrorEvent` from it, and snapshots the copy produces still reference the original machine. The result is not a machine, and XState does not support running it.
+A machine is a `StateMachine` class instance. The spread copies only its own properties. `transition`, `initialTransition`, `getInitialSnapshot`, `getPersistedSnapshot` and `start` are own properties bound to the original machine, so they are copied. The prototype methods are dropped: `provide`, `resolveState`, `microstep`, `getTransitionData`, `getStateNodeById`, `getExecutionErrorEvent` and `isInternalEventType`. An actor running the copy cannot read `getExecutionErrorEvent` from it, and snapshots the copy produces still reference the original machine. The result is not a machine, and XState does not support running it.
 
 Use one of these instead.
 

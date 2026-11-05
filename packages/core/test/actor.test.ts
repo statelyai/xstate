@@ -33,6 +33,7 @@ import {
   createMachine
 } from '../src/index.ts';
 import z from 'zod';
+import { restoreActor } from '../src/persist/index.ts';
 describe('spawning machines', () => {
   const context = {
     todoRefs: {} as Record<string, AnyActorRef>
@@ -1683,9 +1684,7 @@ describe('actors', () => {
     });
     const actor = createActor(machine).start();
     const persistedState = actor.getPersistedSnapshot();
-    createActor(machine, {
-      snapshot: persistedState
-    }).start();
+    restoreActor(machine, persistedState).start();
     // Will be 2 if the observable is resubscribed
     expect(subscriptionCount).toBe(1);
   });
@@ -1702,9 +1701,7 @@ describe('actors', () => {
     });
     const actor = createActor(machine).start();
     const persistedState = actor.getPersistedSnapshot();
-    createActor(machine, {
-      snapshot: persistedState
-    }).start();
+    restoreActor(machine, persistedState).start();
     // Will be 2 if the event observable is resubscribed
     expect(subscriptionCount).toBe(1);
   });
