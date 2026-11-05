@@ -528,7 +528,8 @@ describe('v5 config diagnostics', () => {
 
     it.each([
       ['systemId', 'Use "registryKey"'],
-      ['state', 'Pass the persisted snapshot as "snapshot"'],
+      ['state', 'restoreActor(logic, snapshot) from "xstate/persist"'],
+      ['snapshot', 'restoreActor(logic, snapshot) from "xstate/persist"'],
       ['devTools', 'Pass the "inspect" option instead'],
       ['parent', 'Create child actors through invoke, spawn, or enq.spawn'],
       ['deferEvents', '"deferEvents" actor option was removed'],
@@ -543,7 +544,7 @@ describe('v5 config diagnostics', () => {
       expect(() =>
         createActor(machine, { inptu: { id: 1 } } as any)
       ).toThrowError(
-        'Unknown actor option "inptu". Supported options: clock, logger, syncSnapshot, id, registryKey, input, snapshot, src, inspect, onRejectedEvent, onUnhandledEvent.'
+        'Unknown actor option "inptu". Supported options: clock, logger, syncSnapshot, id, registryKey, input, src, inspect, onRejectedEvent, onUnhandledEvent.'
       );
     });
 

@@ -239,7 +239,9 @@ const REMOVED_ACTOR_OPTIONS: Record<string, string> = {
   systemId:
     'The "systemId" actor option was renamed. Use "registryKey": createActor(logic, { registryKey }), and look the actor up with system.get(registryKey).',
   state:
-    'The "state" actor option was removed. Pass the persisted snapshot as "snapshot" instead: createActor(logic, { snapshot }).',
+    'The "state" actor option was removed. Restore persisted snapshots with restoreActor(logic, snapshot) from "xstate/persist".',
+  snapshot:
+    'The "snapshot" actor option was removed. Restore persisted snapshots with restoreActor(logic, snapshot) from "xstate/persist".',
   devTools:
     'The "devTools" actor option was removed. Pass the "inspect" option instead: createActor(logic, { inspect }).',
   deferEvents:
@@ -255,14 +257,14 @@ const ACTOR_OPTIONS = new Set([
   'id',
   'registryKey',
   'input',
-  'snapshot',
   'src',
   'inspect',
   'onRejectedEvent',
   'onUnhandledEvent',
   '_systemRef',
   '_sessionId',
-  '_inert'
+  '_inert',
+  '_restore'
 ]);
 
 /**

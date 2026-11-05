@@ -1,5 +1,6 @@
 import z from 'zod';
 import { createActor, setup } from '../src/index.ts';
+import { restoreActor } from '../src/persist/index.ts';
 
 describe('persisting state input', () => {
   describe('getPersistedSnapshot() output shape', () => {
@@ -88,7 +89,7 @@ describe('persisting state input', () => {
         ...(createActor(machine).getPersistedSnapshot() as any),
         stateInputs: { b: { n: 1 } }
       };
-      const restored = createActor(machine, { snapshot: persisted }).start();
+      const restored = restoreActor(machine, persisted).start();
 
       expect(restored.getSnapshot().getInputs()).toEqual({});
       expect(
@@ -140,7 +141,7 @@ describe('persisting state input', () => {
       );
       actor.stop();
 
-      const restored = createActor(machine, { snapshot: persisted }).start();
+      const restored = restoreActor(machine, persisted).start();
 
       expect(restored.getSnapshot().getInputs()).toMatchObject({
         parent: { parentId: 'p1' },
@@ -204,7 +205,7 @@ describe('persisting state input', () => {
 
       actor.stop();
 
-      const restored = createActor(parent, { snapshot: persisted }).start();
+      const restored = restoreActor(parent, persisted).start();
       const restoredChild = restored.getSnapshot().children.myChild!;
 
       expect(restoredChild.getSnapshot().getInputs()['loading']).toEqual({

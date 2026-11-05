@@ -307,7 +307,6 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
         createRuntimeSystem(this, {
           clock,
           logger,
-          snapshot: resolvedOptions.snapshot,
           createActorRef
         }));
 
@@ -351,20 +350,11 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
 
     // prepare to collect initial microsteps during initialTransition
     this._collectedMicrosteps = undefined;
-    const persistedState = options?.snapshot;
-    this._restored = persistedState !== undefined;
+    const restore = resolvedOptions._restore;
+    this._restored = restore !== undefined;
     try {
-      // Only `undefined` means "no snapshot": an explicit `null` (or another
-      // non-object) is a malformed snapshot the logic reports.
-      if (persistedState !== undefined) {
-        if (!this.logic.restoreSnapshot && persistedState === null) {
-          throw new Error('Persisted snapshot must be an object.');
-        }
-        this._setSnapshot(
-          this.logic.restoreSnapshot
-            ? this.logic.restoreSnapshot(persistedState, this._actorScope)
-            : persistedState
-        );
+      if (restore) {
+        this._setSnapshot(restore.restore(this._actorScope));
       } else if (options?._inert) {
         // Inert actors (createInertActorScope) only anchor a scope for pure
         // transition functions; computing an initial snapshot here would run
@@ -379,22 +369,11 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
         this._initialEffects = effects.length ? effects : undefined;
       }
     } catch (err) {
-      const restoreErrorSnapshot =
-        persistedState === undefined
-          ? undefined
-          : (
-              this.logic as {
-                _createRestoreErrorSnapshot?: (
-                  persisted: unknown,
-                  error: unknown
-                ) => SnapshotFrom<TLogic>;
-              }
-            )._createRestoreErrorSnapshot?.(persistedState, err);
-      // Machine logic keeps its snapshot shape on restore failures. Otherwise
-      // we can't get the true `TSnapshot & { status: 'error'; }`, so this is a
-      // lie of sorts.
+      // Restored logic may keep its snapshot shape on restore failures (e.g.
+      // machines). Otherwise we can't get the true
+      // `TSnapshot & { status: 'error'; }`, so this is a lie of sorts.
       this._setSnapshot(
-        restoreErrorSnapshot ??
+        restore?.error?.(err) ??
           ({
             status: 'error',
             output: undefined,
@@ -1383,8 +1362,7 @@ export type RequiredActorOptionsKeys<TLogic extends AnyActorLogic> =
 
 /**
  * The options `createActor` (and framework hooks) require for `TLogic`:
- * `{ input }` or a persisted `{ snapshot }` when
- * the logic requires input, otherwise nothing.
+ * `{ input }` when the logic requires input, otherwise nothing.
  *
  * @public
  */
@@ -1392,9 +1370,7 @@ export type RequiredActorOptionsFor<TLogic extends AnyActorLogic> = [
   RequiredActorOptionsKeys<TLogic>
 ] extends [never]
   ? {}
-  :
-      | { [K in RequiredActorOptionsKeys<TLogic>]: unknown }
-      | { snapshot: NonNullable<ActorOptions<TLogic>['snapshot']> };
+  : { [K in RequiredActorOptionsKeys<TLogic>]: unknown };
 
 /** Options accepted by {@link createActor}. */
 type CreateActorOptionsArgs<TLogic extends AnyActorLogic> = [

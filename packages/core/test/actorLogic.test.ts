@@ -26,6 +26,7 @@ import { createInertActorScope } from '../src/inertActorScope.ts';
 import { waitFor } from '../src/waitFor.ts';
 import type { Mock } from 'vitest';
 import z from 'zod';
+import { restoreActor } from '../src/persist/index.ts';
 
 describe('logic (createStepLogic)', () => {
   it('returns actor termination as an ordered transition effect', () => {
@@ -439,9 +440,10 @@ describe('promise logic (createAsyncLogic)', () => {
     });
     expect(stepExecutions).toBe(1);
 
-    const restoredActor = createActor(logic, {
-      snapshot: actor.getPersistedSnapshot()
-    }).start();
+    const restoredActor = restoreActor(
+      logic,
+      actor.getPersistedSnapshot()
+    ).start();
 
     expect(restoredActor.getSnapshot().output).toBe(1);
     expect(stepExecutions).toBe(1);
@@ -488,9 +490,7 @@ describe('promise logic (createAsyncLogic)', () => {
     );
     actor.stop();
 
-    const restoredActor = createActor(logic, {
-      snapshot: persistedSnapshot
-    }).start();
+    const restoredActor = restoreActor(logic, persistedSnapshot).start();
 
     await waitFor(restoredActor, () => runExecutions === 2);
 
@@ -524,9 +524,7 @@ describe('promise logic (createAsyncLogic)', () => {
     const activePersistedState = actor.getPersistedSnapshot();
     expect(createdPromises).toBe(1);
     actor.stop();
-    const restoredActor = createActor(promiseLogic, {
-      snapshot: activePersistedState
-    });
+    const restoredActor = restoreActor(promiseLogic, activePersistedState);
     restoredActor.start();
     expect(createdPromises).toBe(2);
 
@@ -566,9 +564,7 @@ describe('promise logic (createAsyncLogic)', () => {
           "status": "done",
         }
       `);
-      const restoredActor = createActor(promiseLogic, {
-        snapshot: resolvedPersistedState
-      });
+      const restoredActor = restoreActor(promiseLogic, resolvedPersistedState);
       restoredActor.start();
       expect(restoredActor.getSnapshot().output).toBe(42);
       resolve();
@@ -602,9 +598,7 @@ describe('promise logic (createAsyncLogic)', () => {
       }
     `);
     expect(createdPromises).toBe(1);
-    const restoredActor = createActor(promiseLogic, {
-      snapshot: resolvedPersistedState
-    });
+    const restoredActor = restoreActor(promiseLogic, resolvedPersistedState);
     restoredActor.start();
     expect(restoredActor.getSnapshot().output).toBe(1);
     expect(createdPromises).toBe(1);
@@ -637,9 +631,7 @@ describe('promise logic (createAsyncLogic)', () => {
       }
     `);
     expect(createdPromises).toBe(1);
-    const actorRef2 = createActor(promiseLogic, {
-      snapshot: rejectedPersistedState
-    });
+    const actorRef2 = restoreActor(promiseLogic, rejectedPersistedState);
     actorRef2.subscribe({ error: function preventUnhandledErrorListener() {} });
     actorRef2.start();
     expect(createdPromises).toBe(1);
@@ -936,9 +928,7 @@ describe('logic as reducer', () => {
         enabled: 'on'
       }
     });
-    const restoredActor = createActor(logic, {
-      snapshot: persistedSnapshot
-    });
+    const restoredActor = restoreActor(logic, persistedSnapshot);
     restoredActor.start();
     expect(restoredActor.getSnapshot().context.enabled).toBe('on');
   });
@@ -1174,7 +1164,7 @@ describe('callback logic (createCallbackLogic)', () => {
     const snapshot = actor.getPersistedSnapshot();
     actor.stop();
     spy.mockClear();
-    const restoredActor = createActor(machine, { snapshot });
+    const restoredActor = restoreActor(machine, snapshot);
     restoredActor.start();
     expect(spy).toHaveBeenCalledTimes(1);
     expect(spy).toHaveBeenCalledWith(13);
@@ -1304,9 +1294,7 @@ describe('machine logic', () => {
     actor.send({ type: 'NEXT' });
     // child is at 'b'
     const persistedSnapshot = actor.getPersistedSnapshot()!;
-    const newActor = createActor(parentMachine, {
-      snapshot: persistedSnapshot
-    }).start();
+    const newActor = restoreActor(parentMachine, persistedSnapshot).start();
     const newSnapshot = newActor.getSnapshot();
     expect(newSnapshot.children.child.getSnapshot().value).toBe('b');
     // Ensure that the child actor is started
@@ -1408,9 +1396,7 @@ describe('machine logic', () => {
     });
     const persisted: any = actor.getPersistedSnapshot();
     delete persisted.children['child'];
-    const rehydratedActor = createActor(machine, {
-      snapshot: persisted
-    }).start();
+    const rehydratedActor = restoreActor(machine, persisted).start();
     expect(rehydratedActor.getSnapshot().children.child).toBe(undefined);
   });
   it.skip('should persist a spawned actor with referenced src', () => {
@@ -1450,9 +1436,7 @@ describe('machine logic', () => {
     expect((persistedSnapshot as any).children.child.snapshot.context).toEqual({
       count: 42
     });
-    const newActor = createActor(machine, {
-      snapshot: persistedSnapshot
-    }).start();
+    const newActor = restoreActor(machine, persistedSnapshot).start();
     const snapshot = newActor.getSnapshot();
     expect(snapshot.context.ref).toBe(snapshot.children.child);
     expect(snapshot.context.ref.getSnapshot().context.count).toBe(42);

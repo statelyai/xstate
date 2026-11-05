@@ -6,6 +6,7 @@ import {
   setup,
   types
 } from '../src';
+import { restoreActor } from '../src/persist/index.ts';
 
 const checkoutV1 = createMachine({
   id: 'checkout',
@@ -165,9 +166,9 @@ async function checkSnapshotMigrationTypes() {
     }
   });
 
-  createActor(checkoutV2, { snapshot: compatible });
+  restoreActor(checkoutV2, compatible);
   // a snapshot from another version of the same machine is accepted (migration path)
-  createActor(checkoutV1, { snapshot: compatible });
+  restoreActor(checkoutV1, compatible);
 
   await versions.migrateSnapshot(
     {},

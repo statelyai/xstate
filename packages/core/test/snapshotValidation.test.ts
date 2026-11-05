@@ -5,6 +5,7 @@ import {
   InvalidSnapshotError,
   machineVersions
 } from '../src/index.ts';
+import { restoreActor } from '../src/persist/index.ts';
 
 const work = createAsyncLogic({
   run: (): Promise<number> => new Promise(() => {})
@@ -95,7 +96,7 @@ it.each(malformed)(
     await expect(
       machineVersions([machine]).parseSnapshot(snapshot)
     ).rejects.toThrow();
-    const restored = createActor(machine, { snapshot });
+    const restored = restoreActor(machine, snapshot);
     restored.subscribe({ error: () => {} });
     restored.start();
     expect(restored.getSnapshot()).toMatchObject({
@@ -121,7 +122,7 @@ it('accepts registered spawned children with arbitrary ids and unknown extra fie
   };
   const parsed = await machineVersions([machine]).parseSnapshot(snapshot);
   expect(parsed.snapshot).toMatchObject({ extra: true });
-  const restored = createActor(machine, { snapshot });
+  const restored = restoreActor(machine, snapshot);
   restored.subscribe({ error: () => {} });
   restored.start();
   expect(restored.getSnapshot().status).toBe('active');
@@ -138,7 +139,7 @@ it('accepts remote children whose source is hosted on another runtime', async ()
   };
   const result = await machine.snapshotSchema['~standard'].validate(snapshot);
   expect(result.issues).toBeUndefined();
-  const restored = createActor(machine, { snapshot });
+  const restored = restoreActor(machine, snapshot);
   restored.subscribe({ error: () => {} });
   restored.start();
   expect(restored.getSnapshot().status).toBe('active');
@@ -168,7 +169,7 @@ it.each([false, true])(
     const result =
       await machine.snapshotSchema['~standard'].validate(restorable);
     expect(result.issues).toBeUndefined();
-    const restored = createActor(machine, { snapshot: restorable });
+    const restored = restoreActor(machine, restorable);
     restored.subscribe({ error: () => {} });
     restored.start();
     expect(restored.getSnapshot().status).toBe('active');
@@ -184,7 +185,7 @@ it('accepts local children with omitted persisted snapshots', async () => {
   }
   const result = await machine.snapshotSchema['~standard'].validate(snapshot);
   expect(result.issues).toBeUndefined();
-  const restored = createActor(machine, { snapshot });
+  const restored = restoreActor(machine, snapshot);
   restored.subscribe({ error: () => {} });
   restored.start();
   expect(restored.getSnapshot().status).toBe('active');

@@ -335,6 +335,7 @@ const PROFILES = {
     capabilities: ['persistence', 'restore', 'actor'],
     source: `
     import { createMachine, createActor } from 'xstate';
+    import { restoreActor } from 'xstate/persist';
     const machine = createMachine({
       initial: 'inactive',
       states: {
@@ -345,7 +346,7 @@ const PROFILES = {
     const actor = createActor(machine).start();
     actor.send({ type: 'toggle' });
     const persisted = JSON.parse(JSON.stringify(actor.getPersistedSnapshot()));
-    const restored = createActor(machine, { snapshot: persisted }).start();
+    const restored = restoreActor(machine, persisted).start();
     console.log(restored.getSnapshot().value);
   `
   },
@@ -577,6 +578,7 @@ try {
         '@xstate/react': src('xstate-react', 'src', 'index.ts'),
         'xstate/fsm': src('core', 'src', 'fsm', 'index.ts'),
         'xstate/validation': src('core', 'src', 'validation', 'index.ts'),
+        'xstate/persist': src('core', 'src', 'persist', 'index.ts'),
         xstate: src('core', 'src', 'index.ts')
       },
       conditions: ['module'],

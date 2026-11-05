@@ -1940,6 +1940,16 @@ export type RestorablePersistedSnapshotFor<TLogic> = {
     : never;
 };
 
+/**
+ * @internal How `xstate/persist` restores an actor; core never references the
+ * restore implementation.
+ */
+export interface ActorRestoreHook {
+  restore: (actorScope: AnyActorScope) => any;
+  /** Builds a logic-shaped `'error'` snapshot for a failed restore. */
+  error?: (error: unknown) => any;
+}
+
 /** @public */
 export interface ActorOptions<TLogic extends AnyActorLogic> {
   /**
@@ -1978,6 +1988,11 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
   _sessionId?: string;
   /** @internal */
   _inert?: boolean;
+  /**
+   * @internal Set by `restoreActor` (`xstate/persist`): computes the actor's
+   * initial snapshot from a persisted one instead of `initialTransition`.
+   */
+  _restore?: ActorRestoreHook;
   /** The custom `id` for referencing this service. */
   id?: string;
 
@@ -1985,22 +2000,6 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
   registryKey?: string;
   /** The input data to pass to the actor. */
   input?: InputFrom<TLogic>;
-
-  /**
-   * Initializes actor logic from a specific persisted internal state.
-   *
-   * @remarks
-   * If the state is compatible with the actor logic, when the actor is started
-   * it will be at that persisted state. Actions from machine actors will not be
-   * re-executed, because they are assumed to have been already executed.
-   * However, invocations will be restarted, and spawned actors will be restored
-   * recursively.
-   *
-   * Can be generated with {@link Actor.getPersistedSnapshot}.
-   * @see https://stately.ai/docs/persistence
-   */
-  snapshot?: Snapshot<unknown> &
-    Partial<RestorablePersistedSnapshotFor<DoNotInfer<TLogic>>>;
 
   /** The source actor logic. */
   src?: string | AnyActorLogic;
