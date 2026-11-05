@@ -6,6 +6,7 @@ import {
 } from 'xstate';
 import { checkoutMachine } from './checkoutMachine';
 import { createInspector } from '@statelyai/sdk';
+import { restoreActor } from 'xstate/persist';
 
 /** Server-side actors are inspected only when `INSPECT=1` is set. */
 const inspector = process.env.INSPECT ? createInspector() : undefined;
@@ -51,11 +52,17 @@ function toView(snapshot: CheckoutSnapshot): CheckoutView {
   };
 }
 
+/** Restores the session's checkout, or starts a new one. */
+function sessionActor(sessionId: string) {
+  const stored = sessions.get(sessionId);
+  const options = { inspect: inspector?.inspect };
+  return stored
+    ? restoreActor(checkoutMachine, stored, options)
+    : createActor(checkoutMachine, options);
+}
+
 export function readCheckout(sessionId: string): CheckoutView {
-  const actor = createActor(checkoutMachine, {
-    snapshot: sessions.get(sessionId),
-    inspect: inspector?.inspect
-  });
+  const actor = sessionActor(sessionId);
   actor.start();
   const view = toView(actor.getSnapshot());
   actor.stop();
@@ -67,10 +74,7 @@ export function advanceCheckout(
   sessionId: string,
   event: { type: 'addItem' | 'pay' | 'reset' }
 ): CheckoutView {
-  const actor = createActor(checkoutMachine, {
-    snapshot: sessions.get(sessionId),
-    inspect: inspector?.inspect
-  });
+  const actor = sessionActor(sessionId);
   actor.start();
   actor.send(event);
   sessions.set(sessionId, actor.getPersistedSnapshot());

@@ -1,6 +1,7 @@
 import * as mongoDB from 'mongodb';
 import { createActor, type AnyStateMachine } from 'xstate';
 import { createInspector } from '@statelyai/sdk';
+import { restoreActor } from 'xstate/persist';
 
 const inspector = process.env.INSPECT ? createInspector() : undefined;
 
@@ -48,7 +49,10 @@ export async function getDurableActor({
     workflowId = generateWorkflowId();
   }
 
-  const actor = createActor(machine, { snapshot, inspect: inspector?.inspect });
+  const options = { inspect: inspector?.inspect };
+  const actor = snapshot
+    ? restoreActor(machine, snapshot, options)
+    : createActor(machine, options);
 
   const persistSnapshot = async () => {
     const result = await collections.machineStates?.replaceOne(

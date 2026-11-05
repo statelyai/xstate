@@ -39,7 +39,7 @@ function isActorLogic(value: unknown): value is AnyActorLogic {
   );
 }
 
-export function validatePersistedStateValue(
+function validatePersistedStateValue(
   machine: AnyStateMachine,
   stateValue: unknown,
   node: AnyStateNode,
