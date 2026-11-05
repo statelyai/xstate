@@ -1,9 +1,12 @@
 import isDevelopment from '#is-development';
+import { xstateError } from './xstateError.ts';
 
 /**
  * Checks for leftover v5 configuration on hand-written machine configs, setup
  * configs and actor options. Keys that v6 would silently ignore throw in every
- * build; harmless leftovers only warn in development.
+ * build; harmless leftovers only warn in development. Production builds throw
+ * coded messages (see docs/errors.md), so the message tables below are
+ * referenced from development branches only.
  */
 
 const INLINE_TRANSITION =
@@ -11,6 +14,16 @@ const INLINE_TRANSITION =
 
 const INLINE_ACTION =
   'Use a single inline function `(args, enq) => { ... }`; call named actions with `enq(actions.name, params)`.';
+
+// Keys that v6 would ignore or misread; each throws E1 in production.
+const REMOVED_ROOT_KEY_NAMES = [
+  'types',
+  'tsTypes',
+  'schema',
+  'internalEvents',
+  'services',
+  'devTools'
+];
 
 const REMOVED_ROOT_KEYS: Record<string, string> = {
   types:
@@ -20,20 +33,15 @@ const REMOVED_ROOT_KEYS: Record<string, string> = {
   schema:
     '"schema" was replaced by "schemas". Declare contracts under `schemas` (or `setup({ schemas })`).',
   internalEvents:
-    'The top-level "internalEvents" list was removed. Declare private events under `schemas.internalEvents` instead, e.g. `schemas: { internalEvents: { tick: types<{}>() } }`.'
-};
-
-const UNSUPPORTED_SETUP_KEYS: Record<string, string> = {
-  internalEvents:
-    'setup() has no "internalEvents" option. Declare private events under `schemas.internalEvents` instead, e.g. `setup({ schemas: { internalEvents: { tick: types<{}>() } } })`.'
-};
-
-const IGNORED_ROOT_KEYS: Record<string, string> = {
+    'The top-level "internalEvents" list was removed. Declare private events under `schemas.internalEvents` instead, e.g. `schemas: { internalEvents: { tick: types<{}>() } }`.',
   services:
     '"services" was renamed. Provide actor logic under "actors" (or `setup({ actors })`).',
   devTools:
     '"devTools" was removed. Pass the "inspect" option to `createActor(...)` instead.'
 };
+
+const SETUP_INTERNAL_EVENTS =
+  'setup() has no "internalEvents" option. Declare private events under `schemas.internalEvents` instead, e.g. `setup({ schemas: { internalEvents: { tick: types<{}>() } } })`.';
 
 const ACTIVITIES =
   'uses "activities", which was removed. Invoke an actor with "invoke" instead.';
@@ -70,6 +78,9 @@ function checkLifecycleEventKey(eventType: string, stateId: string): void {
       (match[2] === 'actor' || match[2] === 'actor.*'))
   )
     return;
+  if (!isDevelopment) {
+    throw new Error(xstateError(3, eventType, stateId));
+  }
   const [, category, suffix] = match;
   const where = `Transition "${eventType}" in ${describeState(stateId)}`;
   const replacement =
@@ -91,20 +102,25 @@ function checkTransitions(
   if (!transitions) return;
   for (const t of Array.isArray(transitions) ? transitions : [transitions]) {
     if (!t || typeof t !== 'object') continue;
-    const where = `Transition "${name}" in ${describeState(stateId)}`;
     if ((t as any).cond !== undefined) {
       throw new Error(
-        `${where} uses "cond", which was removed. ${INLINE_TRANSITION}`
+        isDevelopment
+          ? `Transition "${name}" in ${describeState(stateId)} uses "cond", which was removed. ${INLINE_TRANSITION}`
+          : xstateError(4, name, stateId, 'cond')
       );
     }
     if ((t as any).guard !== undefined) {
       throw new Error(
-        `${where} uses an object-form "guard", which was removed. ${INLINE_TRANSITION}`
+        isDevelopment
+          ? `Transition "${name}" in ${describeState(stateId)} uses an object-form "guard", which was removed. ${INLINE_TRANSITION}`
+          : xstateError(4, name, stateId, 'guard')
       );
     }
     if ((t as any).actions !== undefined) {
       throw new Error(
-        `${where} uses "actions", which was removed. Use an inline transition function \`(args, enq) => { ... }\` and queue effects on "enq"; call named actions with \`enq(actions.name, params)\`.`
+        isDevelopment
+          ? `Transition "${name}" in ${describeState(stateId)} uses "actions", which was removed. Use an inline transition function \`(args, enq) => { ... }\` and queue effects on "enq"; call named actions with \`enq(actions.name, params)\`.`
+          : xstateError(4, name, stateId, 'actions')
       );
     }
   }
@@ -115,26 +131,42 @@ function describeState(stateId: string): string {
   return stateId ? `state "${stateId}"` : 'the root state';
 }
 
+function describeShape(value: unknown): string {
+  return Array.isArray(value)
+    ? 'an array'
+    : typeof value === 'string'
+      ? `a string ("${value}")`
+      : `a ${typeof value}`;
+}
+
 function capitalize(text: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
+const UNGUARDED_INITIAL =
+  'Initial transitions cannot be guarded; use an "always" transition on the target state to redirect conditionally.';
+
 function checkInitialTransition(initial: any, stateId: string): void {
   if (!initial || typeof initial !== 'object') return;
-  const where = `Initial transition of ${describeState(stateId)}`;
-  const unguarded =
-    'Initial transitions cannot be guarded; use an "always" transition on the target state to redirect conditionally.';
   if (initial.cond !== undefined) {
-    throw new Error(`${where} uses "cond", which was removed. ${unguarded}`);
+    throw new Error(
+      isDevelopment
+        ? `Initial transition of ${describeState(stateId)} uses "cond", which was removed. ${UNGUARDED_INITIAL}`
+        : xstateError(5, stateId, 'cond')
+    );
   }
   if (initial.guard !== undefined) {
     throw new Error(
-      `${where} uses an object-form "guard", which was removed. ${unguarded}`
+      isDevelopment
+        ? `Initial transition of ${describeState(stateId)} uses an object-form "guard", which was removed. ${UNGUARDED_INITIAL}`
+        : xstateError(5, stateId, 'guard')
     );
   }
   if (initial.actions !== undefined) {
     throw new Error(
-      `${where} uses "actions", which was removed. Use a \`to: (args, enq) => { ... }\` function on the initial transition and queue effects on "enq", or an "entry" function on the target state.`
+      isDevelopment
+        ? `Initial transition of ${describeState(stateId)} uses "actions", which was removed. Use a \`to: (args, enq) => { ... }\` function on the initial transition and queue effects on "enq", or an "entry" function on the target state.`
+        : xstateError(5, stateId, 'actions')
     );
   }
 }
@@ -142,18 +174,19 @@ function checkInitialTransition(initial: any, stateId: string): void {
 function checkStateNode(node: any, stateId: string): void {
   checkInitialTransition(node.initial, stateId);
   if (node.activities !== undefined) {
-    throw new Error(`${capitalize(describeState(stateId))} ${ACTIVITIES}`);
+    throw new Error(
+      isDevelopment
+        ? `${capitalize(describeState(stateId))} ${ACTIVITIES}`
+        : xstateError(6, stateId)
+    );
   }
   for (const key of ['entry', 'exit'] as const) {
     const action = node[key];
     if (action !== undefined && typeof action !== 'function') {
-      const shape = Array.isArray(action)
-        ? 'an array'
-        : typeof action === 'string'
-          ? `a string ("${action}")`
-          : `a ${typeof action}`;
       throw new Error(
-        `${capitalize(describeState(stateId))} has ${shape} as "${key}", which is not supported. ${INLINE_ACTION}`
+        isDevelopment
+          ? `${capitalize(describeState(stateId))} has ${describeShape(action)} as "${key}", which is not supported. ${INLINE_ACTION}`
+          : xstateError(7, stateId, key)
       );
     }
   }
@@ -200,14 +233,11 @@ function checkStateNode(node: any, stateId: string): void {
  */
 export function diagnoseAuthorConfig(config: any): void {
   if (!config || typeof config !== 'object') return;
-  for (const key of Object.keys(REMOVED_ROOT_KEYS)) {
+  for (const key of REMOVED_ROOT_KEY_NAMES) {
     if (config[key] !== undefined) {
-      throw new Error(REMOVED_ROOT_KEYS[key]);
-    }
-  }
-  for (const key of Object.keys(IGNORED_ROOT_KEYS)) {
-    if (config[key] !== undefined) {
-      throw new Error(IGNORED_ROOT_KEYS[key]);
+      throw new Error(
+        isDevelopment ? REMOVED_ROOT_KEYS[key] : xstateError(1, key)
+      );
     }
   }
   if (isDevelopment) {
@@ -226,10 +256,8 @@ export function diagnoseAuthorConfig(config: any): void {
  */
 export function diagnoseSetupConfig(config: any): void {
   if (!config || typeof config !== 'object') return;
-  for (const key of Object.keys(UNSUPPORTED_SETUP_KEYS)) {
-    if (config[key] !== undefined) {
-      throw new Error(UNSUPPORTED_SETUP_KEYS[key]);
-    }
+  if (config.internalEvents !== undefined) {
+    throw new Error(isDevelopment ? SETUP_INTERNAL_EVENTS : xstateError(2));
   }
 }
 
@@ -276,10 +304,14 @@ export function diagnoseActorOptions(options: any): void {
   for (const key of Object.keys(options)) {
     if (ACTOR_OPTIONS.has(key)) continue;
     throw new Error(
-      REMOVED_ACTOR_OPTIONS[key] ??
-        `Unknown actor option "${key}". Supported options: ${[...ACTOR_OPTIONS]
-          .filter((name) => !name.startsWith('_'))
-          .join(', ')}.`
+      isDevelopment
+        ? (REMOVED_ACTOR_OPTIONS[key] ??
+            `Unknown actor option "${key}". Supported options: ${[
+              ...ACTOR_OPTIONS
+            ]
+              .filter((name) => !name.startsWith('_'))
+              .join(', ')}.`)
+        : xstateError(8, key)
     );
   }
 }

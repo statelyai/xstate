@@ -1,4 +1,6 @@
+import isDevelopment from '#is-development';
 import { diagnoseAuthorConfig, diagnoseSetupConfig } from './devDiagnostics.ts';
+import { xstateError } from './xstateError.ts';
 import { SetupStateSchemas, StandardSchemaV1 } from './schema.types.ts';
 import type {
   SetupSchemas,
@@ -5396,7 +5398,9 @@ export const setup = function setupImplementation<
     createMachine(machineConfig, ...rest: unknown[]) {
       if (rest[0] !== undefined) {
         throw new Error(
-          'createMachine(config) takes one argument; the second argument (implementations) was removed. Declare implementations in setup({ actions, guards, actors, delays }), or pass them to machine.provide({ ... }).'
+          isDevelopment
+            ? 'createMachine(config) takes one argument; the second argument (implementations) was removed. Declare implementations in setup({ actions, guards, actors, delays }), or pass them to machine.provide({ ... }).'
+            : xstateError(71)
         );
       }
       const configSchemas = machineConfig.schemas;

@@ -331,17 +331,17 @@ describe('v5 config diagnostics', () => {
       const { createActor: prodCreateActor } =
         await import('../src/createActor.ts');
       expect(() => prodCreateMachine({ types: {} } as any)).toThrowError(
-        'replaced by "schemas"'
+        'XState error E1 ("types")'
       );
       expect(() => prodCreateMachine({ devTools: true } as any)).toThrowError(
-        '"devTools" was removed'
+        'XState error E1 ("devTools")'
       );
       expect(() =>
         (prodCreateMachine as any)({}, { actions: {} })
-      ).toThrowError('takes one argument');
+      ).toThrowError('XState error E71.');
       expect(() =>
         prodCreateActor(prodCreateMachine({}), { systemId: 'a' } as any)
-      ).toThrowError('Use "registryKey"');
+      ).toThrowError('XState error E8 ("systemId")');
       expect(() =>
         prodCreateMachine({
           predictableActionArguments: true,
@@ -371,32 +371,35 @@ describe('v5 config diagnostics', () => {
       const cases: Array<[stateA: object, message: string]> = [
         [
           { on: { go: { target: 'b', cond: () => false } } },
-          'Transition "go" in state "a" uses "cond", which was removed'
+          'XState error E4 ("go", "a", "cond")'
         ],
         [
           { always: { target: 'b', cond: () => false } },
-          'Transition "always" in state "a" uses "cond"'
+          'XState error E4 ("always", "a", "cond")'
         ],
         [
           { after: { 1000: { target: 'b', cond: () => false } } },
-          'uses "cond"'
+          'XState error E4 ("after.1000", "a", "cond")'
         ],
         [
           { on: { go: { target: 'b', actions: 'track' } } },
-          'Transition "go" in state "a" uses "actions"'
+          'XState error E4 ("go", "a", "actions")'
         ],
         [
           { on: { go: { target: 'b', actions: { type: 'track' } } } },
-          'uses "actions"'
+          'XState error E4 ("go", "a", "actions")'
         ],
-        [{ on: { go: { target: 'b', actions: () => {} } } }, 'uses "actions"'],
+        [
+          { on: { go: { target: 'b', actions: () => {} } } },
+          'XState error E4 ("go", "a", "actions")'
+        ],
         [
           { on: { go: { target: 'b', guard: 'isReady' } } },
-          'Transition "go" in state "a" uses an object-form "guard"'
+          'XState error E4 ("go", "a", "guard")'
         ],
         [
           { on: { go: { target: 'b', guard: { type: 'isReady' } } } },
-          'uses an object-form "guard"'
+          'XState error E4 ("go", "a", "guard")'
         ]
       ];
       for (const [a, message] of cases) {

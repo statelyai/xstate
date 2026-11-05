@@ -1,4 +1,5 @@
 import isDevelopment from '#is-development';
+import { xstateError } from './xstateError.ts';
 import { diagnoseActorOptions } from './devDiagnostics.ts';
 import { publishEmittedEvent } from './runtimeHelpers.ts';
 import type { ActionRecord, SentRecord } from './inspection.ts';
@@ -468,7 +469,7 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
       throw new Error(
         isDevelopment
           ? `Cannot stop child actor ${child.id} of ${this.id} because it is not a child`
-          : `Cannot stop non-child actor ${child.id}`
+          : xstateError(47, child.id, this.id)
       );
     }
     (child as Actor<AnyActorLogic>)._stop();
@@ -848,7 +849,9 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
       }
       // Actors are single-use: a stopped actor cannot be restarted.
       throw new Error(
-        `Actor ${this.id} was stopped and cannot be restarted. Create a new actor with createActor().`
+        isDevelopment
+          ? `Actor ${this.id} was stopped and cannot be restarted. Create a new actor with createActor().`
+          : xstateError(48, this.id)
       );
     }
 
@@ -1129,7 +1132,11 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
   /** Stops the Actor and unsubscribe all listeners. */
   public stop(): this {
     if (this._parent) {
-      throw new Error('A non-root actor cannot be stopped directly.');
+      throw new Error(
+        isDevelopment
+          ? 'A non-root actor cannot be stopped directly.'
+          : xstateError(49, this.id)
+      );
     }
     return this._stop();
   }

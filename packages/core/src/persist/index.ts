@@ -10,6 +10,7 @@ import {
 } from '../inertActorScope.ts';
 import { setSnapshotActorRef } from '../snapshotActorRef.ts';
 import { describeMachine } from '../utils.ts';
+import { xstateError } from '../xstateError.ts';
 import {
   InvalidSnapshotError,
   validatePersistedSnapshot
@@ -113,7 +114,9 @@ export function restoreLogicSnapshot<TLogic extends AnyActorLogic>(
   // Only `undefined` means "no snapshot": an explicit `null` (or another
   // non-object) is a malformed snapshot the logic reports.
   if (!logic.restoreSnapshot && persisted === null) {
-    throw new Error('Persisted snapshot must be an object.');
+    throw new Error(
+      isDevelopment ? 'Persisted snapshot must be an object.' : xstateError(46)
+    );
   }
   return logic.restoreSnapshot
     ? logic.restoreSnapshot(persisted as Snapshot<unknown>, actorScope)
@@ -174,7 +177,9 @@ export function restoreMachineSnapshot<TMachine extends AnyStateMachine>(
     createInertActorScope(machine)) as AnyActorScope;
   if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) {
     throw new InvalidSnapshotError(
-      `Persisted snapshot for ${describeMachine(machine.id)} must be an object.`
+      isDevelopment
+        ? `Persisted snapshot for ${describeMachine(machine.id)} must be an object.`
+        : xstateError(24, machine.id)
     );
   }
   const snapshotMachine = (snapshot as any).machine;
@@ -199,7 +204,9 @@ export function restoreMachineSnapshot<TMachine extends AnyStateMachine>(
     persistedMachine.version !== legacyPersistedVersion
   ) {
     throw new Error(
-      `Persisted snapshot version '${legacyPersistedVersion}' conflicts with machine version '${persistedMachine.version}'.`
+      isDevelopment
+        ? `Persisted snapshot version '${legacyPersistedVersion}' conflicts with machine version '${persistedMachine.version}'.`
+        : xstateError(34, legacyPersistedVersion, persistedMachine.version)
     );
   }
   if (
@@ -210,7 +217,7 @@ export function restoreMachineSnapshot<TMachine extends AnyStateMachine>(
     throw new Error(
       isDevelopment
         ? `Machine ID mismatch: persisted snapshot was created by machine '${persistedMachine.id}', but machine '${machine.id}' was provided.`
-        : `Machine ID mismatch: persisted snapshot machine '${persistedMachine.id}' does not match '${machine.id}'.`
+        : xstateError(35, persistedMachine.id, machine.id)
     );
   }
   if (persistedVersion !== machine.version) {
@@ -219,7 +226,7 @@ export function restoreMachineSnapshot<TMachine extends AnyStateMachine>(
       throw new Error(
         isDevelopment
           ? `Persisted snapshot version '${persistedVersion}' does not match machine version '${machine.version}' for machine '${machine.id}'. Provide a \`migrate(persistedSnapshot, fromVersion)\` function in the machine config to migrate old snapshots.`
-          : `Persisted snapshot version '${persistedVersion}' does not match machine version '${machine.version}'.`
+          : xstateError(36, persistedVersion, machine.version)
       );
     }
     snapshot = migrate(snapshot, persistedVersion);
@@ -252,7 +259,9 @@ export function restoreMachineSnapshot<TMachine extends AnyStateMachine>(
         // Fail loudly instead of fabricating a source key that hosts would
         // route by.
         throw new Error(
-          `Unable to restore remote child '${actorId}': a child referenced by address requires a registered source key.`
+          isDevelopment
+            ? `Unable to restore remote child '${actorId}': a child referenced by address requires a registered source key.`
+            : xstateError(28, actorId)
         );
       }
       // The child's state lives with another runtime; restore a
@@ -333,7 +342,9 @@ export function restoreMachineSnapshot<TMachine extends AnyStateMachine>(
           ? timer.target
           : (timer.target as { type: string }).type;
       throw new InvalidSnapshotError(
-        `Unable to restore timer ${timer.id !== undefined ? `'${timer.id}'` : `for event '${timer.event.type}'`}: target actor '${targetDescription}' is unavailable.`
+        isDevelopment
+          ? `Unable to restore timer ${timer.id !== undefined ? `'${timer.id}'` : `for event '${timer.event.type}'`}: target actor '${targetDescription}' is unavailable.`
+          : xstateError(33, targetDescription)
       );
     }
     timers.push({ ...timer, event, target });

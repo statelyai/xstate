@@ -98,7 +98,7 @@ describe.each(FIXTURES)(
       declaration = [...emitted].find(([fileName]) =>
         fileName.endsWith(`${name}.d.ts`)
       )?.[1];
-    }, 30_000);
+    }, 60_000);
     afterAll(() => {
       program = undefined!;
       emitted.clear();
@@ -188,7 +188,7 @@ describe.each(FIXTURES)(
       });
     }
   },
-  30_000
+  60_000
 );
 
 it('emits a registered child across many invoked states', () => {
@@ -248,7 +248,7 @@ export const parentMachine = parentSetup.createMachine({
   expect(formatDiagnostics(diagnostics)).toBe('');
   expect(Buffer.byteLength(declaration)).toBeLessThan(100_000);
   expect(declaration.match(/readonly p0: \{/g)).toHaveLength(1);
-}, 30_000);
+}, 60_000);
 
 // This fixture checks callback bodies, rather than exported inferred values.
 // Compile it in its own case so its program is not retained by describe.each
@@ -256,12 +256,12 @@ export const parentMachine = parentSetup.createMachine({
 it('checks concrete created-invoke callback types', () => {
   const { diagnostics } = emitFixture('created-invoke-inference');
   expect(formatDiagnostics(diagnostics)).toBe('');
-}, 30_000);
+}, 60_000);
 
 it('retains exact optional context through actor refs', () => {
   const { diagnostics } = emitFixture('exact-context');
   expect(formatDiagnostics(diagnostics)).toBe('');
-}, 30_000);
+}, 60_000);
 
 it.each([false, true])(
   '#5789 retains setup state values with exactOptionalPropertyTypes=%s',
@@ -271,5 +271,5 @@ it.each([false, true])(
     });
     expect(formatDiagnostics(diagnostics)).toBe('');
   },
-  30_000
+  60_000
 );

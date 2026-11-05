@@ -6,7 +6,9 @@ import type {
   StateValue
 } from './types.ts';
 import { getAllStateNodes, getStateNodes } from './stateUtils.ts';
+import isDevelopment from '#is-development';
 import { describeMachine, resolveInvokedActorLogic } from './utils.ts';
+import { xstateError } from './xstateError.ts';
 import { isSerializedActorRef } from './remoteActorRef.ts';
 
 /**
@@ -48,33 +50,43 @@ function validatePersistedStateValue(
   if (typeof stateValue === 'string') {
     if (!node.states[stateValue]) {
       throw new InvalidSnapshotError(
-        `Persisted snapshot references state '${path.concat(stateValue).join('.')}' which does not exist on ${describeMachine(machine.id)}.`
+        isDevelopment
+          ? `Persisted snapshot references state '${path.concat(stateValue).join('.')}' which does not exist on ${describeMachine(machine.id)}.`
+          : xstateError(21, path.concat(stateValue).join('.'))
       );
     }
     return;
   }
-  const invalidValue = (reason: string) =>
+  const invalidValue = (code: 22 | 23) =>
     new InvalidSnapshotError(
-      `Persisted snapshot for ${describeMachine(machine.id)} has an invalid state value${path.length ? ` at '${path.join('.')}'` : ''}: ${reason}.`
+      isDevelopment
+        ? `Persisted snapshot for ${describeMachine(machine.id)} has an invalid state value${path.length ? ` at '${path.join('.')}'` : ''}: ${
+            code === 22
+              ? 'expected a state name or an object of state values'
+              : `state '${path.length ? path.join('.') : node.key}' is not parallel, so only one child state can be active`
+          }.`
+        : code === 22
+          ? xstateError(22, path.join('.'))
+          : xstateError(23, path.join('.'))
     );
   if (
     !stateValue ||
     typeof stateValue !== 'object' ||
     Array.isArray(stateValue)
   ) {
-    throw invalidValue('expected a state name or an object of state values');
+    throw invalidValue(22);
   }
   const keys = Object.keys(stateValue);
   if (keys.length > 1 && node.type !== 'parallel') {
-    throw invalidValue(
-      `state '${path.length ? path.join('.') : node.key}' is not parallel, so only one child state can be active`
-    );
+    throw invalidValue(23);
   }
   for (const key of keys) {
     const childNode = node.states[key];
     if (!childNode) {
       throw new InvalidSnapshotError(
-        `Persisted snapshot references state '${path.concat(key).join('.')}' which does not exist on ${describeMachine(machine.id)}.`
+        isDevelopment
+          ? `Persisted snapshot references state '${path.concat(key).join('.')}' which does not exist on ${describeMachine(machine.id)}.`
+          : xstateError(21, path.concat(key).join('.'))
       );
     }
     validatePersistedStateValue(
@@ -96,12 +108,16 @@ export function validatePersistedSnapshot(
 } {
   if (!isSnapshotRecord(snapshot)) {
     throw new InvalidSnapshotError(
-      `Persisted snapshot for ${describeMachine(machine.id)} must be an object.`
+      isDevelopment
+        ? `Persisted snapshot for ${describeMachine(machine.id)} must be an object.`
+        : xstateError(24, machine.id)
     );
   }
   if (snapshot.value === undefined) {
     throw new InvalidSnapshotError(
-      `Persisted snapshot for ${describeMachine(machine.id)} has no state value.`
+      isDevelopment
+        ? `Persisted snapshot for ${describeMachine(machine.id)} has no state value.`
+        : xstateError(25, machine.id)
     );
   }
   validatePersistedStateValue(machine, snapshot.value, machine.root, []);
@@ -110,7 +126,9 @@ export function validatePersistedSnapshot(
   );
   if (!isSnapshotRecord(snapshot.children)) {
     throw new InvalidSnapshotError(
-      "Persisted snapshot has invalid 'children'."
+      isDevelopment
+        ? "Persisted snapshot has invalid 'children'."
+        : xstateError(26)
     );
   }
   const childLogics = new Map<string, AnyActorLogic>();
@@ -128,13 +146,17 @@ export function validatePersistedSnapshot(
       (child.snapshot !== undefined && !isSnapshotRecord(child.snapshot))
     ) {
       throw new InvalidSnapshotError(
-        `Persisted snapshot has invalid child '${id}'.`
+        isDevelopment
+          ? `Persisted snapshot has invalid child '${id}'.`
+          : xstateError(27, id)
       );
     }
     if (child.remote === true) {
       if (typeof child.address !== 'string' || typeof child.src !== 'string') {
         throw new InvalidSnapshotError(
-          `Unable to restore remote child '${id}': a child referenced by address requires a registered source key and an address.`
+          isDevelopment
+            ? `Unable to restore remote child '${id}': a child referenced by address requires a registered source key and an address.`
+            : xstateError(28, id)
         );
       }
       continue;
@@ -145,7 +167,9 @@ export function validatePersistedSnapshot(
       !isActorLogic(child.src)
     ) {
       throw new InvalidSnapshotError(
-        `Persisted snapshot has invalid child '${id}'.`
+        isDevelopment
+          ? `Persisted snapshot has invalid child '${id}'.`
+          : xstateError(27, id)
       );
     }
     try {
@@ -159,7 +183,13 @@ export function validatePersistedSnapshot(
             : child.src;
       if (!logic) {
         throw new InvalidSnapshotError(
-          `Unable to restore child actor '${id}': child source '${typeof child.src === 'string' ? child.src : '<inline>'}' is not provided in ${describeMachine(machine.id)}.`
+          isDevelopment
+            ? `Unable to restore child actor '${id}': child source '${typeof child.src === 'string' ? child.src : '<inline>'}' is not provided in ${describeMachine(machine.id)}.`
+            : xstateError(
+                29,
+                id,
+                typeof child.src === 'string' ? child.src : '<inline>'
+              )
         );
       }
       childLogics.set(id, logic);
@@ -170,12 +200,18 @@ export function validatePersistedSnapshot(
       throw new InvalidSnapshotError(
         error instanceof Error
           ? error.message
-          : `Unable to restore child actor '${id}'.`
+          : isDevelopment
+            ? `Unable to restore child actor '${id}'.`
+            : xstateError(30, id)
       );
     }
   }
   if (snapshot.timers !== undefined && !Array.isArray(snapshot.timers)) {
-    throw new InvalidSnapshotError("Persisted snapshot has invalid 'timers'.");
+    throw new InvalidSnapshotError(
+      isDevelopment
+        ? "Persisted snapshot has invalid 'timers'."
+        : xstateError(31)
+    );
   }
   for (const timer of snapshot.timers ?? []) {
     if (
@@ -194,7 +230,11 @@ export function validatePersistedSnapshot(
         isSerializedActorRef(timer.target)
       )
     ) {
-      throw new InvalidSnapshotError('Persisted snapshot has invalid timer.');
+      throw new InvalidSnapshotError(
+        isDevelopment
+          ? 'Persisted snapshot has invalid timer.'
+          : xstateError(32)
+      );
     }
     if (
       typeof timer.target === 'string' &&
@@ -202,7 +242,9 @@ export function validatePersistedSnapshot(
       !Object.hasOwn(snapshot.children, timer.target)
     ) {
       throw new InvalidSnapshotError(
-        `Unable to restore timer: target actor '${timer.target}' is unavailable.`
+        isDevelopment
+          ? `Unable to restore timer: target actor '${timer.target}' is unavailable.`
+          : xstateError(33, timer.target)
       );
     }
   }

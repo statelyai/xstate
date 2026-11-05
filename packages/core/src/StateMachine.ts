@@ -1,4 +1,5 @@
 import isDevelopment from '#is-development';
+import { xstateError } from './xstateError.ts';
 import { createActor } from './createActor.ts';
 import { createErrorPlatformEvent, createInitEvent } from './eventUtils.ts';
 import { STATE_DELIMITER, XSTATE_TIMER } from './constants.ts';
@@ -226,6 +227,33 @@ type ProvidedActionResult<TResult> = void extends TResult
 
 export { InvalidSnapshotError } from './persistedSnapshotValidation.ts';
 
+/**
+ * The development message for an id that matches no state. When a prefix of
+ * the id is a state id and the rest resolves beneath it as a relative path,
+ * suggests the target's own id.
+ */
+function describeUnknownStateId(
+  idMap: Map<string, AnyStateNode>,
+  id: string
+): string {
+  const message = `No state has id "${id}".`;
+  const segments = toStatePath(id);
+  for (let i = segments.length - 1; i > 0; i--) {
+    let node: AnyStateNode | undefined = idMap.get(
+      segments.slice(0, i).join(STATE_DELIMITER)
+    );
+    for (let j = i; node && j < segments.length; j++) {
+      node = node.states?.[segments[j]];
+    }
+    if (node) {
+      return node.config.id
+        ? `${message} Use "#${node.id}".`
+        : `${message} Use "#${node.id}", or give that state an id.`;
+    }
+  }
+  return message;
+}
+
 /** @public */
 export class StateMachine<
   TContext extends MachineContext,
@@ -353,7 +381,9 @@ export class StateMachine<
     if (config.version !== undefined && !config.id) {
       // Persisted snapshots record `{ id, version }`; a version needs an id.
       throw new Error(
-        `Machine with version '${config.version}' must declare an id.`
+        isDevelopment
+          ? `Machine with version '${config.version}' must declare an id.`
+          : xstateError(18, config.version)
       );
     }
     this.id = (config.id ?? '') as typeof this.id;
@@ -1316,40 +1346,22 @@ export class StateMachine<
 
     if (id === '' && hasPrefix) {
       throw new Error(
-        this.id
-          ? `State id '#' is empty. Target the root of ${describeMachine(this.id)} with '#${this.id}'.`
-          : "State id '#' is empty: the root of a machine without an `id` cannot be referenced by id. Give the machine an `id` to reference its root as '#<id>'."
+        !isDevelopment
+          ? xstateError(19, this.id)
+          : this.id
+            ? `State id '#' is empty. Target the root of ${describeMachine(this.id)} with '#${this.id}'.`
+            : "State id '#' is empty: the root of a machine without an `id` cannot be referenced by id. Give the machine an `id` to reference its root as '#<id>'."
       );
     }
     const stateNode = this.idMap.get(id);
     if (stateNode) {
       return stateNode as StateNode<TContext, TEvent, TMeta, TTransitionMeta>;
     }
-    throw new Error(this._describeUnknownStateId(id));
-  }
-
-  /**
-   * The error message for an id that matches no state. When a prefix of the
-   * id is a state id and the rest resolves beneath it as a relative path,
-   * suggests the target's own id.
-   */
-  private _describeUnknownStateId(id: string): string {
-    const message = `No state has id "${id}".`;
-    const segments = toStatePath(id);
-    for (let i = segments.length - 1; i > 0; i--) {
-      let node: AnyStateNode | undefined = this.idMap.get(
-        segments.slice(0, i).join(STATE_DELIMITER)
-      );
-      for (let j = i; node && j < segments.length; j++) {
-        node = node.states?.[segments[j]];
-      }
-      if (node) {
-        return node.config.id
-          ? `${message} Use "#${node.id}".`
-          : `${message} Use "#${node.id}", or give that state an id.`;
-      }
-    }
-    return message;
+    throw new Error(
+      isDevelopment
+        ? describeUnknownStateId(this.idMap, id)
+        : xstateError(20, id)
+    );
   }
 
   public getPersistedSnapshot(
