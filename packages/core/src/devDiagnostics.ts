@@ -47,6 +47,34 @@ const INVOKE_TRANSITION_KEYS = [
   'onTimeout'
 ] as const;
 
+const SUFFIXED_LIFECYCLE =
+  /^xstate\.(done\.actor|error\.actor|snapshot|done\.state|after)\.(.+)$/;
+
+function checkLifecycleEventKey(eventType: string, stateId: string): void {
+  const match = SUFFIXED_LIFECYCLE.exec(eventType);
+  // `xstate.done.actor.*` is a wildcard over the category type and still matches.
+  // `xstate.snapshot.actor` is the v6 category type itself, and
+  // `xstate.snapshot.actor.*` is a wildcard over it.
+  if (
+    !match ||
+    match[2] === '*' ||
+    (match[1] === 'snapshot' &&
+      (match[2] === 'actor' || match[2] === 'actor.*'))
+  )
+    return;
+  const [, category, suffix] = match;
+  const where = `Transition "${eventType}" in ${describeState(stateId)}`;
+  const replacement =
+    category === 'after'
+      ? `Use \`after: { <delay>: ... }\` on the state, or key on 'xstate.after' and select \`matches: { stateId, delay }\``
+      : category === 'done.state'
+        ? `Use "onDone" on the state, or key on 'xstate.done.state' with \`matches: { stateId: '${suffix}' }\``
+        : `Key on '${category === 'snapshot' ? 'xstate.snapshot.actor' : `xstate.${category}`}' with \`matches: { actorId: '${suffix}' }\`, or use the invoke's ${category === 'done.actor' ? '"onDone"' : category === 'error.actor' ? '"onError"' : '"onSnapshot"'}`;
+  throw new Error(
+    `${where} never fires: v6 lifecycle event types carry the id in a payload field instead of the type. ${replacement}.`
+  );
+}
+
 function checkTransitions(
   transitions: unknown,
   name: string,
@@ -125,6 +153,7 @@ function checkStateNode(node: any, stateId: string): void {
   }
   if (node.on) {
     for (const eventType of Object.keys(node.on)) {
+      checkLifecycleEventKey(eventType, stateId);
       checkTransitions(node.on[eventType], eventType, stateId);
     }
   }
