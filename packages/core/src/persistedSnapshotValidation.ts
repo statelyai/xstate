@@ -1,4 +1,4 @@
-/** @internal Structural validation of persisted machine snapshots. */
+// Structural validation of persisted machine snapshots.
 import type {
   AnyActorLogic,
   AnyStateMachine,
