@@ -1,3 +1,4 @@
+import { snapshotSchema } from '../src/persist/index.ts';
 import {
   createActor,
   createAsyncLogic,
@@ -91,7 +92,8 @@ it.each(malformed)(
   async (_, overrides) => {
     const { machine, good } = fixture();
     const snapshot = { ...good, ...overrides(good) };
-    const result = await machine.snapshotSchema['~standard'].validate(snapshot);
+    const result =
+      await snapshotSchema(machine)['~standard'].validate(snapshot);
     expect(result.issues).toBeDefined();
     await expect(
       machineVersions([machine]).parseSnapshot(snapshot)
@@ -137,7 +139,7 @@ it('accepts remote children whose source is hosted on another runtime', async ()
       hosted: { remote: true, address: '/host/hosted', src: 'hosted-work' }
     }
   };
-  const result = await machine.snapshotSchema['~standard'].validate(snapshot);
+  const result = await snapshotSchema(machine)['~standard'].validate(snapshot);
   expect(result.issues).toBeUndefined();
   const restored = restoreActor(machine, snapshot);
   restored.subscribe({ error: () => {} });
@@ -167,7 +169,7 @@ it.each([false, true])(
       }
     };
     const result =
-      await machine.snapshotSchema['~standard'].validate(restorable);
+      await snapshotSchema(machine)['~standard'].validate(restorable);
     expect(result.issues).toBeUndefined();
     const restored = restoreActor(machine, restorable);
     restored.subscribe({ error: () => {} });
@@ -183,7 +185,7 @@ it('accepts local children with omitted persisted snapshots', async () => {
     snapshot.children[id].src = 'work';
     delete snapshot.children[id].snapshot;
   }
-  const result = await machine.snapshotSchema['~standard'].validate(snapshot);
+  const result = await snapshotSchema(machine)['~standard'].validate(snapshot);
   expect(result.issues).toBeUndefined();
   const restored = restoreActor(machine, snapshot);
   restored.subscribe({ error: () => {} });

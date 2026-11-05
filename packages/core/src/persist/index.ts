@@ -40,6 +40,9 @@ import type {
   SnapshotFrom
 } from '../types.ts';
 
+export { snapshotSchema } from '../machineSchemas.ts';
+export type { MachinePersistedSnapshotSchema } from '../machineSchemas.ts';
+
 /**
  * Options for {@link restoreActor}: the {@link ActorOptions} of `createActor`
  * except `input` (a restored actor resumes, it does not initialize).

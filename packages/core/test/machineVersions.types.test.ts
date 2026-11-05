@@ -1,7 +1,6 @@
 import {
   createActor,
   createMachine,
-  type MachineVersionDescriptor,
   machineVersions,
   setup,
   types
@@ -100,8 +99,6 @@ const eventDescriptorVersions = machineVersions([
   eventVersionV0,
   eventMachineV2
 ]);
-const machineVersionDescriptor: MachineVersionDescriptor = eventMachineV1;
-void machineVersionDescriptor;
 
 if (false) {
   // @ts-expect-error version parsers require versioned machines

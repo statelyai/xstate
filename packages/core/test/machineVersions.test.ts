@@ -1,3 +1,5 @@
+import { eventSchema } from '../src/index.ts';
+import { snapshotSchema } from '../src/persist/index.ts';
 import { z } from 'zod';
 import { createActor, createMachine, machineVersions, types } from '../src';
 import { restoreActor } from '../src/persist/index.ts';
@@ -18,19 +20,19 @@ describe('machineVersions', () => {
     const persisted = createActor(checkout).getPersistedSnapshot();
 
     await expect(
-      checkout.snapshotSchema['~standard'].validate({
+      snapshotSchema(checkout)['~standard'].validate({
         ...persisted,
         context: { count: 1 }
       })
     ).resolves.toMatchObject({ value: { context: { count: 1 } } });
     await expect(
-      checkout.eventSchema['~standard'].validate({
+      eventSchema(checkout)['~standard'].validate({
         type: 'ADD',
         value: 2
       })
     ).resolves.toEqual({ value: { type: 'ADD', value: 2 } });
     await expect(
-      checkout.snapshotSchema['~standard'].validate({
+      snapshotSchema(checkout)['~standard'].validate({
         ...persisted,
         value: 'removed'
       })

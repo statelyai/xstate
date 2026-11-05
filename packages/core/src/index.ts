@@ -164,6 +164,7 @@ export { createMachineFromCompiledConfig as _createMachineFromCompiledConfig } f
 export { type Spawner } from './spawn.ts';
 export { isMachineSnapshot, type MachineSnapshot } from './State.ts';
 export { InvalidSnapshotError, StateMachine } from './StateMachine.ts';
+export { eventSchema } from './machineSchemas.ts';
 export { StateNode } from './StateNode.ts';
 export { getStateNodes, InfiniteTransitionError } from './stateUtils.ts';
 export type {
