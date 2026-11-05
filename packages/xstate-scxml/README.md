@@ -5,7 +5,7 @@ Create [XState](https://github.com/statelyai/xstate) machines from [SCXML](https
 ## Install
 
 ```bash
-npm i xstate @xstate/scxml
+npm i xstate@beta @xstate/scxml@beta
 ```
 
 ## Usage

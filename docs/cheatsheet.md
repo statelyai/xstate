@@ -8,7 +8,7 @@ Every snippet on this page is v6 syntax. See [migrate from v5 to v6](xstate-v5-t
 ## Install
 
 ```bash
-npm install xstate@alpha
+npm install xstate@beta
 ```
 
 ```ts

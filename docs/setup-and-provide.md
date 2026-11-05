@@ -116,6 +116,8 @@ Use `setup(...).extend(...)` to build a more specific setup from a shared one, m
 
 <!-- runtime validation behavior from packages/core/src/setup.ts and packages/core/src/validation/index.ts -->
 
+> **Experimental:** `standardSchemaValidator()`, `ActorValidationError` and the other `xstate/validation` exports may change in a minor release.
+
 Schemas provide type inference by default. Install `standardSchemaValidator()` to check actor inputs, events, snapshots and outputs at runtime:
 
 ```ts

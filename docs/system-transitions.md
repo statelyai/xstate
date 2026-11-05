@@ -5,6 +5,8 @@ description: Branch, replay and advance an actor system using immutable snapshot
 
 <!-- experimental APIs and snapshot data from packages/core/src/systemTransition.ts -->
 
+> **Experimental:** `initialSystemTransition(...)`, `systemTransition(...)`, `advanceSystemTime(...)` and the `System*` types may change in a minor release.
+
 The experimental system transition APIs calculate immutable `SystemSnapshot`
 values. Each returns `[snapshot, externalEffects]`. A system snapshot contains
 actor snapshots, topology, the registry, messages, pending external work,
