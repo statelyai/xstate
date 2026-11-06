@@ -9,6 +9,7 @@ const noop = () => {
   /* ... */
 };
 
+/** @public */
 export function useSelector<
   TActor extends Pick<AnyActorRef, 'getSnapshot' | 'subscribe'> | undefined,
   T

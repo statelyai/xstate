@@ -117,13 +117,15 @@ test('emits when a track starts', () => {
 A workflow that is restored on every request should be tested the way it runs. Persist, restore and continue:
 
 ```ts
+import { restoreActor } from 'xstate/persist';
+
 test('resumes an order from its persisted snapshot', () => {
   const first = createActor(orderMachine).start();
   first.send({ type: 'submit' });
   const persisted = JSON.parse(JSON.stringify(first.getPersistedSnapshot()));
   first.stop();
 
-  const second = createActor(orderMachine, { snapshot: persisted }).start();
+  const second = restoreActor(orderMachine, persisted).start();
   second.send({ type: 'confirm' });
   expect(second.getSnapshot().matches('confirmed')).toBe(true);
 });

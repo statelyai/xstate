@@ -1,5 +1,113 @@
 # xstate
 
+## 6.0.0-beta.0
+
+### Minor Changes
+
+- 81dd3dd: Restoring a persisted snapshot moved out of `createActor` into `restoreActor`, exported from the new `xstate/persist` entry point. `createActor` only starts fresh actors; passing `snapshot` throws with the replacement.
+  
+  ```ts
+  // Before
+  const actor = createActor(machine, { snapshot: persisted });
+  
+  // After
+  import { restoreActor } from 'xstate/persist';
+  
+  const actor = restoreActor(machine, persisted);
+  ```
+  
+  `restoreActor(logic, snapshot, options?)` works for any actor logic and accepts the `createActor` options except `input`. Pass `system` to restore into a system from `createSystem()`:
+  
+  ```ts
+  const actor = restoreActor(machine, persisted, { system });
+  ```
+  
+  Machine snapshots are validated and migrated, and invoked and spawned children are restored. A snapshot that cannot be restored produces an actor with an `'error'` snapshot. `machine.restoreSnapshot()` is removed.
+  
+  `machine.snapshotSchema` and `machine.eventSchema` are now functions:
+  
+  ```ts
+  // Before
+  await machine.snapshotSchema['~standard'].validate(value);
+  await machine.eventSchema['~standard'].validate(input);
+  
+  // After
+  import { eventSchema } from 'xstate';
+  import { snapshotSchema } from 'xstate/persist';
+  
+  await snapshotSchema(machine)['~standard'].validate(value);
+  await eventSchema(machine)['~standard'].validate(input);
+  ```
+  
+  `machineVersions([...])` accepts machines and `{ id, version, snapshotSchema, eventSchema }` descriptors as before.
+- 047cfb5: Leftover v5 configuration now throws in every build instead of only in development, so it cannot be silently ignored:
+  
+  - `createMachine(config, implementations)` and `setup(...).createMachine(config, implementations)` throw. Declare implementations in `setup({ ... })` or pass them to `machine.provide({ ... })`.
+  - `services`, `activities` and `devTools` in a machine config throw. They previously only warned in development.
+  - `createActor(...)` throws on an option it does not read. Removed options (`systemId`, `state`, `devTools`, `parent`, `deferEvents`, `execute`) throw with their replacement; any other unknown option throws with the list of supported options.
+  
+  ```ts
+  createActor(machine, { systemId: 'payments' });
+  // Error: The "systemId" actor option was renamed. Use "registryKey": createActor(logic, { registryKey }), and look the actor up with system.get(registryKey).
+  ```
+  
+  `predictableActionArguments`, `preserveActionOrder` and `strict` change nothing in v6 and still only warn in development.
+- 965c250: Macrosteps are unbounded by default, as in v5. `options.maxIterations` no longer defaults to `1000`, so a machine whose eventless transitions or raised events take more than 1000 microsteps for one event keeps running instead of erroring. In development builds, a macrostep that passes 1000 microsteps logs a warning once per machine. Set `maxIterations` to turn a runaway macrostep into an `InfiniteTransitionError`:
+  
+  ```ts
+  const machine = createMachine({
+    options: { maxIterations: 5000 },
+    // ...
+  });
+  ```
+
+### Patch Changes
+
+- 6cf6982: XState v6 enters beta. No further breaking changes are planned for APIs tagged `@public`; any that are needed will be called out with a migration path. APIs tagged `@experimental` may still change.
+- 308c52d: `self` in actions, transition functions, context factories, input mappers and delay functions is typed as a machine actor ref instead of `any` in its children and meta positions. Delay and `after` functions now receive the machine's emitted event type.
+- a2e4161: Production builds report errors and diagnostics as short codes. Each message names the code, the values that identify the failing state, event, or actor, and a link to its entry in the error code reference:
+  
+  ```text
+  XState error E1 ("services"). See https://github.com/statelyai/xstate/blob/next/docs/errors.md#e1
+  ```
+  
+  Development messages are unchanged. Error classes and names are the same in both builds.
+- 59fc7cd: `createMachine` throws when an `on` key is a v5 suffixed lifecycle event type such as `'xstate.done.actor.job'`, `'xstate.error.actor.job'`, `'xstate.done.state.form'` or `'xstate.after.1000.loading'`. v6 never sends these types, so the transition never fired. The error names the replacement:
+  
+  ```ts
+  // Throws: Transition "xstate.done.actor.job" in state "loading" never fires ...
+  on: { 'xstate.done.actor.job': { target: 'done' } }
+  
+  // Use the category type and select the child with `matches`
+  on: { 'xstate.done.actor': { matches: { actorId: 'job' }, target: 'done' } }
+  ```
+  
+  Wildcards such as `'xstate.done.actor.*'` and the `'xstate.snapshot.actor'` type are unaffected.
+
+## 6.0.0-alpha.73
+
+### Patch Changes
+
+- 6ef5f1f: Async logic that resolves `null` now reports `null` as its output instead of `undefined`. Rejecting with `null` likewise reports `null` as the error.
+  
+  ```ts
+  const logic = createAsyncLogic({ run: async () => null });
+  // snapshot.output === null
+  // parent receives { type: 'xstate.done.actor', output: null, ... }
+  ```
+
+## 6.0.0-alpha.72
+
+### Patch Changes
+
+- 129fd6b: Events sent by a child actor to a parent started with `createEffectActor` now retain their send order, including bursts from promise continuations.
+  
+  Durable hosts with a single FIFO mailbox can route all root events through their adapter:
+  
+  ```ts
+  const durable = createDurable(machine, adapter, { captureRootEvents: false });
+  ```
+
 ## 6.0.0-alpha.71
 
 ### Minor Changes

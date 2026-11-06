@@ -7,6 +7,7 @@ import {
 } from './expenseMachine';
 import { createMemoryStore, type SnapshotStore } from './storage';
 import { createInspector } from '@statelyai/sdk';
+import { restoreActor } from 'xstate/persist';
 
 export const inspector = process.env.INSPECT ? createInspector() : undefined;
 
@@ -37,11 +38,11 @@ export function createStepHandler(
   return async (request) => {
     const persisted = await store.get(request.expenseId);
 
-    const actor = createActor(expenseMachine, {
-      // `undefined` starts a fresh workflow; anything else resumes one.
-      snapshot: persisted,
-      inspect: inspector?.inspect
-    });
+    // No stored snapshot starts a fresh workflow; anything else resumes one.
+    const options = { inspect: inspector?.inspect };
+    const actor = persisted
+      ? restoreActor(expenseMachine, persisted, options)
+      : createActor(expenseMachine, options);
 
     actor.start();
     actor.send(request.event);

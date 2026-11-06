@@ -13,6 +13,19 @@ import {
   type RequiredActorOptionsFor
 } from 'xstate';
 
+/**
+ * Creates an actor from `logic`, or uses an already-created actor (e.g. from
+ * `restoreActor`), starting it on mount and stopping it on unmount. Create a
+ * passed actor once per component instance.
+ *
+ * @public
+ */
+export function useActorRef<TLogic extends AnyActorLogic>(
+  actor: Actor<TLogic>,
+  observerOrListener?:
+    | Observer<SnapshotFrom<TLogic>>
+    | ((value: SnapshotFrom<TLogic>) => void)
+): Actor<TLogic>;
 export function useActorRef<TLogic extends AnyActorLogic>(
   actorLogic: TLogic,
   ...[options, observerOrListener]: IsNotNever<
@@ -30,8 +43,19 @@ export function useActorRef<TLogic extends AnyActorLogic>(
           | Observer<SnapshotFrom<TLogic>>
           | ((value: SnapshotFrom<TLogic>) => void)
       ]
-): Actor<TLogic> {
-  const actorRef = createActor(actorLogic, options as ActorOptions<TLogic>);
+): Actor<TLogic>;
+export function useActorRef(
+  logicOrActor: AnyActorLogic | Actor<AnyActorLogic>,
+  ...args: any[]
+): Actor<AnyActorLogic> {
+  const readyActor = logicOrActor instanceof Actor;
+  const observerOrListener:
+    | Observer<unknown>
+    | ((value: unknown) => void)
+    | undefined = readyActor ? args[0] : args[1];
+  const actorRef = readyActor
+    ? logicOrActor
+    : createActor(logicOrActor, args[0]);
 
   let sub: Subscription;
   onMounted(() => {

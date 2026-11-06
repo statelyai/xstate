@@ -36,6 +36,8 @@ import {
  * the actor itself and its family (`self`, `parent`, `children`), the
  * registered `actions`, `actors`, `guards` and `delays`, the actor `system`,
  * and the `params` and `output` the transition passed along.
+ *
+ * @experimental
  */
 export type EffectActionArgs<
   TContext extends MachineContext = MachineContext,
@@ -61,6 +63,8 @@ export type EffectActionArgs<
  * enqueued, and returns an Effect that runs afterwards in the actor's Effect
  * context. The Effect is interrupted when the actor stops; its failures and
  * defects route to the state's `onError`.
+ *
+ * @experimental
  */
 export type EffectAction<
   TContext extends MachineContext = MachineContext,
@@ -288,6 +292,8 @@ type EffectSetupExtensionConfig<
  * that also accepts Effect schemas and Effect-returning actions. Call
  * `createMachine` on it to build a machine whose registered actions and actors
  * contribute to `RequirementsFrom`.
+ *
+ * @experimental
  */
 export type EffectSetupReturn<
   TStates extends Record<string, SetupStateSchema> = Record<
@@ -489,6 +495,8 @@ function decorateEffectSetup(effectSetup: SetupReturn): SetupReturn {
  * runs in the actor's Effect context. Everything else, including `actors`,
  * `guards`, `delays` and `extend`, behaves as in `setup`. Machines built from
  * it must be started with `createEffectActor`.
+ *
+ * @experimental
  */
 export function setupEffect(): EffectSetupReturn;
 export function setupEffect<

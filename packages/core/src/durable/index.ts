@@ -1,3 +1,4 @@
+import { restoreLogicSnapshot } from '../persist/index.ts';
 import { getTimerStart, recordTimerStart } from '../timerClock.ts';
 import {
   describeExecutableEffect,
@@ -88,10 +89,9 @@ export interface DurableEffect<TEffect> extends DurableEffectMetadata {
  * timers, terminations) route to them without any per-actor wiring; omitted
  * operations keep their default local behavior.
  *
- * Events addressed to this execution's root actor do not reach `sendEvent`
- * during `executeEffects`: the execution captures and retains them, and the
- * execution's `waitForEvent()` hands them out before deferring to this
- * adapter. While the loop is parked, a root-addressed event reaches
+ * By default, events addressed to this execution's root actor do not reach
+ * `sendEvent` during `executeEffects`: the execution captures and retains
+ * them, and `waitForEvent()` hands them out before deferring to this adapter. While the loop is parked, a root-addressed event reaches
  * `enqueueRootEvent`, or the broader `sendEvent` override when implemented,
  * so the host can place it in its own mailbox.
  *
@@ -115,7 +115,8 @@ export interface DurableExecutionAdapter<
   scheduleTimer?: ActorSystemRuntime['scheduleTimer'];
   /**
    * Enqueues an event addressed to this execution's root while the durable
-   * loop is parked in `waitForEvent()`. Use this when the host only owns the
+   * loop is parked in `waitForEvent()`, or at any time with
+   * `captureRootEvents: false`. Use this when the host only owns the
    * root mailbox; implementing `sendEvent` instead takes ownership of delivery
    * for every target and must use `deliverEvent` for co-located actors.
    */
@@ -268,7 +269,7 @@ export interface DurableExecution<TLogic extends AnyActorLogic> {
    * failed operation rejects it. Operations are handed to the runtime one at
    * a time, in initiation order.
    *
-   * Events addressed to this execution's root actor that were produced along
+   * By default, events addressed to this execution's root actor produced along
    * the way are retained, in order, and handed out by `waitForEvent()`
    * before it defers to the adapter — so the drive loop is just
    * `transition(snapshot, await waitForEvent())` + `executeEffects`.
@@ -280,7 +281,8 @@ export interface DurableExecution<TLogic extends AnyActorLogic> {
    * Resolves with the next event addressed to this execution's root actor:
    * an event a prior `executeEffects` batch captured (an invoked actor
    * completing, a child reporting up), or — once none are queued — whatever
-   * the adapter's durable wait produces.
+   * the adapter's durable wait produces. With `captureRootEvents: false`,
+   * always delegates to the adapter's wait.
    */
   waitForEvent(): Promise<EventFromLogic<TLogic>>;
   run(
@@ -300,6 +302,14 @@ export interface DurableExecution<TLogic extends AnyActorLogic> {
  * @experimental
  */
 export interface DurableExecutionOptions {
+  /**
+   * Retains root-addressed events produced during `executeEffects` until the
+   * batch succeeds. Defaults to `true`. Set to `false` for a live host that
+   * owns a single FIFO mailbox: all root events then reach the adapter's
+   * `sendEvent` or `enqueueRootEvent`, including during effect execution.
+   * The host owns their ordering and must handle events from failed batches.
+   */
+  captureRootEvents?: boolean;
   /**
    * Observes the execution's inspection events — actor lifecycle, event
    * routing, transitions — across the whole live actor tree. The host-side
@@ -537,8 +547,10 @@ export function createDurable<TLogic extends AnyActorLogic>(
       wrapped.runLogic = runtime.runLogic;
     }
     wrapped.sendEvent = (source, target, event) => {
+      const captureBatch =
+        options?.captureRootEvents !== false ? currentBatch : undefined;
       if (
-        !currentBatch &&
+        !captureBatch &&
         target.address === rootAddress &&
         !runtime.sendEvent &&
         adapter.enqueueRootEvent
@@ -546,21 +558,18 @@ export function createDurable<TLogic extends AnyActorLogic>(
         return dispatch(() => adapter.enqueueRootEvent!(source, event));
       }
       if (
-        !currentBatch &&
+        !captureBatch &&
         target.address === rootAddress &&
         !runtime.sendEvent
       ) {
         // The root actor is inert; delivering locally would enqueue into a
         // mailbox that never runs, silently losing the event.
         throw new Error(
-          `A root-addressed event ("${event.type}") was produced while the durable loop was parked, but the adapter has no enqueueRootEvent or sendEvent to receive it. Implement enqueueRootEvent to place root-addressed events in the host's mailbox.`
+          `A root-addressed event ("${event.type}") was produced outside batch capture (for example, while the durable loop was parked), but the adapter has no enqueueRootEvent or sendEvent to receive it. Implement enqueueRootEvent to place root-addressed events in the host's mailbox.`
         );
       }
-      if (currentBatch && target.address === rootAddress) {
-        // Only the execution's own effects produce captured root events; a
-        // root-addressed send while the loop is parked is an ordinary host
-        // delivery that belongs in the host's mailbox.
-        currentBatch.rootEvents.push({ event, source });
+      if (captureBatch && target.address === rootAddress) {
+        captureBatch.rootEvents.push({ event, source });
         return;
       }
       const impl = runtime.sendEvent;
@@ -694,9 +703,11 @@ export function createDurable<TLogic extends AnyActorLogic>(
       const { snapshot, scope } = withSystemInspector(inspect, () =>
         withExecutionIdentity(executionIdentity, () => {
           const scope = createInertActorScope(logic);
-          const snapshot = logic.restoreSnapshot
-            ? logic.restoreSnapshot(persistedSnapshot, scope)
-            : persistedSnapshot;
+          const snapshot = restoreLogicSnapshot(
+            logic,
+            persistedSnapshot,
+            scope
+          );
           setInertActorScopeSnapshot(scope, snapshot, false);
           return {
             snapshot: installSystemRuntime(

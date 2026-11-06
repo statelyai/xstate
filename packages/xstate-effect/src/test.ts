@@ -8,6 +8,8 @@ import type { ActorStoppedError, EventRejectedError } from './errors.ts';
  * effect scheduling. Ignored events are acknowledged too. Does not await
  * invoked work, background actions or future timers. Interrupting the waiter
  * detaches its receipt without retracting the event.
+ *
+ * @experimental
  */
 export function sendAndAwait<TLogic extends AnyActorLogic>(
   actor: EffectActor<TLogic>,

@@ -1,6 +1,5 @@
 ---
 'xstate': major
-'@xstate/store': patch
 ---
 
 Actor logic now returns effects from both regular and initial transitions.

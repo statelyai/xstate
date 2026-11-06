@@ -149,6 +149,7 @@ const noInlineEffect = defineRule({
   }
 });
 
+/** @experimental */
 export default definePlugin({
   meta: { name: 'xstate-effect' },
   rules: { 'no-inline-effect': noInlineEffect }

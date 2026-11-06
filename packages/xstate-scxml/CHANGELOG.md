@@ -1,5 +1,11 @@
 # @xstate/scxml
 
+## 1.0.0-beta.0
+
+### Patch Changes
+
+- 6cf6982: XState v6 enters beta. No further breaking changes are planned for APIs tagged `@public`; any that are needed will be called out with a migration path. APIs tagged `@experimental` may still change.
+
 ## 1.0.0-alpha.4
 
 ### Patch Changes

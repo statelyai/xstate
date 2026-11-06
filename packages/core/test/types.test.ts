@@ -51,6 +51,7 @@ import type { Next_StateNodeConfig } from '../src/types.v6';
 import { standardSchemaValidator } from '../src/validation/index.ts';
 import z from 'zod';
 import * as z4 from 'zod/v4';
+import { restoreActor } from '../src/persist/index.ts';
 
 function noop(_x: unknown) {
   return;
@@ -5331,7 +5332,7 @@ describe('input', () => {
       input: { id: 'a' }
     }).getPersistedSnapshot();
 
-    createActor(machine, { snapshot: persisted });
+    restoreActor(machine, persisted);
     if (false) {
       // @ts-expect-error the removed `state` option does not satisfy the input requirement
       createActor(machine, { state: persisted });
@@ -6912,7 +6913,7 @@ it('createSystem().createActor requires input for required-input machines', () =
     const persisted = app
       .createActor(machine, { input: { id: 'a' } })
       .getPersistedSnapshot();
-    app.createActor(machine, { snapshot: persisted });
+    restoreActor(machine, persisted, { system: app });
     // @ts-expect-error the removed `state` option does not satisfy the input requirement
     app.createActor(machine, { state: persisted });
 

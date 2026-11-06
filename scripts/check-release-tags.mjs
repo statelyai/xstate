@@ -41,14 +41,17 @@ async function main() {
       return [name, version];
     })
   );
+  // npm takes a minute or more to serve new dist-tags after publish, so retry
+  // for about 3.5 minutes before failing.
+  const attempts = 12;
   let mismatches;
-  for (let attempt = 0; attempt < 5; attempt++) {
+  for (let attempt = 0; attempt < attempts; attempt++) {
     const observed = {};
     for (const name of Object.keys(expected)) {
       try {
         const output = execFileSync(
           process.platform === 'win32' ? 'npm.cmd' : 'npm',
-          ['view', `${name}@${tag}`, 'version', '--json'],
+          ['view', `${name}@${tag}`, 'version', '--json', '--prefer-online'],
           {
             cwd: root,
             encoding: 'utf8',
@@ -66,7 +69,9 @@ async function main() {
       console.log(JSON.stringify({ ok: true, tag, versions: observed }));
       return;
     }
-    if (attempt < 4) await setTimeout(1000 * 2 ** attempt);
+    if (attempt < attempts - 1) {
+      await setTimeout(Math.min(1000 * 2 ** attempt, 30000));
+    }
   }
   console.error(JSON.stringify({ ok: false, tag, mismatches }));
   process.exitCode = 1;

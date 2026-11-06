@@ -4,20 +4,19 @@
   import { useActor } from '../src/index.ts';
   import { fetchMachine } from './fetchMachine.ts';
   import type { Snapshot } from 'xstate';
-  import { createAsyncLogic } from 'xstate';
+  import { createActor, createAsyncLogic } from 'xstate';
+  import { restoreActor } from 'xstate/persist';
 
   const onFetch = () =>
     new Promise<string>((res) => setTimeout(() => res('some data'), 50));
 
-  const { snapshot, send } = useActor(
-    fetchMachine.provide({
-      actors: {
-        fetchData: createAsyncLogic({ run: onFetch })
-      }
-    }),
-    {
-      snapshot: persistedState
+  const logic = fetchMachine.provide({
+    actors: {
+      fetchData: createAsyncLogic({ run: onFetch })
     }
+  });
+  const { snapshot, send } = useActor(
+    persistedState ? restoreActor(logic, persistedState) : createActor(logic)
   );
 </script>
 

@@ -10,7 +10,7 @@ This page tests a hand-written shopping cart against a cart machine. For every o
 ## Install
 
 ```bash
-pnpm add -D @xstate/test fast-check
+pnpm add -D @xstate/test@beta fast-check
 ```
 
 `@xstate/test` generates values with [fast-check](https://fast-check.dev), which is a required peer dependency.

@@ -1,3 +1,5 @@
+import isDevelopment from '#is-development';
+import { xstateError } from './xstateError.ts';
 import {
   XSTATE_LOGIC_EFFECT_REJECT,
   XSTATE_LOGIC_EFFECT_RESOLVE,
@@ -74,7 +76,11 @@ export async function runStep<TStepOutput>(
     return running as Promise<TStepOutput>;
   }
   if (actor.getSnapshot().status !== 'active') {
-    throw new Error(`Actor terminated before step "${key}" completed`);
+    throw new Error(
+      isDevelopment
+        ? `Actor terminated before step "${key}" completed`
+        : xstateError(72, key)
+    );
   }
 
   let resolve!: (value: TStepOutput | PromiseLike<TStepOutput>) => void;
@@ -102,7 +108,13 @@ export async function runStep<TStepOutput>(
   subscription = actor.subscribe({
     error: reject,
     complete: () =>
-      reject(new Error(`Actor terminated before step "${key}" completed`))
+      reject(
+        new Error(
+          isDevelopment
+            ? `Actor terminated before step "${key}" completed`
+            : xstateError(72, key)
+        )
+      )
   });
   void (async () => {
     try {
@@ -179,7 +191,9 @@ function getEventBoundaryError(
     runtimeTarget.logic?.isInternalEventType?.(event.type)
   ) {
     return new Error(
-      `Internal event "${event.type}" cannot be sent to actor "${target.id}" from outside.`
+      isDevelopment
+        ? `Internal event "${event.type}" cannot be sent to actor "${target.id}" from outside.`
+        : xstateError(73, event.type, target.id)
     );
   }
   return undefined;

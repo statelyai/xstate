@@ -13,14 +13,13 @@ import {
   isMachineSnapshot,
   stopActor,
   terminateActor,
-  type ActorOptions,
   type AnyActor,
   type AnyActorLogic,
   type AnyEventObject,
   type EventFromLogic,
   type InspectionEvent,
   type InputFrom,
-  type RequiredActorOptionsFor,
+  type RestorablePersistedSnapshotFor,
   type RequiredActorOptionsKeys,
   type Snapshot,
   type SnapshotFrom,
@@ -42,20 +41,33 @@ import { EventRejectedError } from './errors.ts';
 const XSTATE_TIMER = 'xstate.timer';
 const XSTATE_INIT = 'xstate.init';
 
-/** Options for {@link createEffectActor}. */
+/**
+ * Options for {@link createEffectActor}.
+ *
+ * @experimental
+ */
 export type EffectActorOptions<TLogic extends AnyActorLogic> = {
   readonly input?: InputFrom<TLogic>;
   /**
    * A snapshot from `actor.getPersistedSnapshot()`. The actor resumes in that
    * state without re-running entry actions, and pending timers keep their
-   * original deadlines, as with XState's `createActor(logic, { snapshot })`.
+   * original deadlines, as with `restoreActor(logic, snapshot)` from
+   * `xstate/persist`.
    * State-machine children resume their persisted state and completed
    * children stay done. Effect tasks and streams that were running, at the
    * root or as children, start again from the beginning. A restored actor
    * does not need `input`.
    */
-  readonly snapshot?: ActorOptions<TLogic>['snapshot'];
-} & RequiredActorOptionsFor<TLogic>;
+  readonly snapshot?: Snapshot<unknown> &
+    Partial<RestorablePersistedSnapshotFor<TLogic>>;
+} & ([RequiredActorOptionsKeys<TLogic>] extends [never]
+  ? {}
+  :
+      | { [K in RequiredActorOptionsKeys<TLogic>]: unknown }
+      | {
+          snapshot: Snapshot<unknown> &
+            Partial<RestorablePersistedSnapshotFor<TLogic>>;
+        });
 
 export type EffectActorOptionsArgs<TLogic extends AnyActorLogic> = [
   RequiredActorOptionsKeys<TLogic>
@@ -76,6 +88,8 @@ export type EffectActorOptionsArgs<TLogic extends AnyActorLogic> = [
  * The actor is a scoped resource: it stops, and every Effect it hosts is
  * interrupted, when the enclosing `Scope` closes. The returned Effect never
  * fails; the actor's own outcome is its snapshot status, read with `join`.
+ *
+ * @experimental
  */
 export function createEffectActor<TLogic extends AnyActorLogic>(
   logic: TLogic,
@@ -233,6 +247,8 @@ export function createEffectActor<TLogic extends AnyActorLogic>(
             })
         },
         {
+          // A live actor needs one FIFO for child events, sends and timers.
+          captureRootEvents: false,
           inspect: (event) => {
             // The pure step scope re-materializes the root ref per step and
             // announces it again; observers should see the root once.

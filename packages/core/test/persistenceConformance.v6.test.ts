@@ -21,6 +21,7 @@ import {
 import { StateMachine } from '../src/StateMachine.ts';
 import Ajv2020 from 'ajv/dist/2020';
 import persistedSnapshotSchema from '../src/persistedSnapshot.schema.json';
+import { restoreActor } from '../src/persist/index.ts';
 
 /** Canonical JSON round-trip of a persisted snapshot. */
 function roundTrip(persisted: unknown): any {
@@ -195,7 +196,7 @@ describe('#5077 re-persistability of children', () => {
     expect(persisted.children.myChild.src).toBe('child');
     actor.stop();
 
-    const restored = createActor(parent, { snapshot: persisted }).start();
+    const restored = restoreActor(parent, persisted).start();
     restored.send({ type: 'ping' });
     expect(
       (restored.getSnapshot().children as any).myChild.getSnapshot().context
@@ -277,9 +278,7 @@ describe('#5077 re-persistability of children', () => {
     actor.stop();
 
     const migratedParent = parent.provide({ actors: { second: replacement } });
-    const restored = createActor(migratedParent, {
-      snapshot: persisted
-    }).start();
+    const restored = restoreActor(migratedParent, persisted).start();
     restored.send({ type: 'ping' });
     expect(
       (restored.getSnapshot().children as any).worker.getSnapshot().context
@@ -331,7 +330,7 @@ describe('#5077 re-persistability of children', () => {
     const json = roundTrip(actor.getPersistedSnapshot());
     actor.stop();
 
-    const restored = createActor(parent, { snapshot: json }).start();
+    const restored = restoreActor(parent, json).start();
 
     restored.send({ type: 'ping' });
     expect(
@@ -340,9 +339,10 @@ describe('#5077 re-persistability of children', () => {
     ).toBe(1);
 
     expect(() => roundTrip(restored.getPersistedSnapshot())).not.toThrow();
-    const secondRestored = createActor(parent, {
-      snapshot: roundTrip(restored.getPersistedSnapshot())
-    }).start();
+    const secondRestored = restoreActor(
+      parent,
+      roundTrip(restored.getPersistedSnapshot())
+    ).start();
     expect(secondRestored.getSnapshot().status).toBe('active');
   });
 
@@ -373,7 +373,7 @@ describe('#5077 re-persistability of children', () => {
     const json = roundTrip(actor.getPersistedSnapshot());
     actor.stop();
 
-    const restored = createActor(parent, { snapshot: json }).start();
+    const restored = restoreActor(parent, json).start();
 
     restored.send({ type: 'ping' });
     expect(
@@ -382,9 +382,10 @@ describe('#5077 re-persistability of children', () => {
     ).toBe(1);
 
     expect(() => roundTrip(restored.getPersistedSnapshot())).not.toThrow();
-    const secondRestored = createActor(parent, {
-      snapshot: roundTrip(restored.getPersistedSnapshot())
-    }).start();
+    const secondRestored = restoreActor(
+      parent,
+      roundTrip(restored.getPersistedSnapshot())
+    ).start();
     expect(secondRestored.getSnapshot().status).toBe('active');
   });
 
@@ -404,7 +405,7 @@ describe('#5077 re-persistability of children', () => {
     expect(persisted.children.myChild).not.toHaveProperty('sessionId');
     actor.stop();
 
-    const restored = createActor(parent, { snapshot: persisted }).start();
+    const restored = restoreActor(parent, persisted).start();
     const restoredChild = restored.getSnapshot().children.myChild;
 
     expect(restoredChild.sessionId).not.toBe(sessionId);
@@ -437,7 +438,7 @@ describe('#5077 re-persistability of children', () => {
     const persisted = roundTrip(actor.getPersistedSnapshot());
     actor.stop();
 
-    const restored = createActor(parent, { snapshot: persisted }).start();
+    const restored = restoreActor(parent, persisted).start();
     restored.send({ type: 'SPAWN' });
     const replacement = restored.getSnapshot().children.myChild;
 
@@ -471,7 +472,7 @@ describe('missing persisted child sources', () => {
     const persisted = roundTrip(actor.getPersistedSnapshot());
     actor.stop();
 
-    const restored = createActor(parent, { snapshot: persisted });
+    const restored = restoreActor(parent, persisted);
 
     expect(restored.getSnapshot()).toMatchObject({
       status: 'error',
@@ -510,7 +511,7 @@ describe('serialized actor refs in context', () => {
       pinned: { $actor: 'parent/kid', incarnation: 'x:9' }
     };
 
-    const restored = createActor(parent, { snapshot: persisted });
+    const restored = restoreActor(parent, persisted);
     const { context, children } = restored.getSnapshot();
 
     expect(context.ref).toBe(children.kid);
@@ -542,7 +543,7 @@ describe('#4873 system.get after restore', () => {
     const json = roundTrip(actor.getPersistedSnapshot());
     actor.stop();
 
-    const restored = createActor(parent, { snapshot: json }).start();
+    const restored = restoreActor(parent, json).start();
 
     const ref = restored.system.get('mySystemId');
     expect(ref).not.toBeUndefined();
@@ -588,7 +589,7 @@ describe('#5178 historyValue revival', () => {
     const json = roundTrip(actor.getPersistedSnapshot());
     actor.stop();
 
-    const restored = createActor(machine, { snapshot: json }).start();
+    const restored = restoreActor(machine, json).start();
     restored.send({ type: 'POWER' }); // on.hist -> remembered "second"
 
     expect(restored.getSnapshot().value).toEqual({ on: 'second' });
@@ -626,9 +627,8 @@ describe('#5331 logical timers restored', () => {
     expect(timer).not.toHaveProperty('elapsed');
 
     const clock2 = new SimulatedClock();
-    const restored = createActor(createDelayMachine(), {
-      clock: clock2,
-      snapshot: json
+    const restored = restoreActor(createDelayMachine(), json, {
+      clock: clock2
     }).start();
 
     clock2.increment(499);
@@ -656,7 +656,7 @@ describe('#5228 restore errors surface', () => {
     persisted.value = 'nonexistent';
 
     let surfaced = false;
-    const restored = createActor(machine, { snapshot: persisted });
+    const restored = restoreActor(machine, persisted);
     restored.subscribe({ error: () => (surfaced = true) });
 
     let threw = false;
@@ -690,7 +690,7 @@ describe('#5228 restore errors surface', () => {
       createActor(machineV1).start().getPersistedSnapshot()
     );
 
-    const restored = createActor(machineV2, { snapshot: persisted });
+    const restored = restoreActor(machineV2, persisted);
     restored.subscribe({ error: () => {} });
     restored.start();
 
@@ -724,7 +724,7 @@ describe('#5228 restore errors surface', () => {
     const persisted = roundTrip(
       createActor(machineV1).start().getPersistedSnapshot()
     );
-    const restored = createActor(machineV2, { snapshot: persisted }).start();
+    const restored = restoreActor(machineV2, persisted).start();
 
     expect(restored.getSnapshot().status).toBe('active');
     expect(restored.getSnapshot().context).toEqual({ total: 5 });
@@ -755,7 +755,7 @@ describe('#5228 restore errors surface', () => {
     );
     expect(persisted.children.worker.src).toBe('second');
 
-    const restored = createActor(machineV2, { snapshot: persisted }).start();
+    const restored = restoreActor(machineV2, persisted).start();
     expect((restored.getSnapshot().children as any).worker.logic).toBe(
       secondV2
     );
@@ -779,7 +779,7 @@ describe('#4583 rehydrated stopped (done) actor', () => {
     const json = roundTrip(actor.getPersistedSnapshot());
     actor.stop();
 
-    const restored = createActor(machine, { snapshot: json });
+    const restored = restoreActor(machine, json);
     expect(() => restored.subscribe(() => {})).not.toThrow();
     restored.start();
 
@@ -853,8 +853,9 @@ describe('forward-compatible envelope', () => {
 
   it('restore ignores unknown top-level fields', () => {
     const persisted = roundTrip(createActor(machine).getPersistedSnapshot());
-    const actor = createActor(machine, {
-      snapshot: { ...persisted, pending: [{ type: 'NEXT' }] }
+    const actor = restoreActor(machine, {
+      ...persisted,
+      pending: [{ type: 'NEXT' }]
     }).start();
     expect(actor.getSnapshot().value).toBe('a');
     actor.send({ type: 'NEXT' });

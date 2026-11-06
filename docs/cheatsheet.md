@@ -8,7 +8,7 @@ Every snippet on this page is v6 syntax. See [migrate from v5 to v6](xstate-v5-t
 ## Install
 
 ```bash
-npm install xstate@alpha
+npm install xstate@beta
 ```
 
 ```ts
@@ -314,7 +314,6 @@ See [actor logic](actor-logic.md).
 const actor = createActor(machine, {
   id: 'checkout',
   input: { userId: 'u_1' },
-  snapshot: restored,
   inspect: (event) => console.log(event),
   clock: new SimulatedClock(),
   logger: console.log,
@@ -486,12 +485,15 @@ const testMachine = machine.provide({ actors: { chargeCard: fakeChargeCard } });
 ## Persistence
 
 ```ts
+import { restoreActor } from 'xstate/persist';
+
 const persisted = actor.getPersistedSnapshot();
 localStorage.setItem('checkout', JSON.stringify(persisted));
 
-const restored = createActor(machine, {
-  snapshot: JSON.parse(localStorage.getItem('checkout')!)
-}).start();
+const restored = restoreActor(
+  machine,
+  JSON.parse(localStorage.getItem('checkout')!)
+).start();
 
 // migrate across machine versions
 const versions = machineVersions([checkoutV1, checkoutV2]);

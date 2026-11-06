@@ -95,10 +95,12 @@ Multi-target defaults must form a legal configuration: the targets must live in 
 `historyValue` is part of the persisted snapshot, serialized as state ids.
 
 ```ts
+import { restoreActor } from 'xstate/persist';
+
 const persisted = actor.getPersistedSnapshot();
 // persisted.historyValue === { 'player.hist': [{ id: 'player.playing' }] }
 
-const restored = createActor(machine, { snapshot: persisted }).start();
+const restored = restoreActor(machine, persisted).start();
 restored.send({ type: 'reconnect' }); // back to 'playing'
 ```
 

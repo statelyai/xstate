@@ -1,4 +1,6 @@
 import isDevelopment from '#is-development';
+import { xstateError } from './xstateError.ts';
+import { diagnoseActorOptions } from './devDiagnostics.ts';
 import { publishEmittedEvent } from './runtimeHelpers.ts';
 import type { ActionRecord, SentRecord } from './inspection.ts';
 import { Mailbox } from './Mailbox.ts';
@@ -293,11 +295,6 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
     public logic: TLogic,
     options?: ActorOptions<TLogic>
   ) {
-    if (isDevelopment && options && 'state' in options) {
-      throw new Error(
-        'The "state" actor option was removed. Pass the persisted snapshot as "snapshot" instead: createActor(logic, { snapshot }).'
-      );
-    }
     const resolvedOptions = (
       options ? { ...defaultOptions, ...options } : defaultOptions
     ) as InternalActorOptions<TLogic> & typeof defaultOptions;
@@ -311,7 +308,6 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
         createRuntimeSystem(this, {
           clock,
           logger,
-          snapshot: resolvedOptions.snapshot,
           createActorRef
         }));
 
@@ -355,20 +351,11 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
 
     // prepare to collect initial microsteps during initialTransition
     this._collectedMicrosteps = undefined;
-    const persistedState = options?.snapshot;
-    this._restored = persistedState !== undefined;
+    const restore = resolvedOptions._restore;
+    this._restored = restore !== undefined;
     try {
-      // Only `undefined` means "no snapshot": an explicit `null` (or another
-      // non-object) is a malformed snapshot the logic reports.
-      if (persistedState !== undefined) {
-        if (!this.logic.restoreSnapshot && persistedState === null) {
-          throw new Error('Persisted snapshot must be an object.');
-        }
-        this._setSnapshot(
-          this.logic.restoreSnapshot
-            ? this.logic.restoreSnapshot(persistedState, this._actorScope)
-            : persistedState
-        );
+      if (restore) {
+        this._setSnapshot(restore.restore(this._actorScope));
       } else if (options?._inert) {
         // Inert actors (createInertActorScope) only anchor a scope for pure
         // transition functions; computing an initial snapshot here would run
@@ -383,22 +370,11 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
         this._initialEffects = effects.length ? effects : undefined;
       }
     } catch (err) {
-      const restoreErrorSnapshot =
-        persistedState === undefined
-          ? undefined
-          : (
-              this.logic as {
-                _createRestoreErrorSnapshot?: (
-                  persisted: unknown,
-                  error: unknown
-                ) => SnapshotFrom<TLogic>;
-              }
-            )._createRestoreErrorSnapshot?.(persistedState, err);
-      // Machine logic keeps its snapshot shape on restore failures. Otherwise
-      // we can't get the true `TSnapshot & { status: 'error'; }`, so this is a
-      // lie of sorts.
+      // Restored logic may keep its snapshot shape on restore failures (e.g.
+      // machines). Otherwise we can't get the true
+      // `TSnapshot & { status: 'error'; }`, so this is a lie of sorts.
       this._setSnapshot(
-        restoreErrorSnapshot ??
+        restore?.error?.(err) ??
           ({
             status: 'error',
             output: undefined,
@@ -493,7 +469,7 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
       throw new Error(
         isDevelopment
           ? `Cannot stop child actor ${child.id} of ${this.id} because it is not a child`
-          : `Cannot stop non-child actor ${child.id}`
+          : xstateError(47, child.id, this.id)
       );
     }
     (child as Actor<AnyActorLogic>)._stop();
@@ -873,7 +849,9 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
       }
       // Actors are single-use: a stopped actor cannot be restarted.
       throw new Error(
-        `Actor ${this.id} was stopped and cannot be restarted. Create a new actor with createActor().`
+        isDevelopment
+          ? `Actor ${this.id} was stopped and cannot be restarted. Create a new actor with createActor().`
+          : xstateError(48, this.id)
       );
     }
 
@@ -1154,7 +1132,11 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
   /** Stops the Actor and unsubscribe all listeners. */
   public stop(): this {
     if (this._parent) {
-      throw new Error('A non-root actor cannot be stopped directly.');
+      throw new Error(
+        isDevelopment
+          ? 'A non-root actor cannot be stopped directly.'
+          : xstateError(49, this.id)
+      );
     }
     return this._stop();
   }
@@ -1387,8 +1369,7 @@ export type RequiredActorOptionsKeys<TLogic extends AnyActorLogic> =
 
 /**
  * The options `createActor` (and framework hooks) require for `TLogic`:
- * `{ input }` or a persisted `{ snapshot }` when
- * the logic requires input, otherwise nothing.
+ * `{ input }` when the logic requires input, otherwise nothing.
  *
  * @public
  */
@@ -1396,9 +1377,7 @@ export type RequiredActorOptionsFor<TLogic extends AnyActorLogic> = [
   RequiredActorOptionsKeys<TLogic>
 ] extends [never]
   ? {}
-  :
-      | { [K in RequiredActorOptionsKeys<TLogic>]: unknown }
-      | { snapshot: NonNullable<ActorOptions<TLogic>['snapshot']> };
+  : { [K in RequiredActorOptionsKeys<TLogic>]: unknown };
 
 /** Options accepted by {@link createActor}. */
 type CreateActorOptionsArgs<TLogic extends AnyActorLogic> = [
@@ -1451,10 +1430,6 @@ export function createActor<TLogic extends AnyActorLogic>(
   logic: TLogic,
   ...[options]: CreateActorOptionsArgs<TLogic>
 ): Actor<TLogic> {
-  if (options && 'parent' in options) {
-    throw new Error(
-      'The "parent" actor option was removed. Create child actors through invoke, spawn, or enq.spawn instead.'
-    );
-  }
+  diagnoseActorOptions(options);
   return new Actor(logic, options);
 }

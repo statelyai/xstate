@@ -15,7 +15,8 @@
 <script lang="ts">
 import { defineComponent, PropType } from 'vue';
 import { useMachine } from '../src/index.ts';
-import { createMachine, AnyState } from 'xstate';
+import { createActor, createMachine, AnyState } from 'xstate';
+import { restoreActor } from 'xstate/persist';
 import { createAsyncLogic } from 'xstate/actors';
 
 const context = {
@@ -65,15 +66,13 @@ export default defineComponent({
     const onFetch = () =>
       new Promise((res) => setTimeout(() => res('some data'), 50));
 
-    const { snapshot, send, actorRef } = useMachine(
-      fetchMachine.provide({
-        actors: {
-          fetchData: createAsyncLogic({ run: onFetch })
-        }
-      }),
-      {
-        snapshot: persistedState
+    const logic = fetchMachine.provide({
+      actors: {
+        fetchData: createAsyncLogic({ run: onFetch })
       }
+    });
+    const { snapshot, send, actorRef } = useMachine(
+      persistedState ? restoreActor(logic, persistedState) : createActor(logic)
     );
     return { snapshot, send, actorRef };
   }

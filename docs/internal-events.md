@@ -95,8 +95,8 @@ handlers, guards, actions, `enq.raise` and [transitions](transitions.md).
 
 The top-level `internalEvents: ['tick']` list was removed before 6.0. Move
 each listed event's schema from `schemas.events` to `schemas.internalEvents`.
-In development builds, a machine config with a top-level `internalEvents` key
-throws an error naming `schemas.internalEvents`.
+A machine config with a top-level `internalEvents` key throws an error naming
+`schemas.internalEvents`.
 
 ## Internal events cheatsheet
 
@@ -128,11 +128,11 @@ createMachine({
 
 ## Validating public input
 
-`machine.eventSchema` is a Standard Schema for complete public input event
+`eventSchema(machine)` is a Standard Schema for complete public input event
 objects. Validate untrusted input (including agent tool arguments) before sending:
 
 ```ts
-const result = await machine.eventSchema['~standard'].validate(input);
+const result = await eventSchema(machine)['~standard'].validate(input);
 if (result.issues) {
   throw new Error(result.issues[0]?.message);
 }
@@ -151,6 +151,6 @@ Validation is not authorization: a well-formed public event may still require
 application permission checks.
 
 `actor.send(event)` keeps supporting trusted runtime delivery and replay. It does
-not automatically run `machine.eventSchema`. For event histories,
+not automatically run `eventSchema(machine)`. For event histories,
 `machineVersions().adaptEvents()` retains historical internal/runtime validation
 when given actual machines.

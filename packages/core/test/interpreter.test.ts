@@ -11,6 +11,7 @@ import { AsyncActorLogic, createAsyncLogic } from '../src/actors/promise';
 import { createCallbackLogic } from '../src/actors/callback';
 import { assertEvent } from '../src/assert.ts';
 import z from 'zod';
+import { restoreActor } from '../src/persist/index.ts';
 
 const lightMachine = createMachine({
   id: 'light',
@@ -148,7 +149,7 @@ describe('interpreter', () => {
       actorRef.send({ type: 'TIMER' });
       called = false;
       const persisted = actorRef.getPersistedSnapshot();
-      actorRef = createActor(machine, { snapshot: persisted }).start();
+      actorRef = restoreActor(machine, persisted).start();
 
       expect(called).toBe(false);
     });
@@ -176,7 +177,7 @@ describe('interpreter', () => {
       expect(actorRef.getSnapshot().value).toEqual('b');
       const persisted = actorRef.getPersistedSnapshot();
 
-      createActor(machine, { snapshot: persisted }).start();
+      restoreActor(machine, persisted).start();
 
       expect(called).toBe(false);
     });
@@ -665,7 +666,7 @@ describe('interpreter', () => {
       actorRef.stop();
       activityActive = false;
 
-      createActor(machine, { snapshot: bState }).start();
+      restoreActor(machine, bState).start();
 
       expect(activityActive).toBeTruthy();
     });
@@ -1208,9 +1209,10 @@ describe('interpreter', () => {
           bar: {}
         }
       });
-      const actor = createActor(machine, {
-        snapshot: machine.resolveState({ value: 'bar' })
-      });
+      const actor = restoreActor(
+        machine,
+        machine.resolveState({ value: 'bar' })
+      );
 
       expect(actor.getSnapshot().matches('bar')).toBeTruthy();
       actor.start();
@@ -1225,9 +1227,10 @@ describe('interpreter', () => {
           bar: {}
         }
       });
-      const actor = createActor(machine, {
-        snapshot: machine.resolveState({ value: 'bar' })
-      });
+      const actor = restoreActor(
+        machine,
+        machine.resolveState({ value: 'bar' })
+      );
 
       expect(actor.getSnapshot().matches('bar')).toBeTruthy();
       actor.start();
@@ -1248,9 +1251,10 @@ describe('interpreter', () => {
           bar: {}
         }
       });
-      const actor = createActor(machine, {
-        snapshot: machine.resolveState({ value: 'foo' })
-      });
+      const actor = restoreActor(
+        machine,
+        machine.resolveState({ value: 'foo' })
+      );
 
       expect(actor.getSnapshot().matches({ foo: 'one' })).toBeTruthy();
       actor.start();

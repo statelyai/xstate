@@ -5,7 +5,11 @@ import {
   setup,
   type AnyActor
 } from '../src/index.ts';
-import { createDurable } from '../src/durable/index.ts';
+import { restoreMachineSnapshot } from '../src/persist/index.ts';
+import {
+  createDurable,
+  type DurableExecutionAdapter
+} from '../src/durable/index.ts';
 
 const workerMachine = setup({}).createMachine({
   id: 'worker',
@@ -45,6 +49,60 @@ const orderMachine = setup({
 });
 
 describe('durable execution with only adapter runtime operations', () => {
+  it.each(['sendEvent', 'enqueueRootEvent'] as const)(
+    'keeps root events in one %s mailbox when batch capture is disabled',
+    async (delivery) => {
+      const mailbox: { type: string }[] = [];
+      const machine = setup({
+        actors: {
+          child: createCallbackLogic(({ receive, sendBack }) => {
+            receive((event) => sendBack(event));
+          })
+        }
+      }).createMachine({
+        invoke: { src: 'child', id: 'child' },
+        on: {
+          REPLY: ({ children }, enq) => {
+            enq.sendTo(children.child, { type: 'SECOND' });
+          }
+        }
+      });
+      const waitForEvent = vi.fn(() => mailbox.shift()!);
+      const adapter: DurableExecutionAdapter<typeof machine> = {
+        startActor: (child) => {
+          child.start();
+        },
+        executeAction: () => {},
+        waitForEvent
+      };
+      if (delivery === 'sendEvent') {
+        adapter.sendEvent = (source, target, event) => {
+          if (target.address === durable.rootAddress) {
+            mailbox.push(event);
+          } else {
+            deliverEvent(source, target, event);
+          }
+        };
+      } else {
+        adapter.enqueueRootEvent = (_source, event) => {
+          mailbox.push(event);
+        };
+      }
+      const durable = createDurable(machine, adapter, {
+        captureRootEvents: false
+      });
+      let [snapshot, effects] = durable.initialTransition();
+      await durable.executeEffects(effects);
+      snapshot.children.child!.send({ type: 'FIRST' });
+      [snapshot, effects] = durable.transition(snapshot, { type: 'REPLY' });
+      await durable.executeEffects(effects);
+
+      expect(await durable.waitForEvent()).toEqual({ type: 'FIRST' });
+      expect(await durable.waitForEvent()).toEqual({ type: 'SECOND' });
+      expect(waitForEvent).toHaveBeenCalledTimes(2);
+    }
+  );
+
   it('executes spawn effects without a per-effect runtime', async () => {
     const operations: string[] = [];
     const durable = createDurable(orderMachine, {
@@ -204,7 +262,7 @@ describe('restored children under a durable execution', () => {
         throw new Error('host-driven loop');
       }
     });
-    const restored = machine.restoreSnapshot(persisted as never);
+    const restored = restoreMachineSnapshot(machine, persisted as never);
     const [, effects] = durable.transition(restored as never, {
       type: 'KICK'
     });

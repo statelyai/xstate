@@ -2,6 +2,7 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import { createMachine, createActor, setup } from '../src/index.ts';
 import { builtInActions } from '../src/actions.ts';
 import z from 'zod';
+import { restoreActor } from '../src/persist/index.ts';
 
 const lightMachine = createMachine({
   schemas: {
@@ -503,7 +504,7 @@ describe('delayed transitions', () => {
     actorRef1.send({ type: 'next' });
     const withAfterState = actorRef1.getPersistedSnapshot();
 
-    const actorRef2 = createActor(machine, { snapshot: withAfterState });
+    const actorRef2 = restoreActor(machine, withAfterState);
     actorRef2.subscribe({ complete: () => resolve() });
     actorRef2.start();
 
@@ -536,9 +537,7 @@ describe('delayed transitions', () => {
 
     const persistedSnapshot = JSON.parse(JSON.stringify(service.getSnapshot()));
 
-    service = createActor(createMyMachine(), {
-      snapshot: persistedSnapshot
-    }).start();
+    service = restoreActor(createMyMachine(), persistedSnapshot).start();
 
     service.send({ type: 'NEXT' });
 

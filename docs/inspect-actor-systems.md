@@ -5,6 +5,8 @@ description: Log transitions in development and attach them to error reports.
 
 An inspector passed to the root actor observes the whole system: the root actor, every invoked or spawned child, and every transition. This guide uses it for a development log and for telemetry.
 
+> **Experimental:** the inspection event types (`InspectionEvent`, `ActorInspectionEvent`, `TransitionInspectionEvent`) may change in a minor release.
+
 ## 1. Attach an inspector in development only
 
 Inspection runs on every transition, so keep it out of production builds. Pass `undefined` and `createActor(...)` behaves as if no inspector were given.
