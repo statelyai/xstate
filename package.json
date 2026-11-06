@@ -57,7 +57,6 @@
     "test:store": "vitest run --project @xstate/store*",
     "test:store:watch": "vitest --project @xstate/store*",
     "bench:size": "node scripts/bundle-size.mjs",
-    "bench:size:update": "node scripts/bundle-size.mjs --update",
     "bench:core-runtime": "node scripts/bench-core-runtime.mjs",
     "bench:type-errors": "node scripts/type-error-quality.mjs",
     "check:exports": "node scripts/check-export-stability.mjs",

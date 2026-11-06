@@ -21,6 +21,7 @@ import {
   createStepLogic
 } from 'xstate';
 import { useActor } from '../src/index.ts';
+import { restoreActor } from 'xstate/persist';
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -94,15 +95,15 @@ describe('useActor', () => {
       },
       props
     );
-    const [snapshot, send] = useActor(
-      fetchMachine.provide({
-        actors: {
-          fetchData: createAsyncLogic({ run: mergedProps.onFetch }) as any
-        }
-      }),
-      {
-        snapshot: mergedProps.persistedState
+    const logic = fetchMachine.provide({
+      actors: {
+        fetchData: createAsyncLogic({ run: mergedProps.onFetch }) as any
       }
+    });
+    const [snapshot, send] = useActor(
+      mergedProps.persistedState
+        ? restoreActor(logic, mergedProps.persistedState)
+        : createActor(logic)
     );
 
     return (
@@ -1720,9 +1721,9 @@ describe('useActor', () => {
       actorRef.stop();
 
       const Test = () => {
-        const [state, send] = useActor(testMachine, {
-          snapshot: JSON.parse(persistedState)
-        });
+        const [state, send] = useActor(
+          restoreActor(testMachine, JSON.parse(persistedState))
+        );
 
         return (
           <>

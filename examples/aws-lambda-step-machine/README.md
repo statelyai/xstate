@@ -6,7 +6,7 @@ How to run a long-lived workflow on stateless AWS Lambda: each invocation restor
 
 ## XState features used
 
-- `getPersistedSnapshot()` and `createActor(machine, { snapshot })`
+- `getPersistedSnapshot()` and `restoreActor(machine, snapshot)` from `xstate/persist`
 - guards in a transition function (small expenses skip review)
 - final states
 - `snapshot.can()` to report the events the workflow will accept next

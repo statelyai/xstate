@@ -1,5 +1,29 @@
 # @xstate/effect
 
+## 1.0.0-beta.0
+
+### Patch Changes
+
+- 6cf6982: XState v6 enters beta. No further breaking changes are planned for APIs tagged `@public`; any that are needed will be called out with a migration path. APIs tagged `@experimental` may still change.
+
+## 1.0.0-alpha.12
+
+### Patch Changes
+
+- ce9fab5: Public exports now carry `@public` or `@experimental` stability tags.
+
+## 1.0.0-alpha.11
+
+### Patch Changes
+
+- 129fd6b: Events sent by a child actor to a parent started with `createEffectActor` now retain their send order, including bursts from promise continuations.
+  
+  Durable hosts with a single FIFO mailbox can route all root events through their adapter:
+  
+  ```ts
+  const durable = createDurable(machine, adapter, { captureRootEvents: false });
+  ```
+
 ## 1.0.0-alpha.10
 
 ### Minor Changes

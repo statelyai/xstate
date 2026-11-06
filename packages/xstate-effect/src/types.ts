@@ -85,6 +85,8 @@ type RequirementsFromStateSchema<TSchema, TDepth extends Depth> =
  * Effect actors, the Effect logic passed inline as `invoke.src` anywhere in
  * its state tree, and — recursively — the requirements of any child machine
  * reached either way (capped at {@link MaxDepth} levels of machine nesting).
+ *
+ * @experimental
  */
 export type RequirementsFrom<T, TDepth extends Depth = MaxDepth> =
   T extends EffectLogicBrand<any, infer R>

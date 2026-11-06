@@ -17,7 +17,7 @@ Pass the `signal` from `createAsyncLogic(...)` to the async API.
 
 ## A restored actor starts from the beginning
 
-Pass the persisted snapshot as the `snapshot` option before calling `start()`.
+Create the actor with `restoreActor(logic, persistedSnapshot)` from `xstate/persist` instead of `createActor(logic)`, then call `start()`.
 
 ## A nested state comparison fails
 
@@ -41,8 +41,16 @@ Move the effects into an inline transition function `(args, enq) => { ... }`. Ca
 
 ## Error: "types" was replaced by "schemas"
 
-Move the contracts from `types`, `tsTypes`, or `schema` to `schemas`. Use `types<T>()` inside `schemas` for type-only contracts, or run `xstate-codemod migrate --transform types-to-schemas`. See [Migrate from XState v5 to v6](xstate-v5-to-v6.md#leftover-v5-keys).
+Move the contracts from `types`, `tsTypes`, or `schema` to `schemas`. Use `types<T>()` inside `schemas` for type-only contracts, or run `xstate-codemod migrate --transform types-to-schemas`. See [Migrate from XState v5 to v6](xstate-v5-to-v6.md#28-leftover-v5-keys).
+
+## Error: "services" was renamed, "devTools" was removed, or "activities" was removed
+
+`createMachine` throws on these v5 keys in every build. Provide actor logic under `actors` instead of `services`, pass the `inspect` option to `createActor` instead of `devTools`, and replace `activities` with `invoke`. The error names the replacement.
+
+## Error: Unknown actor option "…"
+
+`createActor` throws on an option it does not support, in every build. Removed options name their replacement: `restoreActor(...)` from `xstate/persist` for `state` and `snapshot`, `registryKey` for `systemId`, and `inspect` for `devTools`. The message for any other key lists the supported options.
 
 ## Warning: Machine config "…" was removed
 
-`services`, `activities`, `predictableActionArguments`, `preserveActionOrder`, `strict`, and `devTools` have no effect in v6. The warning names the replacement, if any. Remove the key.
+`predictableActionArguments`, `preserveActionOrder`, and `strict` have no effect in v6. Development builds warn about them. Remove the key.

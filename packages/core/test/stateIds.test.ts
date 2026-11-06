@@ -6,6 +6,7 @@ import {
   machineFromJSON,
   type AnyActor
 } from '../src/index.ts';
+import { restoreActor } from '../src/persist/index.ts';
 
 const idle = createStepLogic({
   context: {},
@@ -262,7 +263,7 @@ describe('implicit invoke ids', () => {
 
     expect(Object.keys(persisted.children)).toEqual(['upload.loading:0']);
 
-    const restored = createActor(machine, { snapshot: persisted }).start();
+    const restored = restoreActor(machine, persisted).start();
     const child = restored.getSnapshot().children[
       'upload.loading:0'
     ] as AnyActor;
@@ -317,9 +318,10 @@ describe('state keys with dots', () => {
     expect(snapshot.matches('#foo\\.bar')).toBe(true);
     expect(snapshot.matches('#foo.bar' as never)).toBe(false);
 
-    const restored = createActor(machine, {
-      snapshot: JSON.parse(JSON.stringify(actor.getPersistedSnapshot()))
-    }).start();
+    const restored = restoreActor(
+      machine,
+      JSON.parse(JSON.stringify(actor.getPersistedSnapshot()))
+    ).start();
     expect(restored.getSnapshot().value).toBe('foo\\.bar');
     restored.stop();
 

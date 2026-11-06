@@ -76,5 +76,3 @@ export type SingleOrArray<T> = readonly T[] | T;
 export type HomomorphicOmit<T, K extends keyof any> = {
   [P in keyof T as Exclude<P, K>]: T[P];
 };
-
-export type TODO = any;

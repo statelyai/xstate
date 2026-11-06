@@ -1,4 +1,5 @@
 import isDevelopment from '#is-development';
+import { xstateError } from './xstateError.ts';
 import { NULL_EVENT, STATE_DELIMITER } from './constants.ts';
 import type { SetupStateSchemas } from './schema.types.ts';
 import { memo } from './memo.ts';
@@ -170,8 +171,10 @@ export class StateNode<
     this.machine = options._machine;
     if (this.parent && hasUnescapedDot(this.key)) {
       throw new Error(
-        // The suggestion is written as a JS string literal.
-        `State key "${this.key}" contains "." — nest the states or escape it as "${this.key.replaceAll(/(?<!\\)\./g, '\\\\.')}".`
+        isDevelopment
+          ? // The suggestion is written as a JS string literal.
+            `State key "${this.key}" contains "." — nest the states or escape it as "${this.key.replaceAll(/(?<!\\)\./g, '\\\\.')}".`
+          : xstateError(57, this.key)
       );
     }
     this.path = this.parent ? this.parent.path.concat(this.key) : [];
@@ -205,7 +208,9 @@ export class StateNode<
     // explicit id that equals another id would make `#id` ambiguous.
     if (existing) {
       throw new Error(
-        `Duplicate state id '${this.id}': the states at '${existing.path.join(STATE_DELIMITER)}' and '${this.path.join(STATE_DELIMITER)}' both have it. State ids must be unique; rename the explicit \`id\`.`
+        isDevelopment
+          ? `Duplicate state id '${this.id}': the states at '${existing.path.join(STATE_DELIMITER)}' and '${this.path.join(STATE_DELIMITER)}' both have it. State ids must be unique; rename the explicit \`id\`.`
+          : xstateError(58, this.id)
       );
     }
     this.order = this.machine.idMap.size;
@@ -238,7 +243,7 @@ export class StateNode<
           ? `No initial state specified for compound state node "#${
               this.id
             }". Try adding { initial: "${firstStateKey}" } to the state config.`
-          : `No initial state specified for compound state node "#${this.id}".`
+          : xstateError(59, this.id)
       );
     }
 
@@ -379,7 +384,7 @@ function validateStateNodeConfig(stateNode: AnyStateNode) {
     throw new Error(
       isDevelopment
         ? `History state "${stateNode.id}" must declare a non-empty \`target\`.`
-        : `Missing history target on "${stateNode.id}"`
+        : xstateError(60, stateNode.id)
     );
   }
 
@@ -396,7 +401,7 @@ function validateStateNodeConfig(stateNode: AnyStateNode) {
     throw new Error(
       isDevelopment
         ? `Choice state "${stateNode.id}" must declare a \`choice\` function.`
-        : `Missing \`choice\` function on "${stateNode.id}"`
+        : xstateError(61, stateNode.id)
     );
   }
 
@@ -443,7 +448,7 @@ function formatChoiceTransitions(
       throw new Error(
         isDevelopment
           ? `Choice state "${stateNode.id}" must resolve to a target.`
-          : `Choice "${stateNode.id}" has no target`
+          : xstateError(62, stateNode.id)
       );
     }
     if (isDevelopment) {
@@ -510,7 +515,7 @@ function formatTransitions<
         throw new Error(
           isDevelopment
             ? 'Null events ("") cannot be specified as a transition key. Use `always: { ... }` instead.'
-            : 'Null event transition key'
+            : xstateError(63, stateNode.id)
         );
       }
       const transitionsConfig = stateNode.config.on[descriptor];
@@ -759,7 +764,11 @@ function formatInitialTransition(
     throw new Error(
       isDevelopment
         ? `Initial state node "${targetStrings.find((_, index) => !resolvedTargets[index])}" not found on parent state node #${stateNode.id}`
-        : `Initial state not found on "#${stateNode.id}"`
+        : xstateError(
+            64,
+            targetStrings.find((_, index) => !resolvedTargets[index]),
+            stateNode.id
+          )
     );
   }
   const transition: InitialTransitionDefinition = {

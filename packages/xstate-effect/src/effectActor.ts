@@ -67,6 +67,8 @@ function toObserver<T>(
  * contract (`send`, `getSnapshot`, `subscribe`, `on`), so it works with
  * `useSelector`, this package's actor functions and the inspection APIs, while
  * the actor itself is driven by an Effect fiber over pure transitions.
+ *
+ * @experimental
  */
 export class EffectActor<TLogic extends AnyActorLogic> implements ActorRef<
   SnapshotFrom<TLogic>,

@@ -15,7 +15,7 @@ createMachine({
     sending: {}
   }
 });
-// Now throws: Transition "submit" in state "(machine).idle" uses "cond",
+// Now throws: Transition "submit" in state "idle" uses "cond",
 // which was removed. Use an inline transition function instead: ...
 
 // After

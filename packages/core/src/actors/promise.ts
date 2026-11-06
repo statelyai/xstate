@@ -424,7 +424,8 @@ export function createAsyncLogic<
     run: ({ event, input, self, system }, enq) => {
       switch (event.type) {
         case XSTATE_ASYNC_RESOLVE: {
-          const resolvedValue = (event as any).data ?? (event as any).output;
+          const resolvedValue =
+            'data' in event ? event.data : (event as any).output;
           return {
             status: 'done',
             output: resolvedValue,
@@ -435,7 +436,7 @@ export function createAsyncLogic<
           };
         }
         case XSTATE_ASYNC_REJECT: {
-          const error = (event as any).data ?? (event as any).error;
+          const error = 'data' in event ? event.data : (event as any).error;
           return {
             status: 'error',
             error,

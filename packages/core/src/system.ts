@@ -1,4 +1,5 @@
 import isDevelopment from '#is-development';
+import { xstateError } from './xstateError.ts';
 import { protectSelectionRelay } from './transitionSelection.ts';
 import type { InspectionEvent, SentRecord } from './inspection.ts';
 import type { StandardSchemaV1 } from './schema.types.ts';
@@ -659,16 +660,9 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
     options: {
       clock: Clock;
       logger: (...args: any[]) => void;
-      snapshot?: unknown;
       createActorRef: ActorSystem<T>['createActorRef'];
     }
   ) {
-    const restoredSnapshot =
-      typeof options.snapshot === 'object' && options.snapshot !== null
-        ? (options.snapshot as {
-            scheduler?: Record<ScheduledTimerId, ScheduledTimer>;
-          })
-        : undefined;
     this._clock = options.clock;
     this._logger = options.logger;
     this.createActorRef = options.createActorRef;
@@ -677,7 +671,7 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
       this.inspect(ambientInspector);
     }
     this._snapshot = {
-      _scheduledTimers: restoredSnapshot?.scheduler ?? emptyScheduledTimers,
+      _scheduledTimers: emptyScheduledTimers,
       // System-level counters are process-local backstops; per-actor
       // counters persist on each machine snapshot, and restored explicit ids
       // reserve their numbering here via `resolveActorId`.
@@ -858,7 +852,9 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
     const existing = this._keyedActors?.get(registryKey);
     if (existing && existing !== actor) {
       throw new Error(
-        `Actor with registry key '${registryKey as string}' already exists.`
+        isDevelopment
+          ? `Actor with registry key '${registryKey as string}' already exists.`
+          : xstateError(45, String(registryKey))
       );
     }
 
@@ -1183,7 +1179,6 @@ export function createRuntimeSystem<T extends ActorSystemInfo>(
   options: {
     clock: Clock;
     logger: (...args: any[]) => void;
-    snapshot?: unknown;
     createActorRef: ActorSystem<T>['createActorRef'];
   }
 ): ActorSystem<T> {

@@ -164,12 +164,28 @@ describe('v5 config diagnostics', () => {
   });
 
   it.each([
-    ['services', 'provide actor logic under "actors"'],
-    ['activities', 'invoke an actor with "invoke" instead'],
+    ['services', 'Provide actor logic under "actors"'],
+    ['activities', 'Invoke an actor with "invoke" instead'],
+    ['devTools', 'Pass the "inspect" option to `createActor(...)`']
+  ])('throws on `%s`', (key, replacement) => {
+    expect(() => createMachine({ [key]: true } as any)).toThrowError(
+      replacement
+    );
+  });
+
+  it('throws on `activities` in a nested state', () => {
+    expect(() =>
+      createMachine({
+        initial: 'a',
+        states: { a: { activities: ['beep'] } }
+      } as any)
+    ).toThrowError('State "a" uses "activities", which was removed.');
+  });
+
+  it.each([
     ['predictableActionArguments', 'removed with no replacement'],
     ['preserveActionOrder', 'removed with no replacement'],
-    ['strict', 'removed with no replacement'],
-    ['devTools', 'pass the "inspect" option to `createActor(...)`']
+    ['strict', 'removed with no replacement']
   ])('warns on `%s`', (key, replacement) => {
     const warn = warnSpy();
     createMachine({ [key]: true } as any);
@@ -194,6 +210,50 @@ describe('v5 config diagnostics', () => {
         states: { a: { on: { go: { target: 'nonexistent' } } } }
       } as any)
     ).toThrowError("Child state 'nonexistent' does not exist");
+  });
+
+  it('throws on suffixed lifecycle event keys', () => {
+    expect(() =>
+      createMachine({
+        initial: 'loading',
+        states: {
+          loading: { on: { 'xstate.done.actor.job': { target: 'done' } } },
+          done: {}
+        }
+      } as any)
+    ).toThrow(
+      `Transition "xstate.done.actor.job" in state "loading" never fires: v6 lifecycle event types carry the id in a payload field instead of the type. Key on 'xstate.done.actor' with \`matches: { actorId: 'job' }\`, or use the invoke's "onDone".`
+    );
+    for (const key of [
+      'xstate.error.actor.job',
+      'xstate.snapshot.job',
+      'xstate.done.state.form',
+      'xstate.after.1000.loading'
+    ]) {
+      expect(() =>
+        createMachine({
+          on: { [key]: { target: '.a' } },
+          initial: 'a',
+          states: { a: {} }
+        } as any)
+      ).toThrow('never fires');
+    }
+  });
+
+  it('accepts category lifecycle event keys', () => {
+    expect(() =>
+      createMachine({
+        initial: 'a',
+        on: {
+          'xstate.done.actor': { target: '.a' },
+          'xstate.done.actor.*': { target: '.a' },
+          'xstate.snapshot.actor': { target: '.a' },
+          'xstate.snapshot.actor.*': { target: '.a' },
+          'xstate.after': { target: '.a' }
+        },
+        states: { a: {} }
+      } as any)
+    ).not.toThrow();
   });
 
   it('accepts v6 config without diagnostics', () => {
@@ -260,7 +320,7 @@ describe('v5 config diagnostics', () => {
     expect(warn).not.toHaveBeenCalled();
   });
 
-  it('reports nothing in production builds', async () => {
+  it('throws on removed keys and warns on nothing in production builds', async () => {
     vi.resetModules();
     vi.stubEnv('NODE_ENV', 'production');
     vi.doMock('#is-development', () => ({ default: false }));
@@ -268,10 +328,23 @@ describe('v5 config diagnostics', () => {
       const warn = warnSpy();
       const { createMachine: prodCreateMachine } =
         await import('../src/createMachine.ts');
+      const { createActor: prodCreateActor } =
+        await import('../src/createActor.ts');
+      expect(() => prodCreateMachine({ types: {} } as any)).toThrowError(
+        'XState error E1 ("types")'
+      );
+      expect(() => prodCreateMachine({ devTools: true } as any)).toThrowError(
+        'XState error E1 ("devTools")'
+      );
+      expect(() =>
+        (prodCreateMachine as any)({}, { actions: {} })
+      ).toThrowError('XState error E71.');
+      expect(() =>
+        prodCreateActor(prodCreateMachine({}), { systemId: 'a' } as any)
+      ).toThrowError('XState error E8 ("systemId")');
       expect(() =>
         prodCreateMachine({
-          types: {},
-          devTools: true,
+          predictableActionArguments: true,
           initial: 'a',
           states: {
             a: { on: { go: { target: 'b' } } },
@@ -298,32 +371,35 @@ describe('v5 config diagnostics', () => {
       const cases: Array<[stateA: object, message: string]> = [
         [
           { on: { go: { target: 'b', cond: () => false } } },
-          'Transition "go" in state "a" uses "cond", which was removed in v6. Use a transition function.'
+          'XState error E4 ("go", "a", "cond")'
         ],
         [
           { always: { target: 'b', cond: () => false } },
-          'Transition "always" in state "a" uses "cond"'
+          'XState error E4 ("always", "a", "cond")'
         ],
         [
           { after: { 1000: { target: 'b', cond: () => false } } },
-          'uses "cond"'
+          'XState error E4 ("after.1000", "a", "cond")'
         ],
         [
           { on: { go: { target: 'b', actions: 'track' } } },
-          'Transition "go" in state "a" uses "actions"'
+          'XState error E4 ("go", "a", "actions")'
         ],
         [
           { on: { go: { target: 'b', actions: { type: 'track' } } } },
-          'uses "actions"'
+          'XState error E4 ("go", "a", "actions")'
         ],
-        [{ on: { go: { target: 'b', actions: () => {} } } }, 'uses "actions"'],
+        [
+          { on: { go: { target: 'b', actions: () => {} } } },
+          'XState error E4 ("go", "a", "actions")'
+        ],
         [
           { on: { go: { target: 'b', guard: 'isReady' } } },
-          'Transition "go" in state "a" uses an object-form "guard"'
+          'XState error E4 ("go", "a", "guard")'
         ],
         [
           { on: { go: { target: 'b', guard: { type: 'isReady' } } } },
-          'uses an object-form "guard"'
+          'XState error E4 ("go", "a", "guard")'
         ]
       ];
       for (const [a, message] of cases) {
@@ -423,5 +499,70 @@ describe('v5 config diagnostics', () => {
     }
 
     expect(true).toBe(true);
+  });
+
+  describe('createMachine second argument', () => {
+    it('throws when implementations are passed as a second argument', () => {
+      expect(() =>
+        (createMachine as any)(
+          { initial: 'a', states: { a: {} } },
+          {
+            actions: { track: () => {} }
+          }
+        )
+      ).toThrowError(
+        'createMachine(config) takes one argument; the second argument (implementations) was removed.'
+      );
+    });
+
+    it('throws through setup().createMachine', () => {
+      expect(() =>
+        (setup({}).createMachine as any)({}, { actions: {} })
+      ).toThrowError('takes one argument');
+    });
+
+    it('accepts an explicit undefined second argument', () => {
+      expect(() => (createMachine as any)({}, undefined)).not.toThrow();
+    });
+  });
+
+  describe('createActor options', () => {
+    const machine = createMachine({});
+
+    it.each([
+      ['systemId', 'Use "registryKey"'],
+      ['state', 'restoreActor(logic, snapshot) from "xstate/persist"'],
+      ['snapshot', 'restoreActor(logic, snapshot) from "xstate/persist"'],
+      ['devTools', 'Pass the "inspect" option instead'],
+      ['parent', 'Create child actors through invoke, spawn, or enq.spawn'],
+      ['deferEvents', '"deferEvents" actor option was removed'],
+      ['execute', '"execute" actor option was removed']
+    ])('throws on removed option `%s`', (key, message) => {
+      expect(() => createActor(machine, { [key]: 'x' } as any)).toThrowError(
+        message
+      );
+    });
+
+    it('throws on an unknown option and lists the supported ones', () => {
+      expect(() =>
+        createActor(machine, { inptu: { id: 1 } } as any)
+      ).toThrowError(
+        'Unknown actor option "inptu". Supported options: clock, logger, syncSnapshot, id, registryKey, input, src, inspect, onRejectedEvent, onUnhandledEvent.'
+      );
+    });
+
+    it('accepts every supported option', () => {
+      expect(() =>
+        createActor(machine, {
+          id: 'a',
+          registryKey: 'a',
+          input: undefined,
+          inspect: () => {},
+          logger: () => {},
+          onRejectedEvent: () => {},
+          onUnhandledEvent: () => {}
+        } as any)
+      ).not.toThrow();
+    });
   });
 });

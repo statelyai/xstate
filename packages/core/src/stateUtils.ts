@@ -1,4 +1,5 @@
 import isDevelopment from '#is-development';
+import { xstateError } from './xstateError.ts';
 import { MachineSnapshot, cloneMachineSnapshot } from './State.ts';
 import type { StateNode } from './StateNode.ts';
 import {
@@ -99,7 +100,9 @@ function getConfiguredDelayValue(
   const parsedDelay = parseDurationToMilliseconds(delay);
   if (parsedDelay === undefined) {
     throw new Error(
-      `Invalid delay "${delay}": not a configured delay name or a valid duration string (e.g. "500ms", "1.5s", "PT1M30S").`
+      isDevelopment
+        ? `Invalid delay "${delay}": not a configured delay name or a valid duration string (e.g. "500ms", "1.5s", "PT1M30S").`
+        : xstateError(9, delay)
     );
   }
   return parsedDelay;
@@ -526,7 +529,9 @@ export function formatTransition(
   const removedKey = getRemovedTransitionKey(transitionConfig);
   if (removedKey) {
     throw new Error(
-      `Transition "${descriptor || 'always'}" in state "${stateNode.id}" uses ${removedKey}, which was removed in v6. Use a transition function.`
+      isDevelopment
+        ? `Transition "${descriptor || 'always'}" in state "${stateNode.id}" uses ${removedKey}, which was removed in v6. Use a transition function.`
+        : xstateError(10, descriptor || 'always', stateNode.id, removedKey)
     );
   }
   const normalizedTarget = normalizeTarget(transitionConfig.target);
@@ -645,7 +650,7 @@ function assertLegalTargetSet(
         throw new Error(
           isDevelopment
             ? `Invalid transition definition for state node '${source.id}': target set is not a legal SCXML configuration.`
-            : `Invalid target set for '${source.id}'`
+            : xstateError(11, source.id)
         );
       }
     }
@@ -747,14 +752,14 @@ function resolveTarget(
         throw new Error(
           isDevelopment
             ? `Invalid transition definition for state node '${stateNode.id}':\n${err.message}`
-            : `Invalid transition for '${stateNode.id}': ${err.message}`
+            : xstateError(12, stateNode.id, err.message)
         );
       }
     } else {
       throw new Error(
         isDevelopment
           ? `Invalid target: "${target}" is not a valid target from the root node. Did you mean ".${target}"?`
-          : `Invalid target: "${target}"`
+          : xstateError(13, target)
       );
     }
   });
@@ -828,9 +833,11 @@ function getStateNode(stateNode: AnyStateNode, stateKey: string): AnyStateNode {
   const result = stateNode.states?.[stateKey];
   if (!result) {
     throw new Error(
-      isDevelopment && !stateNode.states
-        ? `Unable to retrieve child state '${stateKey}' from '${stateNode.id}'; no child states exist.`
-        : `Child state '${stateKey}' does not exist on '${stateNode.id}'`
+      isDevelopment
+        ? stateNode.states
+          ? `Child state '${stateKey}' does not exist on '${stateNode.id}'`
+          : `Unable to retrieve child state '${stateKey}' from '${stateNode.id}'; no child states exist.`
+        : xstateError(14, stateKey, stateNode.id)
     );
   }
   return result;
@@ -875,7 +882,9 @@ export function getStateNodes(
     const childStateNode = stateNode.states[stateValue];
     if (!childStateNode) {
       throw new Error(
-        `State '${stateValue}' does not exist on '${stateNode.id}'`
+        isDevelopment
+          ? `State '${stateValue}' does not exist on '${stateNode.id}'`
+          : xstateError(14, stateValue, stateNode.id)
       );
     }
     return [stateNode, childStateNode];
@@ -1903,7 +1912,7 @@ function microstep(
             throw new Error(
               isDevelopment
                 ? `Actor logic '${typeof src === 'string' ? src : 'inline'}' not implemented in ${describeMachine(currentSnapshot.machine.id)}`
-                : `Actor logic '${typeof src === 'string' ? src : 'inline'}' not implemented`
+                : xstateError(15, typeof src === 'string' ? src : 'inline')
             );
           }
 
@@ -2413,12 +2422,18 @@ export function getTransitionResult(
   };
 }
 
-/** The default microstep bound for one macrostep. */
-const DEFAULT_MAX_ITERATIONS = 1000;
+/**
+ * Microsteps one macrostep may take before development builds warn, when the
+ * machine sets no `maxIterations` bound.
+ */
+const LONG_MACROSTEP_WARNING = 1000;
+
+/** Machines that already logged the long-macrostep warning. */
+const warnedLongMacrostep = new WeakSet<object>();
 
 /**
  * Thrown when one macrostep takes more microsteps than the machine's
- * `options.maxIterations` (default `1000`) without reaching a stable state,
+ * `options.maxIterations` (unbounded by default) without reaching a stable state,
  * usually because eventless transitions or raised events form a cycle.
  *
  * @public
@@ -2440,13 +2455,15 @@ export class InfiniteTransitionError extends Error {
     states: StateValue[]
   ) {
     super(
-      `Infinite loop detected in actor "${actorId}" processing event "${
-        event.type
-      }": more than ${maxIterations} microsteps without reaching a stable state. Last states: ${states
-        .map((value) => JSON.stringify(value))
-        .join(
-          ' -> '
-        )}. Check for a cycle of eventless transitions or raised events, or raise the bound with createMachine({ options: { maxIterations } }).`
+      isDevelopment
+        ? `Infinite loop detected in actor "${actorId}" processing event "${
+            event.type
+          }": more than ${maxIterations} microsteps without reaching a stable state. Last states: ${states
+            .map((value) => JSON.stringify(value))
+            .join(
+              ' -> '
+            )}. Check for a cycle of eventless transitions or raised events, or raise the bound with createMachine({ options: { maxIterations } }).`
+        : xstateError(16, actorId, event.type, maxIterations)
     );
     this.name = 'InfiniteTransitionError';
     this.actorId = actorId;
@@ -2683,8 +2700,7 @@ export function macrostep(
   }
 
   let shouldSelectEventlessTransitions = true;
-  const maxIterations =
-    snapshot.machine.options?.maxIterations ?? DEFAULT_MAX_ITERATIONS;
+  const maxIterations = snapshot.machine.options?.maxIterations ?? Infinity;
   let iterationCount = 0;
   // The last few state values visited, for the infinite-loop error.
   const recentStates: StateValue[] = [];
@@ -2697,6 +2713,21 @@ export function macrostep(
         event,
         maxIterations,
         recentStates
+      );
+    }
+    if (
+      isDevelopment &&
+      iterationCount === LONG_MACROSTEP_WARNING + 1 &&
+      maxIterations === Infinity &&
+      !warnedLongMacrostep.has(snapshot.machine)
+    ) {
+      warnedLongMacrostep.add(snapshot.machine);
+      console.warn(
+        `Actor "${actorScope.self?.id}" took more than ${LONG_MACROSTEP_WARNING} microsteps processing event "${event.type}" without reaching a stable state. Last states: ${recentStates
+          .map((value) => JSON.stringify(value))
+          .join(
+            ' -> '
+          )}. Check for a cycle of eventless transitions or raised events. To stop a runaway macrostep with an InfiniteTransitionError, set createMachine({ options: { maxIterations } }).`
       );
     }
     recentStates.push(nextSnapshot.value);
@@ -2802,9 +2833,11 @@ function assertSyncTransitionResult(
   if (res && typeof (res as PromiseLike<unknown>).then === 'function') {
     void Promise.resolve(res as PromiseLike<unknown>).catch(() => {});
     throw new Error(
-      kind && kind !== 'transition'
-        ? `${kind === 'entry' ? 'Entry' : 'Exit'} functions must be synchronous. The ${kind} function of state "${sourceId}" returned a promise (event "${event.type}"). Move async work into an invoked or spawned actor, or enq.effect.`
-        : `Transition functions must be synchronous. Transition for event "${event.type}" in state "${sourceId}" returned a promise. Move async work into an invoked or spawned actor, or enq.effect.`
+      !isDevelopment
+        ? xstateError(17, kind ?? 'transition', sourceId, event.type)
+        : kind && kind !== 'transition'
+          ? `${kind === 'entry' ? 'Entry' : 'Exit'} functions must be synchronous. The ${kind} function of state "${sourceId}" returned a promise (event "${event.type}"). Move async work into an invoked or spawned actor, or enq.effect.`
+          : `Transition functions must be synchronous. Transition for event "${event.type}" in state "${sourceId}" returned a promise. Move async work into an invoked or spawned actor, or enq.effect.`
     );
   }
 }

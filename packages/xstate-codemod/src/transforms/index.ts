@@ -5,7 +5,7 @@ import { typesToSchemas } from './types-to-schemas.ts';
 import { lowerActions } from './lower-actions.ts';
 import { reportRemovedApis } from './report-removed-apis.ts';
 import { reportIdPathTargets } from './report-id-path-targets.ts';
-import { reportSuffixedLifecycleEvents } from './report-suffixed-lifecycle-events.ts';
+import { suffixedLifecycleEvents } from './suffixed-lifecycle-events.ts';
 import { reportActionShapes } from './report-action-shapes.ts';
 import { reportImplementations } from './report-implementations.ts';
 import { reportInspectionEvents } from './report-inspection-events.ts';
@@ -18,7 +18,7 @@ export const transforms: Transform[] = [
   lowerActions,
   reportRemovedApis,
   reportIdPathTargets,
-  reportSuffixedLifecycleEvents,
+  suffixedLifecycleEvents,
   reportActionShapes,
   reportImplementations,
   reportInspectionEvents

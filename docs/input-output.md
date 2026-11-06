@@ -15,7 +15,7 @@ const greeting = createActor(greetingMachine, {
 }).start();
 ```
 
-When a machine declares `schemas.input` (directly or through `setup(...)`) and the input type does not accept `undefined`, `createActor` requires the `input` option. Restoring a persisted `snapshot` does not require it.
+When a machine declares `schemas.input` (directly or through `setup(...)`) and the input type does not accept `undefined`, `createActor` requires the `input` option. Restoring a persisted snapshot with `restoreActor(...)` does not take it.
 
 ## Final output
 

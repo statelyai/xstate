@@ -27,6 +27,7 @@
     "model-based-testing",
     "inspect-actor-systems",
     "troubleshooting",
+    "errors",
     "configuration",
     "fsm",
     "setup-and-provide",

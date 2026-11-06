@@ -6,7 +6,7 @@ How to split state between server and client in the Next.js App Router: a server
 
 ## XState features used
 
-- `getPersistedSnapshot()` and `createActor(machine, { snapshot })` on the server
+- `getPersistedSnapshot()` and `restoreActor(machine, snapshot)` from `xstate/persist` on the server
 - a guard blocking `pay` on an empty cart
 - `useActor` from `@xstate/react` in a client component
 

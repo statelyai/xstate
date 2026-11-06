@@ -4,6 +4,7 @@ import { createActor } from 'xstate';
 import { donutMachine } from './donutMachine';
 import { TaskQueue } from './TaskQueue';
 import { createInspector } from '@statelyai/sdk';
+import { restoreActor } from 'xstate/persist';
 
 const inspector = process.env.INSPECT ? createInspector() : undefined;
 
@@ -21,10 +22,10 @@ if (!stored) {
   console.log('No persisted state found in the db. Starting from scratch.');
 }
 
-const actor = createActor(donutMachine, {
-  snapshot: stored?.persistedState,
-  inspect: inspector?.inspect
-});
+const options = { inspect: inspector?.inspect };
+const actor = stored
+  ? restoreActor(donutMachine, stored.persistedState, options)
+  : createActor(donutMachine, options);
 
 // Writes are queued so that snapshots reach the database in transition order.
 const taskQueue = new TaskQueue();

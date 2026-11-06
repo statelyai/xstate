@@ -7,6 +7,7 @@ import {
   useSelector
 } from '../src/index.ts';
 import z from 'zod';
+import { restoreActor } from 'xstate/persist';
 
 describe('useMachine', () => {
   interface YesNoContext {
@@ -185,7 +186,7 @@ describe('useActor', () => {
 });
 
 describe('useActorRef', () => {
-  it('should not require input when restoring a snapshot', () => {
+  it('should not require input for a restored actor', () => {
     const machine = createMachine({
       schemas: { input: z.object({ value: z.number() }) }
     });
@@ -195,12 +196,13 @@ describe('useActorRef', () => {
 
     // Type-only checks: the hooks need a component to run.
     const check = () => {
-      useActorRef(machine, { snapshot });
-      useActor(machine, { snapshot });
-      useMachine(machine, { snapshot });
-      // @ts-expect-error input or snapshot is required
+      const restored = restoreActor(machine, snapshot);
+      useActorRef(restored);
+      useActor(restored);
+      useMachine(restored);
+      // @ts-expect-error input is required
       useActorRef(machine);
-      // @ts-expect-error input or snapshot is required
+      // @ts-expect-error input is required
       useActorRef(machine, {});
     };
 

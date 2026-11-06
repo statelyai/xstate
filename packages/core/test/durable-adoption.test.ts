@@ -15,6 +15,7 @@ import {
   createDurable,
   type DurableExecutionAdapter
 } from '../src/durable/index.ts';
+import { restoreActor } from '../src/persist/index.ts';
 
 function host(overrides: Partial<DurableExecutionAdapter<AnyActorLogic>> = {}) {
   return {
@@ -337,7 +338,7 @@ describe('deserialized actor source rebinding', () => {
     expect(original).not.toHaveBeenCalled();
     const saved = actor.getPersistedSnapshot();
     actor.stop();
-    const restored = createActor(provided, { snapshot: saved }).start();
+    const restored = restoreActor(provided, saved).start();
     expect(replacement).toHaveBeenCalledTimes(2);
     expect(machineToJSON(provided)).toEqual(json);
     restored.stop();

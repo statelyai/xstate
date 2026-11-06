@@ -1,5 +1,7 @@
+import isDevelopment from '#is-development';
 import { EventDescriptor, EventObject, ExtractEvent } from './types.ts';
 import { matchesEventDescriptor, toArray } from './utils.ts';
+import { xstateError } from './xstateError.ts';
 
 /**
  * Asserts that the given event object is of the specified type or types. Throws
@@ -39,12 +41,14 @@ export function assertEvent<
   );
 
   if (!matches) {
-    const typesText =
-      types.length === 1
-        ? `type matching "${types[0]}"`
-        : `one of types matching "${types.join('", "')}"`;
     throw new Error(
-      `Expected event ${JSON.stringify(event)} to have ${typesText}`
+      isDevelopment
+        ? `Expected event ${JSON.stringify(event)} to have ${
+            types.length === 1
+              ? `type matching "${types[0]}"`
+              : `one of types matching "${types.join('", "')}"`
+          }`
+        : xstateError(74, event.type, types.join(', '))
     );
   }
 }
