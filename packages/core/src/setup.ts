@@ -59,7 +59,8 @@ import {
   InputFrom,
   OutputFrom,
   SnapshotFrom,
-  ActorTimeoutEvent
+  ActorTimeoutEvent,
+  TransitionTargetString
 } from './types.ts';
 import type {
   Cast,
@@ -648,9 +649,9 @@ type SetupStateTarget<TStateSchemas extends Record<string, SetupStateSchema>> =
         | SetupRelativeStateTarget<RelativeSetupStateSchemas<TStateSchemas>>
         | `#${string}`
     : string extends SetupStateKeys<TStateSchemas>
-      ? string
+      ? TransitionTargetString
       : [SetupStateKeys<TStateSchemas>] extends [never]
-        ? string
+        ? TransitionTargetString
         : StatePaths<TStateSchemas> | `.${string}` | `#${string}`;
 
 type KnownSetupStateTarget<
@@ -2105,13 +2106,12 @@ type ValidateSetupTargetArrayInputs<
 type ValidateSetupStateContracts<
   TConfig,
   TStateSchemas extends Record<string, SetupStateSchema>
-> =
-  HasExplicitSetupStateContracts<TStateSchemas> extends true
+> = ValidateStateTargets<MergeSetupConfig<TConfig, TStateSchemas>> &
+  (HasExplicitSetupStateContracts<TStateSchemas> extends true
     ? ValidateSetupHistoryInputs<TConfig, TStateSchemas> &
         ValidateHistoryDefaults<MergeSetupConfig<TConfig, TStateSchemas>> &
-        ValidateStateTargets<MergeSetupConfig<TConfig, TStateSchemas>> &
         NoInfer<ValidateSetupTargetArrayInputs<TConfig, TStateSchemas>>
-    : unknown;
+    : unknown);
 
 type SetupInitialTransitionConfig<
   TStateSchema extends SetupStateSchema,
