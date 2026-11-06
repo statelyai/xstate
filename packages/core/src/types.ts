@@ -618,6 +618,13 @@ export type TransitionConfigOrTarget<
     >
 >;
 
+/**
+ * @public A contextual type containing a literal ('.') keeps a returned
+ * literal target from widening to `string`, so `ValidateStateTargets` can
+ * check it; `string & {}` still accepts dynamic targets.
+ */
+export type TransitionTargetString = '.' | (string & {});
+
 /** @public */
 export type TransitionConfigFunction<
   TContext extends MachineContext,
@@ -651,8 +658,7 @@ export type TransitionConfigFunction<
     TChildren
   >
 ) => {
-  target?: string | string[];
-  // target?: keyof TSS['states'];
+  target?: TransitionTargetString | TransitionTargetString[];
   context?: TransitionContextPatch<_TCtx>;
   reenter?: boolean;
   meta?: TMeta;
