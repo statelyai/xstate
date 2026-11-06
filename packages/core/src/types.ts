@@ -619,7 +619,7 @@ export type TransitionConfigOrTarget<
 >;
 
 /**
- * @internal A contextual type containing a literal ('.') keeps a returned
+ * @public A contextual type containing a literal ('.') keeps a returned
  * literal target from widening to `string`, so `ValidateStateTargets` can
  * check it; `string & {}` still accepts dynamic targets.
  */

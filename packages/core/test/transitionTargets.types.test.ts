@@ -69,6 +69,12 @@ describe('transition target types', () => {
         states: { a: { on: { GO: { target: 'bb' } } }, b: {} }
       });
 
+      s.createMachine({
+        initial: 'a',
+        // @ts-expect-error - 'bb' is not a state
+        states: { a: { on: { GO: 'bb' } }, b: {} }
+      });
+
       // @ts-expect-error - 'bb' is not a state
       s.createMachine({
         initial: 'a',

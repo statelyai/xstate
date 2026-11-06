@@ -552,7 +552,7 @@ These inferred typestates work as follows. See [Typestates](typestates.md) for t
 
 <!-- setup state contracts from SetupStateSchema in packages/core/src/setup.ts -->
 
-`setup()` still exists in v6 and still accepts `actions`, `guards`, `actors`, and `delays` (merged into every machine created from it). What changed: `types` is replaced by `schemas`, and `setup()` gains a `states` key for declaring **state contracts**. A contract can provide state-level schemas plus structural metadata and defaults such as `type`, `initial`, `history`, `target`, `id`, and `route`. This types `createMachine` and `createStateConfig`, including the `initial: { target, input }` form and transitions targeting those states. Setups that declare only schemas remain permissive for compatibility.
+`setup()` still exists in v6 and still accepts `actions`, `guards`, `actors`, and `delays` (merged into every machine created from it). What changed: `types` is replaced by `schemas`, and `setup()` gains a `states` key for declaring **state contracts**. A contract can provide state-level schemas plus structural metadata and defaults such as `type`, `initial`, `history`, `target`, `id`, and `route`. This types `createMachine` and `createStateConfig`, including the `initial: { target, input }` form and transitions targeting those states. Setups that declare only schemas don't require state contracts, but unknown literal transition targets are still type errors.
 
 ```ts
 // v6 - setup with root schemas and state-level input schemas
