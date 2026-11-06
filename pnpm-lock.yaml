@@ -3027,6 +3027,15 @@ importers:
       ts-morph:
         specifier: ^24.0.0
         version: 24.0.0
+      tsx:
+        specifier: ^4.23.13
+        version: 4.23.13
+      xstate:
+        specifier: workspace:^
+        version: link:../core
+      xstate5:
+        specifier: npm:xstate@^5.33.0
+        version: xstate@5.33.3
     devDependencies:
       vitest:
         specifier: ^3.2.2
@@ -11047,6 +11056,9 @@ packages:
   xstate@5.32.6:
     resolution: {integrity: sha512-WfA8WNrh6r9osuGwVm+aIPM4jmMW2LKHV1Yv9thYpOtL4HVF/kobh95K/O8v2jDCpDmP2EoY+6uvuqHXCZ6ZLw==, tarball: https://registry.npmjs.org/xstate/-/xstate-5.32.6.tgz}
 
+  xstate@5.33.3:
+    resolution: {integrity: sha512-AnDRjS/GyKHmbA1PyhVCYBqYsA7EGe3KGgeD0ht3NFsXzoz7leX/HQDFX9QlHFJ/ltLHPsgChJYwPzRvB/0b4g==, tarball: https://registry.npmjs.org/xstate/-/xstate-5.33.3.tgz}
+
   xtend@4.0.2:
     resolution: {integrity: sha512-LKYU1iAXJXUgAXn9URjiu+MWhyUXHsvfp7mcuYm9dSUKK0/CjtrUwFAxD82/mCWbtLsGjFIad0wIsod4zrTAEQ==, tarball: https://registry.npmjs.org/xtend/-/xtend-4.0.2.tgz}
     engines: {node: '>=0.4'}
@@ -18836,6 +18848,8 @@ snapshots:
   xmlchars@2.2.0: {}
 
   xstate@5.32.6: {}
+
+  xstate@5.33.3: {}
 
   xtend@4.0.2: {}
 

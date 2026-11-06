@@ -7,7 +7,7 @@ import {
   StringLiteral,
   SyntaxKind
 } from 'ts-morph';
-import type { Transform, TransformResult } from '../types.ts';
+import type { ManualSite, Transform, TransformResult } from '../types.ts';
 import { findMachineConfigObjects } from '../util.ts';
 
 /** Keys whose string values (or string array elements) are state targets. */
@@ -49,6 +49,9 @@ function getStringProperty(
     ? initializer.getLiteralText()
     : undefined;
 }
+
+const ID_PATH_HINT =
+  "'#…' is an exact state id in v6 and is never split into an id and a path; use the target state's own id (its explicit `id` or its full implicit id)";
 
 type TargetLiteral = StringLiteral | NoSubstitutionTemplateLiteral;
 
@@ -149,6 +152,7 @@ export const reportIdPathTargets: Transform = {
     "Detect (report only) '#id.path' targets and matches('#id.path') references that may combine an id with a relative path, which v6 no longer resolves.",
   apply(sourceFile: SourceFile): TransformResult {
     const notes: string[] = [];
+    const sites: ManualSite[] = [];
     const filePath = sourceFile.getFilePath();
     const machineConfigs = new Set(
       findMachineConfigObjects(sourceFile, ['createMachine'])
@@ -186,12 +190,17 @@ export const reportIdPathTargets: Transform = {
       const { line, column } = sourceFile.getLineAndColumnAtPos(
         literal.getStart()
       );
-      notes.push(
-        `${filePath}:${line}:${column} — '${text}' → '#…' is an exact state id in v6 and is never split into an id and a path; use the target state's own id (its explicit \`id\` or its full implicit id)`
-      );
+      notes.push(`${filePath}:${line}:${column} — '${text}' → ${ID_PATH_HINT}`);
+      sites.push({
+        file: filePath,
+        line,
+        column,
+        api: text,
+        hint: ID_PATH_HINT
+      });
     }
 
     // Never mutates the file.
-    return { changed: false, notes };
+    return { changed: false, notes, sites };
   }
 };
