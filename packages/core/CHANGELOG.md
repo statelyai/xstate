@@ -1,5 +1,28 @@
 # xstate
 
+## 6.0.0-beta.1
+
+### Patch Changes
+
+- 599ec3c: Unknown transition targets are now type errors in `setup().createMachine(...)`, not only in `createMachine(...)`. Targets returned from transition functions are also checked:
+  
+  ```ts
+  setup({}).createMachine({
+    initial: 'a',
+    states: {
+      a: {
+        on: {
+          // Type error: 'bb' is not a state
+          GO: () => ({ target: 'bb' })
+        }
+      },
+      b: {}
+    }
+  });
+  ```
+  
+  Dynamic (non-literal) string targets are still accepted.
+
 ## 6.0.0-beta.0
 
 ### Minor Changes
