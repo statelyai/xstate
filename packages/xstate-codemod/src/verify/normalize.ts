@@ -24,11 +24,15 @@ function isActorRef(value: any): boolean {
   );
 }
 
-/** JSON round-trip that marks functions/symbols and replaces actor refs. */
+/**
+ * JSON round-trip that marks functions/symbols and replaces actor refs.
+ * Objects nested deeper than `maxDepth` become `'[deep]'`.
+ */
 export function toJson(
   value: unknown,
   stats: Stats,
-  seen = new Set<object>()
+  seen = new Set<object>(),
+  maxDepth = Infinity
 ): unknown {
   switch (typeof value) {
     case 'undefined':
@@ -51,16 +55,17 @@ export function toJson(
   if (isActorRef(obj)) return { $actor: normalizeId(obj.id) };
   if (obj instanceof Error) return String(obj);
   if (typeof obj.toJSON === 'function')
-    return toJson(obj.toJSON(), stats, seen);
+    return toJson(obj.toJSON(), stats, seen, maxDepth);
   if (seen.has(obj)) return '[circular]';
+  if (seen.size >= maxDepth) return '[deep]';
   seen.add(obj);
   try {
     if (Array.isArray(obj)) {
-      return obj.map((item) => toJson(item, stats, seen) ?? null);
+      return obj.map((item) => toJson(item, stats, seen, maxDepth) ?? null);
     }
     const out: Record<string, unknown> = {};
     for (const key of Object.keys(obj)) {
-      const item = toJson(obj[key], stats, seen);
+      const item = toJson(obj[key], stats, seen, maxDepth);
       if (item !== undefined) out[key] = item;
     }
     return out;

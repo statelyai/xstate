@@ -1,6 +1,9 @@
 import { normalizeEvent, normalizeId, toJson } from './normalize.ts';
 import type { Recorder, Stats, StepRecord } from './types.ts';
 
+/** Action params can hold whole `args` objects; record only their top levels. */
+const ACTION_PARAMS_DEPTH = 4;
+
 const empty = (): StepRecord => ({
   processed: [],
   sent: [],
@@ -60,7 +63,8 @@ export function createRecorder6(stats: Stats): Recorder {
           continue;
         bucket.actions.push({
           type: action.type,
-          params: toJson(action.params, stats) ?? null
+          params:
+            toJson(action.params, stats, undefined, ACTION_PARAMS_DEPTH) ?? null
         });
       }
       for (const sent of e.sent) {

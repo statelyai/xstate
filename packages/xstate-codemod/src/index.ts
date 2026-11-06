@@ -5,6 +5,7 @@ export {
   renameImports,
   stringTargets,
   typesToSchemas,
+  lowerActions,
   reportRemovedApis,
   reportIdPathTargets
 } from './transforms/index.ts';

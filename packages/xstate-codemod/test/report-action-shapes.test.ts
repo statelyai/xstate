@@ -55,6 +55,13 @@ const machine = setup({}).createMachine({
       {
         file: expect.stringMatching(/machine\.ts$/),
         line: 11,
+        column: 22,
+        api: 'transition-array',
+        hint: expect.stringContaining('combine the candidates into an if-chain')
+      },
+      {
+        file: expect.stringMatching(/machine\.ts$/),
+        line: 11,
         column: 41,
         api: 'actions',
         hint: expect.stringContaining('transition `actions` was removed')
@@ -67,7 +74,7 @@ const machine = setup({}).createMachine({
         hint: expect.stringContaining('transition `actions` was removed')
       }
     ]);
-    expect(notes).toHaveLength(5);
+    expect(notes).toHaveLength(6);
     expect(notes[0]).toContain(":4:3 — 'entry'");
   });
 
@@ -112,12 +119,14 @@ const machine = setup({}).createMachine({
     expect(
       sites.map(({ api, line, column }) => ({ api, line, column }))
     ).toEqual([
+      { api: 'transition-array', line: 6, column: 15 },
       { api: 'guard', line: 6, column: 18 },
+      { api: 'transition-array', line: 8, column: 13 },
       { api: 'guard', line: 9, column: 13 },
       { api: 'cond', line: 10, column: 13 },
       { api: 'cond', line: 14, column: 29 }
     ]);
-    expect(sites[0].hint).toContain('transition `guard` was removed');
+    expect(sites[1].hint).toContain('transition `guard` was removed');
   });
 
   it('does not report guard keys outside transition objects', () => {
@@ -131,5 +140,19 @@ const machine = setup({
 });`;
     const { sites } = applyTransform(reportActionShapes, input);
     expect(sites).toEqual([]);
+  });
+
+  it('reports config values it cannot see into', () => {
+    const input = `import { createMachine } from 'xstate';
+import { shared, idle } from './shared';
+const m = createMachine({
+  on: shared,
+  states: { idle }
+});`;
+    const { sites } = applyTransform(reportActionShapes, input, 'src/a.ts');
+    expect(sites?.map((s) => s.api)).toEqual([
+      'indirect-config',
+      'indirect-config'
+    ]);
   });
 });

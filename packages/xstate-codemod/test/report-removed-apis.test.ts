@@ -70,4 +70,13 @@ const a = assign({}, b);`;
     expect(changed).toBe(false);
     expect(notes).toHaveLength(0);
   });
+
+  it('does not report member names that match an import', () => {
+    const input = `import { emit } from 'xstate';
+const a = emit({ type: 'A' });
+const f = (args, enq) => enq.emit({ type: 'B' });
+const o = { emit: 1 };`;
+    const { sites } = applyTransform(reportRemovedApis, input, 'src/c.ts');
+    expect(sites?.map((s) => s.line)).toEqual([2]);
+  });
 });
