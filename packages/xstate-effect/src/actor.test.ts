@@ -330,6 +330,7 @@ it('keeps the result when the scope closes during the final emitted events', asy
   await closed;
 
   expect(actor.getSnapshot().status).toBe('done');
+  expect(actor.getSnapshot().output).toBe('finished');
 });
 
 describe('waitFor', () => {
