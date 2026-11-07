@@ -29,6 +29,21 @@ export type MailboxItem<TEvent, TSnapshot> =
     }
   | { readonly kind: 'actionFailure'; readonly error: unknown };
 
+/** @internal */
+export type Step<TSnapshot> =
+  | {
+      readonly kind: 'start';
+      readonly snapshot: TSnapshot;
+      readonly effects: Effect.Effect<void>;
+    }
+  | {
+      readonly kind: 'transition';
+      readonly snapshot: TSnapshot;
+      readonly effects: Effect.Effect<void>;
+      readonly receipt?: Receipt<TSnapshot>;
+      readonly rejection?: EventRejectedError;
+    };
+
 const symbolObservable: typeof Symbol.observable = (() =>
   (typeof Symbol === 'function' && Symbol.observable) ||
   '@@observable')() as any;
@@ -91,6 +106,8 @@ export class EffectActor<TLogic extends AnyActorLogic> implements ActorRef<
   >();
   private _settled = false;
   private readonly _pending = new Set<Receipt<SnapshotFrom<TLogic>>>();
+  private _inStep = false;
+  private _stopHeld = false;
 
   constructor(
     readonly logic: TLogic,
@@ -199,8 +216,16 @@ export class EffectActor<TLogic extends AnyActorLogic> implements ActorRef<
     resume?.(exit);
   }
 
-  /** Stops the actor, its children and every Effect it hosts. */
+  /**
+   * Stops the actor, its children and every Effect it hosts. If a listener or
+   * an observer calls `stop()` during a macrostep, the actor stops when that
+   * macrostep ends. `createActor` does the same.
+   */
   stop(): this {
+    if (this._inStep) {
+      this._stopHeld = true;
+      return this;
+    }
     this._stopExecution();
     return this;
   }
@@ -299,24 +324,44 @@ export class EffectActor<TLogic extends AnyActorLogic> implements ActorRef<
     return { $actor: this.address };
   }
 
-  /** @internal Publishes a snapshot produced by the execution loop. */
-  _publish(
-    snapshot: SnapshotFrom<TLogic>,
-    receipt?: Receipt<SnapshotFrom<TLogic>>
-  ): void {
-    if (this._settled) return;
-    this._snapshot = snapshot;
-    const status = (snapshot as Snapshot<unknown>).status;
-    if (status === 'active') {
-      for (const observer of this._observers) {
-        safeCall(observer.next, snapshot);
+  /** @internal */
+  _runStep(step: Step<SnapshotFrom<TLogic>>): Effect.Effect<void> {
+    return Effect.gen({ self: this }, function* () {
+      if (this._settled) return;
+      this._snapshot = step.snapshot;
+      this._inStep = true;
+      yield* step.effects;
+      if (this._settled) return;
+      if ((this._snapshot as Snapshot<unknown>).status !== 'active') {
+        this._settle(
+          this._snapshot,
+          step.kind === 'transition' ? step.receipt : undefined
+        );
+      } else if (step.kind === 'transition') {
+        for (const observer of [...this._observers]) {
+          safeCall(observer.next, this._snapshot);
+        }
       }
-      return;
-    }
-    this._settle(snapshot, receipt);
+    }).pipe(
+      Effect.onExit((exit) =>
+        Effect.sync(() => {
+          this._inStep = false;
+          if (this._stopHeld) {
+            this._stopExecution();
+          } else if (step.kind === 'transition' && Exit.isSuccess(exit)) {
+            this._completeReceipt(
+              step.receipt,
+              step.rejection
+                ? Exit.fail(step.rejection)
+                : Exit.succeed(step.snapshot)
+            );
+          }
+        })
+      )
+    );
   }
 
-  /** @internal Marks the actor stopped and notifies observers. */
+  /** @internal Settles the actor and notifies its observers. */
   _settle(
     snapshot: SnapshotFrom<TLogic>,
     processing?: Receipt<SnapshotFrom<TLogic>>
@@ -326,10 +371,6 @@ export class EffectActor<TLogic extends AnyActorLogic> implements ActorRef<
     }
     this._snapshot = snapshot;
     this._settled = true;
-    for (const receipt of this._pending) {
-      if (receipt !== processing)
-        this._completeReceipt(receipt, Exit.fail(this._stoppedError()));
-    }
     const observers = [...this._observers];
     this._observers.clear();
     const status = (snapshot as Snapshot<unknown>).status;
@@ -344,6 +385,10 @@ export class EffectActor<TLogic extends AnyActorLogic> implements ActorRef<
       } else {
         safeCall(observer.complete);
       }
+    }
+    for (const receipt of this._pending) {
+      if (receipt !== processing)
+        this._completeReceipt(receipt, Exit.fail(this._stoppedError()));
     }
   }
 
