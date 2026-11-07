@@ -7,9 +7,9 @@ import {
   createEffectActor,
   createEffectLogic,
   join,
+  sendAndAwait,
   setupEffect
 } from './index.ts';
-import { sendAndAwait } from './test.ts';
 
 const counter = createMachine({
   context: { count: 0 },

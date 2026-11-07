@@ -160,8 +160,7 @@ An actor can outlive its process. Save `actor.getPersistedSnapshot()` after an e
 
 ```ts
 import { Effect } from 'effect';
-import { createEffectActor } from '@xstate/effect';
-import { sendAndAwait } from '@xstate/effect/test';
+import { createEffectActor, sendAndAwait } from '@xstate/effect';
 import { createMachine, type Snapshot } from 'xstate';
 
 const review = createMachine({

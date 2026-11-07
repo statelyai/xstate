@@ -16,6 +16,7 @@ export {
   type EffectActorOptions
 } from './createEffectActor.ts';
 export { EffectActor } from './effectActor.ts';
+export { sendAndAwait } from './sendAndAwait.ts';
 export { ActorScope, withActorScope } from './actorScope.ts';
 export {
   deadLetters,

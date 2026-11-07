@@ -266,7 +266,7 @@ See [atoms and React](docs/atoms-and-react.md) for complete examples with import
 
 <!-- error types from src/errors.ts; timeout failure from src/actor.ts -->
 
-- Use `sendAndAwait` from `@xstate/effect/test` to acknowledge a specific event, including ignored events.
+- Use `sendAndAwait` from `@xstate/effect` to acknowledge one event after its transition and immediate effect handoff. It does not wait for child replies, invoked work, background actions or future timers.
 - Use `TestClock` to drive deadlines without waiting for real time.
 - `ActorStoppedError` reports a stop before an awaited result.
 - `EffectFailure<E>` carries the original `Cause<E>` in task and stream error snapshots, including defects and self-interruption.

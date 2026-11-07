@@ -14,7 +14,6 @@
   "license": "MIT",
   "exports": {
     "./atom": "./dist/xstate-effect-atom.js",
-    "./test": "./dist/xstate-effect-test.js",
     ".": "./dist/xstate-effect.js",
     "./oxlint": "./dist/xstate-effect-oxlint.js",
     "./package.json": "./package.json"
@@ -47,8 +46,7 @@
     "entrypoints": [
       "./index.ts",
       "./atom.ts",
-      "./oxlint.ts",
-      "./test.ts"
+      "./oxlint.ts"
     ]
   },
   "peerDependenciesMeta": {
