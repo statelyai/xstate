@@ -192,7 +192,7 @@ type InvokedChildren<TConfig, TActors extends Sources['actors']> =
         }[keyof TStates]
       : never);
 
-/** @internal Children inferred from literal invoke IDs and their source logic. */
+/** Type-level plumbing for children inferred from literal invoke IDs. */
 export type InferredInvokeChildren<
   TConfig,
   TActors extends Sources['actors'],
