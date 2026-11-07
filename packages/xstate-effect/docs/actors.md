@@ -9,6 +9,10 @@ The actor processes events through one FIFO mailbox. Events sent by a child
 keep their send order, including when each send runs in a separate promise
 continuation while the parent executes transition effects.
 
+Observers see each step in the order that `createActor` uses. The events that
+the transition emits come first, then `next`, or `complete` and `error` when
+the transition ends the actor.
+
 - Pass `options.input` when the logic requires input.
 - Pass `options.snapshot` to resume an actor from a persisted snapshot. See [persisting and restoring](#persisting-and-restoring).
 - Provide the services required by its declared actions and child actors.
@@ -21,7 +25,7 @@ The [quick start](quick-start.md) shows an actor with input and a deployment ser
 The enclosing scope owns the actor. When that scope closes, the actor stops and its hosted Effects are interrupted.
 
 - `Effect.scoped(program)` closes the scope when `program` finishes.
-- `actor.stop()` stops the actor explicitly.
+- `actor.stop()` stops the actor explicitly. Called from inside a step, such as from an `on` listener, it takes effect when that step ends.
 - Tasks created with `createEffectLogic`, `createEffectStreamLogic` and `createEffectEventStreamLogic` have their own scopes. Their resources are released when the task completes, fails or is interrupted.
 - Background Effect actions use the owning actor's scope. Their resources are released when that actor stops.
 - Use `withActorScope` around a resource acquisition to keep it until the owning actor stops.
