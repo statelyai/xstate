@@ -379,11 +379,14 @@ console.log('ok');
   writeFileSync(
     join(consumer, 'effect.ts'),
     `import { Effect } from 'effect';
-import { setupEffect } from '@xstate/effect';
+import { sendAndAwait, setupEffect, type EffectActor } from '@xstate/effect';
 
 export const effectMachine = setupEffect({
   actions: { audit: (_args) => Effect.void }
 }).createMachine({});
+
+export const acknowledge = (actor: EffectActor<typeof effectMachine>) =>
+  sendAndAwait(actor, { type: 'PING' });
 
 export const effectSetup = setupEffect({
   actions: {
@@ -414,9 +417,9 @@ export function useUserState() {
     smoke(`import { createMachine, createActor } from 'xstate';
 import { createAsyncLogic } from 'xstate/actors';
 import { useActorRef } from '@xstate/react';
-import { createEffectActor, setupEffect } from '@xstate/effect';
-if (typeof setupEffect !== 'function' || typeof createEffectActor !== 'function') {
-  throw new Error('@xstate/effect: setupEffect or createEffectActor missing');
+import { createEffectActor, sendAndAwait, setupEffect } from '@xstate/effect';
+if (typeof setupEffect !== 'function' || typeof createEffectActor !== 'function' || typeof sendAndAwait !== 'function') {
+  throw new Error('@xstate/effect: setupEffect, createEffectActor or sendAndAwait missing');
 }`)
   );
   writeFileSync(
