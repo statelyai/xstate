@@ -107,7 +107,9 @@ export class EffectActor<TLogic extends AnyActorLogic> implements ActorRef<
   private _settled = false;
   private readonly _pending = new Set<Receipt<SnapshotFrom<TLogic>>>();
   private _inStep = false;
+  private _deliveryDepth = 0;
   private _stopHeld = false;
+  private _processing: Receipt<SnapshotFrom<TLogic>> | undefined;
 
   constructor(
     readonly logic: TLogic,
@@ -192,7 +194,8 @@ export class EffectActor<TLogic extends AnyActorLogic> implements ActorRef<
   /** @internal */
   _rejectReceipts(): void {
     for (const receipt of this._pending)
-      this._completeReceipt(receipt, Exit.fail(this._stoppedError()));
+      if (receipt !== this._processing)
+        this._completeReceipt(receipt, Exit.fail(this._stoppedError()));
   }
 
   private _stoppedError(): ActorStoppedError {
@@ -218,11 +221,11 @@ export class EffectActor<TLogic extends AnyActorLogic> implements ActorRef<
 
   /**
    * Stops the actor, its children and every Effect it hosts. If a listener or
-   * an observer calls `stop()` during a macrostep, the actor stops when that
-   * macrostep ends. `createActor` does the same.
+   * an observer calls `stop()` while the actor delivers a macrostep to it, the
+   * actor stops when that macrostep ends. `createActor` does the same.
    */
   stop(): this {
-    if (this._inStep) {
+    if (this._inStep && this._deliveryDepth > 0) {
       this._stopHeld = true;
       return this;
     }
@@ -288,12 +291,24 @@ export class EffectActor<TLogic extends AnyActorLogic> implements ActorRef<
 
   /** @internal Delivers an emitted event to `on` listeners. */
   _emit(event: EmittedFrom<TLogic>): void {
+    if (this._settled) return;
     const listeners = [
       ...(this._listeners.get(event.type) ?? []),
       ...(this._listeners.get('*') ?? [])
     ];
-    for (const listener of listeners) {
-      safeCall(listener, event);
+    this._deliver(() => {
+      for (const listener of listeners) {
+        safeCall(listener, event);
+      }
+    });
+  }
+
+  private _deliver(notify: () => void): void {
+    this._deliveryDepth++;
+    try {
+      notify();
+    } finally {
+      this._deliveryDepth--;
     }
   }
 
@@ -338,9 +353,11 @@ export class EffectActor<TLogic extends AnyActorLogic> implements ActorRef<
           step.kind === 'transition' ? step.receipt : undefined
         );
       } else if (step.kind === 'transition') {
-        for (const observer of [...this._observers]) {
-          safeCall(observer.next, this._snapshot);
-        }
+        this._deliver(() => {
+          for (const observer of this._observers) {
+            safeCall(observer.next, this._snapshot);
+          }
+        });
       }
     }).pipe(
       Effect.onExit((exit) =>
@@ -371,24 +388,28 @@ export class EffectActor<TLogic extends AnyActorLogic> implements ActorRef<
     }
     this._snapshot = snapshot;
     this._settled = true;
+    this._processing = processing;
     const observers = [...this._observers];
     this._observers.clear();
     const status = (snapshot as Snapshot<unknown>).status;
-    if (status === 'done') {
+    this._deliver(() => {
+      if (status === 'done') {
+        for (const observer of observers) {
+          safeCall(observer.next, snapshot);
+        }
+      }
       for (const observer of observers) {
-        safeCall(observer.next, snapshot);
+        if (status === 'error') {
+          safeCall(observer.error, (snapshot as Snapshot<unknown>).error);
+        } else {
+          safeCall(observer.complete);
+        }
       }
-    }
-    for (const observer of observers) {
-      if (status === 'error') {
-        safeCall(observer.error, (snapshot as Snapshot<unknown>).error);
-      } else {
-        safeCall(observer.complete);
-      }
-    }
+    });
+    this._processing = undefined;
+    this._completeReceipt(processing, Exit.succeed(snapshot));
     for (const receipt of this._pending) {
-      if (receipt !== processing)
-        this._completeReceipt(receipt, Exit.fail(this._stoppedError()));
+      this._completeReceipt(receipt, Exit.fail(this._stoppedError()));
     }
   }
 

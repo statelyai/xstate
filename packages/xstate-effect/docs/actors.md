@@ -25,7 +25,7 @@ The [quick start](quick-start.md) shows an actor with input and a deployment ser
 The enclosing scope owns the actor. When that scope closes, the actor stops and its hosted Effects are interrupted.
 
 - `Effect.scoped(program)` closes the scope when `program` finishes.
-- `actor.stop()` stops the actor explicitly. Called from inside a step, such as from an `on` listener, it takes effect when that step ends.
+- `actor.stop()` stops the actor explicitly. Called synchronously by an `on` listener or an observer while the actor delivers a step to it, it takes effect when that step ends. Called from anywhere else, it stops the actor at once.
 - Tasks created with `createEffectLogic`, `createEffectStreamLogic` and `createEffectEventStreamLogic` have their own scopes. Their resources are released when the task completes, fails or is interrupted.
 - Background Effect actions use the owning actor's scope. Their resources are released when that actor stops.
 - Use `withActorScope` around a resource acquisition to keep it until the owning actor stops.

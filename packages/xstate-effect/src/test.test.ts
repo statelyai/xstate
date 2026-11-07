@@ -312,12 +312,9 @@ it('settles a final event receipt if a completion observer stops reentrantly', a
           if (snapshot.status === 'done') actor.stop();
         }
       });
-      const result = yield* Effect.exit(
-        sendAndAwait(actor, { type: 'FINISH' })
-      );
-      expect(
-        Exit.isFailure(result) && Cause.squash(result.cause)
-      ).toBeInstanceOf(ActorStoppedError);
+      const snapshot = yield* sendAndAwait(actor, { type: 'FINISH' });
+      expect(snapshot.status).toBe('done');
+      expect(actor.getSnapshot().status).toBe('done');
     })
   );
 });
