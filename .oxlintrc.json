@@ -257,7 +257,6 @@
       // is teaching, not because they await anything.
       "files": ["examples/**"],
       "rules": {
-        "no-duplicate-imports": ["error", { "allowSeparateTypeImports": true }],
         "typescript/require-await": "off"
       }
     }

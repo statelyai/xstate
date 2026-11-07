@@ -4,8 +4,9 @@ import type { EffectActor } from './effectActor.ts';
 import type { ActorStoppedError, EventRejectedError } from './errors.ts';
 
 /**
- * Sends one event and acknowledges its transition and immediate effect handoff.
- * Ignored events are acknowledged too. Child replies, invoked work, background
+ * Sends one event and acknowledges its transition and immediate effects.
+ * Ignored events are acknowledged too, as are events whose actions fail; the
+ * failure is processed afterwards. Child replies, invoked work, background
  * action bodies and future timers are not awaited. Interrupting the waiter
  * detaches its receipt without retracting the event.
  *

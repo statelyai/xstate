@@ -8,7 +8,8 @@ import {
   createEffectLogic,
   join,
   sendAndAwait,
-  setupEffect
+  setupEffect,
+  waitFor
 } from './index.ts';
 
 const counter = createMachine({
@@ -109,6 +110,52 @@ it('returns a terminal snapshot for a transition throw; join owns its failure', 
       expect(snapshot.status).toBe('error');
       expect(snapshot.error).toBe(error);
       expect(yield* Effect.flip(join(actor))).toBe(error);
+    })
+  );
+});
+
+it('acknowledges an event whose action fails; the failure is processed afterwards', async () => {
+  const error = new Error('action');
+  const machine = (onError?: { target: '.recovered' }) =>
+    setup({
+      actions: {
+        fail: () => {
+          throw error;
+        }
+      }
+    }).createMachine({
+      initial: 'idle',
+      ...(onError && { onError }),
+      states: {
+        idle: {
+          on: {
+            GO: ({ actions }, enq) => {
+              enq(actions.fail);
+              return { target: 'working' };
+            }
+          }
+        },
+        working: {},
+        recovered: {}
+      }
+    });
+  await scoped(
+    Effect.gen(function* () {
+      const actor = yield* createEffectActor(machine());
+      const snapshot = yield* sendAndAwait(actor, { type: 'GO' });
+      expect(snapshot.status).toBe('active');
+      expect(snapshot.value).toBe('working');
+      expect(yield* Effect.flip(join(actor))).toBe(error);
+
+      const recovering = yield* createEffectActor(
+        machine({ target: '.recovered' })
+      );
+      const acknowledged = yield* sendAndAwait(recovering, { type: 'GO' });
+      expect(acknowledged.value).toBe('working');
+      const recovered = yield* waitFor(recovering, (s) =>
+        s.matches('recovered')
+      );
+      expect(recovered.status).toBe('active');
     })
   );
 });
