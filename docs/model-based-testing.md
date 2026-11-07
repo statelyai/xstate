@@ -319,3 +319,64 @@ fast-check chooses whether each charge succeeds or fails, when the result arrive
 - [Derive event generators from Zod or Effect schemas](https://github.com/statelyai/xstate/tree/next/packages/xstate-test#derive-event-generators-from-schemas).
 - [Test transitions and actors directly](testing.md).
 - [Work through the checkout example](https://github.com/statelyai/xstate/tree/next/examples/model-based-testing), which runs every simple path and random sequences against a plain class.
+
+## Source-backed transition coverage
+
+The experimental `createSourceCoverageSession` adapter connects v6 execution
+to source instrumentation from `@statelyai/sdk/source-coverage`. Use
+`@statelyai/graph` to plan, reduce, shrink and replay witnesses against the
+independently extracted source obligation universe.
+
+```ts
+import { createSourceCoverageSession } from '@xstate/test';
+import { getSourceCoverageWitnesses } from '@statelyai/graph';
+
+// `machine` and `control` come from the instrumented module. Give every
+// campaign the exact runtime identity installed in its execution environment.
+const result = await getSourceCoverageWitnesses({
+  manifest,
+  createSession: (input) => createSourceCoverageSession(machine, control, {
+    input,
+    runtimeId: 'xstate@6.0.0-alpha.70',
+    validateEvent: (event, snapshot) => {
+      // Supply real payload validation or a host model-event policy here.
+      // Type-only schemas cannot validate payload fields.
+    }
+  }),
+  events: [{ type: 'START' }, { type: 'PAY', amount: 5 }],
+  maxDepth: 20,
+  maxExecutions: 10000
+});
+
+if (!result.report.complete) {
+  console.log(result.report.uncovered);
+}
+```
+
+Importing an instrumented module executes application code; use a trusted test
+host. Each session calculates a step once and attributes outcomes from that same
+calculation. It restores the previous file-local observer even when calculation
+or a check throws. Effects and asynchronous actors are not executed by this
+adapter. Supply modeled service outcomes or use an executed SUT harness when
+checking integration behavior.
+
+The optional `check(snapshot, event)` callback must be synchronous and treat
+snapshots as immutable. It runs for the initial snapshot with `event` set to
+`undefined`, and after each event calculation. Returning a promise or another
+thenable throws during initialization or rejects the step. Async event validation
+remains supported through `validateEvent`. Await each `step()` before starting
+another; overlapping calls are rejected.
+
+A failed check or snapshot serialization leaves the last accepted model snapshot
+unchanged and returns no coverage result. The adapter cannot undo external work
+started by a callback. Reset any SUT changed by a callback before retrying the
+comparison.
+
+Source outcomes distinguish separate return sites and finite conditional target
+alternatives, even when destinations coincide. Refusals are reported separately
+from taken transitions. This criterion does not enumerate every context value,
+condition combination, event sequence or concurrent schedule. A complete source
+coverage report requires complete extraction and an execution witness for each
+required outcome. A search budget being exhausted is not evidence of
+unreachability. Witnesses are bound to source and runtime identity and must be
+replayed by the execution host; reading a JSON claim alone does not re-execute it.
