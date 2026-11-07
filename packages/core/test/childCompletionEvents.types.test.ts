@@ -1,11 +1,50 @@
 import { z } from 'zod';
 import {
   assertEvent,
+  createActor,
   createAsyncLogic,
   createMachine,
   setup,
   type ActorRefFrom
 } from '../src/index.ts';
+
+describe('inferred named invoke children', () => {
+  it('types a literal child id from its registered source', () => {
+    const child = setup({
+      schemas: { events: { go: z.object({}) } }
+    }).createMachine({
+      initial: 'waiting',
+      states: { waiting: { on: { go: { target: 'done' } } }, done: {} }
+    });
+    const parent = setup({ actors: { child } }).createMachine({
+      initial: 'active',
+      states: { active: { invoke: { id: 'kid', src: 'child' } } }
+    });
+    const kid = createActor(parent).getSnapshot().children.kid;
+    kid?.send({ type: 'go' });
+    // @ts-expect-error - only child events are accepted
+    kid?.send({ type: 'wrong' });
+    // @ts-expect-error - the child's snapshot is typed
+    const wrongStatus: 'wrong' = kid?.getSnapshot().status;
+    void wrongStatus;
+  });
+
+  it('types a nested inline invoke in an array', () => {
+    const child = setup({
+      schemas: { events: { go: z.object({}) } }
+    }).createMachine({ initial: 'idle', states: { idle: {} } });
+    const parent = setup({}).createMachine({
+      initial: 'active',
+      states: {
+        active: { invoke: [{ id: 'kid', src: child }] }
+      }
+    });
+    const kid = createActor(parent).getSnapshot().children.kid;
+    kid?.send({ type: 'go' });
+    // @ts-expect-error - only child events are accepted
+    kid?.send({ type: 'wrong' });
+  });
+});
 
 function expectType<T>(_v: T) {}
 
@@ -121,5 +160,32 @@ describe('child completion events in resolver event unions', () => {
     });
 
     expect(true).toBe(true);
+  });
+});
+
+describe('inline invoke source', () => {
+  it('types onDone event.output as unknown, not any, when the logic is not registered', () => {
+    const leaf = setup({}).createMachine({
+      initial: 'a',
+      states: { a: {}, b: { type: 'final', output: { ok: true as const } } }
+    });
+    setup({}).createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          invoke: {
+            src: leaf,
+            onDone: ({ event }) => {
+              const output: unknown = event.output;
+              // @ts-expect-error output is unknown: narrow it, or register the logic / use createInvoke
+              event.output.ok;
+              void output;
+              return { target: 'b' };
+            }
+          }
+        },
+        b: { type: 'final' }
+      }
+    });
   });
 });

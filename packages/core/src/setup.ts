@@ -1572,6 +1572,42 @@ type MergeChildren<
   ? Compute<ToChildren<TActor>>
   : Compute<TChildren>;
 
+type InvokedChild<
+  TInvoke,
+  TActors extends Sources['actors']
+> = TInvoke extends readonly (infer TItem)[]
+  ? InvokedChild<TItem, TActors>
+  : TInvoke extends { id: infer TId extends string; src: infer TSrc }
+    ? string extends TId
+      ? never
+      : TSrc extends keyof TActors
+        ? { id: TId; ref: ActorRefFrom<TActors[TSrc]> }
+        : TSrc extends AnyActorLogic
+          ? { id: TId; ref: ActorRefFrom<TSrc> }
+          : never
+    : never;
+
+type InvokedChildren<TConfig, TActors extends Sources['actors']> =
+  | (TConfig extends { invoke: infer TInvoke }
+      ? InvokedChild<TInvoke, TActors>
+      : never)
+  | (TConfig extends { states: infer TStates }
+      ? {
+          [K in keyof TStates]: InvokedChildren<TStates[K], TActors>;
+        }[keyof TStates]
+      : never);
+
+type InferredInvokeChildren<
+  TConfig,
+  TActors extends Sources['actors'],
+  TChild extends { id: string; ref: AnyActorRef } = InvokedChildren<
+    TConfig,
+    TActors
+  >
+> = [TChild] extends [never]
+  ? {}
+  : { [K in TChild['id']]?: Extract<TChild, { id: K }>['ref'] };
+
 type MergeSourceMaps<
   TBase extends Record<string, unknown>,
   TExtension extends Record<string, unknown>
@@ -5042,7 +5078,11 @@ export interface SetupReturn<
                 to: RoutableStateId<SetupMachineStateSchema<TConfig, TStates>>;
               }),
         Cast<
-          MergeChildren<SetupChildren<TSchemas, TChildrenSchemaMap>, TActor>,
+          MergeChildren<SetupChildren<TSchemas, TChildrenSchemaMap>, TActor> &
+            InferredInvokeChildren<
+              TConfig,
+              MergeSourceMaps<TSetupActorMap, TActorMap>
+            >,
           Record<string, AnyActorRef | undefined>
         >,
         StateValueFromStateSchema<SetupMachineStateSchema<TConfig, TStates>>,

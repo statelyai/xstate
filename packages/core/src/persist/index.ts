@@ -106,7 +106,9 @@ export function restoreLogicSnapshot<TLogic extends AnyActorLogic>(
 ): SnapshotFrom<TLogic> {
   if (logic instanceof StateMachine) {
     return restoreMachineSnapshot(
-      logic,
+      // `logic` may be a reactive Proxy (e.g. a Vue `ref(machine)`); the state
+      // nodes must come from the raw machine, like those of its bound methods
+      logic._raw(),
       persisted as Snapshot<unknown>,
       actorScope
     ) as SnapshotFrom<TLogic>;

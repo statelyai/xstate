@@ -32,7 +32,9 @@ const [snapshot] = initialTransition(checkoutMachine, { cartId });
 
 ## Hydrating with a persisted snapshot
 
-To resume the same state in the browser, serialize a persisted snapshot on the server and pass it as the `snapshot` option on the client.
+To resume the same state in the browser, serialize a persisted snapshot on the
+server. On the client, create an actor with `restoreActor(...)` and pass it to
+`useActor(...)`.
 
 ```ts
 // server
@@ -46,12 +48,12 @@ In Nuxt, carry it across with `useState(...)`, which is serialized into the payl
 ```vue
 <script setup lang="ts">
 import { useActor } from '@xstate/vue';
+import { restoreActor } from 'xstate/persist';
 
 const persisted = useState('checkout', () => getPersistedCheckout());
 
-const { snapshot, send } = useActor(checkoutMachine, {
-  snapshot: persisted.value
-});
+const actor = restoreActor(checkoutMachine, persisted.value);
+const { snapshot, send } = useActor(actor);
 </script>
 ```
 

@@ -49,6 +49,12 @@ adding explicit type annotations.
 
 For an actor used in one state, `invoke: s.createInvoke({ src, input, onDone })` infers input and completion output from `src`. Keep the helper inline in `s.createMachine(...)` to also infer that state's narrowed context, ancestor context, state input and transition target requirements. The helper works alongside named actor sources. See [typed inline invokes](invoke.md#typed-inline-invokes).
 
+A bare inline `invoke: { src: logic, onDone }` cannot correlate its source with
+the output; with no registered actor sources it has `event.output: unknown`.
+Use `s.createInvoke(...)` or a source registered in `setup({ actors })` when
+reading the output. This is especially important for generated machine code:
+the bare form cannot infer the output type from `src`.
+
 An async function can be used directly as `src`. Declare `schemas.input`, `schemas.output`, and `schemas.error` on the invoke to type the function and its lifecycle handlers together. Without `schemas.output`, `onDone.event.output` infers from the async return value.
 
 Public schema event keys create typed methods on `actor.trigger`; internal
@@ -83,6 +89,9 @@ transition and runtime validation examples.
 When `schemas.events` is declared, each key in an `on` map must match a
 declared event type. Matching wildcards (`'*'`, `'user.*'`) and known reserved
 machine descriptors are allowed; misspelled or invented reserved prefixes are rejected. Without `schemas.events`, any key is accepted.
+
+An empty `schemas.events: {}` means the machine has no public events. Final
+state output callbacks still receive the declared context and input types.
 
 ```ts
 on: {

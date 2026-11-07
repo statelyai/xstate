@@ -134,12 +134,16 @@ export type UnifiedArg<
 type DoneEventType = 'xstate.done.actor' | 'xstate.done.state';
 
 /** @public */
-export type OutputArg<TEvent extends EventObject> = TEvent extends {
-  type: DoneEventType;
-  output: infer TOutput;
-}
-  ? { output: TOutput }
-  : { output: undefined };
+export type OutputArg<TEvent extends EventObject> = [TEvent] extends [never]
+  ? // `never` (e.g. `schemas: { events: {} }`) must not distribute to `never`:
+    // that collapses the whole `Mapper` argument, `context` included.
+    { output: undefined }
+  : TEvent extends {
+        type: DoneEventType;
+        output: infer TOutput;
+      }
+    ? { output: TOutput }
+    : { output: undefined };
 
 /** @public */
 export type ActionArgs<

@@ -564,7 +564,7 @@ type InlineInvokeOnDone<
 > = [keyof TActorMap & string] extends [never]
   ? Next_TransitionConfigOrTarget<
       TContext,
-      DoneActorEvent<any>,
+      DoneActorEvent<unknown>,
       TEvent,
       TEmitted,
       TActionMap,
