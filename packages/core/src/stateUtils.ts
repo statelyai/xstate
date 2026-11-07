@@ -1815,7 +1815,9 @@ function stopChildren(
   actorScope: AnyActorScope
 ) {
   return resolveActionsAndContext(
-    nextState,
+    // all children are stopped here, so remove them from the snapshot at once;
+    // otherwise every `stopChild` copies the remaining children, which is quadratic
+    cloneMachineSnapshot(nextState, { children: {} }),
     event,
     actorScope,
     Object.values(nextState.children).map((child: any) => stopChild(child)),
