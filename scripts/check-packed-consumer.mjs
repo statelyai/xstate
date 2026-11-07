@@ -379,18 +379,19 @@ console.log('ok');
   writeFileSync(
     join(consumer, 'effect.ts'),
     `import { Effect, Schema } from 'effect';
-import { sendAndAwait, setupEffect, type EffectActor } from '@xstate/effect';
+import { createEffectActor, sendAndAwait, setupEffect } from '@xstate/effect';
 
 export const effectMachine = setupEffect({
   schemas: { events: { PING: Schema.Struct({}) } },
   actions: { audit: (_args) => Effect.void }
 }).createMachine({});
 
-export const acknowledge = (actor: EffectActor<typeof effectMachine>) => {
+export const acknowledge = Effect.gen(function* () {
+  const actor = yield* createEffectActor(effectMachine);
   // @ts-expect-error Only declared events are accepted by the packed signature.
   sendAndAwait(actor, { type: 'UNKNOWN' });
-  return sendAndAwait(actor, { type: 'PING' });
-};
+  return yield* sendAndAwait(actor, { type: 'PING' });
+});
 
 export const effectSetup = setupEffect({
   actions: {
@@ -432,7 +433,10 @@ const effectMachine = setupEffect({}).createMachine({
 });
 await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
   const effectActor = yield* createEffectActor(effectMachine);
-  yield* sendAndAwait(effectActor, { type: 'PING' });
+  const snapshot = yield* sendAndAwait(effectActor, { type: 'PING' });
+  if (snapshot.context.count !== 1) {
+    throw new Error('Expected packed acknowledgment snapshot count 1');
+  }
   if (effectActor.getSnapshot().context.count !== 1) {
     throw new Error('Expected packed Effect actor count 1 after acknowledgment');
   }
