@@ -378,15 +378,19 @@ console.log('ok');
   // Inferred setupEffect() exports must name only public types (#5832).
   writeFileSync(
     join(consumer, 'effect.ts'),
-    `import { Effect } from 'effect';
+    `import { Effect, Schema } from 'effect';
 import { sendAndAwait, setupEffect, type EffectActor } from '@xstate/effect';
 
 export const effectMachine = setupEffect({
+  schemas: { events: { PING: Schema.Struct({}) } },
   actions: { audit: (_args) => Effect.void }
 }).createMachine({});
 
-export const acknowledge = (actor: EffectActor<typeof effectMachine>) =>
-  sendAndAwait(actor, { type: 'PING' });
+export const acknowledge = (actor: EffectActor<typeof effectMachine>) => {
+  // @ts-expect-error Only declared events are accepted by the packed signature.
+  sendAndAwait(actor, { type: 'UNKNOWN' });
+  return sendAndAwait(actor, { type: 'PING' });
+};
 
 export const effectSetup = setupEffect({
   actions: {
@@ -417,10 +421,22 @@ export function useUserState() {
     smoke(`import { createMachine, createActor } from 'xstate';
 import { createAsyncLogic } from 'xstate/actors';
 import { useActorRef } from '@xstate/react';
+import { Effect } from 'effect';
 import { createEffectActor, sendAndAwait, setupEffect } from '@xstate/effect';
 if (typeof setupEffect !== 'function' || typeof createEffectActor !== 'function' || typeof sendAndAwait !== 'function') {
   throw new Error('@xstate/effect: setupEffect, createEffectActor or sendAndAwait missing');
-}`)
+}
+const effectMachine = setupEffect({}).createMachine({
+  context: { count: 0 },
+  on: { PING: ({ context }) => ({ context: { count: context.count + 1 } }) }
+});
+await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+  const effectActor = yield* createEffectActor(effectMachine);
+  yield* sendAndAwait(effectActor, { type: 'PING' });
+  if (effectActor.getSnapshot().context.count !== 1) {
+    throw new Error('Expected packed Effect actor count 1 after acknowledgment');
+  }
+})));`)
   );
   writeFileSync(
     join(consumer, 'cjs.cjs'),
