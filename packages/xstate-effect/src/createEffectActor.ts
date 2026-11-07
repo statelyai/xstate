@@ -304,10 +304,12 @@ export function createEffectActor<TLogic extends AnyActorLogic>(
         }
         runFork(Queue.shutdown(mailbox));
         if (!actor._isSettled) {
-          actor._settle({
-            ...(actor.getSnapshot() as Snapshot<unknown>),
-            status: 'stopped'
-          } as SnapshotFrom<TLogic>);
+          const current = actor.getSnapshot() as Snapshot<unknown>;
+          actor._settle(
+            (current.status === 'active'
+              ? { ...current, status: 'stopped' }
+              : current) as SnapshotFrom<TLogic>
+          );
         }
         actor._rejectReceipts();
         closeEffectHost(host);
@@ -368,7 +370,11 @@ export function createEffectActor<TLogic extends AnyActorLogic>(
         );
 
       const loop = Effect.gen(function* () {
-        yield* executeEffects(effects);
+        yield* actor._runStep({
+          kind: 'start',
+          snapshot,
+          effects: executeEffects(effects)
+        });
         while (
           (snapshot as Snapshot<unknown>).status === 'active' &&
           !stopped
@@ -395,6 +401,11 @@ export function createEffectActor<TLogic extends AnyActorLogic>(
             ).getExecutionErrorEvent?.(snapshot, item.error);
             if (!errorEvent) {
               snapshot = errorSnapshot(snapshot, item.error);
+              yield* actor._runStep({
+                kind: 'transition',
+                snapshot,
+                effects: Effect.void
+              });
               break;
             }
             event = errorEvent;
@@ -405,12 +416,14 @@ export function createEffectActor<TLogic extends AnyActorLogic>(
             [snapshot, effects] = durable.transition(snapshot, event);
           } catch (error) {
             snapshot = errorSnapshot(snapshot, error);
-            actor._publish(snapshot, receipt);
-            actor._completeReceipt(receipt, Exit.succeed(snapshot));
+            yield* actor._runStep({
+              kind: 'transition',
+              snapshot,
+              effects: Effect.void,
+              receipt
+            });
             break;
           }
-          actor._publish(snapshot, receipt);
-          if (stopped) break;
           const rejectedReason =
             effects.length === 1 &&
             effects[0].effect.type === '@xstate.deadLetter' &&
@@ -418,22 +431,22 @@ export function createEffectActor<TLogic extends AnyActorLogic>(
             effects[0].effect.reason === 'invalidEvent'
               ? effects[0].effect.reason
               : undefined;
-          yield* executeEffects(effects);
-          actor._completeReceipt(
+          yield* actor._runStep({
+            kind: 'transition',
+            snapshot,
+            effects: executeEffects(effects),
             receipt,
-            rejectedReason !== undefined
-              ? Exit.fail(
-                  new EventRejectedError({
+            rejection:
+              rejectedReason !== undefined
+                ? new EventRejectedError({
                     actorId: actor.id,
                     event,
                     reason: rejectedReason
                   })
-                )
-              : Exit.succeed(snapshot)
-          );
+                : undefined
+          });
         }
         if (!stopped) {
-          actor._publish(snapshot);
           if ((snapshot as Snapshot<unknown>).status !== 'active') {
             stopChildren(snapshot);
             closeEffectHost(host);
@@ -442,11 +455,18 @@ export function createEffectActor<TLogic extends AnyActorLogic>(
       });
 
       yield* Effect.forkIn(loop, actorScope);
-      return { actor, host };
+      return { actor, host, stopNow: stop };
     }),
-    ({ actor, host }: { actor: EffectActor<TLogic>; host: EffectHost }) =>
+    ({
+      host,
+      stopNow
+    }: {
+      actor: EffectActor<TLogic>;
+      host: EffectHost;
+      stopNow: () => void;
+    }) =>
       Effect.gen(function* () {
-        actor.stop();
+        stopNow();
         if (host.closing) {
           yield* Fiber.join(host.closing);
         } else {

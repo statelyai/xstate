@@ -110,6 +110,31 @@ type DoneCounterSnapshot = CounterSnapshot & { status: 'done' };
 const isDone = (snapshot: CounterSnapshot): snapshot is DoneCounterSnapshot =>
   snapshot.status === 'done';
 
+const finishingMachine = createMachine({
+  schemas: {
+    events: { FINISH: types<{}>() },
+    emitted: { finishing: types<{}>(), finished: types<{}>() }
+  },
+  initial: 'active',
+  states: {
+    active: {
+      on: {
+        FINISH: (_args, enq) => {
+          enq.emit({ type: 'finishing' });
+          return { target: 'done' };
+        }
+      }
+    },
+    done: {
+      type: 'final',
+      entry: (_args, enq) => {
+        enq.emit({ type: 'finished' });
+      },
+      output: () => 'finished'
+    }
+  }
+});
+
 const emitterMachine = createMachine({
   initial: 'active',
   states: {
@@ -272,6 +297,39 @@ describe('emitted', () => {
 
     expect(collected).toEqual([{ type: 'pinged' }, { type: 'pinged' }]);
   });
+
+  it('streams the events of the transition that completes the actor', async () => {
+    const collected = await runScoped(
+      Effect.gen(function* () {
+        const actor = yield* createEffectActor(finishingMachine);
+        afterSubscribe(actor, () => {
+          actor.send({ type: 'FINISH' });
+        });
+
+        return yield* Stream.runCollect(emitted(actor));
+      })
+    );
+
+    expect(collected).toEqual([{ type: 'finishing' }, { type: 'finished' }]);
+  });
+});
+
+it('keeps the result when the scope closes during the final emitted events', async () => {
+  const scope = await Effect.runPromise(Scope.make());
+  const actor = await Effect.runPromise(
+    Scope.provide(createEffectActor(finishingMachine), scope)
+  );
+  const closed = new Promise<void>((resolve) => {
+    actor.on('finishing', () => {
+      Effect.runFork(Scope.close(scope, Exit.void)).addObserver(() =>
+        resolve()
+      );
+    });
+  });
+  actor.send({ type: 'FINISH' });
+  await closed;
+
+  expect(actor.getSnapshot().status).toBe('done');
 });
 
 describe('waitFor', () => {
