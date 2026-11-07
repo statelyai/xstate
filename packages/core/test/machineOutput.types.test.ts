@@ -310,3 +310,27 @@ describe('machine output type inference', () => {
     });
   });
 });
+
+describe('empty events map', () => {
+  it('keeps context, input and self typed in a final state output mapper', () => {
+    const machine = setup({
+      schemas: { context: types<{ arm: string }>(), events: {} }
+    }).createMachine({
+      context: { arm: 'x' },
+      initial: 'a',
+      states: {
+        a: {},
+        b: {
+          type: 'final',
+          output: ({ context }) => {
+            context satisfies { arm: string };
+            // @ts-expect-error context is not `never`
+            context satisfies { arm: number };
+            return context.arm;
+          }
+        }
+      }
+    });
+    expect(machine.id).toBeDefined();
+  });
+});

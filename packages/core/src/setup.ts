@@ -84,6 +84,7 @@ import {
   GuardSourceMap,
   GuardSchemas,
   InferChildren,
+  InferredInvokeChildren,
   InferActions,
   InferGuards,
   Sources,
@@ -5042,7 +5043,11 @@ export interface SetupReturn<
                 to: RoutableStateId<SetupMachineStateSchema<TConfig, TStates>>;
               }),
         Cast<
-          MergeChildren<SetupChildren<TSchemas, TChildrenSchemaMap>, TActor>,
+          MergeChildren<SetupChildren<TSchemas, TChildrenSchemaMap>, TActor> &
+            InferredInvokeChildren<
+              TConfig,
+              MergeSourceMaps<TSetupActorMap, TActorMap>
+            >,
           Record<string, AnyActorRef | undefined>
         >,
         StateValueFromStateSchema<SetupMachineStateSchema<TConfig, TStates>>,

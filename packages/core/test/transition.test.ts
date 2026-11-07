@@ -790,7 +790,7 @@ describe('transition function', () => {
       }
     });
     const actor = createActor(machine);
-    const child = actor.getSnapshot().children.child;
+    const child = actor.getSnapshot().children.child!;
 
     expect(actor.system.get('child')).toBe(child);
 
@@ -814,7 +814,7 @@ describe('transition function', () => {
       invoke: { id: 'child', src: childLogic }
     });
     const actor = createActor(machine).start();
-    const child = actor.getSnapshot().children.child;
+    const child = actor.getSnapshot().children.child!;
 
     child.send({ type: 'PING' });
 
@@ -1324,7 +1324,7 @@ describe('transition function', () => {
       });
       const [active, initialEffects] = initialTransition(machine);
       initialEffects.forEach((effect) => void effect.exec());
-      const child = active.children.child;
+      const child = active.children.child!;
 
       const [stopped, effects] = transition(machine, active, { type: 'STOP' });
 
@@ -1381,7 +1381,7 @@ describe('transition function', () => {
         void effect.exec();
       }
 
-      const child = active.children.child;
+      const child = active.children.child!;
       expect(child.getSnapshot().status).toBe('active');
 
       const [reentered, restartEffects] = transition(machine, active, {
@@ -1397,7 +1397,7 @@ describe('transition function', () => {
       }
 
       expect(child.getSnapshot().status).toBe('stopped');
-      expect(reentered.children.child.getSnapshot().status).toBe('active');
+      expect(reentered.children.child!.getSnapshot().status).toBe('active');
       expect(dispose).toHaveBeenCalledTimes(1);
     });
 
@@ -1614,7 +1614,7 @@ describe('transition function', () => {
       const actor = createActor(machine).start();
       const oldSnapshot = actor.getSnapshot();
 
-      oldSnapshot.children.child.send({ type: 'SPAWN' });
+      oldSnapshot.children.child!.send({ type: 'SPAWN' });
       transition(machine, oldSnapshot, { type: 'CHECK' });
 
       expect(oldSnapshotSawGrandchild).toBe(false);
@@ -1662,11 +1662,11 @@ describe('transition function', () => {
         }
       });
       const [active] = initialTransition(machine);
-      const firstSessionId = active.children.child.sessionId;
+      const firstSessionId = active.children.child!.sessionId;
       const [inactive] = transition(machine, active, { type: 'EXIT' });
       const [reentered] = transition(machine, inactive, { type: 'ENTER' });
 
-      expect(reentered.children.child.sessionId).not.toBe(firstSessionId);
+      expect(reentered.children.child!.sessionId).not.toBe(firstSessionId);
     });
 
     it('assigns distinct opaque session IDs across pure initial transitions', () => {
@@ -1677,8 +1677,8 @@ describe('transition function', () => {
       const [first] = initialTransition(machine);
       const [second] = initialTransition(machine);
 
-      expect(first.children.child.sessionId).not.toBe(
-        second.children.child.sessionId
+      expect(first.children.child!.sessionId).not.toBe(
+        second.children.child!.sessionId
       );
     });
 
@@ -1696,8 +1696,8 @@ describe('transition function', () => {
       const [second] = transition(machine, idle, { type: 'ENTER' });
 
       expect(first.children.child).not.toBe(second.children.child);
-      expect(first.children.child.sessionId).not.toBe(
-        second.children.child.sessionId
+      expect(first.children.child!.sessionId).not.toBe(
+        second.children.child!.sessionId
       );
     });
 
@@ -1720,7 +1720,7 @@ describe('transition function', () => {
       });
 
       const [initial] = machine.initialTransition(undefined);
-      const grandchild = initial.children.child.getSnapshot().children
+      const grandchild = initial.children.child!.getSnapshot().children
         .grandchild as AnyActor;
       machine.transition(initial, { type: 'CHECK' });
 
@@ -1737,7 +1737,7 @@ describe('transition function', () => {
       const parent = createActor(
         createMachine({ invoke: { id: 'child', src: child } })
       ).start();
-      const childSnapshot = parent.getSnapshot().children.child.getSnapshot();
+      const childSnapshot = parent.getSnapshot().children.child!.getSnapshot();
 
       const [, effects] = transition(child, childSnapshot, { type: 'CHECK' });
       effects.forEach((effect) => void effect.exec());
@@ -1904,7 +1904,7 @@ describe('transition function', () => {
         'start(child)'
       ]);
       effects.forEach((effect) => void effect.exec());
-      expect(snapshot.children.child.getSnapshot().status).toBe('active');
+      expect(snapshot.children.child!.getSnapshot().status).toBe('active');
       expect(started).toHaveBeenCalledOnce();
     });
   });
@@ -1996,7 +1996,7 @@ describe('transition function', () => {
         }
       });
       const [firstSnapshot] = initialTransition(machine);
-      const firstChild = firstSnapshot.children.child;
+      const firstChild = firstSnapshot.children.child!;
       const [secondSnapshot] = transition(machine, firstSnapshot, {
         type: 'REPLACE'
       });
@@ -2029,7 +2029,7 @@ describe('transition function', () => {
         }
       });
       const [firstSnapshot] = initialTransition(machine);
-      const firstChild = firstSnapshot.children.child;
+      const firstChild = firstSnapshot.children.child!;
       const [secondSnapshot] = transition(machine, firstSnapshot, {
         type: 'RESET'
       });
@@ -2067,7 +2067,7 @@ describe('transition function', () => {
       const [afterStaleError] = transition(machine, secondSnapshot, {
         type: 'xstate.error.actor',
         actorId: 'child',
-        sessionId: firstSnapshot.children.child.sessionId,
+        sessionId: firstSnapshot.children.child!.sessionId,
         error: new Error('stale')
       } as any);
 

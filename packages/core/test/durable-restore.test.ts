@@ -245,7 +245,7 @@ describe('durable checkpoint restoration', () => {
         .map(({ id, descriptor }) => ({ id, descriptor }))
     ).toEqual(effects.map(({ id, descriptor }) => ({ id, descriptor })));
     expect(execution.nextTransitionIndex).toBe(12);
-    stopActor(snapshot.children.worker);
+    stopActor(snapshot.children.worker!);
   });
 
   it.each([
@@ -404,9 +404,9 @@ describe('durable checkpoint restoration', () => {
     const execution = createDurable(machine, adapter({ sendEvent }));
     const [snapshot, effects] = execution.restore(persisted);
     expect(effects).toEqual([]);
-    snapshot.children.worker.send({ type: 'PING' });
+    snapshot.children.worker!.send({ type: 'PING' });
     expect(sendEvent).toHaveBeenCalledOnce();
-    expect(sendEvent.mock.calls[0][1]).toBe(snapshot.children.worker);
+    expect(sendEvent.mock.calls[0][1]).toBe(snapshot.children.worker!);
     expect(sendEvent.mock.calls[0][2]).toEqual({ type: 'PING' });
   });
 

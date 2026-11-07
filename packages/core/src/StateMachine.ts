@@ -337,6 +337,16 @@ export class StateMachine<
   public root: StateNode<TContext, TEvent, TMeta, TTransitionMeta>;
 
   /**
+   * Returns the machine itself, never a Proxy wrapped around it (a function
+   * member is not wrapped by reactive proxies, so it still closes over the raw
+   * instance). Persistence resolves state nodes through it, matching the
+   * bound `transition` / `getInitialSnapshot`.
+   *
+   * @internal
+   */
+  public readonly _raw: () => this = () => this;
+
+  /**
    * The machine's `id`, or the empty string when the config declares none.
    * The root state node has this id; a machine without one has no `#id` root.
    */

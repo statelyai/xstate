@@ -97,7 +97,7 @@ describe('persisted logical timers', () => {
     const original = createActor(machine, {
       clock: new SimulatedClock()
     }).start();
-    const originalSessionId = original.getSnapshot().children.child.sessionId;
+    const originalSessionId = original.getSnapshot().children.child!.sessionId;
     const persisted = original.getPersistedSnapshot();
     const [persistedTimer] = getTimers(persisted);
     original.stop();
@@ -109,7 +109,7 @@ describe('persisted logical timers', () => {
 
     const clock = new SimulatedClock();
     const restored = restoreActor(machine, persisted, { clock }).start();
-    expect(restored.getSnapshot().children.child.sessionId).not.toBe(
+    expect(restored.getSnapshot().children.child!.sessionId).not.toBe(
       originalSessionId
     );
 

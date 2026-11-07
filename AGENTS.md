@@ -17,3 +17,5 @@ This is a monorepo containing XState, @xstate/store, and related packages.
 ## XState v6 (alpha)
 
 - v6 alpha syntax differs from v5 — do not assume v5 patterns (e.g. `{ onDone: { actions } }` invoke config is wrong in v6). Verify against the current types/source in `packages/core` before writing machine configs.
+- When generated code reads an invoked actor's `onDone.event.output`, use `s.createInvoke({ src, onDone })` or register the source in `setup({ actors })`. A bare inline invoke cannot correlate the source with its output and may require narrowing. See `docs/invoke.md`.
+- In Vue examples that hold a machine in reactive state, use `shallowRef(machine)` or `markRaw(machine)`, especially before `restoreActor(machine, persisted)`. See `packages/xstate-vue/docs/input-and-snapshots.md`.

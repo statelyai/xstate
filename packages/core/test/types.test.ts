@@ -4266,7 +4266,9 @@ describe('state.children without setup', () => {
 
     childSnapshot.context.foo satisfies string | undefined;
     childSnapshot.context.foo satisfies string;
+    // @ts-expect-error - inferred context is string, not a single literal
     childSnapshot.context.foo satisfies '';
+    // @ts-expect-error - inferred context is not a number
     childSnapshot.context.foo satisfies number | undefined;
   });
 

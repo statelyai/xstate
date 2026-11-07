@@ -172,6 +172,11 @@ export function restoreMachineSnapshot<TMachine extends AnyStateMachine>(
   snapshot: Snapshot<unknown>,
   actorScope?: AnyActorScope
 ): SnapshotFrom<TMachine> {
+  // A reactive Proxy wraps state nodes but bound transitions use raw nodes.
+  // Normalize here for both restoreActor and direct callers.
+  if (machine instanceof StateMachine) {
+    machine = machine._raw() as TMachine;
+  }
   const usesInertScope = !actorScope;
   const resolvedActorScope = (actorScope ??
     createInertActorScope(machine)) as AnyActorScope;

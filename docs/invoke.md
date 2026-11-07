@@ -124,6 +124,14 @@ invoke: s.createInvoke({
 })
 ```
 
+A bare inline invoke such as `{ src: loadUserLogic, onDone }` cannot correlate
+that specific logic with its completion output. With no registered actor
+sources, its `onDone.event.output` is `unknown`, so TypeScript requires
+narrowing before it can be used. For a typed output, use
+`s.createInvoke({ src: loadUserLogic, onDone })` as above, or register the logic
+in `setup({ actors: { loadUserLogic } })` and invoke it with
+`src: 'loadUserLogic'`. Prefer one of these typed forms when generating code.
+
 For a logic value, its own schemas determine input, output, error and snapshot types. Declare schemas on that logic rather than repeating them on the invoke.
 
 The helper requires `input` when the source's input type excludes `undefined`. Pass a static value or a mapper returning that input type. Logic that accepts `undefined` can omit `input`.
@@ -306,7 +314,31 @@ Invoke also is not the right tool when the child must outlive the state, or when
 
 Provide named actor logic through `setup({ actors })` or `createMachine({ actors })`. XState correlates `src` with `input`, so a static or mapped input is checked against that logic's input type, and `onDone` sees the output type of that logic.
 
-Declare child ids with `schemas.children` to type `children` and to check that each `id` receives compatible logic:
+For a literal invoke `id` and a named or inline actor source, XState infers the
+child reference in `snapshot.children`. The child may be absent when the invoke
+state is inactive, so check for `undefined` before sending an event:
+
+```ts
+import { createActor, setup, types } from 'xstate';
+
+const paymentMachine = setup({
+  schemas: { events: { retry: types<{}>() } }
+}).createMachine({ initial: 'idle', states: { idle: {} } });
+
+const parent = setup({ actors: { paymentMachine } }).createMachine({
+  invoke: { id: 'payment', src: 'paymentMachine' }
+});
+
+const payment = createActor(parent).getSnapshot().children.payment;
+payment?.send({ type: 'retry' });
+```
+
+Declare child ids with `schemas.children` when the child contract must also be
+available inside machine callbacks. This also checks that each declared `id`
+receives compatible logic. For dynamic IDs, keep the returned child reference
+from `enq.spawn(...)` in context instead of indexing `snapshot.children` with
+an arbitrary string. Spawned children have a separately managed lifetime; see
+[Spawn](spawn.md):
 
 ```ts
 setup({}).createMachine({

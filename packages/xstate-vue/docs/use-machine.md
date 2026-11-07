@@ -53,7 +53,7 @@ const { snapshot, send } = useActor(playerMachine);
 
 ## Options
 
-The second argument is the same [actor options](../create-actor.md) object accepted by `createActor(...)`: `input`, `snapshot`, `id`, `registryKey`, `clock`, `logger`, `inspect`. It is required when the logic requires input.
+The second argument is the same [actor options](../create-actor.md) object accepted by `createActor(...)`: `input`, `id`, `registryKey`, `clock`, `logger`, `inspect`. It is required when the logic requires input. To resume, pass an actor created with `restoreActor(...)` instead; see [Input and restored snapshots](input-and-snapshots.md).
 
 ```ts
 const { snapshot, send } = useActor(uploadMachine, {

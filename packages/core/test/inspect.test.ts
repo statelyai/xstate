@@ -123,8 +123,8 @@ describe('inspect', () => {
       inspect: (event) => events.push(event)
     });
 
-    expect(restoredA.getSnapshot().children.child.sessionId).not.toBe(
-      restoredB.getSnapshot().children.child.sessionId
+    expect(restoredA.getSnapshot().children.child!.sessionId).not.toBe(
+      restoredB.getSnapshot().children.child!.sessionId
     );
     expect(
       new Set(
@@ -341,7 +341,7 @@ describe('inspect', () => {
     const actor = createActor(machine, {
       inspect: (event) => events.push(event)
     });
-    const parent = actor.getSnapshot().children.parent;
+    const parent = actor.getSnapshot().children.parent!;
     const child = parent.getSnapshot().children.child;
 
     actor.start();

@@ -1296,12 +1296,14 @@ describe('machine logic', () => {
     const persistedSnapshot = actor.getPersistedSnapshot()!;
     const newActor = restoreActor(parentMachine, persistedSnapshot).start();
     const newSnapshot = newActor.getSnapshot();
-    expect(newSnapshot.children.child.getSnapshot().value).toBe('b');
+    expect(newSnapshot.children.child!.getSnapshot().value).toBe('b');
     // Ensure that the child actor is started
     // LAST is sent to parent which sends LAST to child
     newActor.send({ type: 'LAST' });
     // child is at 'c'
-    expect(newActor.getSnapshot().children.child.getSnapshot().value).toBe('c');
+    expect(newActor.getSnapshot().children.child!.getSnapshot().value).toBe(
+      'c'
+    );
   });
   it('should return the initial persisted state of a non-started actor', () => {
     const machine = createMachine({
@@ -1391,7 +1393,7 @@ describe('machine logic', () => {
       }
     });
     expect(actor.getSnapshot().children.child).not.toBe(undefined);
-    expect(actor.getSnapshot().children.child.getSnapshot().context).toEqual({
+    expect(actor.getSnapshot().children.child!.getSnapshot().context).toEqual({
       value: 'value'
     });
     const persisted: any = actor.getPersistedSnapshot();

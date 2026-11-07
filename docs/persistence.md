@@ -25,6 +25,12 @@ const restored = restoreActor(
 ).start();
 ```
 
+In Vue, keep a machine passed to `restoreActor` out of deep reactive state.
+Store it in `shallowRef(machine)` or create it with `markRaw(machine)`. XState
+also accepts a reactive Proxy around a machine, but a raw machine avoids
+wrapping its state nodes and is the recommended way to hold actor logic in Vue.
+See [Vue input and restored snapshots](vue/input-and-snapshots.md).
+
 Pass `system` (a `createSystem()` result) to restore the actor into that system.
 
 A restored snapshot is opaque: restoring runs no transitions and re-executes no actions. `always` transitions and choice states in the restored configuration are not re-evaluated until the next event, even if their guards would now pass. Development builds warn when the restored state has eventless transitions.
