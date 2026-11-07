@@ -217,7 +217,7 @@ export function createMachine<
             }),
       Cast<
         MergeChildren<InferChildren<TChildrenSchemaMap>, TActor> &
-          InferredInvokeChildren<TSS, ConfigActors<TSS, TActorMap>, false>,
+          InferredInvokeChildren<TSS, ConfigActors<TSS, TActorMap>>,
         Record<string, AnyActorRef | undefined>
       >,
       StateValueFromStateSchema<TSS>,
@@ -358,7 +358,7 @@ export function createMachine<
             }),
       Cast<
         MergeChildren<InferChildren<TChildrenSchemaMap>, TActor> &
-          InferredInvokeChildren<TSS, ConfigActors<TSS, TActorMap>, false>,
+          InferredInvokeChildren<TSS, ConfigActors<TSS, TActorMap>>,
         Record<string, AnyActorRef | undefined>
       >,
       StateValueFromStateSchema<TSS>,

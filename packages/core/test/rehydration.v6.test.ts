@@ -491,8 +491,8 @@ describe('rehydration', () => {
     expect(
       actorRef2
         .getSnapshot()
-        .children.child.getSnapshot()
-        .children.grandchild.getSnapshot().context.count
+        .children.child!.getSnapshot()
+        .children.grandchild!.getSnapshot().context.count
     ).toBe(1);
   });
 });

@@ -1427,7 +1427,7 @@ describe('final states', () => {
 
     const actorRef = createActor(parent).start();
 
-    actorRef.getSnapshot().children.child.send({
+    actorRef.getSnapshot().children.child!.send({
       type: 'CANCEL'
     });
 
@@ -1470,7 +1470,7 @@ describe('final states', () => {
 
     const actorRef = createActor(parent).start();
 
-    actorRef.getSnapshot().children.child.send({
+    actorRef.getSnapshot().children.child!.send({
       type: 'CANCEL'
     });
 
@@ -1516,7 +1516,7 @@ describe('final states', () => {
 
     const actorRef = createActor(parent).start();
 
-    actorRef.getSnapshot().children.child.send({
+    actorRef.getSnapshot().children.child!.send({
       type: 'CANCEL'
     });
 

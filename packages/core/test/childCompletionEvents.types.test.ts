@@ -71,6 +71,8 @@ describe('inferred named invoke children', () => {
       invoke: { id: 'rootKid', src: 'child' }
     });
     const rootKid = createActor(root).getSnapshot().children.rootKid;
+    // @ts-expect-error - the root child may be absent before or after its lifetime
+    rootKid.send({ type: 'go' });
     rootKid?.send({ type: 'go' });
     // @ts-expect-error - only child events are accepted
     rootKid?.send({ type: 'wrong' });
@@ -85,6 +87,8 @@ describe('inferred named invoke children', () => {
       }
     });
     const nestedKid = createActor(nested).getSnapshot().children.nestedKid;
+    // @ts-expect-error - the nested child may be absent outside its state
+    nestedKid.send({ type: 'go' });
     nestedKid?.send({ type: 'go' });
     // @ts-expect-error - only child events are accepted
     nestedKid?.send({ type: 'wrong' });

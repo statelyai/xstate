@@ -196,28 +196,19 @@ type InvokedChildren<TConfig, TActors extends Sources['actors']> =
 export type InferredInvokeChildren<
   TConfig,
   TActors extends Sources['actors'],
-  TOptional extends boolean = true,
   TChild extends { id: string; ref: AnyActorRef } = InvokedChildren<
     TConfig,
     TActors
   >
 > = [TChild] extends [never]
   ? {}
-  : TOptional extends true
-    ? {
-        [K in TChild['id']]?: TChild extends { id: string; ref: AnyActorRef }
-          ? K extends TChild['id']
-            ? TChild['ref']
-            : never
-          : never;
-      }
-    : {
-        [K in TChild['id']]: TChild extends { id: string; ref: AnyActorRef }
-          ? K extends TChild['id']
-            ? TChild['ref']
-            : never
-          : never;
-      };
+  : {
+      [K in TChild['id']]?: TChild extends { id: string; ref: AnyActorRef }
+        ? K extends TChild['id']
+          ? TChild['ref']
+          : never
+        : never;
+    };
 
 export type InferActions<TActionSchemaMap extends ActionSchemas> =
   string extends keyof TActionSchemaMap

@@ -1746,7 +1746,7 @@ describe('interpreter', () => {
 
       const actor = createActor(parentMachine);
       actor.start();
-      actor.getSnapshot().children.childActor.send({ type: 'FIRE' });
+      actor.getSnapshot().children.childActor!.send({ type: 'FIRE' });
 
       // the actor should be done by now
       expect(actor.getSnapshot().children).not.toHaveProperty('childActor');

@@ -89,7 +89,7 @@ describe('system', () => {
     });
 
     const actor = createActor(machine);
-    const grandchild = actor.getSnapshot().children.child.getSnapshot()
+    const grandchild = actor.getSnapshot().children.child!.getSnapshot()
       .children.grandchild;
 
     expect(actor.system.get('grandchild')).toBe(grandchild);
