@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { assert } from 'vitest';
 import {
   createMachine,
   createActor,
@@ -1427,7 +1428,9 @@ describe('final states', () => {
 
     const actorRef = createActor(parent).start();
 
-    actorRef.getSnapshot().children.child!.send({
+    const invokedChild = actorRef.getSnapshot().children.child;
+    assert.isDefined(invokedChild);
+    invokedChild.send({
       type: 'CANCEL'
     });
 
@@ -1470,7 +1473,9 @@ describe('final states', () => {
 
     const actorRef = createActor(parent).start();
 
-    actorRef.getSnapshot().children.child!.send({
+    const invokedChild = actorRef.getSnapshot().children.child;
+    assert.isDefined(invokedChild);
+    invokedChild.send({
       type: 'CANCEL'
     });
 
@@ -1516,7 +1521,9 @@ describe('final states', () => {
 
     const actorRef = createActor(parent).start();
 
-    actorRef.getSnapshot().children.child!.send({
+    const invokedChild = actorRef.getSnapshot().children.child;
+    assert.isDefined(invokedChild);
+    invokedChild.send({
       type: 'CANCEL'
     });
 
