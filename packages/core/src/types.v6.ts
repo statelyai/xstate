@@ -18,6 +18,7 @@ import {
   ActorLogic,
   ActorRef,
   ActorRefFrom,
+  ActorFromLogic,
   ActorSelf,
   AnyActorLogic,
   AnyActorRef,
@@ -143,6 +144,80 @@ export type InferChildren<
         ? NormalizeActorRef<StandardSchemaV1.InferOutput<TChildrenSchemaMap[K]>>
         : never;
     };
+
+type InvokeSourceLogic<TSrc, TActors extends Sources['actors']> = [0] extends [
+  1 & TSrc
+]
+  ? never
+  : TSrc extends keyof TActors
+    ? TActors[TSrc]
+    : TSrc extends AnyActorLogic
+      ? TSrc
+      : TSrc extends (...args: any[]) => infer TResult
+        ? InvokeSourceLogic<TResult, TActors>
+        : never;
+
+type InvokedChild<
+  TInvoke,
+  TActors extends Sources['actors']
+> = TInvoke extends readonly (infer TItem)[]
+  ? InvokedChild<TItem, TActors>
+  : TInvoke extends {
+        readonly [createdInvokeConfig]: infer TConfig;
+        src: infer TLogic;
+      }
+    ? TConfig extends { id: infer TId extends string }
+      ? string extends TId
+        ? never
+        : TLogic extends AnyActorLogic
+          ? { id: TId; ref: ActorFromLogic<TLogic> }
+          : never
+      : never
+    : TInvoke extends { id: infer TId extends string; src: infer TSrc }
+      ? string extends TId
+        ? never
+        : InvokeSourceLogic<TSrc, TActors> extends infer TLogic extends
+              AnyActorLogic
+          ? { id: TId; ref: ActorFromLogic<TLogic> }
+          : never
+      : never;
+
+type InvokedChildren<TConfig, TActors extends Sources['actors']> =
+  | (TConfig extends { invoke: infer TInvoke }
+      ? InvokedChild<TInvoke, TActors>
+      : never)
+  | (TConfig extends { states: infer TStates }
+      ? {
+          [K in keyof TStates]: InvokedChildren<TStates[K], TActors>;
+        }[keyof TStates]
+      : never);
+
+/** @internal Children inferred from literal invoke IDs and their source logic. */
+export type InferredInvokeChildren<
+  TConfig,
+  TActors extends Sources['actors'],
+  TOptional extends boolean = true,
+  TChild extends { id: string; ref: AnyActorRef } = InvokedChildren<
+    TConfig,
+    TActors
+  >
+> = [TChild] extends [never]
+  ? {}
+  : TOptional extends true
+    ? {
+        [K in TChild['id']]?: TChild extends { id: string; ref: AnyActorRef }
+          ? K extends TChild['id']
+            ? TChild['ref']
+            : never
+          : never;
+      }
+    : {
+        [K in TChild['id']]: TChild extends { id: string; ref: AnyActorRef }
+          ? K extends TChild['id']
+            ? TChild['ref']
+            : never
+          : never;
+      };
 
 export type InferActions<TActionSchemaMap extends ActionSchemas> =
   string extends keyof TActionSchemaMap

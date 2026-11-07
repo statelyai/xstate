@@ -106,9 +106,7 @@ export function restoreLogicSnapshot<TLogic extends AnyActorLogic>(
 ): SnapshotFrom<TLogic> {
   if (logic instanceof StateMachine) {
     return restoreMachineSnapshot(
-      // `logic` may be a reactive Proxy (e.g. a Vue `ref(machine)`); the state
-      // nodes must come from the raw machine, like those of its bound methods
-      logic._raw(),
+      logic,
       persisted as Snapshot<unknown>,
       actorScope
     ) as SnapshotFrom<TLogic>;
@@ -174,6 +172,11 @@ export function restoreMachineSnapshot<TMachine extends AnyStateMachine>(
   snapshot: Snapshot<unknown>,
   actorScope?: AnyActorScope
 ): SnapshotFrom<TMachine> {
+  // A reactive Proxy wraps state nodes but bound transitions use raw nodes.
+  // Normalize here for both restoreActor and direct callers.
+  if (machine instanceof StateMachine) {
+    machine = machine._raw() as TMachine;
+  }
   const usesInertScope = !actorScope;
   const resolvedActorScope = (actorScope ??
     createInertActorScope(machine)) as AnyActorScope;

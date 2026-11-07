@@ -84,6 +84,7 @@ import {
   GuardSourceMap,
   GuardSchemas,
   InferChildren,
+  InferredInvokeChildren,
   InferActions,
   InferGuards,
   Sources,
@@ -1571,42 +1572,6 @@ type MergeChildren<
 > = [keyof TChildren] extends [never]
   ? Compute<ToChildren<TActor>>
   : Compute<TChildren>;
-
-type InvokedChild<
-  TInvoke,
-  TActors extends Sources['actors']
-> = TInvoke extends readonly (infer TItem)[]
-  ? InvokedChild<TItem, TActors>
-  : TInvoke extends { id: infer TId extends string; src: infer TSrc }
-    ? string extends TId
-      ? never
-      : TSrc extends keyof TActors
-        ? { id: TId; ref: ActorRefFrom<TActors[TSrc]> }
-        : TSrc extends AnyActorLogic
-          ? { id: TId; ref: ActorRefFrom<TSrc> }
-          : never
-    : never;
-
-type InvokedChildren<TConfig, TActors extends Sources['actors']> =
-  | (TConfig extends { invoke: infer TInvoke }
-      ? InvokedChild<TInvoke, TActors>
-      : never)
-  | (TConfig extends { states: infer TStates }
-      ? {
-          [K in keyof TStates]: InvokedChildren<TStates[K], TActors>;
-        }[keyof TStates]
-      : never);
-
-type InferredInvokeChildren<
-  TConfig,
-  TActors extends Sources['actors'],
-  TChild extends { id: string; ref: AnyActorRef } = InvokedChildren<
-    TConfig,
-    TActors
-  >
-> = [TChild] extends [never]
-  ? {}
-  : { [K in TChild['id']]?: Extract<TChild, { id: K }>['ref'] };
 
 type MergeSourceMaps<
   TBase extends Record<string, unknown>,

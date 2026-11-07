@@ -44,6 +44,68 @@ describe('inferred named invoke children', () => {
     // @ts-expect-error - only child events are accepted
     kid?.send({ type: 'wrong' });
   });
+
+  it('types an invoke created with setup.createInvoke', () => {
+    const child = setup({
+      schemas: { events: { go: z.object({}) } }
+    }).createMachine({ initial: 'idle', states: { idle: {} } });
+    const s = setup({});
+    const parent = s.createMachine({
+      initial: 'active',
+      states: {
+        active: { invoke: s.createInvoke({ id: 'kid', src: child }) }
+      }
+    });
+    const kid = createActor(parent).getSnapshot().children.kid;
+    kid?.send({ type: 'go' });
+    // @ts-expect-error - only child events are accepted
+    kid?.send({ type: 'wrong' });
+  });
+
+  it('types root and nested invokes in standalone createMachine', () => {
+    const child = setup({
+      schemas: { events: { go: z.object({}) } }
+    }).createMachine({ initial: 'idle', states: { idle: {} } });
+    const root = createMachine({
+      actors: { child },
+      invoke: { id: 'rootKid', src: 'child' }
+    });
+    const rootKid = createActor(root).getSnapshot().children.rootKid;
+    rootKid?.send({ type: 'go' });
+    // @ts-expect-error - only child events are accepted
+    rootKid?.send({ type: 'wrong' });
+
+    const nested = createMachine({
+      schemas: { context: z.object({ count: z.number() }) },
+      context: { count: 0 },
+      actors: { child },
+      initial: 'active',
+      states: {
+        active: { invoke: { id: 'nestedKid', src: 'child' } }
+      }
+    });
+    const nestedKid = createActor(nested).getSnapshot().children.nestedKid;
+    nestedKid?.send({ type: 'go' });
+    // @ts-expect-error - only child events are accepted
+    nestedKid?.send({ type: 'wrong' });
+  });
+
+  it('types literal union IDs and source resolver functions', () => {
+    const child = setup({
+      schemas: { events: { go: z.object({}) } }
+    }).createMachine({ initial: 'idle', states: { idle: {} } });
+    const id: 'first' | 'second' = Math.random() > 0.5 ? 'first' : 'second';
+    const parent = setup({ actors: { child } }).createMachine({
+      invoke: { id, src: () => 'child' as const }
+    });
+    const children = createActor(parent).getSnapshot().children;
+    children.first?.send({ type: 'go' });
+    children.second?.send({ type: 'go' });
+    // @ts-expect-error - either ID still has the child's event type
+    children.first?.send({ type: 'wrong' });
+    // @ts-expect-error - either ID still has the child's event type
+    children.second?.send({ type: 'wrong' });
+  });
 });
 
 function expectType<T>(_v: T) {}

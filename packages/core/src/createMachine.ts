@@ -24,6 +24,7 @@ import {
   Sources,
   DelayMapFromNames,
   InferChildren,
+  InferredInvokeChildren,
   InferMachineInput,
   InferOutput,
   SchemaOrConfigOutput,
@@ -48,6 +49,13 @@ type MergeChildren<
 > = [keyof TChildren] extends [never]
   ? Compute<ToChildren<TActor>>
   : Compute<TChildren>;
+
+type ConfigActors<
+  TConfig,
+  TActorMap extends Sources['actors']
+> = TConfig extends { actors: infer TActors extends Sources['actors'] }
+  ? TActors
+  : TActorMap;
 
 type MachineIdentity<TConfig> = {
   readonly id: TConfig extends { id: infer TId extends string } ? TId : '';
@@ -208,7 +216,8 @@ export function createMachine<
               to: RoutableStateId<TSS>;
             }),
       Cast<
-        MergeChildren<InferChildren<TChildrenSchemaMap>, TActor>,
+        MergeChildren<InferChildren<TChildrenSchemaMap>, TActor> &
+          InferredInvokeChildren<TSS, ConfigActors<TSS, TActorMap>, false>,
         Record<string, AnyActorRef | undefined>
       >,
       StateValueFromStateSchema<TSS>,
@@ -348,7 +357,8 @@ export function createMachine<
               to: RoutableStateId<TSS>;
             }),
       Cast<
-        MergeChildren<InferChildren<TChildrenSchemaMap>, TActor>,
+        MergeChildren<InferChildren<TChildrenSchemaMap>, TActor> &
+          InferredInvokeChildren<TSS, ConfigActors<TSS, TActorMap>, false>,
         Record<string, AnyActorRef | undefined>
       >,
       StateValueFromStateSchema<TSS>,

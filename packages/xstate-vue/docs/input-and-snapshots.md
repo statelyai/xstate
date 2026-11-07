@@ -49,9 +49,12 @@ import { createActor } from 'xstate';
 import { restoreActor } from 'xstate/persist';
 
 const persisted = loadSnapshot();
-const actor = persisted
+const restored = persisted
   ? restoreActor(uploadMachine, persisted)
-  : createActor(uploadMachine);
+  : undefined;
+const actor = restored?.getSnapshot().status === 'error' || !restored
+  ? createActor(uploadMachine)
+  : restored;
 const { snapshot, send, actorRef } = useActor(actor);
 
 const subscription = actorRef.subscribe(() => {
@@ -79,7 +82,9 @@ function loadSnapshot() {
 }
 ```
 
-Stored snapshots are untrusted input. Validate them and fall back to `undefined` when they do not fit the current machine. See [Persist and restore actors](../persist-and-restore-actors.md) for versioning.
+Stored snapshots are untrusted input. `loadSnapshot()` rejects invalid JSON;
+the actor setup above also falls back to a fresh actor when restoration reports
+an incompatible snapshot. See [Persist and restore actors](../persist-and-restore-actors.md) for versioning.
 
 Keep machine definitions out of Vue's deep `ref(...)` and `reactive(...)`
 wrappers. Store a machine in `shallowRef(machine)` or call `markRaw(machine)`
@@ -88,10 +93,13 @@ when creating or restoring actors:
 
 ```ts
 import { shallowRef } from 'vue';
+import { createActor } from 'xstate';
 import { restoreActor } from 'xstate/persist';
 
 const machineRef = shallowRef(uploadMachine);
-const actor = restoreActor(machineRef.value, persisted);
+const actor = persisted
+  ? restoreActor(machineRef.value, persisted)
+  : createActor(machineRef.value);
 const { snapshot, send } = useActor(actor);
 ```
 

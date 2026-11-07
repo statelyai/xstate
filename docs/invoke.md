@@ -336,7 +336,9 @@ payment?.send({ type: 'retry' });
 Declare child ids with `schemas.children` when the child contract must also be
 available inside machine callbacks. This also checks that each declared `id`
 receives compatible logic. For dynamic IDs, keep the returned child reference
-in context instead of indexing `snapshot.children` with an arbitrary string:
+from `enq.spawn(...)` in context instead of indexing `snapshot.children` with
+an arbitrary string. Spawned children have a separately managed lifetime; see
+[Spawn](spawn.md):
 
 ```ts
 setup({}).createMachine({

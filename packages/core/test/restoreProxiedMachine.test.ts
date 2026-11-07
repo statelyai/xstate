@@ -1,5 +1,5 @@
-import { createActor, createMachine } from '../src/index.ts';
-import { restoreActor } from '../src/persist/index.ts';
+import { createActor, createMachine, transition } from '../src/index.ts';
+import { restoreActor, restoreMachineSnapshot } from '../src/persist/index.ts';
 
 /** A deep wrapping Proxy, like Vue's `reactive`: objects come back wrapped, functions do not. */
 function deepProxy<T extends object>(
@@ -44,6 +44,12 @@ describe('restoreActor with a Proxy-wrapped machine', () => {
     const actor = restoreActor(machine, persisted).start();
     actor.send({ type: 'go' });
     expect(actor.getSnapshot().value).toBe('b');
+  });
+
+  it('uses raw nodes when restoring a snapshot directly', () => {
+    const restored = restoreMachineSnapshot(deepProxy(machine), persisted);
+    const [next] = transition(machine, restored, { type: 'go' });
+    expect(next.value).toBe('b');
   });
 
   it('keeps a consistent state value after a restored delay fires', async () => {
