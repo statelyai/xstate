@@ -88,6 +88,19 @@ type LazyInertActorState = {
   materialize: () => AnyActorScope;
 };
 
+/** Records the materialized scope and releases its consumed source. */
+function commitMaterialization(
+  state: LazyInertActorState,
+  scope: AnyActorScope
+): AnyActorScope {
+  // Dropping the consumed source keeps this scope from retaining earlier snapshots.
+  state.sourceRef = undefined;
+  state.sourceChildren = {};
+  state.materialized = scope;
+  state.materialize = () => scope;
+  return scope;
+}
+
 const lazyInertActorState = Symbol();
 type LazyInertActorScope = AnyActorScope & {
   [lazyInertActorState]?: LazyInertActorState;
@@ -259,11 +272,7 @@ export function createInertActorScope<T extends AnyActorLogic>(
       state.snapshot as SnapshotFrom<T>,
       sourceSelf
     );
-    state.sourceRef = undefined;
-    state.sourceChildren = {};
-    state.materialized = scope;
-    state.materialize = () => scope;
-    return scope;
+    return commitMaterialization(state, scope);
   };
   if (!state.identityProvider && !snapshot) {
     const identitySnapshot = {} as Snapshot<unknown>;
@@ -282,11 +291,7 @@ export function createInertActorScope<T extends AnyActorLogic>(
       if (state.snapshot !== undefined) {
         (scope.self as any)._snapshot = state.snapshot;
       }
-      state.sourceRef = undefined;
-      state.sourceChildren = {};
-      state.materialized = scope;
-      state.materialize = () => scope;
-      return scope;
+      return commitMaterialization(state, scope);
     };
     state.identityProvider = () => {
       if (identityRef) {
