@@ -511,6 +511,7 @@ export function createDurable<TLogic extends AnyActorLogic>(
     }
   };
 
+  /** Adapts runtime operations to durable dispatch and root-event routing. */
   function wrapRuntime(
     runtime: Partial<ActorSystemRuntime>,
     localDeliveryFallback: boolean,
