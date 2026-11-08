@@ -1,3 +1,5 @@
+import isDevelopment from '#is-development';
+import { xstateError } from '../xstateError.ts';
 import { restoreLogicSnapshot } from '../persist/index.ts';
 import { getTimerStart, recordTimerStart } from '../timerClock.ts';
 import {
@@ -36,6 +38,7 @@ import type {
   OutputFrom,
   Snapshot,
   SnapshotFrom,
+  SerializedActorRef,
   TimerKey
 } from '../types.ts';
 import { matchesTimerKey } from '../timerKey.ts';
@@ -65,6 +68,12 @@ export interface DurableWaitMetadata {
 export interface DurableRootEvent<TEvent> {
   event: TEvent;
   source: AnyActor | undefined;
+}
+
+/** A root event saved beside a durable checkpoint. @experimental */
+export interface DurablePendingEvent<TEvent> {
+  event: TEvent;
+  source: SerializedActorRef | undefined;
 }
 
 /** @experimental */
@@ -220,6 +229,14 @@ export interface DurableExecution<TLogic extends AnyActorLogic> {
   /** Index assigned to the next transition. Persist this with checkpoints. */
   readonly nextTransitionIndex: number;
   /**
+   * Returns events retained after effects settle, with actor sources described
+   * by logical address. Pass the current snapshot to discard stale child events.
+   * Payloads are shared with the live events and are encoded by the host.
+   */
+  getPendingEvents(
+    snapshot: SnapshotFrom<TLogic>
+  ): DurablePendingEvent<AnyEventObject>[];
+  /**
    * Restores a checkpoint on a fresh execution. Returns effects that start
    * active embedded children and re-arm pending root timers; execute them
    * with `executeEffects` before waiting or processing the next event.
@@ -227,7 +244,8 @@ export interface DurableExecution<TLogic extends AnyActorLogic> {
    * transition index. Restoration effect IDs use `restore:<index>:<effect>`.
    */
   restore(
-    persistedSnapshot: Snapshot<unknown>
+    persistedSnapshot: Snapshot<unknown>,
+    options?: { pendingEvents?: readonly DurablePendingEvent<AnyEventObject>[] }
   ): [
     snapshot: DurableSnapshot<TLogic>,
     effects: DurableEffect<ExecutableEffectFrom<TLogic>>[]
@@ -415,7 +433,20 @@ export function createDurable<TLogic extends AnyActorLogic>(
 
   // Root-addressed events captured by settled batches, waiting for the drive
   // loop to take them through `waitForEvent()`.
-  const pendingRootEvents: DurableRootEvent<AnyEventObject>[] = [];
+  const pendingRootEvents: DurablePendingEvent<AnyEventObject>[] = [];
+  const lifecycleTypes = new Set([
+    'xstate.done.actor',
+    'xstate.error.actor',
+    'xstate.snapshot.actor',
+    'xstate.timeout.actor'
+  ]);
+  const childForEvent = (snapshot: unknown, event: AnyEventObject) => {
+    if (!lifecycleTypes.has(event.type) || typeof event.actorId !== 'string') {
+      return undefined;
+    }
+    return (snapshot as { children?: Record<string, AnyActor | undefined> })
+      .children?.[event.actorId];
+  };
 
   // Every inter-actor edge is an async handoff to the runtime, and every
   // handoff queues behind the last one: hosts whose step or activity model
@@ -692,7 +723,20 @@ export function createDurable<TLogic extends AnyActorLogic>(
     get nextTransitionIndex() {
       return nextTransitionIndex;
     },
-    restore(persistedSnapshot) {
+    getPendingEvents(snapshot) {
+      return pendingRootEvents
+        .filter(({ event }) => {
+          const child = childForEvent(snapshot, event);
+          return (
+            !child ||
+            !('sessionId' in event) ||
+            child.sessionId === undefined ||
+            child.sessionId === event.sessionId
+          );
+        })
+        .map((item) => ({ ...item }));
+    },
+    restore(persistedSnapshot, options) {
       if (
         restored ||
         nextTransitionIndex !== startingTransitionIndex ||
@@ -718,6 +762,39 @@ export function createDurable<TLogic extends AnyActorLogic>(
           };
         })
       );
+      if (options?.pendingEvents !== undefined) {
+        if (
+          !Array.isArray(options.pendingEvents) ||
+          options.pendingEvents.some(
+            (item) =>
+              !item ||
+              typeof item !== 'object' ||
+              !item.event ||
+              typeof item.event.type !== 'string' ||
+              (item.source !== undefined &&
+                (!item.source ||
+                  typeof item.source.$actor !== 'string' ||
+                  (item.source.incarnation !== undefined &&
+                    typeof item.source.incarnation !== 'string')))
+          )
+        ) {
+          throw new TypeError(
+            isDevelopment ? 'Invalid pendingEvents' : xstateError(77)
+          );
+        }
+        for (const item of options.pendingEvents) {
+          const child = childForEvent(snapshot, item.event);
+          pendingRootEvents.push({
+            ...item,
+            event:
+              child &&
+              'sessionId' in item.event &&
+              child.sessionId !== undefined
+                ? { ...item.event, sessionId: child.sessionId }
+                : item.event
+          });
+        }
+      }
       const effects: ExecutableEffect[] = [];
       if ((snapshot as Snapshot<unknown>).status === 'active') {
         const { children, timers } = snapshot as {
@@ -830,7 +907,16 @@ export function createDurable<TLogic extends AnyActorLogic>(
           }
         }
         await settle(batch);
-        pendingRootEvents.push(...batch.rootEvents);
+        pendingRootEvents.push(
+          ...batch.rootEvents.map(({ event, source }) => ({
+            event,
+            source: source
+              ? isRemoteActorRef(source) && source.sessionId !== undefined
+                ? { $actor: source.address, incarnation: source.sessionId }
+                : { $actor: source.address }
+              : undefined
+          }))
+        );
       } catch (error) {
         // Drain before discarding so batch-initiated operations are not still
         // running when the retrying host re-executes the effects. The failed

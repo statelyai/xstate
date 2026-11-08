@@ -121,7 +121,8 @@ reporting up), and only when none are queued defers to the adapter's durable
 wait.
 
 Checkpoint with `getPersistedSnapshot(state)` after `executeEffects`
-resolves, and persist `durable.nextTransitionIndex` alongside; pass it as
+resolves, and persist `durable.getPendingEvents(state)` and
+`durable.nextTransitionIndex` alongside; pass the index as
 `transitionIndex` when recreating the execution from a checkpoint instead of
 replaying from the beginning. Restore the checkpoint before entering the loop:
 
@@ -132,7 +133,9 @@ const resumed = createDurable(machine, {
   ...adapter,
   transitionIndex: checkpoint.nextTransitionIndex
 });
-let [state, effects] = resumed.restore(checkpoint.snapshot);
+let [state, effects] = resumed.restore(checkpoint.snapshot, {
+  pendingEvents: checkpoint.pendingEvents
+});
 await resumed.executeEffects(effects);
 
 while (state.status === 'active') {
@@ -140,6 +143,15 @@ while (state.status === 'active') {
   await resumed.executeEffects(effects);
 }
 ```
+
+For example, save `{ snapshot: machine.getPersistedSnapshot(state),
+nextTransitionIndex: durable.nextTransitionIndex, pendingEvents:
+durable.getPendingEvents(state) }` at that boundary. Pending event sources use
+logical actor descriptors; event payloads pass through by reference. The host
+owns payload encoding, as for effect descriptors. This contract does not cover
+a checkpoint between `waitForEvent()` and `transition()`. Omitting pending events
+on restore preserves the previous behavior. Lifecycle events for matching machine
+children are rebound to restored child sessions; generic events pass through.
 
 `restore()` rehydrates the snapshot and attaches the adapter across the actor
 tree. It returns effects that start active embedded children and re-arm pending

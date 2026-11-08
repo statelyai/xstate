@@ -810,3 +810,7 @@ Actor terminated without satisfying predicate
 ```
 
 The actor passed to `waitFor(...)` stopped or finished before the predicate returned `true`. Check the predicate against the actor's final snapshot.
+
+## E77
+
+The durable restore option `pendingEvents` must contain event objects and valid source descriptors.
