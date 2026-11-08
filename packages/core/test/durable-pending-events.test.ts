@@ -117,6 +117,7 @@ it('restores generic raised events in FIFO order and keeps rich payloads by refe
   ]) {
     const event = await resumed.waitForEvent();
     expect(event).toMatchObject({ type: 'INC', by });
+    expect(event.payload).toBe(by === 1 ? payload : NaN);
     [restored] = resumed.transition(restored, event);
     expect(restored.context.count).toBe(count);
   }
@@ -152,6 +153,22 @@ it('validates pending events before allocating pinned identities', async () => {
     control.children.worker.sessionId
   );
 });
+it('rejects sparse pending events before allocating pinned identities', () => {
+  const original = createDurable(parent, adapter());
+  const [snapshot] = original.initialTransition();
+  const checkpoint = roundTrip(parent.getPersistedSnapshot(snapshot));
+  const resumed = createDurable(parent, adapter('pinned'));
+  const sparse = new Array<{ event: { type: string } }>(1);
+  expect(() => resumed.restore(checkpoint, { pendingEvents: sparse })).toThrow(
+    'Invalid pendingEvents'
+  );
+  const [retried] = resumed.restore(checkpoint);
+  const [fresh] = createDurable(parent, adapter('pinned')).restore(checkpoint);
+  expect(retried.children.worker.sessionId).toBe(
+    fresh.children.worker.sessionId
+  );
+});
+
 it('drops a retired child completion while retaining a current completion', async () => {
   const { execution, snapshot } = await completedChild();
   expect(execution.getPendingEvents(snapshot)).toHaveLength(1);
@@ -384,3 +401,53 @@ it('does not duplicate saved snapshot notifications when a child restarts', asyn
   expect(changed.context.seen).toBe(3);
   expect((await changing.waitForEvent()).type).toBe('PING');
 });
+
+it.each(['sendEvent', 'enqueueRootEvent'] as const)(
+  'does not route a restored startup snapshot to the %s mailbox',
+  async (delivery) => {
+    const child = createMachine({ context: { count: 0 } });
+    const machine = createMachine({
+      actors: { child },
+      context: { seen: 0 },
+      invoke: {
+        id: 'child',
+        src: 'child',
+        onSnapshot: ({ context }) => ({ context: { seen: context.seen + 1 } })
+      }
+    });
+    const original = createDurable(machine, adapter());
+    const [snapshot, effects] = original.initialTransition();
+    await original.executeEffects(effects);
+    const pendingEvents = roundTrip(original.getPendingEvents(snapshot));
+    expect(pendingEvents).toHaveLength(1);
+    const mailbox: { type: string }[] = [];
+    const host: DurableExecutionAdapter<typeof machine> = {
+      executeAction: (action) => action.exec(),
+      startActor: (actor) => actor.start(),
+      waitForEvent: () => mailbox.shift() ?? { type: 'PING' }
+    };
+    if (delivery === 'sendEvent') {
+      host.sendEvent = (source, target, event) => {
+        if (target.address === resumed.rootAddress) mailbox.push(event);
+        else deliverEvent(source, target, event);
+      };
+    } else {
+      host.enqueueRootEvent = (_source, event) => {
+        mailbox.push(event);
+      };
+    }
+    const resumed = createDurable(machine, host, { captureRootEvents: false });
+    let [restored, restoreEffects] = resumed.restore(
+      roundTrip(machine.getPersistedSnapshot(snapshot)),
+      { pendingEvents }
+    );
+    await resumed.executeEffects(restoreEffects);
+    [restored, restoreEffects] = resumed.transition(
+      restored,
+      await resumed.waitForEvent()
+    );
+    await resumed.executeEffects(restoreEffects);
+    expect(restored.context.seen).toBe(1);
+    expect((await resumed.waitForEvent()).type).toBe('PING');
+  }
+);

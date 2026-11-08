@@ -591,6 +591,18 @@ export function createDurable<TLogic extends AnyActorLogic>(
     wrapped.sendEvent = (source, target, event) => {
       const captureBatch =
         options?.captureRootEvents !== false ? currentBatch : undefined;
+      // A restored active child announces its current snapshot on start.
+      // Saved notifications already include it; keep any later update.
+      if (
+        target.address === rootAddress &&
+        startingSnapshot &&
+        source === startingSnapshot.actor &&
+        event.type === 'xstate.snapshot.actor' &&
+        event.snapshot === startingSnapshot.snapshot
+      ) {
+        startingSnapshot = undefined;
+        return;
+      }
       if (
         !captureBatch &&
         target.address === rootAddress &&
@@ -611,17 +623,6 @@ export function createDurable<TLogic extends AnyActorLogic>(
         );
       }
       if (captureBatch && target.address === rootAddress) {
-        // A restored active child announces its current snapshot on start.
-        // Saved notifications already include it; keep any later update.
-        if (
-          startingSnapshot &&
-          source === startingSnapshot.actor &&
-          event.type === 'xstate.snapshot.actor' &&
-          event.snapshot === startingSnapshot.snapshot
-        ) {
-          startingSnapshot = undefined;
-          return;
-        }
         captureBatch.rootEvents.push({ event, source });
         return;
       }
@@ -768,24 +769,27 @@ export function createDurable<TLogic extends AnyActorLogic>(
         throw new Error('restore() requires a fresh durable execution');
       }
       if (options?.pendingEvents !== undefined) {
-        if (
-          !Array.isArray(options.pendingEvents) ||
-          options.pendingEvents.some(
-            (item) =>
-              !item ||
-              typeof item !== 'object' ||
-              !item.event ||
-              typeof item.event.type !== 'string' ||
-              (item.source !== undefined &&
-                (!item.source ||
-                  typeof item.source.$actor !== 'string' ||
-                  (item.source.incarnation !== undefined &&
-                    typeof item.source.incarnation !== 'string')))
-          )
-        ) {
+        if (!Array.isArray(options.pendingEvents)) {
           throw new TypeError(
             isDevelopment ? 'Invalid pendingEvents' : xstateError(77)
           );
+        }
+        for (const item of options.pendingEvents) {
+          if (
+            !item ||
+            typeof item !== 'object' ||
+            !item.event ||
+            typeof item.event.type !== 'string' ||
+            (item.source !== undefined &&
+              (!item.source ||
+                typeof item.source.$actor !== 'string' ||
+                (item.source.incarnation !== undefined &&
+                  typeof item.source.incarnation !== 'string')))
+          ) {
+            throw new TypeError(
+              isDevelopment ? 'Invalid pendingEvents' : xstateError(77)
+            );
+          }
         }
       }
       const { snapshot, scope } = withSystemInspector(inspect, () =>
