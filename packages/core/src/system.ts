@@ -587,9 +587,8 @@ export interface ActorSystem<
 /** @public */
 export type AnyActorSystem = ActorSystem<any>;
 
-// These optional lazy fields intentionally have no emitted initializers.
-// oxlint-disable-next-line typescript/no-unsafe-declaration-merging
-interface RuntimeSystem<T extends ActorSystemInfo> {
+/** Optional fields a system creates lazily, without emitted initializers. @internal */
+export interface LazySystemFields<T extends ActorSystemInfo> {
   runtime?: Partial<ActorSystemRuntime>;
   _children?: Map<string, AnyActor>;
   _keyedActors?: Map<keyof T['actors'], AnyActor | undefined>;
@@ -599,6 +598,11 @@ interface RuntimeSystem<T extends ActorSystemInfo> {
   _rejectionListeners?: Set<(rejection: EventRejection) => void>;
   _emissionListeners?: Set<(emission: ActorEmission) => void>;
 }
+
+// oxlint-disable-next-line typescript/no-unsafe-declaration-merging
+interface RuntimeSystem<
+  T extends ActorSystemInfo
+> extends LazySystemFields<T> {}
 
 class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
   public _identity = ambientExecutionIdentity ?? {

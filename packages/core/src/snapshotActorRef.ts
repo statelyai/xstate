@@ -1,7 +1,8 @@
 import isDevelopment from '#is-development';
 import { hasAmbientInspector } from './inspectionAmbient.ts';
 import { xstateError } from './xstateError.ts';
-import type { AnyActor, Snapshot } from './types.ts';
+import type { LazySystemFields } from './system.ts';
+import type { ActorSystemInfo, AnyActor, Snapshot } from './types.ts';
 
 /** Snapshot-scoped actor identity and system view. @internal */
 export interface SnapshotActorRef {
@@ -26,6 +27,23 @@ const snapshotSystems = new WeakMap<
 const snapshotActorRefs = new WeakMap<object, SnapshotActorRef>();
 const lazySnapshotActorRefs = new WeakMap<object, () => SnapshotActorRef>();
 const emptyKeyedActors = new Map<PropertyKey, AnyActor | undefined>();
+
+/** Decides which lazy fields views carry; each new field requires an explicit choice. */
+const lazySystemFieldCarry = {
+  runtime: true,
+  _timerMap: true,
+  _rejectionListeners: true,
+  _inspectionObservers: true,
+  // Views keep their own registry.
+  _children: false,
+  _keyedActors: false,
+  _reverseKeyedActors: false,
+  // Views delegate emission to the execution system.
+  _emissionListeners: false
+} satisfies Record<keyof LazySystemFields<ActorSystemInfo>, boolean>;
+const carriedSystemFields = (
+  Object.keys(lazySystemFieldCarry) as (keyof typeof lazySystemFieldCarry)[]
+).filter((key) => lazySystemFieldCarry[key]);
 
 function copyRegisteredActors(
   system: AnyActor['system'],
@@ -167,12 +185,7 @@ export function createSnapshotSystem(
 
   // Carry forward facilities that were inherited through the previous view.
   if (baseSystem !== executionSystem) {
-    for (const key of [
-      'runtime',
-      '_timerMap',
-      '_rejectionListeners',
-      '_inspectionObservers'
-    ] as const) {
+    for (const key of carriedSystemFields) {
       if (Object.hasOwn(baseSystem, key)) {
         Reflect.set(system, key, Reflect.get(baseSystem, key));
       }
