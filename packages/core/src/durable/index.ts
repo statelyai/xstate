@@ -79,6 +79,17 @@ export interface DurablePendingEvent<TEvent> {
   source: SerializedActorRef | undefined;
 }
 
+/** Reserved events that address a child by `actorId`. */
+type ActorLifecycleEvent = Extract<ReservedMachineEvent, { actorId: unknown }>;
+
+/** Reserved child-lifecycle event types; the type check keeps this list in sync. */
+const actorLifecycleEventTypes = {
+  'xstate.done.actor': true,
+  'xstate.error.actor': true,
+  'xstate.snapshot.actor': true,
+  'xstate.timeout.actor': true
+} satisfies Record<ActorLifecycleEvent['type'], true>;
+
 /** Checks whether a saved root event has the required transport shape. */
 function isDurablePendingEvent(
   item: unknown
@@ -472,17 +483,6 @@ export function createDurable<TLogic extends AnyActorLogic>(
   // Root-addressed events captured by settled batches, waiting for the drive
   // loop to take them through `waitForEvent()`.
   const pendingRootEvents: DurablePendingEvent<AnyEventObject>[] = [];
-  const lifecycleTypes = new Set(
-    Object.keys({
-      'xstate.done.actor': true,
-      'xstate.error.actor': true,
-      'xstate.snapshot.actor': true,
-      'xstate.timeout.actor': true
-    } satisfies Record<
-      Extract<ReservedMachineEvent, { actorId: unknown }>['type'],
-      true
-    >)
-  );
   /**
    * Check the logic as well as the snapshot: generic logic may use a
    * machine-shaped snapshot, and restored proxy machines use the raw machine.
@@ -491,7 +491,7 @@ export function createDurable<TLogic extends AnyActorLogic>(
     if (
       !isMachineSnapshot(snapshot) ||
       !(logic instanceof StateMachine) ||
-      !lifecycleTypes.has(event.type) ||
+      !Object.hasOwn(actorLifecycleEventTypes, event.type) ||
       typeof event.actorId !== 'string'
     ) {
       return undefined;
@@ -499,7 +499,7 @@ export function createDurable<TLogic extends AnyActorLogic>(
     return { child: snapshot.children[event.actorId] };
   };
 
-  // A lifecycle event is deliverable only for a current child session.
+  /** A lifecycle event is deliverable only for a current child session. */
   const isDeliverable = (snapshot: unknown, event: AnyEventObject) => {
     const lifecycle = lifecycleChild(snapshot, event);
     if (!lifecycle) return true;
