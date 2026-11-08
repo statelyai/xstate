@@ -765,9 +765,11 @@ export function createDurable<TLogic extends AnyActorLogic>(
     },
     transition(snapshot, event) {
       const [nextSnapshot, effects] = withSystemInspector(inspect, () =>
-        withExecutionIdentity(executionIdentity, () =>
-          transition(logic, snapshot, event)
-        )
+        withExecutionIdentity(executionIdentity, () => {
+          // Wire adopted snapshots before deriving the transition scope.
+          installSystemRuntime(snapshot);
+          return transition(logic, snapshot, event);
+        })
       );
       return [installSystemRuntime(nextSnapshot), tagEffects(effects)];
     },
