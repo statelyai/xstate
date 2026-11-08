@@ -158,7 +158,7 @@ it('rejects sparse pending events before allocating pinned identities', () => {
   const [snapshot] = original.initialTransition();
   const checkpoint = roundTrip(parent.getPersistedSnapshot(snapshot));
   const resumed = createDurable(parent, adapter('pinned'));
-  const sparse = new Array<{ event: { type: string } }>(1);
+  const sparse = new Array<{ event: { type: string }; source: undefined }>(1);
   expect(() => resumed.restore(checkpoint, { pendingEvents: sparse })).toThrow(
     'Invalid pendingEvents'
   );
@@ -423,7 +423,9 @@ it.each(['sendEvent', 'enqueueRootEvent'] as const)(
     const mailbox: { type: string }[] = [];
     const host: DurableExecutionAdapter<typeof machine> = {
       executeAction: (action) => action.exec(),
-      startActor: (actor) => actor.start(),
+      startActor: (actor) => {
+        actor.start();
+      },
       waitForEvent: () => mailbox.shift() ?? { type: 'PING' }
     };
     if (delivery === 'sendEvent') {
