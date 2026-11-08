@@ -449,8 +449,10 @@ export function createDurable<TLogic extends AnyActorLogic>(
     'xstate.snapshot.actor',
     'xstate.timeout.actor'
   ]);
-  // Check the logic as well as the snapshot: generic logic may use a
-  // machine-shaped snapshot, and restored proxy machines use the raw machine.
+  /**
+   * Check the logic as well as the snapshot: generic logic may use a
+   * machine-shaped snapshot, and restored proxy machines use the raw machine.
+   */
   const lifecycleChild = (snapshot: unknown, event: AnyEventObject) => {
     if (
       !isMachineSnapshot(snapshot) ||
