@@ -311,7 +311,6 @@ export function createEffectActor<TLogic extends AnyActorLogic>(
               : current) as SnapshotFrom<TLogic>
           );
         }
-        actor._rejectReceipts();
         closeEffectHost(host);
       };
 

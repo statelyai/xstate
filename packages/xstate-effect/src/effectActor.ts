@@ -109,7 +109,6 @@ export class EffectActor<TLogic extends AnyActorLogic> implements ActorRef<
   private _inStep = false;
   private _deliveryDepth = 0;
   private _stopHeld = false;
-  private _processing: Receipt<SnapshotFrom<TLogic>> | undefined;
 
   constructor(
     readonly logic: TLogic,
@@ -189,13 +188,6 @@ export class EffectActor<TLogic extends AnyActorLogic> implements ActorRef<
       });
     }
     return undefined;
-  }
-
-  /** @internal */
-  _rejectReceipts(): void {
-    for (const receipt of this._pending)
-      if (receipt !== this._processing)
-        this._completeReceipt(receipt, Exit.fail(this._stoppedError()));
   }
 
   private _stoppedError(): ActorStoppedError {
@@ -388,7 +380,6 @@ export class EffectActor<TLogic extends AnyActorLogic> implements ActorRef<
     }
     this._snapshot = snapshot;
     this._settled = true;
-    this._processing = processing;
     const observers = [...this._observers];
     this._observers.clear();
     const status = (snapshot as Snapshot<unknown>).status;
@@ -406,7 +397,6 @@ export class EffectActor<TLogic extends AnyActorLogic> implements ActorRef<
         }
       }
     });
-    this._processing = undefined;
     this._completeReceipt(processing, Exit.succeed(snapshot));
     for (const receipt of this._pending) {
       this._completeReceipt(receipt, Exit.fail(this._stoppedError()));
