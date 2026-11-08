@@ -38,6 +38,7 @@ import type {
   InputFrom,
   LogicalTimer,
   OutputFrom,
+  ReservedMachineEvent,
   Snapshot,
   SnapshotFrom,
   SerializedActorRef,
@@ -76,6 +77,34 @@ export interface DurableRootEvent<TEvent> {
 export interface DurablePendingEvent<TEvent> {
   event: TEvent;
   source: SerializedActorRef | undefined;
+}
+
+/** Checks whether a saved root event has the required transport shape. */
+function isDurablePendingEvent(
+  item: unknown
+): item is DurablePendingEvent<AnyEventObject> {
+  if (!item || typeof item !== 'object') return false;
+  const candidate = item as Partial<DurablePendingEvent<AnyEventObject>>;
+  if (!candidate.event || typeof candidate.event.type !== 'string')
+    return false;
+  if (candidate.source === undefined) return true;
+  if (!candidate.source || typeof candidate.source.$actor !== 'string')
+    return false;
+  return (
+    candidate.source.incarnation === undefined ||
+    typeof candidate.source.incarnation === 'string'
+  );
+}
+
+/** Describes a captured source by address and, for remote actors, incarnation. */
+function toPendingSource(
+  source: AnyActor | undefined
+): SerializedActorRef | undefined {
+  if (!source) return undefined;
+  if (isRemoteActorRef(source) && source.sessionId !== undefined) {
+    return { $actor: source.address, incarnation: source.sessionId };
+  }
+  return { $actor: source.address };
 }
 
 /** @experimental */
@@ -443,12 +472,17 @@ export function createDurable<TLogic extends AnyActorLogic>(
   // Root-addressed events captured by settled batches, waiting for the drive
   // loop to take them through `waitForEvent()`.
   const pendingRootEvents: DurablePendingEvent<AnyEventObject>[] = [];
-  const lifecycleTypes = new Set([
-    'xstate.done.actor',
-    'xstate.error.actor',
-    'xstate.snapshot.actor',
-    'xstate.timeout.actor'
-  ]);
+  const lifecycleTypes = new Set(
+    Object.keys({
+      'xstate.done.actor': true,
+      'xstate.error.actor': true,
+      'xstate.snapshot.actor': true,
+      'xstate.timeout.actor': true
+    } satisfies Record<
+      Extract<ReservedMachineEvent, { actorId: unknown }>['type'],
+      true
+    >)
+  );
   /**
    * Check the logic as well as the snapshot: generic logic may use a
    * machine-shaped snapshot, and restored proxy machines use the raw machine.
@@ -463,6 +497,19 @@ export function createDurable<TLogic extends AnyActorLogic>(
       return undefined;
     }
     return { child: snapshot.children[event.actorId] };
+  };
+
+  // A lifecycle event is deliverable only for a current child session.
+  const isDeliverable = (snapshot: unknown, event: AnyEventObject) => {
+    const lifecycle = lifecycleChild(snapshot, event);
+    if (!lifecycle) return true;
+    if (!lifecycle.child) return false;
+    const { sessionId } = lifecycle.child;
+    return (
+      !('sessionId' in event) ||
+      sessionId === undefined ||
+      sessionId === event.sessionId
+    );
   };
 
   // Every inter-actor edge is an async handoff to the runtime, and every
@@ -755,16 +802,7 @@ export function createDurable<TLogic extends AnyActorLogic>(
     },
     getPendingEvents(snapshot) {
       return pendingRootEvents
-        .filter(({ event }) => {
-          const lifecycle = lifecycleChild(snapshot, event);
-          return (
-            !lifecycle ||
-            (!!lifecycle.child &&
-              (!('sessionId' in event) ||
-                lifecycle.child.sessionId === undefined ||
-                lifecycle.child.sessionId === event.sessionId))
-          );
-        })
+        .filter(({ event }) => isDeliverable(snapshot, event))
         .map((item) => ({ ...item }));
     },
     restore(persistedSnapshot, options) {
@@ -782,17 +820,7 @@ export function createDurable<TLogic extends AnyActorLogic>(
           );
         }
         for (const item of options.pendingEvents) {
-          if (
-            !item ||
-            typeof item !== 'object' ||
-            !item.event ||
-            typeof item.event.type !== 'string' ||
-            (item.source !== undefined &&
-              (!item.source ||
-                typeof item.source.$actor !== 'string' ||
-                (item.source.incarnation !== undefined &&
-                  typeof item.source.incarnation !== 'string')))
-          ) {
+          if (!isDurablePendingEvent(item)) {
             throw new TypeError(
               isDevelopment ? 'Invalid pendingEvents' : xstateError(77)
             );
@@ -827,9 +855,7 @@ export function createDurable<TLogic extends AnyActorLogic>(
           pendingRootEvents.push({
             ...item,
             event:
-              child &&
-              'sessionId' in item.event &&
-              child.sessionId !== undefined
+              child?.sessionId !== undefined && 'sessionId' in item.event
                 ? { ...item.event, sessionId: child.sessionId }
                 : item.event
           });
@@ -972,11 +998,7 @@ export function createDurable<TLogic extends AnyActorLogic>(
         pendingRootEvents.push(
           ...batch.rootEvents.map(({ event, source }) => ({
             event,
-            source: source
-              ? isRemoteActorRef(source) && source.sessionId !== undefined
-                ? { $actor: source.address, incarnation: source.sessionId }
-                : { $actor: source.address }
-              : undefined
+            source: toPendingSource(source)
           }))
         );
       } catch (error) {
