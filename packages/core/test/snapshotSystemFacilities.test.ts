@@ -30,6 +30,7 @@ function fakeClock() {
   };
 }
 
+/** Creates a timer fixture that optionally reads `self` to materialize its scope. */
 function timerMachine(readSelf: boolean) {
   const go = readSelf
     ? ({ self }: { self: { id: string } }) => {
