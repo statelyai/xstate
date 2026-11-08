@@ -18,6 +18,11 @@ interface SnapshotSystemState {
   sourceVersion: number;
 }
 
+// Keep the execution root without retaining earlier snapshot views.
+const snapshotSystems = new WeakMap<
+  AnyActor['system'],
+  { executionSystem: AnyActor['system']; forwardInspection: boolean }
+>();
 const snapshotActorRefs = new WeakMap<object, SnapshotActorRef>();
 const lazySnapshotActorRefs = new WeakMap<object, () => SnapshotActorRef>();
 const emptyKeyedActors = new Map<PropertyKey, AnyActor | undefined>();
@@ -93,13 +98,20 @@ export function createSnapshotSystem(
   children: Record<string, AnyActor | undefined>,
   baseState?: SnapshotSystemState
 ): AnyActor['system'] {
-  const forwardInspection = hasAmbientInspector();
+  const baseView = snapshotSystems.get(baseSystem);
+  const executionSystem = baseView?.executionSystem ?? baseSystem;
+  const forwardInspection =
+    hasAmbientInspector() && (baseView?.forwardInspection ?? true);
   const registeredActors = copyRegisteredActors(baseSystem, baseState);
   const keyedActors = new Map<PropertyKey, AnyActor | undefined>(
     baseState?.keyedActors ?? getKeyedActors(baseSystem)
   );
   const reverseKeyedActors = new WeakMap<AnyActor, PropertyKey>();
-  const system: AnyActor['system'] = Object.assign(Object.create(baseSystem), {
+  const prototype = Object.create(executionSystem);
+  const system: AnyActor['system'] = Object.assign(prototype, {
+    ...(baseSystem !== executionSystem && Object.hasOwn(baseSystem, 'runtime')
+      ? { runtime: baseSystem.runtime }
+      : {}),
     children: registeredActors,
     keyedActors,
     reverseKeyedActors,
@@ -137,24 +149,26 @@ export function createSnapshotSystem(
     get: (registryKey: PropertyKey) => keyedActors.get(registryKey),
     getAll: () => Object.fromEntries(keyedActors),
     onEmitted: (listener: Parameters<AnyActor['system']['onEmitted']>[0]) =>
-      baseSystem.onEmitted(listener),
+      executionSystem.onEmitted(listener),
     _notifyEmitted: (
       actorRef: AnyActor,
       event: Parameters<AnyActor['system']['_notifyEmitted']>[1]
-    ) => baseSystem._notifyEmitted(actorRef, event),
+    ) => executionSystem._notifyEmitted(actorRef, event),
     // Pure transition resolution must not leak topology inspection events
     // into a live runtime system — planning branches stay silent. The one
     // exception is a durable execution's own transitions (marked by the
     // ambient inspector at creation time): there the pure path IS the
     // execution, so inspection forwards to the base system's observers.
     _hasInspectionObservers: forwardInspection
-      ? () => baseSystem._hasInspectionObservers?.() ?? false
+      ? () => executionSystem._hasInspectionObservers?.() ?? false
       : () => false,
     _sendInspectionEvent: forwardInspection
       ? (event: Parameters<AnyActor['system']['_sendInspectionEvent']>[0]) =>
-          baseSystem._sendInspectionEvent(event)
+          executionSystem._sendInspectionEvent(event)
       : () => {}
   });
+
+  snapshotSystems.set(system, { executionSystem, forwardInspection });
 
   for (const [registryKey, actor] of keyedActors) {
     if (!actor) {
