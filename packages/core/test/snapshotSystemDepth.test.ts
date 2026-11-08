@@ -1,5 +1,6 @@
 import { createActor, createMachine } from '../src/index.ts';
 import { createDurable } from '../src/durable/index.ts';
+import { withSystemInspector } from '../src/inspectionAmbient.ts';
 import {
   createSnapshotSystem,
   getSnapshotActorRef
@@ -61,6 +62,42 @@ describe('snapshot system views', () => {
       if (send) expect(sent).toBe(50);
     }
   );
+
+  it('forwards inspection directly to the execution system', () => {
+    const root = createActor(createMachine({}));
+    const observed = vi.fn();
+    root.system.inspect(observed);
+    const hasObservers = vi.spyOn(root.system, '_hasInspectionObservers');
+    const sendInspection = vi.spyOn(root.system, '_sendInspectionEvent');
+    const views: Array<typeof root.system> = [];
+    let system = root.system;
+    withSystemInspector(observed, () => {
+      for (let i = 0; i < 50; i++) {
+        system = createSnapshotSystem(system, {});
+        vi.spyOn(system, '_hasInspectionObservers');
+        vi.spyOn(system, '_sendInspectionEvent');
+        views.push(system);
+      }
+    });
+    expect(system._hasInspectionObservers?.()).toBe(true);
+    system._sendInspectionEvent({
+      type: '@xstate.actor',
+      actorRef: root,
+      parentRef: undefined,
+      id: root.id,
+      src: root.logic,
+      snapshot: root.getSnapshot()
+    });
+    expect(hasObservers).toHaveBeenCalledTimes(1);
+    expect(sendInspection).toHaveBeenCalledTimes(1);
+    expect(observed).toHaveBeenCalledTimes(1);
+    for (const view of views.slice(0, -1)) {
+      expect(view._hasInspectionObservers).not.toHaveBeenCalled();
+      expect(view._sendInspectionEvent).not.toHaveBeenCalled();
+    }
+    expect(system._hasInspectionObservers).toHaveBeenCalledTimes(1);
+    expect(system._sendInspectionEvent).toHaveBeenCalledTimes(1);
+  });
 
   it('copies the current view registry and runtime without retaining it as prototype', () => {
     const root = createActor(createMachine({}));
