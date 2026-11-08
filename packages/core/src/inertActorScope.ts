@@ -193,7 +193,15 @@ function createMaterializedInertActorScope<T extends AnyActorLogic>(
   const scope = Object.create((self as any)._actorScope, {
     defer: { value: () => {} },
     stopChild: { value: (child: AnyActor) => (child as any)._stop() },
-    actionExecutor: { value: () => {} }
+    actionExecutor: { value: () => {} },
+    _snapshot: {
+      enumerable: true,
+      configurable: true,
+      get: () => (self as any)._snapshot,
+      set: (snapshot: SnapshotFrom<T>) => {
+        (self as any)._snapshot = snapshot;
+      }
+    }
   });
   if (currentSnapshot) {
     scope._snapshot = currentSnapshot;

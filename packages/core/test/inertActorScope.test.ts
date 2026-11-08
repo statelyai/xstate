@@ -27,12 +27,12 @@ describe('inert actor scopes', () => {
     expect(self.getSnapshot()).toBe(previous);
     expect(state.sourceRef).toBeUndefined();
     expect(state.sourceChildren).toEqual({});
-    expect(Object.getPrototypeOf(self)._snapshot).toBeUndefined();
+    expect(Object.getPrototypeOf(self).getSnapshot()).toBe(previous);
 
     const current = { ...previous, context: { count: 1 } };
     setInertActorScopeSnapshot(scope, current, false);
     attachSnapshotActorRef(scope, current);
     expect(self.getSnapshot()).toBe(current);
-    expect(Object.getPrototypeOf(self)._snapshot).toBeUndefined();
+    expect(Object.getPrototypeOf(self).getSnapshot()).toBe(current);
   });
 });

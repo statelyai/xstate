@@ -1,4 +1,4 @@
-import { createAsyncLogic, setup } from '../src/index.ts';
+import { createAsyncLogic, createMachine, setup } from '../src/index.ts';
 import { createDurable } from '../src/durable/index.ts';
 import type { InspectionEvent } from '../src/inspection.ts';
 
@@ -19,6 +19,44 @@ const machine = setup({ actors: { fraudCheck } }).createMachine({
 });
 
 describe('durable execution inspection', () => {
+  it('keeps an announced actor reference readable after materialization', async () => {
+    const inspected: InspectionEvent[] = [];
+    const counter = createMachine({
+      context: { count: 0 },
+      on: {
+        TICK: ({ context, self }) => ({
+          context: { count: context.count + Number(Boolean(self.id)) }
+        })
+      }
+    });
+    const durable = createDurable(
+      counter,
+      {
+        executeAction: () => {},
+        waitForEvent: () => {
+          throw new Error('host-driven loop');
+        }
+      },
+      { inspect: (event) => inspected.push(event) }
+    );
+    let [snapshot, effects] = durable.initialTransition();
+    await durable.executeEffects(effects);
+    const initialAnnouncement = inspected.findLast(
+      (event) => event.type === '@xstate.actor'
+    );
+    expect(initialAnnouncement).toBeDefined();
+    expect(initialAnnouncement!.actorRef.getSnapshot()).toBe(snapshot);
+
+    [snapshot, effects] = durable.transition(snapshot, { type: 'TICK' });
+    await durable.executeEffects(effects);
+
+    const announcement = inspected.findLast(
+      (event) => event.type === '@xstate.actor'
+    );
+    expect(announcement).toBeDefined();
+    expect(announcement!.actorRef.getSnapshot()).toBe(snapshot);
+  });
+
   it('the inspect option observes the whole run without any adapter wiring', async () => {
     const inspected: InspectionEvent[] = [];
     const durable = createDurable(
