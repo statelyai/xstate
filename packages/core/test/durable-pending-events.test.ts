@@ -87,13 +87,13 @@ it('restores generic raised events in FIFO order and keeps rich payloads by refe
     context: { count: 0 },
     run: ({ event, context }, enq) => {
       if (event.type === 'GO') {
-        const first = { type: 'INC', payload };
-        const second = { type: 'INC', payload: NaN };
+        const first = { type: 'INC', by: 1, payload };
+        const second = { type: 'INC', by: 10, payload: NaN };
         enq.raise(first);
         enq.raise(second);
       }
-      if (event.type === 'INC')
-        return { context: { count: context.count + 1 } };
+      if (event.type === 'INC' && 'by' in event && typeof event.by === 'number')
+        return { context: { count: context.count + event.by } };
     }
   });
   const original = createDurable(logic, adapter());
@@ -109,9 +109,12 @@ it('restores generic raised events in FIFO order and keeps rich payloads by refe
   const resumed = createDurable(logic, adapter());
   let [restored, restoreEffects] = resumed.restore(saved, { pendingEvents });
   await resumed.executeEffects(restoreEffects);
-  for (let count = 1; count <= 2; count++) {
+  for (const [by, count] of [
+    [1, 1],
+    [10, 11]
+  ]) {
     const event = await resumed.waitForEvent();
-    expect(event.type).toBe('INC');
+    expect(event).toMatchObject({ type: 'INC', by });
     [restored] = resumed.transition(restored, event);
     expect(restored.context.count).toBe(count);
   }
@@ -129,17 +132,24 @@ it('keeps previous behavior when pending events are omitted', async () => {
   expect((await resumed.waitForEvent()).type).toBe('PING');
 });
 
-it('rejects malformed pending events', async () => {
-  const { snapshot } = await completedChild();
-  const resumed = createDurable(parent, adapter());
+it('validates pending events before allocating pinned identities', async () => {
+  const original = createDurable(parent, adapter());
+  const [snapshot] = original.initialTransition();
+  const checkpoint = roundTrip(parent.getPersistedSnapshot(snapshot));
+  const resumed = createDurable(parent, adapter('pinned'));
   expect(() =>
-    resumed.restore(parent.getPersistedSnapshot(snapshot), {
+    resumed.restore(checkpoint, {
       // @ts-expect-error Exercise validation of untrusted host data.
       pendingEvents: [{ event: {} }]
     })
   ).toThrow('Invalid pendingEvents');
+  const [retried] = resumed.restore(checkpoint);
+  const fresh = createDurable(parent, adapter('pinned'));
+  const [control] = fresh.restore(checkpoint);
+  expect(retried.children.worker.sessionId).toBe(
+    control.children.worker.sessionId
+  );
 });
-
 it('drops a retired child completion while retaining a current completion', async () => {
   const { execution, snapshot } = await completedChild();
   expect(execution.getPendingEvents(snapshot)).toHaveLength(1);
@@ -275,4 +285,100 @@ it('preserves lifecycle-named events for generic logic', async () => {
   await resumed.executeEffects(restoreEffects);
   expect(await resumed.waitForEvent()).toBe(pendingEvents[0].event);
   expect(pendingEvents[0].event.payload).toBe(payload);
+});
+
+it('does not duplicate saved snapshot notifications when a child restarts', async () => {
+  const child = createMachine({
+    context: { count: 0 },
+    on: { BUMP: ({ context }) => ({ context: { count: context.count + 1 } }) }
+  });
+  const machine = createMachine({
+    actors: { child },
+    context: { seen: 0 },
+    invoke: {
+      id: 'child',
+      src: 'child',
+      onSnapshot: ({ context }) => ({ context: { seen: context.seen + 1 } })
+    },
+    on: {
+      GO: ({ children }, enq) => enq.sendTo(children.child, { type: 'BUMP' })
+    }
+  });
+  const original = createDurable(machine, adapter());
+  let [snapshot, effects] = original.initialTransition();
+  await original.executeEffects(effects);
+  [snapshot, effects] = original.transition(snapshot, { type: 'GO' });
+  await original.executeEffects(effects);
+  const pendingEvents = original.getPendingEvents(snapshot);
+  expect(pendingEvents.map(({ event }) => event)).toMatchObject([
+    { type: 'xstate.snapshot.actor', snapshot: { context: { count: 0 } } },
+    { type: 'xstate.snapshot.actor', snapshot: { context: { count: 1 } } }
+  ]);
+  const checkpoint = roundTrip(machine.getPersistedSnapshot(snapshot));
+  let live = snapshot;
+  for (const _ of pendingEvents) {
+    [live, effects] = original.transition(live, await original.waitForEvent());
+    await original.executeEffects(effects);
+  }
+  expect(live.context.seen).toBe(2);
+  expect((await original.waitForEvent()).type).toBe('PING');
+  const resumed = createDurable(machine, adapter());
+  let [restored, restoreEffects] = resumed.restore(checkpoint, {
+    pendingEvents: roundTrip(pendingEvents)
+  });
+  await resumed.executeEffects(restoreEffects);
+  for (const _ of pendingEvents) {
+    [restored, restoreEffects] = resumed.transition(
+      restored,
+      await resumed.waitForEvent()
+    );
+    await resumed.executeEffects(restoreEffects);
+  }
+  expect(restored.context.seen).toBe(live.context.seen);
+  expect((await resumed.waitForEvent()).type).toBe('PING');
+  [restored, restoreEffects] = resumed.transition(restored, { type: 'GO' });
+  await resumed.executeEffects(restoreEffects);
+  [restored, restoreEffects] = resumed.transition(
+    restored,
+    await resumed.waitForEvent()
+  );
+  await resumed.executeEffects(restoreEffects);
+  expect(restored.context.seen).toBe(3);
+  const legacy = createDurable(machine, adapter());
+  let [legacyState, legacyEffects] = legacy.restore(checkpoint);
+  await legacy.executeEffects(legacyEffects);
+  [legacyState, legacyEffects] = legacy.transition(
+    legacyState,
+    await legacy.waitForEvent()
+  );
+  await legacy.executeEffects(legacyEffects);
+  expect(legacyState.context.seen).toBe(1);
+  expect((await legacy.waitForEvent()).type).toBe('PING');
+
+  const changing = createDurable(machine, {
+    ...adapter(),
+    startActor: (actor) => {
+      actor.start();
+      actor.send({ type: 'BUMP' });
+    }
+  });
+  let [changed, changingEffects] = changing.restore(checkpoint, {
+    pendingEvents: roundTrip(pendingEvents)
+  });
+  await changing.executeEffects(changingEffects);
+  const notifications = changing.getPendingEvents(changed);
+  expect(notifications.map(({ event }) => event)).toMatchObject([
+    { snapshot: { context: { count: 0 } } },
+    { snapshot: { context: { count: 1 } } },
+    { snapshot: { context: { count: 2 } } }
+  ]);
+  for (const _ of notifications) {
+    [changed, changingEffects] = changing.transition(
+      changed,
+      await changing.waitForEvent()
+    );
+    await changing.executeEffects(changingEffects);
+  }
+  expect(changed.context.seen).toBe(3);
+  expect((await changing.waitForEvent()).type).toBe('PING');
 });

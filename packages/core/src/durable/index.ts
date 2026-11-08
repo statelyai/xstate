@@ -358,6 +358,8 @@ export function createDurable<TLogic extends AnyActorLogic>(
     delay: number;
   }
   const restoredTimerDeadlines = new WeakMap<ExecutableEffect, TimerDeadline>();
+  const restoredSnapshotStarts = new WeakMap<ExecutableEffect, AnyActor>();
+  let startingSnapshot: { actor: AnyActor; snapshot: unknown } | undefined;
 
   if (!Number.isSafeInteger(nextTransitionIndex) || nextTransitionIndex < 0) {
     throw new RangeError('transitionIndex must be a non-negative safe integer');
@@ -609,6 +611,17 @@ export function createDurable<TLogic extends AnyActorLogic>(
         );
       }
       if (captureBatch && target.address === rootAddress) {
+        // A restored active child announces its current snapshot on start.
+        // Saved notifications already include it; keep any later update.
+        if (
+          startingSnapshot &&
+          source === startingSnapshot.actor &&
+          event.type === 'xstate.snapshot.actor' &&
+          event.snapshot === startingSnapshot.snapshot
+        ) {
+          startingSnapshot = undefined;
+          return;
+        }
         captureBatch.rootEvents.push({ event, source });
         return;
       }
@@ -754,24 +767,6 @@ export function createDurable<TLogic extends AnyActorLogic>(
       ) {
         throw new Error('restore() requires a fresh durable execution');
       }
-      const { snapshot, scope } = withSystemInspector(inspect, () =>
-        withExecutionIdentity(executionIdentity, () => {
-          const scope = createInertActorScope(logic);
-          const snapshot = restoreLogicSnapshot(
-            logic,
-            persistedSnapshot,
-            scope
-          );
-          setInertActorScopeSnapshot(scope, snapshot, false);
-          return {
-            snapshot: installSystemRuntime(
-              attachSnapshotActorRef(scope, snapshot),
-              true
-            ) as DurableSnapshot<TLogic>,
-            scope
-          };
-        })
-      );
       if (options?.pendingEvents !== undefined) {
         if (
           !Array.isArray(options.pendingEvents) ||
@@ -792,6 +787,26 @@ export function createDurable<TLogic extends AnyActorLogic>(
             isDevelopment ? 'Invalid pendingEvents' : xstateError(77)
           );
         }
+      }
+      const { snapshot, scope } = withSystemInspector(inspect, () =>
+        withExecutionIdentity(executionIdentity, () => {
+          const scope = createInertActorScope(logic);
+          const snapshot = restoreLogicSnapshot(
+            logic,
+            persistedSnapshot,
+            scope
+          );
+          setInertActorScopeSnapshot(scope, snapshot, false);
+          return {
+            snapshot: installSystemRuntime(
+              attachSnapshotActorRef(scope, snapshot),
+              true
+            ) as DurableSnapshot<TLogic>,
+            scope
+          };
+        })
+      );
+      if (options?.pendingEvents !== undefined) {
         for (const item of options.pendingEvents) {
           const lifecycle = lifecycleChild(snapshot, item.event);
           if (lifecycle && !lifecycle.child) {
@@ -821,7 +836,17 @@ export function createDurable<TLogic extends AnyActorLogic>(
             !isRemoteActorRef(child) &&
             child.getSnapshot().status === 'active'
           ) {
-            effects.push(createStartEffect(child));
+            const effect = createStartEffect(child);
+            if (
+              pendingRootEvents.some(
+                ({ event }) =>
+                  event.type === 'xstate.snapshot.actor' &&
+                  lifecycleChild(snapshot, event)?.child === child
+              )
+            ) {
+              restoredSnapshotStarts.set(effect, child);
+            }
+            effects.push(effect);
           }
         }
         for (const timer of timers ?? []) {
@@ -917,7 +942,18 @@ export function createDurable<TLogic extends AnyActorLogic>(
               runtime ?? wrappedSystemRuntime ?? {}
             );
           } else {
-            await effect.exec(runtime);
+            const restartingChild = restoredSnapshotStarts.get(effect);
+            if (restartingChild) {
+              startingSnapshot = {
+                actor: restartingChild,
+                snapshot: restartingChild.getSnapshot()
+              };
+            }
+            try {
+              await effect.exec(runtime);
+            } finally {
+              startingSnapshot = undefined;
+            }
           }
         }
         await settle(batch);

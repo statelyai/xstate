@@ -155,7 +155,9 @@ a checkpoint between `waitForEvent()` and `transition()`. Omitting pending event
 on restore preserves the previous behavior. Lifecycle events for matching machine
 children are rebound to restored child sessions. Lifecycle events for absent
 machine children are discarded at capture and restore so they cannot match a
-later child; generic logic events pass through.
+later child; generic logic events pass through. When saved snapshot notifications
+exist for a restarted child, the redundant restart announcement is suppressed;
+the saved notifications and later updates remain ordered.
 
 `restore()` rehydrates the snapshot and attaches the adapter across the actor
 tree. It returns effects that start active embedded children and re-arm pending
