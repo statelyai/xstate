@@ -3,6 +3,7 @@ import { createDurable } from '../src/durable/index.ts';
 import { createSnapshotSystem } from '../src/snapshotActorRef.ts';
 import type { Clock } from '../src/system.ts';
 
+/** Creates a controllable clock that records cancellations and fires scheduled callbacks. */
 function fakeClock() {
   let nextId = 0;
   const callbacks = new Map<number, () => void>();
