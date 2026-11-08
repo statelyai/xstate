@@ -109,9 +109,6 @@ export function createSnapshotSystem(
   const reverseKeyedActors = new WeakMap<AnyActor, PropertyKey>();
   const prototype = Object.create(executionSystem);
   const system: AnyActor['system'] = Object.assign(prototype, {
-    ...(baseSystem !== executionSystem && Object.hasOwn(baseSystem, 'runtime')
-      ? { runtime: baseSystem.runtime }
-      : {}),
     children: registeredActors,
     keyedActors,
     reverseKeyedActors,
@@ -167,6 +164,21 @@ export function createSnapshotSystem(
           executionSystem._sendInspectionEvent(event)
       : () => {}
   });
+
+  // Carry forward facilities that were inherited through the previous view.
+  if (baseSystem !== executionSystem) {
+    for (const key of [
+      'runtime',
+      '_timerMap',
+      '_rejectionListeners',
+      '_inspectionObservers',
+      '_emissionListeners'
+    ] as const) {
+      if (Object.hasOwn(baseSystem, key)) {
+        Reflect.set(system, key, Reflect.get(baseSystem, key));
+      }
+    }
+  }
 
   snapshotSystems.set(system, { executionSystem, forwardInspection });
 
