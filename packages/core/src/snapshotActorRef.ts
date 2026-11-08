@@ -171,8 +171,7 @@ export function createSnapshotSystem(
       'runtime',
       '_timerMap',
       '_rejectionListeners',
-      '_inspectionObservers',
-      '_emissionListeners'
+      '_inspectionObservers'
     ] as const) {
       if (Object.hasOwn(baseSystem, key)) {
         Reflect.set(system, key, Reflect.get(baseSystem, key));

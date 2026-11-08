@@ -1,7 +1,7 @@
 import { createMachine, initialTransition, setup } from '../src/index.ts';
 import { createDurable } from '../src/durable/index.ts';
 
-describe('durable execution system ownership', () => {
+describe('durable snapshot system facilities', () => {
   it('routes two executions adopting one snapshot through their own adapters', async () => {
     const child = createMachine({});
     const machine = setup({ actors: { child } }).createMachine({
