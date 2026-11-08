@@ -1,4 +1,9 @@
-import { createAsyncLogic, createMachine, setup } from '../src/index.ts';
+import {
+  createAsyncLogic,
+  createMachine,
+  initialTransition,
+  setup
+} from '../src/index.ts';
 import { createDurable } from '../src/durable/index.ts';
 import type { InspectionEvent } from '../src/inspection.ts';
 
@@ -56,6 +61,42 @@ describe('durable execution inspection', () => {
     expect(announcement).toBeDefined();
     expect(announcement!.actorRef.getSnapshot()).toBe(snapshot);
   });
+
+  it.each([false, true])(
+    'keeps every retained announcement readable after adopting a pure snapshot (reads self: %s)',
+    async (readSelf) => {
+      const inspected: InspectionEvent[] = [];
+      const counter = createMachine({
+        context: { count: 0 },
+        on: {
+          TICK: (args) => {
+            if (readSelf) void args.self.id;
+            return { context: { count: args.context.count + 1 } };
+          }
+        }
+      });
+      const [initial] = initialTransition(counter);
+      const durable = createDurable(
+        counter,
+        {
+          executeAction: () => {},
+          waitForEvent: () => {
+            throw new Error('host-driven loop');
+          }
+        },
+        { inspect: (event) => inspected.push(event) }
+      );
+      const [, effects] = durable.transition(initial, { type: 'TICK' });
+      await durable.executeEffects(effects);
+      const announcements = inspected.filter(
+        (event) => event.type === '@xstate.actor'
+      );
+      expect(announcements.length).toBeGreaterThan(0);
+      for (const event of announcements) {
+        expect(event.actorRef.getSnapshot()).toBeDefined();
+      }
+    }
+  );
 
   it('the inspect option observes the whole run without any adapter wiring', async () => {
     const inspected: InspectionEvent[] = [];

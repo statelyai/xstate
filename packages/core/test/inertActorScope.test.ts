@@ -1,7 +1,9 @@
 import { setImmediate } from 'node:timers/promises';
 import v8 from 'node:v8';
 import vm from 'node:vm';
-import { createMachine, initialTransition } from '../src/index.ts';
+import { createMachine, initialTransition, transition } from '../src/index.ts';
+import { withSystemInspector } from '../src/inspectionAmbient.ts';
+import type { InspectionEvent } from '../src/inspection.ts';
 import { createDurable } from '../src/durable/index.ts';
 import {
   attachSnapshotActorRef,
@@ -36,6 +38,33 @@ describe('inert actor scopes', () => {
     setInertActorScopeSnapshot(scope, current, false);
     attachSnapshotActorRef(scope, current);
     expect(self.getSnapshot()).toBe(current);
+  });
+
+  it('updates a created identity scope when its source snapshot changes', () => {
+    const machine = createMachine({
+      context: { count: 0 },
+      on: { INC: ({ context }) => ({ context: { count: context.count + 1 } }) }
+    });
+    const [first] = initialTransition(machine);
+    const [second] = transition(machine, first, { type: 'INC' });
+    const source = createInertActorScope(machine);
+    setInertActorScopeSnapshot(source, first, false);
+    attachSnapshotActorRef(source, first);
+    const derived = createInertActorScope(machine, first, undefined, source);
+    const inspected: InspectionEvent[] = [];
+    withSystemInspector(
+      (event) => inspected.push(event),
+      () => {
+        void derived.self;
+      }
+    );
+    const announcement = inspected.find(
+      (event) => event.type === '@xstate.actor'
+    );
+    expect(announcement).toBeDefined();
+    expect(announcement!.actorRef.getSnapshot()).toBe(first);
+    setInertActorScopeSnapshot(source, second, false);
+    expect(announcement!.actorRef.getSnapshot()).toBe(second);
   });
 
   it.skipIf(!collect)(
