@@ -1,4 +1,6 @@
 import isDevelopment from '#is-development';
+import { isMachineSnapshot } from '../State.ts';
+import { StateMachine } from '../StateMachine.ts';
 import { xstateError } from '../xstateError.ts';
 import { restoreLogicSnapshot } from '../persist/index.ts';
 import { getTimerStart, recordTimerStart } from '../timerClock.ts';
@@ -441,12 +443,18 @@ export function createDurable<TLogic extends AnyActorLogic>(
     'xstate.snapshot.actor',
     'xstate.timeout.actor'
   ]);
-  const childForEvent = (snapshot: unknown, event: AnyEventObject) => {
-    if (!lifecycleTypes.has(event.type) || typeof event.actorId !== 'string') {
+  // Check the logic as well as the snapshot: generic logic may use a
+  // machine-shaped snapshot, and restored proxy machines use the raw machine.
+  const lifecycleChild = (snapshot: unknown, event: AnyEventObject) => {
+    if (
+      !isMachineSnapshot(snapshot) ||
+      !(logic instanceof StateMachine) ||
+      !lifecycleTypes.has(event.type) ||
+      typeof event.actorId !== 'string'
+    ) {
       return undefined;
     }
-    return (snapshot as { children?: Record<string, AnyActor | undefined> })
-      .children?.[event.actorId];
+    return { child: snapshot.children[event.actorId] };
   };
 
   // Every inter-actor edge is an async handoff to the runtime, and every
@@ -727,12 +735,13 @@ export function createDurable<TLogic extends AnyActorLogic>(
     getPendingEvents(snapshot) {
       return pendingRootEvents
         .filter(({ event }) => {
-          const child = childForEvent(snapshot, event);
+          const lifecycle = lifecycleChild(snapshot, event);
           return (
-            !child ||
-            !('sessionId' in event) ||
-            child.sessionId === undefined ||
-            child.sessionId === event.sessionId
+            !lifecycle ||
+            (!!lifecycle.child &&
+              (!('sessionId' in event) ||
+                lifecycle.child.sessionId === undefined ||
+                lifecycle.child.sessionId === event.sessionId))
           );
         })
         .map((item) => ({ ...item }));
@@ -784,7 +793,11 @@ export function createDurable<TLogic extends AnyActorLogic>(
           );
         }
         for (const item of options.pendingEvents) {
-          const child = childForEvent(snapshot, item.event);
+          const lifecycle = lifecycleChild(snapshot, item.event);
+          if (lifecycle && !lifecycle.child) {
+            continue;
+          }
+          const child = lifecycle?.child;
           pendingRootEvents.push({
             ...item,
             event:

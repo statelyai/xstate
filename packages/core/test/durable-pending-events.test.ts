@@ -162,21 +162,117 @@ it('drops a retired child completion while retaining a current completion', asyn
   expect(restored.value).toBe('success');
 });
 
-it('retains a completion after its invocation exits and ignores it after restore', async () => {
-  const { execution, snapshot } = await completedChild();
-  const [idle, effects] = execution.transition(snapshot, { type: 'EXIT' });
-  await execution.executeEffects(effects);
-  expect(idle.children.worker).toBeUndefined();
-  const pendingEvents = roundTrip(execution.getPendingEvents(idle));
+it.each([
+  [undefined, false],
+  ['pinned', false],
+  ['pinned', true]
+] as const)(
+  'drops exited child completions before reentry with executionId %s and proxy %s',
+  async (executionId, proxied) => {
+    const machine = createMachine({
+      id: 'queue-parent',
+      actors: { worker },
+      initial: 'working',
+      states: {
+        working: {
+          invoke: {
+            id: 'worker',
+            src: 'worker',
+            onDone: { target: 'success' }
+          },
+          on: {
+            GO: ({ children, self }, enq) => {
+              enq.sendTo(self, { type: 'EXIT' });
+              enq.sendTo(self, { type: 'ENTER' });
+              enq.sendTo(children.worker, { type: 'WORK' });
+            },
+            WORK: ({ children }, enq) =>
+              enq.sendTo(children.worker, { type: 'WORK' }),
+            EXIT: { target: 'idle' }
+          }
+        },
+        idle: { on: { ENTER: { target: 'working' } } },
+        success: {}
+      }
+    });
+    const root = proxied ? new Proxy(machine, {}) : machine;
+    const original = createDurable(root, adapter(executionId));
+    let [snapshot, effects] = original.initialTransition();
+    await original.executeEffects(effects);
+    [snapshot, effects] = original.transition(snapshot, { type: 'GO' });
+    await original.executeEffects(effects);
+    const previousEvents = roundTrip(original.getPendingEvents(snapshot));
+    expect(previousEvents.map(({ event }) => event.type)).toEqual([
+      'EXIT',
+      'ENTER',
+      'xstate.done.actor'
+    ]);
+    [snapshot, effects] = original.transition(
+      snapshot,
+      await original.waitForEvent()
+    );
+    await original.executeEffects(effects);
+    expect(snapshot.value).toBe('idle');
+    expect(
+      original.getPendingEvents(snapshot).map(({ event }) => event.type)
+    ).toEqual(['ENTER']);
+    const resumed = createDurable(root, {
+      ...adapter(executionId),
+      transitionIndex: original.nextTransitionIndex
+    });
+    // Hosts may supply an older saved queue, so restore also checks the checkpoint.
+    let [restored, restoreEffects] = resumed.restore(
+      roundTrip(machine.getPersistedSnapshot(snapshot)),
+      { pendingEvents: previousEvents.slice(1) }
+    );
+    await resumed.executeEffects(restoreEffects);
+    [restored, restoreEffects] = resumed.transition(
+      restored,
+      await resumed.waitForEvent()
+    );
+    await resumed.executeEffects(restoreEffects);
+    expect(restored.value).toBe('working');
+    expect((await resumed.waitForEvent()).type).toBe('PING');
+    [restored, restoreEffects] = resumed.transition(restored, { type: 'WORK' });
+    await resumed.executeEffects(restoreEffects);
+    [restored, restoreEffects] = resumed.transition(
+      restored,
+      await resumed.waitForEvent()
+    );
+    await resumed.executeEffects(restoreEffects);
+    expect(restored.value).toBe('success');
+  }
+);
+
+it('preserves lifecycle-named events for generic logic', async () => {
+  const payload = { value: 1 };
+  const logic = createStepLogic({
+    context: {},
+    run: ({ event }, enq) => {
+      if (event.type === 'GO') {
+        const reply = {
+          type: 'xstate.done.actor',
+          actorId: 'worker',
+          sessionId: 'old',
+          payload
+        };
+        enq.raise(reply);
+      }
+    }
+  });
+  const original = createDurable(logic, adapter());
+  let [snapshot, effects] = original.initialTransition();
+  await original.executeEffects(effects);
+  [snapshot, effects] = original.transition(snapshot, { type: 'GO' });
+  await original.executeEffects(effects);
+  const pendingEvents = original.getPendingEvents(snapshot);
   expect(pendingEvents).toHaveLength(1);
-  const resumed = createDurable(parent, adapter());
-  let [restored, restoreEffects] = resumed.restore(
-    roundTrip(parent.getPersistedSnapshot(idle)),
+  const resumed = createDurable(logic, adapter());
+  const [, restoreEffects] = resumed.restore(
+    original.getActorRef(snapshot)!.getPersistedSnapshot(),
     { pendingEvents }
   );
   await resumed.executeEffects(restoreEffects);
-  const event = await resumed.waitForEvent();
-  expect(event).toEqual(pendingEvents[0].event);
-  [restored] = resumed.transition(restored, event);
-  expect(restored.value).toBe('idle');
+  expect(await resumed.waitForEvent()).toBe(pendingEvents[0].event);
+  expect(pendingEvents[0].event.payload).toBe(payload);
 });

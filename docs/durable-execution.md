@@ -153,7 +153,9 @@ logical actor descriptors; event payloads pass through by reference. The host
 owns payload encoding, as for effect descriptors. This contract does not cover
 a checkpoint between `waitForEvent()` and `transition()`. Omitting pending events
 on restore preserves the previous behavior. Lifecycle events for matching machine
-children are rebound to restored child sessions; generic events pass through.
+children are rebound to restored child sessions. Lifecycle events for absent
+machine children are discarded at capture and restore so they cannot match a
+later child; generic logic events pass through.
 
 `restore()` rehydrates the snapshot and attaches the adapter across the actor
 tree. It returns effects that start active embedded children and re-arm pending
