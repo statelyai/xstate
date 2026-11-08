@@ -1343,4 +1343,48 @@ describe('parallel states', () => {
 
     expect(flushTracked()).toEqual([]);
   });
+  // https://github.com/statelyai/xstate/issues/5214
+  it('transitions defined on a parallel state should not reset sibling regions to their initial sub-state', () => {
+    const machine = createMachine({
+      id: 'parallelExample',
+      type: 'parallel',
+      on: {
+        INQUIRY: { target: '#parallelExample.phase.inquiry' },
+        ARCHIVE: { target: '#parallelExample.phase.archive' },
+        EDIT: { target: '#parallelExample.mode.edit' },
+        NEW: { target: '#parallelExample.mode.new' }
+      },
+      states: {
+        phase: {
+          initial: 'inquiry',
+          states: {
+            inquiry: {},
+            archive: {}
+          }
+        },
+        mode: {
+          initial: 'new',
+          states: {
+            new: {},
+            edit: {}
+          }
+        }
+      }
+    });
+
+    const actor = createActor(machine);
+    actor.start();
+
+    // Move mode to 'edit' — phase should stay 'inquiry'
+    actor.send({ type: 'EDIT' });
+    expect(actor.getSnapshot().value).toEqual({ phase: 'inquiry', mode: 'edit' });
+
+    // Move phase to 'archive' — mode must NOT reset to its initial 'new'
+    actor.send({ type: 'ARCHIVE' });
+    expect(actor.getSnapshot().value).toEqual({ phase: 'archive', mode: 'edit' });
+
+    // Move mode to 'new' — phase must NOT reset to its initial 'inquiry'
+    actor.send({ type: 'NEW' });
+    expect(actor.getSnapshot().value).toEqual({ phase: 'archive', mode: 'new' });
+  });
 });
