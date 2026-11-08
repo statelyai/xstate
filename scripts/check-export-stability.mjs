@@ -36,7 +36,7 @@ const entries = [
     ].map((file) => join(root, 'packages/xstate-test/src', file))
   )
   .concat(
-    ['index.ts', 'atom.ts', 'oxlint.ts'].map((file) =>
+    ['index.ts', 'atom.ts', 'test.ts', 'oxlint.ts'].map((file) =>
       join(root, 'packages/xstate-effect/src', file)
     )
   )

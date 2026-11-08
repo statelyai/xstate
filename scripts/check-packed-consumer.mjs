@@ -381,6 +381,8 @@ console.log('ok');
     `import { Effect, Schema } from 'effect';
 import { createEffectActor, sendAndAwait, setupEffect } from '@xstate/effect';
 
+export { sendAndAwait as compatibilitySendAndAwait } from '@xstate/effect/test';
+
 export const effectMachine = setupEffect({
   schemas: { events: { PING: Schema.Struct({}) } },
   actions: { audit: (_args) => Effect.void }
@@ -424,6 +426,10 @@ import { createAsyncLogic } from 'xstate/actors';
 import { useActorRef } from '@xstate/react';
 import { Effect } from 'effect';
 import { createEffectActor, sendAndAwait, setupEffect } from '@xstate/effect';
+import { sendAndAwait as compatibilitySendAndAwait } from '@xstate/effect/test';
+if (compatibilitySendAndAwait !== sendAndAwait) {
+  throw new Error('@xstate/effect/test: sendAndAwait is not the main export');
+}
 if (typeof setupEffect !== 'function' || typeof createEffectActor !== 'function' || typeof sendAndAwait !== 'function') {
   throw new Error('@xstate/effect: setupEffect, createEffectActor or sendAndAwait missing');
 }

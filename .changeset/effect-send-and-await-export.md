@@ -1,5 +1,5 @@
 ---
-'@xstate/effect': major
+'@xstate/effect': minor
 ---
 
-Move `sendAndAwait` to the main `@xstate/effect` export and remove the `/test` entrypoint. Document its one-event acknowledgment boundary: the transition and immediate effects, without awaiting child replies or background work.
+Export `sendAndAwait` from the main `@xstate/effect` entrypoint. `@xstate/effect/test` still re-exports it for compatibility. Document its one-event acknowledgment boundary: the transition and immediate effects, without awaiting child replies or background work.

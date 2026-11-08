@@ -11,6 +11,7 @@ import {
   setupEffect,
   waitFor
 } from './index.ts';
+import { sendAndAwait as compatibilitySendAndAwait } from './test.ts';
 
 const counter = createMachine({
   context: { count: 0 },
@@ -19,6 +20,10 @@ const counter = createMachine({
 
 const scoped = <A, E>(program: Effect.Effect<A, E, Scope.Scope>) =>
   Effect.runPromise(Effect.scoped(program));
+
+it('keeps the /test entrypoint as a compatibility re-export', () => {
+  expect(compatibilitySendAndAwait).toBe(sendAndAwait);
+});
 
 it('acknowledges ignored events and each send of the same object independently', async () => {
   await scoped(

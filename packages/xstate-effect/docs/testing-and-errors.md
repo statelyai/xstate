@@ -9,7 +9,7 @@ Test the workflow with its real machine and provide local Effect services. Use `
 
 Import `sendAndAwait` from `@xstate/effect` when you need acknowledgment that one particular send was processed. The persistence example also uses it to checkpoint after each request.
 
-It returns that mailbox item's snapshot after its transition is published and its immediate effects have run, including other actors' handling of events it sent. Ignored events succeed with an unchanged snapshot. An event whose action fails also succeeds; the failure is processed afterwards, through `onError` or an error snapshot. Concurrent sends of the same object get independent receipts. An event that completes or errors the actor returns its terminal snapshot; use `join` for its outcome.
+It returns that mailbox item's snapshot after its transition is published and its immediate effects have run, including its child actors' handling of events it sent them. Ignored events succeed with an unchanged snapshot. An event whose action fails also succeeds; the failure is processed afterwards, through `onError` or an error snapshot. Concurrent sends of the same object get independent receipts. An event that completes or errors the actor returns its terminal snapshot; use `join` for its outcome.
 
 Invalid and externally sent internal events fail with `EventRejectedError`. Stop, scope closure or completion before processing a queued send fails it with `ActorStoppedError`. Interrupting the waiter detaches the receipt without retracting the event. A reentrant observer stop can reject the currently processed receipt.
 
