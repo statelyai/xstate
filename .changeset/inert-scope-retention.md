@@ -2,4 +2,4 @@
 'xstate': patch
 ---
 
-Release previous snapshots when pure transitions read actor capabilities.
+Transitions that read `self` or `system` no longer keep earlier snapshots alive.
