@@ -1,5 +1,7 @@
 import {
+  createCallbackLogic,
   createMachine,
+  deliverEvent,
   initialTransition,
   setup,
   transition
@@ -105,6 +107,41 @@ describe('durable snapshot system facilities', () => {
     await a.executeEffects(aEffects);
     await b.executeEffects(bEffects);
     expect(log).toEqual(['A:PING', 'B:PING']);
+  });
+
+  it('keeps a live output routed to its execution when another adopts it', async () => {
+    const child = createCallbackLogic(({ receive, sendBack }) => {
+      receive(() => sendBack({ type: 'PONG' }));
+    });
+    const machine = setup({ actors: { child } }).createMachine({
+      invoke: { id: 'child', src: 'child' },
+      on: {
+        GO: ({ children }, enq) => enq.sendTo(children.child, { type: 'PING' }),
+        PONG: () => {}
+      }
+    });
+    const log: string[] = [];
+    const make = (name: string) =>
+      createDurable(
+        machine,
+        {
+          executeAction: (effect) => effect.exec(),
+          waitForEvent: () => ({ type: 'GO' }),
+          sendEvent: (source, target, event) => {
+            log.push(`${name}:${event.type}`);
+            return deliverEvent(source, target, event);
+          }
+        },
+        { captureRootEvents: false }
+      );
+    const a = make('A');
+    const b = make('B');
+    let [snapshot, effects] = a.initialTransition();
+    await a.executeEffects(effects);
+    [snapshot, effects] = a.transition(snapshot, { type: 'GO' });
+    b.transition(snapshot, { type: 'GO' });
+    await a.executeEffects(effects);
+    expect(log[0]).toBe('A:PING');
   });
 
   it('keeps timers separate when two executions adopt the same snapshot', async () => {

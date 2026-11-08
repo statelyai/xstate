@@ -12,7 +12,7 @@ import {
 } from '../inertActorScope.ts';
 import { isRemoteActorRef } from '../remoteActorRef.ts';
 import { createStartEffect, createTimerEffect } from '../transitionActions.ts';
-import { getSnapshotActorRef } from '../snapshotActorRef.ts';
+import { getSnapshotActorRef, withSystemRuntime } from '../snapshotActorRef.ts';
 import {
   encodeAddressSegment,
   withExecutionIdentity,
@@ -765,11 +765,11 @@ export function createDurable<TLogic extends AnyActorLogic>(
     },
     transition(snapshot, event) {
       const [nextSnapshot, effects] = withSystemInspector(inspect, () =>
-        withExecutionIdentity(executionIdentity, () => {
-          // Wire adopted snapshots before deriving the transition scope.
-          installSystemRuntime(snapshot);
-          return transition(logic, snapshot, event);
-        })
+        withExecutionIdentity(executionIdentity, () =>
+          withSystemRuntime(wrappedSystemRuntime, () =>
+            transition(logic, snapshot, event)
+          )
+        )
       );
       return [installSystemRuntime(nextSnapshot), tagEffects(effects)];
     },

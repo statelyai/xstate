@@ -1,8 +1,32 @@
 import isDevelopment from '#is-development';
 import { hasAmbientInspector } from './inspectionAmbient.ts';
 import { xstateError } from './xstateError.ts';
-import type { LazySystemFields } from './system.ts';
+import type { ActorSystemRuntime, LazySystemFields } from './system.ts';
 import type { ActorSystemInfo, AnyActor, Snapshot } from './types.ts';
+
+let ambientSystemRuntime: Partial<ActorSystemRuntime> | undefined;
+
+/** The runtime assigned to snapshot views during a durable transition. @internal */
+function getAmbientSystemRuntime(): Partial<ActorSystemRuntime> | undefined {
+  return ambientSystemRuntime;
+}
+
+/** Runs `fn` with the runtime used by snapshot views it creates. @internal */
+export function withSystemRuntime<T>(
+  runtime: Partial<ActorSystemRuntime> | undefined,
+  fn: () => T
+): T {
+  if (!runtime) {
+    return fn();
+  }
+  const previous = ambientSystemRuntime;
+  ambientSystemRuntime = runtime;
+  try {
+    return fn();
+  } finally {
+    ambientSystemRuntime = previous;
+  }
+}
 
 /** Snapshot-scoped actor identity and system view. @internal */
 export interface SnapshotActorRef {
@@ -190,6 +214,12 @@ export function createSnapshotSystem(
         Reflect.set(system, key, Reflect.get(baseSystem, key));
       }
     }
+  }
+
+  // Route derived views through this execution without rewiring the adopted snapshot.
+  const ambientRuntime = getAmbientSystemRuntime();
+  if (ambientRuntime) {
+    system.runtime = ambientRuntime;
   }
 
   snapshotSystems.set(system, { executionSystem, forwardInspection });
