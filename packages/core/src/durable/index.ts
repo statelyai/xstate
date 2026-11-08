@@ -947,7 +947,8 @@ export function createDurable<TLogic extends AnyActorLogic>(
             );
           } else {
             const restartingChild = restoredSnapshotStarts.get(effect);
-            if (restartingChild) {
+            // A retry may find the child already running, so start emits nothing.
+            if (restartingChild && !restartingChild._isRunning()) {
               startingSnapshot = {
                 actor: restartingChild,
                 snapshot: restartingChild.getSnapshot()

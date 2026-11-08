@@ -376,7 +376,8 @@ it('does not duplicate saved snapshot notifications when a child restarts', asyn
 
   const changing = createDurable(machine, {
     ...adapter(),
-    startActor: (actor) => {
+    startActor: async (actor) => {
+      await Promise.resolve();
       actor.start();
       actor.send({ type: 'BUMP' });
     }
@@ -454,66 +455,87 @@ it.each(['sendEvent', 'enqueueRootEvent'] as const)(
   }
 );
 
-it('keeps a new child snapshot when startup is retried', async () => {
-  const child = createMachine({
-    context: { count: 0 },
-    on: { BUMP: ({ context }) => ({ context: { count: context.count + 1 } }) }
-  });
-  const machine = createMachine({
-    actors: { child },
-    context: { seen: 0 },
-    invoke: {
-      id: 'child',
-      src: 'child',
-      onSnapshot: ({ context }) => ({ context: { seen: context.seen + 1 } })
-    },
-    on: {
-      GO: ({ children }, enq) => enq.sendTo(children.child, { type: 'BUMP' })
-    }
-  });
-  const original = createDurable(machine, adapter());
-  let [snapshot, effects] = original.initialTransition();
-  await original.executeEffects(effects);
-  [snapshot, effects] = original.transition(snapshot, { type: 'GO' });
-  await original.executeEffects(effects);
-  const pendingEvents = roundTrip(original.getPendingEvents(snapshot));
-  expect(pendingEvents).toHaveLength(2);
-  let first = true;
-  const resumed = createDurable(machine, {
-    ...adapter(),
-    startActor: async (actor) => {
+it.each([
+  ['BUMP', 2, false, false],
+  ['NOOP', 1, false, false],
+  ['NOOP', 1, true, false],
+  ['NOOP', 1, false, true]
+] as const)(
+  'keeps a snapshot from %s (count %s, failed before start %s, per-effect runtime %s)',
+  async (eventType, expectedCount, failBeforeStart, perEffectRuntime) => {
+    const child = createMachine({
+      context: { count: 0 },
+      on: { BUMP: ({ context }) => ({ context: { count: context.count + 1 } }) }
+    });
+    const machine = createMachine({
+      actors: { child },
+      context: { seen: 0 },
+      invoke: {
+        id: 'child',
+        src: 'child',
+        onSnapshot: ({ context }) => ({ context: { seen: context.seen + 1 } })
+      },
+      on: {
+        GO: ({ children }, enq) => enq.sendTo(children.child, { type: 'BUMP' })
+      }
+    });
+    const original = createDurable(machine, adapter());
+    let [snapshot, effects] = original.initialTransition();
+    await original.executeEffects(effects);
+    [snapshot, effects] = original.transition(snapshot, { type: 'GO' });
+    await original.executeEffects(effects);
+    const pendingEvents = roundTrip(original.getPendingEvents(snapshot));
+    expect(pendingEvents).toHaveLength(2);
+    let first = true;
+    const startActor: NonNullable<
+      DurableExecutionAdapter<typeof machine>['startActor']
+    > = async (actor) => {
       await Promise.resolve();
+      if (first && failBeforeStart) {
+        first = false;
+        throw new Error('start failed');
+      }
       actor.start();
       if (first) {
         first = false;
         throw new Error('start failed');
       }
       // Local delivery avoids requeuing behind this startup operation.
-      deliverEvent(undefined, actor, { type: 'BUMP' });
-    }
-  });
-  let [restored, restoreEffects] = resumed.restore(
-    roundTrip(machine.getPersistedSnapshot(snapshot)),
-    { pendingEvents }
-  );
-  await expect(resumed.executeEffects(restoreEffects)).rejects.toThrow(
-    'start failed'
-  );
-  await resumed.executeEffects(restoreEffects);
-  expect(
-    resumed.getPendingEvents(restored).map(({ event }) => event)
-  ).toMatchObject([
-    { snapshot: { context: { count: 0 } } },
-    { snapshot: { context: { count: 1 } } },
-    { snapshot: { context: { count: 2 } } }
-  ]);
-  for (let index = 0; index < 3; index++) {
-    [restored, restoreEffects] = resumed.transition(
-      restored,
-      await resumed.waitForEvent()
+      const before = actor.getSnapshot();
+      deliverEvent(undefined, actor, { type: eventType });
+      if (eventType === 'NOOP') {
+        expect(actor.getSnapshot()).toBe(before);
+      }
+    };
+    const resumed = createDurable(machine, {
+      ...adapter(),
+      ...(perEffectRuntime
+        ? { runtime: () => ({ startActor }) }
+        : { startActor })
+    });
+    let [restored, restoreEffects] = resumed.restore(
+      roundTrip(machine.getPersistedSnapshot(snapshot)),
+      { pendingEvents }
+    );
+    await expect(resumed.executeEffects(restoreEffects)).rejects.toThrow(
+      'start failed'
     );
     await resumed.executeEffects(restoreEffects);
+    expect(
+      resumed.getPendingEvents(restored).map(({ event }) => event)
+    ).toMatchObject([
+      { snapshot: { context: { count: 0 } } },
+      { snapshot: { context: { count: 1 } } },
+      { snapshot: { context: { count: expectedCount } } }
+    ]);
+    for (let index = 0; index < 3; index++) {
+      [restored, restoreEffects] = resumed.transition(
+        restored,
+        await resumed.waitForEvent()
+      );
+      await resumed.executeEffects(restoreEffects);
+    }
+    expect(restored.context.seen).toBe(3);
+    expect((await resumed.waitForEvent()).type).toBe('PING');
   }
-  expect(restored.context.seen).toBe(3);
-  expect((await resumed.waitForEvent()).type).toBe('PING');
-});
+);
