@@ -28,10 +28,12 @@ const parent = createMachine({
       on: {
         GO: ({ children }, enq) =>
           enq.sendTo(children.worker, { type: 'WORK' }),
-        RESTART: { target: 'working', reenter: true }
+        RESTART: { target: 'working', reenter: true },
+        EXIT: { target: 'idle' }
       }
     },
-    success: {}
+    success: {},
+    idle: {}
   }
 });
 function adapter(executionId?: string): DurableExecutionAdapter<AnyActorLogic> {
@@ -158,4 +160,23 @@ it('drops a retired child completion while retaining a current completion', asyn
   await resumed.executeEffects(restoreEffects);
   [restored] = resumed.transition(restored, await resumed.waitForEvent());
   expect(restored.value).toBe('success');
+});
+
+it('retains a completion after its invocation exits and ignores it after restore', async () => {
+  const { execution, snapshot } = await completedChild();
+  const [idle, effects] = execution.transition(snapshot, { type: 'EXIT' });
+  await execution.executeEffects(effects);
+  expect(idle.children.worker).toBeUndefined();
+  const pendingEvents = roundTrip(execution.getPendingEvents(idle));
+  expect(pendingEvents).toHaveLength(1);
+  const resumed = createDurable(parent, adapter());
+  let [restored, restoreEffects] = resumed.restore(
+    roundTrip(parent.getPersistedSnapshot(idle)),
+    { pendingEvents }
+  );
+  await resumed.executeEffects(restoreEffects);
+  const event = await resumed.waitForEvent();
+  expect(event).toEqual(pendingEvents[0].event);
+  [restored] = resumed.transition(restored, event);
+  expect(restored.value).toBe('idle');
 });

@@ -146,7 +146,9 @@ while (state.status === 'active') {
 
 For example, save `{ snapshot: machine.getPersistedSnapshot(state),
 nextTransitionIndex: durable.nextTransitionIndex, pendingEvents:
-durable.getPendingEvents(state) }` at that boundary. Pending event sources use
+durable.getPendingEvents(state) }` at that boundary. Pass the same `state` to
+`getPendingEvents` that you persist: an older state can retain a stale child
+completion that restore would rebind to a replacement child. Pending event sources use
 logical actor descriptors; event payloads pass through by reference. The host
 owns payload encoding, as for effect descriptors. This contract does not cover
 a checkpoint between `waitForEvent()` and `transition()`. Omitting pending events

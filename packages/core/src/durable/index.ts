@@ -230,7 +230,8 @@ export interface DurableExecution<TLogic extends AnyActorLogic> {
   readonly nextTransitionIndex: number;
   /**
    * Returns events retained after effects settle, with actor sources described
-   * by logical address. Pass the current snapshot to discard stale child events.
+   * by logical address. Pass the same snapshot being persisted to discard stale
+   * child events without rebinding a retired completion to a replacement.
    * Payloads are shared with the live events and are encoded by the host.
    */
   getPendingEvents(
