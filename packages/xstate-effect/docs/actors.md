@@ -10,8 +10,8 @@ keep their send order, including when each send runs in a separate promise
 continuation while the parent executes transition effects.
 
 Observers see each step in the order that `createActor` uses. The events that
-the transition emits come first, then `next`, or `complete` and `error` when
-the transition ends the actor.
+the transition emits come first. Then an active step gives `next`, a `done`
+step gives `next` and then `complete`, and an `error` step gives `error`.
 
 - Pass `options.input` when the logic requires input.
 - Pass `options.snapshot` to resume an actor from a persisted snapshot. See [persisting and restoring](#persisting-and-restoring).
