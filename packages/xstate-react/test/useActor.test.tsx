@@ -9,6 +9,7 @@ import {
   ActorRef,
   DoneActorEvent,
   Snapshot,
+  SnapshotFrom,
   StateFrom,
   assign,
   createActor,
@@ -86,7 +87,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
 
   const Fetcher: React.FC<{
     onFetch: () => Promise<any>;
-    persistedState?: Snapshot<unknown>;
+    persistedState?: SnapshotFrom<typeof fetchMachine>;
   }> = ({
     onFetch = () => {
       return new Promise((res) => res('some data'));
