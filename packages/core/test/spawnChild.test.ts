@@ -3,6 +3,8 @@ import {
   ActorRefFrom,
   createActor,
   createMachine,
+  enqueueActions,
+  fromCallback,
   fromObservable,
   fromPromise,
   sendTo,
@@ -114,5 +116,31 @@ describe('spawnChild action', () => {
     createActor(machine).start();
 
     expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it('should stop every spawned child when the actor stops', () => {
+    const stopped: string[] = [];
+    const ids = ['first', 'b7a3c1e2', '2', 'last'];
+
+    const machine = createMachine({
+      entry: enqueueActions(({ enqueue }) => {
+        for (const id of ids) {
+          enqueue.spawnChild(
+            fromCallback(() => () => {
+              stopped.push(id);
+            }),
+            { id }
+          );
+        }
+      })
+    });
+
+    const actor = createActor(machine).start();
+    expect(Object.keys(actor.getSnapshot().children)).toHaveLength(ids.length);
+
+    actor.stop();
+
+    expect(stopped.sort()).toEqual([...ids].sort());
+    expect(actor.getSnapshot().children).toEqual({});
   });
 });
