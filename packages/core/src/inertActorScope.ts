@@ -150,6 +150,7 @@ export function setInertActorMaterializationObserver(
   inertActorMaterializationObserver = observer;
 }
 
+/** Creates a transactional planning scope backed by an inert actor. */
 function createMaterializedInertActorScope<T extends AnyActorLogic>(
   actorLogic: T,
   sourceRef: (() => SnapshotActorRef) | undefined,
