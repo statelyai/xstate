@@ -302,8 +302,8 @@ export interface DurableExecution<TLogic extends AnyActorLogic> {
    * Resolves with the next event addressed to this execution's root actor:
    * an event a prior `executeEffects` batch captured (an invoked actor
    * completing, a child reporting up), or — once none are queued — whatever
-   * the adapter's durable wait produces. With `captureRootEvents: false`,
-   * always delegates to the adapter's wait.
+   * the adapter's durable wait produces. Restored pending events are returned
+   * before the adapter's wait regardless of `captureRootEvents`.
    */
   waitForEvent(): Promise<EventFromLogic<TLogic>>;
   run(
@@ -314,11 +314,7 @@ export interface DurableExecution<TLogic extends AnyActorLogic> {
 }
 
 /**
- * Creates a host-neutral durable execution around pure actor transitions.
- *
- * The returned transition methods only calculate snapshots and tag their
- * effects. Persistence, retries, messaging, timers and child execution remain
- * responsibilities of the adapter.
+ * Configures root-event capture and inspection for a durable execution.
  *
  * @experimental
  */
@@ -340,7 +336,15 @@ export interface DurableExecutionOptions {
   inspect?: (inspectionEvent: InspectionEvent) => void;
 }
 
-/** @experimental */
+/**
+ * Creates a host-neutral durable execution around pure actor transitions.
+ *
+ * The returned transition methods only calculate snapshots and tag their
+ * effects. Persistence, retries, messaging, timers and child execution remain
+ * responsibilities of the adapter.
+ *
+ * @experimental
+ */
 export function createDurable<TLogic extends AnyActorLogic>(
   logic: TLogic,
   adapter: DurableExecutionAdapter<TLogic>,
