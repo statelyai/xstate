@@ -157,7 +157,9 @@ children are rebound to restored child sessions. Lifecycle events for absent
 machine children are discarded at capture and restore so they cannot match a
 later child; generic logic events pass through. When saved snapshot notifications
 exist for a restarted child, the redundant restart announcement is suppressed;
-the saved notifications and later updates remain ordered.
+the saved notifications and later updates remain ordered. An adapter that starts
+children asynchronously must return a promise covering startup, or the restart
+announcement can still be duplicated.
 
 `restore()` rehydrates the snapshot and attaches the adapter across the actor
 tree. It returns effects that start active embedded children and re-arm pending
