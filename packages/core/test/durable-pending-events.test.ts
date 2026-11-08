@@ -83,16 +83,18 @@ it.each([undefined, 'pinned'])(
 
 it('restores generic raised events in FIFO order and keeps rich payloads by reference', async () => {
   const payload = new Date(0);
-  const logic = createStepLogic({
+  const logic = createStepLogic<
+    { count: number },
+    unknown,
+    { type: 'GO' } | { type: 'INC'; by: number; payload: unknown }
+  >({
     context: { count: 0 },
     run: ({ event, context }, enq) => {
       if (event.type === 'GO') {
-        const first = { type: 'INC', by: 1, payload };
-        const second = { type: 'INC', by: 10, payload: NaN };
-        enq.raise(first);
-        enq.raise(second);
+        enq.raise({ type: 'INC', by: 1, payload });
+        enq.raise({ type: 'INC', by: 10, payload: NaN });
       }
-      if (event.type === 'INC' && 'by' in event && typeof event.by === 'number')
+      if (event.type === 'INC')
         return { context: { count: context.count + event.by } };
     }
   });
