@@ -189,16 +189,16 @@ function createMaterializedInertActorScope<T extends AnyActorLogic>(
     // a future construction-time read cannot pin a root-shaped address.
     (self as unknown as { _address?: string })._address = undefined;
   }
-  if (currentSnapshot) {
-    (self as any)._snapshot = currentSnapshot;
-  }
-
   // Reuse the branch actor's scope while keeping planning transactional.
-  return Object.create((self as any)._actorScope, {
+  const scope = Object.create((self as any)._actorScope, {
     defer: { value: () => {} },
     stopChild: { value: (child: AnyActor) => (child as any)._stop() },
     actionExecutor: { value: () => {} }
   });
+  if (currentSnapshot) {
+    scope._snapshot = currentSnapshot;
+  }
+  return scope;
 }
 
 /** @internal */
@@ -242,25 +242,29 @@ export function createInertActorScope<T extends AnyActorLogic>(
       !!eagerSourceRef ||
       !snapshot
   } as LazyInertActorState;
-  state.materialize = () =>
-    (state.materialized ??= createMaterializedInertActorScope(
+  state.materialize = () => {
+    const scope = createMaterializedInertActorScope(
       actorLogic,
       state.sourceRef,
       state.sourceChildren,
       state.snapshot as SnapshotFrom<T>,
       sourceSelf
-    ));
+    );
+    state.sourceRef = undefined;
+    state.sourceChildren = {};
+    state.materialized = scope;
+    state.materialize = () => scope;
+    return scope;
+  };
   if (!state.identityProvider && !snapshot) {
     const identitySnapshot = {} as Snapshot<unknown>;
-    const identitySourceRef = state.sourceRef;
-    const identitySourceChildren = state.sourceChildren;
     let identityScope: AnyActorScope | undefined;
     let identityRef: SnapshotActorRef | undefined;
     const getIdentityScope = () =>
       (identityScope ??= createMaterializedInertActorScope(
         actorLogic,
-        identitySourceRef,
-        identitySourceChildren,
+        state.sourceRef,
+        state.sourceChildren,
         undefined,
         sourceSelf
       ));
@@ -269,7 +273,11 @@ export function createInertActorScope<T extends AnyActorLogic>(
       if (state.snapshot !== undefined) {
         (scope.self as any)._snapshot = state.snapshot;
       }
-      return (state.materialized = scope);
+      state.sourceRef = undefined;
+      state.sourceChildren = {};
+      state.materialized = scope;
+      state.materialize = () => scope;
+      return scope;
     };
     state.identityProvider = () => {
       if (identityRef) {
