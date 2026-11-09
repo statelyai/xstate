@@ -39,8 +39,8 @@ const durable = createDurable(machine, {
 const output = await durable.run(input);
 ```
 
-Runtime operations you omit keep their local behavior — spawned machine
-children run in this process, for example.
+Runtime operations you omit keep their local behavior. For example, spawned machine
+children run in this process.
 
 `enqueueRootEvent` is the narrow hook most co-located hosts need: it receives
 events sent to the execution root while the loop is parked, or at any time
@@ -53,8 +53,8 @@ runtime.
 The primary durable unit for async work is the actor itself: a developer
 writes a normal promise (`fromPromise`, `createAsyncLogic`) and invokes it;
 the `runLogic` operation hands the host the whole body as one journal
-entry. The actor's identity — `address`, string `src` key and serializable
-`input` — crosses any boundary, so a host either wraps the provided `exec`
+entry. The actor's identity (`address`, string `src` key and serializable
+`input`) crosses any boundary, so a host either wraps the provided `exec`
 in its own step primitive, or ignores it entirely and re-runs the
 registered logic on a remote executor from `(src, input)` alone; the output
 flows back as the actor's ordinary completion event. No step vocabulary
@@ -65,7 +65,7 @@ runLogic: (actor, exec) => ctx.run(actor.address, exec)          // in-process j
 runLogic: (actor) => activities.runLogic(actor.src, actor.getSnapshot().input) // remote executor
 ```
 
-Custom actions follow the same rule — durability crosses a boundary as
+Custom actions follow the same rule: durability crosses a boundary as
 declared identity plus serializable data, never as a closure. An action
 enqueued as a named function with serializable arguments
 (`enq(notifyApprover, context.orderId)`) carries `(type, args)` in its
@@ -75,19 +75,19 @@ descriptor, so a remote-executor host can dispatch it worker-side and ignore
 by its effect ID. Work heavy enough to deserve an activity is usually an
 actor, not an action.
 
-For finer granularity — several independently-journaled awaits — split into
+For finer granularity (several independently-journaled awaits), split into
 separate invoked actors: each actor is its own journal entry, and the states
 between them make the progress visible. Do not reach for `enq.step` on a
-durable host; it is the [hostless durability](actor-logic.md) tool — the
-snapshot is its journal — and on a durable host it only duplicates what
+durable host; it is the [hostless durability](actor-logic.md) tool (the
+snapshot is its journal), and on a durable host it only duplicates what
 `runLogic` already provides. When restored snapshots that carry step results
 do run under a durable host, `enq.step` routes through the `runStep`
 operation:
-implement it to journal steps in the host's journal — a memoized result
-replays without re-running the step — and the built-in
+implement it to journal steps in the host's journal (a memoized result
+replays without re-running the step), and the built-in
 snapshot memoization steps aside. Unlike other operations, a step is an
 orchestration frame that may itself await runtime operations of the same
-execution, so it is never serialized behind them — and for the same reason
+execution, so it is never serialized behind them. For the same reason,
 `executeEffects` resolves without awaiting it. The `runStep` helper exported
 from `xstate` exposes the built-in behavior. `exec` is a closure over live
 execution state: run it in this process and journal its result; it cannot be
@@ -99,7 +99,7 @@ either race its durable wait against the pending `runLogic`/`runStep`
 promises it created (the natural shape when they map to the engine's own
 step primitives), or drain them to empty first. An in-flight step ends by
 completing its actor, and that completion event cannot satisfy a durable
-wait that was already registered with the engine — the run deadlocks until
+wait that was already registered with the engine, so the run deadlocks until
 its idle timeout. The in-process loop above needs none of this, because any
 later event resolves its wait. Operations initiated by live child
 actors (parent sends, timers, terminations) route to your implementations
@@ -188,14 +188,14 @@ of a local child. Session ids embed a random per-process system id, so a
 host that journals the execution's own events (rather than only external
 ones) must pin `executionId` on the adapter: session ids become
 `<executionId>:<n>`, a deterministic function of actor-creation order, and a
-replayed execution re-creates the same ids — a journaled completion still
+replayed execution re-creates the same ids, so a journaled completion still
 matches the child the replay re-creates. Uniqueness across executions is the
 host's responsibility. For a remote child the owning runtime is the authority on
 staleness by default; a host that stores an opaque `incarnation` token on
 the persisted child entry gets the same guard on the referencing side. The
 token is the owner's `sessionId` for the child and the restored handle
-carries it as its own `sessionId` — one incarnation identity, one rule: a
-ref that knows its incarnation compares it, one that does not defers to the
+carries it as its own `sessionId`. A
+ref that knows its incarnation compares it; one that does not defers to the
 owner. `sendTo` effect descriptors journal the target's token so a send
 replayed after the address was reincarnated is detectable.
 
@@ -277,11 +277,11 @@ timer is no longer pending is ignored.
 ordered effects with stable IDs such as `0:0` and `1:0`, and event waits with
 IDs such as `event:0`. Memoize or deduplicate each operation using that ID:
 replaying the same events from the beginning reconstructs the same snapshots,
-effects, waits and IDs — not just the same resulting snapshot, but the same
-effects in the same order, which is what hosts that match journal entries
+effects, waits and IDs. This means the same effects in the same order, not
+only the same resulting snapshot, which is what hosts that match journal entries
 positionally (Temporal, Restate) depend on. Each `DurableEffect` also carries a serializable
-`descriptor` — actor references replaced by `{ $actor: address, incarnation? }` and actor sources by
-source keys — for journaling; payload fields such as `event` and `input` pass
+`descriptor` for journaling, with actor references replaced by `{ $actor: address, incarnation? }` and actor sources by
+source keys; payload fields such as `event` and `input` pass
 through by reference and are only as serializable as their values.
 
 Every inter-actor edge is an asynchronous handoff to the runtime.
@@ -305,9 +305,9 @@ pairwise sender-to-receiver ordering: for a given pair of actors, events sent
 from the first to the second are enqueued in send order, and an undeliverable
 event is dead-lettered rather than retried. This matches the Erlang and Akka
 defaults. A dead letter is reported through the `deadLetter` runtime
-operation (and the `onRejectedEvent` hook) — observability, not
+operation (and the `onRejectedEvent` hook). This is for observability, not
 retry. Ordering is not transitive
-across intermediaries. The durable path is stronger — the handoff queue serializes
+across intermediaries. The durable path is stronger: the handoff queue serializes
 every operation of an execution globally. A host `sendEvent` that routes
 remotely is responsible for preserving pairwise ordering on its transport.
 
@@ -320,11 +320,11 @@ children. Incarnations of local children do not survive persist and restore
 unless `executionId` is pinned.
 
 Because every handoff queues, a runtime operation must never await another
-runtime operation of the same execution through the actor system — it would
+runtime operation of the same execution through the actor system, because it would
 wait behind itself. The `deliverEvent`, `stopActor` and `terminateActor`
 helpers exported from `xstate` expose the local behaviors and are always safe
 to call directly. An implemented runtime operation replaces the local
-behavior entirely, including its bookkeeping — a `stopActor` that only journals
+behavior entirely, including its bookkeeping. A `stopActor` that only journals
 must call the `stopActor` helper for the local stop cascade, and a `sendEvent`
 that routes locally must call `deliverEvent`. When a remote runtime can
 deliver the same completion more than once (retries, replays), the host is
@@ -332,7 +332,7 @@ responsible for deduplicating before handing it to the execution.
 
 By default, events addressed to the root actor do not reach `sendEvent` during
 `executeEffects`: the execution captures and retains them, and
-`waitForEvent()` hands them out — in capture order — before deferring to the
+`waitForEvent()` hands them out in capture order before deferring to the
 adapter. While the loop is parked in the adapter's wait, a root-addressed
 event reaches `enqueueRootEvent`, or `sendEvent` when the adapter implements
 the broader routing override, and belongs in the host's mailbox. Producing one
@@ -360,7 +360,7 @@ Change the state of other actors only at the top of the drive loop.
 
 ### Journaling rules
 
-A journaled step's closure must contain only the external side effect —
+A journaled step's closure must contain only the external side effect:
 nothing that re-enters the engine's journal, and nothing that mutates local
 actors.
 
@@ -373,8 +373,8 @@ actors.
   the runtime operations make.
 - **Local actor mutations stay outside the journal.** A journaled closure is
   skipped on replay: calling `deliverEvent`, `stopActor`, or starting an
-  actor inside one rebuilds a different actor tree than the recorded run —
-  silently, with no error. Re-run local mutations unjournaled on every
+  actor inside one rebuilds a different actor tree than the recorded run,
+  silently and with no error. Re-run local mutations unjournaled on every
   replay; journal only work that must not run twice.
 
 A per-effect `runtime(metadata, effect)` factory is available for hosts that
@@ -396,7 +396,7 @@ I/O:
 different effect sequence on replay, and nothing detects the divergence.
 Perform such work inside journaled operations (the host's `executeAction`,
 where the recorded result replays), or derive values deterministically from
-what the snapshot already carries — addresses and effect IDs are stable
+what the snapshot already carries. Addresses and effect IDs are stable
 across replays and make good seeds and idempotency keys.
 
 ```ts
@@ -416,27 +416,26 @@ entry: ({ context }, enq) => {
 `getPersistedSnapshot(snapshot)` embeds each child's persisted state: the
 whole-tree checkpoint of a runtime that co-locates the tree.
 `getPersistedSnapshot(snapshot, { embedChildren: false })` instead references
-children by logical address, leaving each child's state — including its own
-subtree — with the runtime that owns it; the option applies to the whole
+children by logical address, leaving each child's state (including its own
+subtree) with the runtime that owns it; the option applies to the whole
 tree, not per placement boundary. Restoring an address-only child produces a
 location-transparent handle: sends route through the system runtime, its
 snapshot exposes lifecycle only (a full snapshot is the last value an actor
 published, which only co-located actors observe), `subscribe` and `on` are
 inert (observation is co-location), and completion staleness for it is the
 owning runtime's responsibility. Persisting a handle from the referencing
-side throws — its state lives with the runtime that owns it. A restored handle keeps its
-persisted address verbatim — the owning runtime's identity for the child.
+side throws, because its state lives with the runtime that owns it. A restored handle keeps its
+persisted address verbatim as the owning runtime's identity for the child.
 
 `durable.getActorRef(snapshot)` returns the root actor reference behind a
 snapshot this execution produced, for addressing and inspection.
 `durable.getActorRef(snapshot, address)` resolves a logical address against
-the snapshot's live actor tree instead — the tool for hosts whose mailbox
-stores addresses as strings and must deliver to the actor behind one —
-returning `undefined` when no live actor has that address (a timer firing
+the snapshot's live actor tree instead. Use it in hosts whose mailbox
+stores addresses as strings and must deliver to the actor behind one. It returns `undefined` when no live actor has that address (a timer firing
 for an actor that already completed).
 
 `createDurable(logic, adapter, { inspect })` observes the execution's
-inspection events — the `@xstate.actor` / `@xstate.transition` protocol,
+inspection events (the `@xstate.actor` / `@xstate.transition` protocol)
 across the whole live actor tree, including transitions computed by the pure
 path. This is host observability, not part of the durable contract: use it
 for operation logs, tracing and test instrumentation, and keep the adapter
@@ -447,7 +446,7 @@ itself pure physics.
 When the machine declares a runtime validator, an external event whose payload
 fails its schema is rejected at the boundary: `transition()` returns the
 snapshot unchanged together with a `@xstate.deadLetter` effect, and never
-throws. Replay stays total — replaying a poisoned queued event produces the
+throws. Replay stays total: replaying a poisoned queued event produces the
 same unchanged snapshot and the same rejection effect every time.
 
 The effect executes through the `deadLetter` runtime operation, so a host
@@ -491,8 +490,8 @@ the effects and the runtime installation. `createActor` is the built-in
 in-process runtime over the same pure relations; `createDurable` is the
 journaled one.
 
-Effects are plain objects — each has a serializable `descriptor` and an
-`exec(runtime)` method — so a host may take `[snapshot, effects]` from the
+Effects are plain objects. Each has a serializable `descriptor` and an
+`exec(runtime)` method, so a host may take `[snapshot, effects]` from the
 pure APIs and execute them entirely its own way. Dropping `executeEffects`
 means providing its four services yourself: transitive settlement (an
 effect's operations trigger further operations; "executed" must mean the

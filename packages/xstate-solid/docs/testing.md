@@ -31,7 +31,7 @@ Because the snapshot is a store, a test can also count evaluations inside a memo
 `machine.provide(...)` swaps named implementations without touching the machine's states or transitions. This is how the package's own tests avoid real network calls.
 
 ```ts
-// uploadMachine.ts — the boundary is a named actor
+// uploadMachine.ts: the boundary is a named actor
 const uploadMachine = createMachine({
   actors: {
     uploadFile: createAsyncLogic<string, { file: File }>({

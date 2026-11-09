@@ -9,7 +9,7 @@ Use `@xstate/effect/atom` to expose an actor through Effect's reactive atoms. Th
 
 ## Create actor atoms
 
-`createActorAtoms(runtime, logic, options?)` takes an `Atom.runtime` whose Layer provides the logic's services. When the logic requires input, pass `{ input }`; TypeScript rejects missing or mismatched input, just as it does with `createEffectActor`.
+`createActorAtoms(runtime, logic, options?)` takes an `Atom.runtime` whose Layer provides the logic's services. When the logic requires input, pass `{ input }`; TypeScript rejects missing or mismatched input, as it does with `createEffectActor`.
 
 This complete example waits for the runtime, sends an approval and reads a selector:
 

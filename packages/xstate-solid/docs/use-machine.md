@@ -50,7 +50,7 @@ export function MediaPlayer() {
 
 | Index | Value | Description |
 | --- | --- | --- |
-| `0` | `snapshot` | A deeply reactive [snapshot](../snapshots.md) — a Solid store, not an accessor. |
+| `0` | `snapshot` | A deeply reactive [snapshot](../snapshots.md): a Solid store, not an accessor. |
 | `1` | `send` | Sends an event to the actor. |
 | `2` | `actorRef` | The running actor, for `subscribe(...)`, `getPersistedSnapshot()` or passing to children. |
 

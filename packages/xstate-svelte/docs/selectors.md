@@ -25,7 +25,7 @@ description: Subscribe to selected actor data in Svelte with useSelector.
 
 | Argument | Description |
 | --- | --- |
-| `actor` | An actor reference. Required — unlike the Vue package, there is no support for `undefined` or a store of actors. |
+| `actor` | An actor reference. Required. Unlike the Vue package, there is no support for `undefined` or a store of actors. |
 | `selector` | `(snapshot) => value`. |
 | `compare` | Optional equality function. Defaults to `(a, b) => a === b`. |
 
