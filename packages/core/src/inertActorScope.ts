@@ -101,6 +101,13 @@ function getLazyInertActorState(
   return (actorScope as LazyInertActorScope)[lazyInertActorState];
 }
 
+/** Returns the already-materialized system of a lazy scope. @internal */
+export function peekMaterializedSystem(
+  actorScope: AnyActorScope
+): AnyActor['system'] | undefined {
+  return getLazyInertActorState(actorScope)?.materialized?.system;
+}
+
 function materializeInertActorScope(actorScope: AnyActorScope): AnyActorScope {
   return getLazyInertActorState(actorScope)!.materialize();
 }

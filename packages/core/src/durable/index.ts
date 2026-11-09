@@ -8,11 +8,12 @@ import { deliverEvent } from '../runtimeHelpers.ts';
 import {
   attachSnapshotActorRef,
   createInertActorScope,
+  peekMaterializedSystem,
   setInertActorScopeSnapshot
 } from '../inertActorScope.ts';
 import { isRemoteActorRef } from '../remoteActorRef.ts';
 import { createStartEffect, createTimerEffect } from '../transitionActions.ts';
-import { getSnapshotActorRef, withSystemRuntime } from '../snapshotActorRef.ts';
+import { getSnapshotActorRef } from '../snapshotActorRef.ts';
 import {
   encodeAddressSegment,
   withExecutionIdentity,
@@ -22,9 +23,10 @@ import {
   type ActorSystemRuntime
 } from '../system.ts';
 import type { InspectionEvent } from '../inspection.ts';
-import { initialTransition, transition } from '../transition.ts';
+import { initialTransition, transitionWithScope } from '../transition.ts';
 import type {
   AnyActor,
+  AnyActorScope,
   AnyActorLogic,
   AnyEventObject,
   CustomExecutableEffect,
@@ -764,14 +766,21 @@ export function createDurable<TLogic extends AnyActorLogic>(
       return [installSystemRuntime(snapshot), tagEffects(effects)];
     },
     transition(snapshot, event) {
+      let actorScope: AnyActorScope;
       const [nextSnapshot, effects] = withSystemInspector(inspect, () =>
-        withExecutionIdentity(executionIdentity, () =>
-          withSystemRuntime(wrappedSystemRuntime, () =>
-            transition(logic, snapshot, event)
-          )
-        )
+        withExecutionIdentity(executionIdentity, () => {
+          actorScope = createInertActorScope(logic, snapshot);
+          return transitionWithScope(logic, snapshot, event, actorScope);
+        })
       );
-      return [installSystemRuntime(nextSnapshot), tagEffects(effects)];
+      installSystemRuntime(nextSnapshot);
+      if (nextSnapshot === snapshot && wrappedSystemRuntime) {
+        const system = peekMaterializedSystem(actorScope!);
+        if (system) {
+          system.runtime = wrappedSystemRuntime;
+        }
+      }
+      return [nextSnapshot, tagEffects(effects)];
     },
     getActorRef(snapshot, address) {
       const root = getSnapshotActorRef(snapshot as Snapshot<unknown>)?.actor;

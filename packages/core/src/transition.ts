@@ -92,7 +92,21 @@ export function transition<T extends AnyActorLogic>(
   snapshot: SnapshotFrom<T>,
   event: EventFromLogic<T>
 ): [nextSnapshot: SnapshotFrom<T>, actions: ExecutableEffectFrom<T>[]] {
-  const actorScope = createInertActorScope(logic, snapshot);
+  return transitionWithScope(
+    logic,
+    snapshot,
+    event,
+    createInertActorScope(logic, snapshot)
+  );
+}
+
+/** Calculates a transition using the supplied inert scope. @internal */
+export function transitionWithScope<T extends AnyActorLogic>(
+  logic: T,
+  snapshot: SnapshotFrom<T>,
+  event: EventFromLogic<T>,
+  actorScope: AnyActorScope
+): [nextSnapshot: SnapshotFrom<T>, actions: ExecutableEffectFrom<T>[]] {
   setInertActorScopeSnapshot(actorScope, snapshot, false);
   const [nextSnapshot, effects] = finalizeTransitionResult(
     actorScope,
