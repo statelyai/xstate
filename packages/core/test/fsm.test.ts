@@ -64,6 +64,54 @@ describe('createFSM', () => {
     );
   });
 
+  it('applies an own undefined property when it is absent from context', () => {
+    const machine = createFSM<{ extra?: undefined }>({
+      context: {},
+      initial: 'idle',
+      states: { idle: { on: { patch: { context: { extra: undefined } } } } }
+    });
+
+    const [next] = machine.transition(machine.initialState, { type: 'patch' });
+
+    expect(Object.hasOwn(next.context, 'extra')).toBe(true);
+  });
+
+  it('detects signed zero changes and preserves identity for NaN', () => {
+    const machine = createFSM<{ zero: number; value: number }>({
+      context: { zero: 0, value: NaN },
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            changeZero: { context: { zero: -0 } },
+            keepNaN: { context: { value: NaN } }
+          }
+        }
+      }
+    });
+
+    const [changed] = machine.transition(machine.initialState, {
+      type: 'changeZero'
+    });
+    expect(changed.context.zero).toBe(-0);
+    expect(
+      machine.transition(machine.initialState, { type: 'keepNaN' })[0]
+    ).toBe(machine.initialState);
+  });
+
+  it('applies enumerable symbol properties in a context patch', () => {
+    const key = Symbol('key');
+    const machine = createFSM<{ [key]: number }>({
+      context: { [key]: 0 },
+      initial: 'idle',
+      states: { idle: { on: { patch: { context: { [key]: 1 } } } } }
+    });
+
+    const [next] = machine.transition(machine.initialState, { type: 'patch' });
+
+    expect(next.context[key]).toBe(1);
+  });
+
   it('applies only own context patch keys', () => {
     const machine = createFSM<
       { count: number; inherited?: number },

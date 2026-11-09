@@ -460,13 +460,17 @@ export function createFSM<
           : typeof transition === 'function'
             ? transition({ context, event })
             : transition) || {};
-      // Copy only when the patch changes a value, so a no-op patch keeps the
-      // current snapshot. After the first copy every key matches. Iterate a
-      // spread copy so inherited keys, which the spread below ignores, are
-      // skipped.
-      for (const key in { ...patch }) {
-        if (patch![key] !== context[key]) {
-          context = { ...context, ...patch };
+      if (patch) {
+        // Compare the same enumerable own properties that the merge copies.
+        const patchEntries = { ...patch };
+        for (const key of Reflect.ownKeys(patchEntries) as (keyof TContext)[]) {
+          if (
+            !Object.hasOwn(context, key) ||
+            !Object.is(patchEntries[key], context[key])
+          ) {
+            context = { ...context, ...patchEntries };
+            break;
+          }
         }
       }
 
