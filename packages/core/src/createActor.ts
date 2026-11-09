@@ -1288,11 +1288,11 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
   }
 
   /**
-   * Returns the actor's serializable logical identity: `{ $actor: address }`.
+   * Returns the actor's serializable logical identity: `{ "@actor": address }`.
    * The result can be used as an `enq.sendTo(...)` target.
    */
   public toJSON(): SerializedActorRef {
-    return { $actor: this.address };
+    return { '@actor': this.address };
   }
 
   /**

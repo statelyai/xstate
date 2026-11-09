@@ -441,7 +441,7 @@ export function restoreMachineSnapshot<TMachine extends AnyStateMachine>(
       return value;
     }
     // The context object itself is data, never a serialized actor ref.
-    // Only an object whose keys are exactly `$actor` (+ `incarnation`)
+    // Only an object whose keys are exactly `@actor` (+ `incarnation`)
     // is a serialized ref; any other object is data.
     if (!isRoot && isSerializedActorRef(value)) {
       // A ref that names one of this snapshot's children revives to that
@@ -453,7 +453,7 @@ export function restoreMachineSnapshot<TMachine extends AnyStateMachine>(
       }
       return (
         Object.values(children).find(
-          (child) => child.address === value.$actor
+          (child) => child.address === value['@actor']
         ) ?? value
       );
     }

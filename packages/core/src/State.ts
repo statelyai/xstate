@@ -993,7 +993,7 @@ function persistContext(
           ? (contextPart.slice() as typeof contextPart)
           : { ...contextPart };
         // The address lets refs to non-children still route after restore.
-        copy[key] = { $actor: (value as any as AnyActor).address };
+        copy[key] = { '@actor': (value as any as AnyActor).address };
       } else {
         const valuePath = Array.isArray(contextPart)
           ? `${path}[${key}]`

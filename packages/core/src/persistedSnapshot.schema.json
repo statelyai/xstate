@@ -16,7 +16,7 @@
     "status": { "enum": ["active", "done", "error", "stopped"] },
     "value": { "$ref": "#/$defs/stateValue" },
     "context": {
-      "description": "Application context. Actor refs are replaced by { $actor: address }."
+      "description": "Application context. Actor refs are replaced by { '@actor': address }."
     },
     "output": { "description": "Present when status is 'done'." },
     "error": { "description": "Present when status is 'error'." },
@@ -123,9 +123,9 @@
             { "type": "string" },
             {
               "type": "object",
-              "required": ["$actor"],
+              "required": ["@actor"],
               "properties": {
-                "$actor": { "type": "string" },
+                "@actor": { "type": "string" },
                 "incarnation": { "type": "string" }
               },
               "additionalProperties": false

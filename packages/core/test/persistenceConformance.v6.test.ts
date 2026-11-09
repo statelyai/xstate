@@ -494,21 +494,21 @@ describe('serialized actor refs in context', () => {
     })
   });
 
-  it('persists actor refs as { $actor: address }', () => {
+  it('persists actor refs as { "@actor": address }', () => {
     const actor = createActor(parent).start();
     const persisted = roundTrip(actor.getPersistedSnapshot()) as any;
     actor.stop();
 
-    expect(persisted.context.ref).toEqual({ $actor: 'parent/kid' });
+    expect(persisted.context.ref).toEqual({ '@actor': 'parent/kid' });
   });
 
-  it('revives only objects whose keys are exactly $actor (+ incarnation)', () => {
+  it('revives only objects whose keys are exactly @actor (+ incarnation)', () => {
     const actor = createActor(parent).start();
     const persisted = roundTrip(actor.getPersistedSnapshot()) as any;
     actor.stop();
     persisted.context.other = {
-      tagged: { $actor: 'parent/kid', note: 'data' },
-      pinned: { $actor: 'parent/kid', incarnation: 'x:9' }
+      tagged: { '@actor': 'parent/kid', note: 'data' },
+      pinned: { '@actor': 'parent/kid', incarnation: 'x:9' }
     };
 
     const restored = restoreActor(parent, persisted);
@@ -516,8 +516,8 @@ describe('serialized actor refs in context', () => {
 
     expect(context.ref).toBe(children.kid);
     expect(context.other).toEqual({
-      tagged: { $actor: 'parent/kid', note: 'data' },
-      pinned: { $actor: 'parent/kid', incarnation: 'x:9' }
+      tagged: { '@actor': 'parent/kid', note: 'data' },
+      pinned: { '@actor': 'parent/kid', incarnation: 'x:9' }
     });
   });
 });

@@ -2265,7 +2265,7 @@ export interface ActorLike<
  */
 export interface SerializedActorRef {
   /** The actor's logical address. */
-  $actor: string;
+  '@actor': string;
   /** The incarnation token, when the serializer knows it. */
   incarnation?: string;
 }

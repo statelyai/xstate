@@ -38,7 +38,7 @@ const stripAnonSuffix = (value: unknown) =>
   );
 
 const isActorMarker = (item: unknown) =>
-  !!item && typeof item === 'object' && '$actor' in item;
+  !!item && typeof item === 'object' && '@actor' in item;
 
 const stripErrorPrefix = (message: string) =>
   message.replace(/^(\w*Error:\s*)+/, '').trim();

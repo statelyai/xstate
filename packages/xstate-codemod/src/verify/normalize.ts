@@ -52,7 +52,7 @@ export function toJson(
   }
   if (value === null) return null;
   const obj = value as any;
-  if (isActorRef(obj)) return { $actor: normalizeId(obj.id) };
+  if (isActorRef(obj)) return { '@actor': normalizeId(obj.id) };
   if (obj instanceof Error) return String(obj);
   if (typeof obj.toJSON === 'function')
     return toJson(obj.toJSON(), stats, seen, maxDepth);

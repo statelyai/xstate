@@ -280,7 +280,7 @@ replaying the same events from the beginning reconstructs the same snapshots,
 effects, waits and IDs. This means the same effects in the same order, not
 only the same resulting snapshot, which is what hosts that match journal entries
 positionally (Temporal, Restate) depend on. Each `DurableEffect` also carries a serializable
-`descriptor` for journaling, with actor references replaced by `{ $actor: address, incarnation? }` and actor sources by
+`descriptor` for journaling, with actor references replaced by `{ @actor: address, incarnation? }` and actor sources by
 source keys; payload fields such as `event` and `input` pass
 through by reference and are only as serializable as their values.
 

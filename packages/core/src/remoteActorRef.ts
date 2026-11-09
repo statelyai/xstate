@@ -30,12 +30,12 @@ export function isSerializedActorRef(
     typeof target !== 'object' ||
     target === null ||
     Array.isArray(target) ||
-    typeof (target as SerializedActorRef).$actor !== 'string'
+    typeof (target as SerializedActorRef)['@actor'] !== 'string'
   ) {
     return false;
   }
   for (const key in target) {
-    if (key !== '$actor' && key !== 'incarnation') {
+    if (key !== '@actor' && key !== 'incarnation') {
       return false;
     }
   }
@@ -58,12 +58,12 @@ export function createMissingAddressError(target: SerializedActorRef): Error {
       ? xstateError(
           50,
           ...(target.incarnation === undefined
-            ? [target.$actor]
-            : [target.$actor, target.incarnation])
+            ? [target['@actor']]
+            : [target['@actor'], target.incarnation])
         )
       : target.incarnation === undefined
-        ? `Unable to send event to actor '${target.$actor}': no live actor has that address`
-        : `Unable to send event to actor '${target.$actor}' (incarnation '${target.incarnation}'): no live actor has that address and incarnation`
+        ? `Unable to send event to actor '${target['@actor']}': no live actor has that address`
+        : `Unable to send event to actor '${target['@actor']}' (incarnation '${target.incarnation}'): no live actor has that address and incarnation`
   );
 }
 
@@ -76,7 +76,7 @@ export function resolveSerializedActorRef(
   system: { _getByAddress?: (address: string) => AnyActor | undefined },
   target: SerializedActorRef
 ): AnyActor | undefined {
-  const live = system._getByAddress?.(target.$actor);
+  const live = system._getByAddress?.(target['@actor']);
   return live &&
     (target.incarnation === undefined || live.sessionId === target.incarnation)
     ? live
@@ -136,7 +136,7 @@ export function createInertActorRef(options: {
             : xstateError(51, id)
         );
       }
-      return { $actor: address };
+      return { '@actor': address };
     }
   };
   const ref = handle as unknown as AnyActor;
@@ -251,7 +251,7 @@ export function createRemoteActorRef(
     // The same shape Actor.toJSON produces, so serialized snapshots carry
     // one actor-reference shape whether a child is co-located or remote.
     toJSON(): SerializedActorRef {
-      return { $actor: options.address };
+      return { '@actor': options.address };
     }
   };
   const ref = handle as unknown as AnyActor;

@@ -295,8 +295,8 @@ export class EffectActor<TLogic extends AnyActorLogic> implements ActorRef<
     return this;
   }
 
-  toJSON(): { $actor: string } {
-    return { $actor: this.address };
+  toJSON(): { '@actor': string } {
+    return { '@actor': this.address };
   }
 
   /** @internal Publishes a snapshot produced by the execution loop. */

@@ -993,11 +993,11 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
       } else if (
         // A live actor of another incarnation is stale locally; an
         // address this system cannot see may belong to a host runtime.
-        this._getByAddress(target.$actor) ||
+        this._getByAddress(target['@actor']) ||
         !this.runtime?.sendEvent
       ) {
         return this.deadLetter(source, undefined, event, 'missingTarget', {
-          targetId: getAddressId(target.$actor),
+          targetId: getAddressId(target['@actor']),
           error: createMissingAddressError(target)
         });
       }
