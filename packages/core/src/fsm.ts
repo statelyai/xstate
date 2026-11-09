@@ -448,6 +448,9 @@ export function createFSM<
     getPersistedSnapshot: (snapshot) => snapshot,
     transition(snapshot, event) {
       let { value, context } = snapshot;
+      if (!Object.hasOwn(config.states, value)) {
+        return [snapshot, []];
+      }
       const transitions = config.states[value]?.on as
         | Record<string, FSMTransition<TContext, TEvent, TState> | undefined>
         | undefined;

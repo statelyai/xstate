@@ -101,6 +101,21 @@ describe('createFSM', () => {
     ).toBe(machine.initialState);
   });
 
+  it('ignores transitions on inherited state definitions', () => {
+    const states = { idle: { on: { go: { target: 'inherited' } } } };
+    Object.setPrototypeOf(states, {
+      inherited: { on: { back: { target: 'idle' } } }
+    });
+    const machine = createFSM<{}, { type: 'go' } | { type: 'back' }>({
+      initial: 'idle',
+      states
+    });
+
+    const [next] = machine.transition(machine.initialState, { type: 'go' });
+    expect(next.value).toBe('inherited');
+    expect(machine.transition(next, { type: 'back' })[0]).toBe(next);
+  });
+
   it('materializes output and error as own snapshot properties', () => {
     const machine = createFSM({
       initial: 'inactive',
