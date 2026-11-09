@@ -65,13 +65,13 @@ children and pending timers. Persist `execution.nextTransitionIndex` with the
 checkpoint and pass it to the next execution's adapter. See
 [durable checkpoint restoration](durable-execution.md).
 
-An actor's address is the `/`-joined path of actor ids from the root, such as `order/worker:0`. It is stable across persistence and restore, unlike `sessionId`, which identifies one incarnation. Generated child ids are recorded in each snapshot's `_nextActorIds`, so restored actors keep numbering where they left off.
+An actor's address is the `/`-joined path of actor ids from the root, such as `order/worker:0`. It is stable across persistence and restore, unlike `sessionId`, which identifies one incarnation. Generated child ids are recorded in each snapshot's `nextActorIds`, so restored actors keep numbering where they left off.
 
 ## Compatibility
 
 A persisted snapshot is a plain JSON-shaped object. Restoring one is lenient: XState reads the fields it knows and does not check a format marker.
 
-These envelope fields are stable across 6.x releases: `status`, `value`, `context`, `output`, `error`, `historyValue`, `stateInputs`, `children`, `timers` and `machine`. The [persisted snapshot JSON Schema](https://github.com/statelyai/xstate/blob/next/packages/core/src/persistedSnapshot.schema.json) (draft 2020-12) describes them. Nested machine children carry their own envelope in `children[id].snapshot`. A child entry's `src` is the registered source key the child restores from. A child invoked with inline logic has no `src`; it restores through the invoke definition with its id among the restored active states, and restoring fails when no active state, or more than one, invokes that id. Fields prefixed with `_`, such as `_nextActorIds`, are private. They round-trip verbatim; do not read or write them.
+These envelope fields are stable across 6.x releases: `status`, `value`, `context`, `output`, `error`, `historyValue`, `stateInputs`, `children`, `timers` and `machine`. The [persisted snapshot JSON Schema](https://github.com/statelyai/xstate/blob/next/packages/core/src/persistedSnapshot.schema.json) (draft 2020-12) describes them. Nested machine children carry their own envelope in `children[id].snapshot`. A child entry's `src` is the registered source key the child restores from. A child invoked with inline logic has no `src`; it restores through the invoke definition with its id among the restored active states, and restoring fails when no active state, or more than one, invokes that id. `nextTimerId` and `nextActorIds` are private. They round-trip verbatim; do not read or write them. No field name in the envelope starts with `$` or `_`, so it can be stored in document databases such as Convex and MongoDB that reserve those prefixes.
 
 `timers` is a list of pending timers in scheduling order. A delayed `enq.raise(...)` or `enq.sendTo(...)` entry carries its `id`, or a `seq` number when scheduled without one. Built-in `after` and `timeout` timers have neither; their `event` (`xstate.after`, `xstate.timeout.state` or `xstate.timeout.actor`) identifies them.
 
@@ -160,8 +160,8 @@ const checkoutVersions = machineVersions([
       children: z.object({}),
       historyValue: z.object({}),
       timers: z.tuple([]),
-      _nextActorIds: z.record(z.string(), z.number()).optional(),
-      _nextTimerId: z.number(),
+      nextActorIds: z.record(z.string(), z.number()).optional(),
+      nextTimerId: z.number(),
       stateInputs: z.undefined().optional(),
       machine: z.object({
         id: z.literal('checkout'),

@@ -1,8 +1,18 @@
 ---
 'xstate': major
+'@xstate/test': major
 ---
 
-The serialized actor reference key is renamed from `$actor` to `@actor`. This affects persisted snapshots, `systemTransition` snapshots, `describeExecutableEffect` descriptors, `sendTo` targets and dead letters.
+Serialized output no longer uses field names that start with `$` or `_`. Stores such as Convex reject both prefixes, and MongoDB restricts `$`-prefixed field names, so persisted snapshots, `systemTransition` snapshots and effect descriptors could not be stored without rewriting them.
+
+| Before                    | After                    | Where                                                                                                      |
+| ------------------------- | ------------------------ | ---------------------------------------------------------------------------------------------------------- |
+| `{ $actor, incarnation }` | `{ '@actor', incarnation }` | `SerializedActorRef`: persisted context, `systemTransition` snapshots, effect descriptors, `sendTo` targets, dead letters |
+| `_nextTimerId`            | `nextTimerId`            | Persisted snapshots, `systemTransition` snapshots                                                          |
+| `_nextActorIds`           | `nextActorIds`           | Persisted snapshots, `systemTransition` snapshots                                                          |
+| `_stateInputs`            | `stateInputs`            | `systemTransition` snapshots (persisted snapshots already used `stateInputs`)                              |
+| `{ $error, message }`     | `{ '@error', message }`  | `systemTransition` snapshots, `@xstate/test` traces                                                        |
+| `$stateNode`, `$systemMapper` | `@stateNode`, `@systemMapper` | `systemTransition` snapshots                                                                        |
 
 ```ts
 // Before
@@ -11,4 +21,6 @@ The serialized actor reference key is renamed from `$actor` to `@actor`. This af
 { '@actor': 'order/worker', incarnation: 'a:1' }
 ```
 
-Stores such as Convex and MongoDB reject field names that start with `$`, so the old shape could not be stored without rewriting it. Snapshots written by `6.0.0-beta.1` that contain `$actor` are not revived as actor references.
+`snapshot.toJSON()` no longer includes the private `_nextTimerId` and `_nextActorIds` counters.
+
+Snapshots written by `6.0.0-beta.1` with the old field names are not converted on restore. Schemas that validate persisted snapshots (for example with `machineVersions`) must use the new names.

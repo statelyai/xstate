@@ -54,7 +54,7 @@ describe('machineVersions', () => {
           historyValue: z.record(z.string(), z.unknown()),
           timers: z.array(z.unknown()),
           _nextActorId: z.number(),
-          _nextTimerId: z.number(),
+          nextTimerId: z.number(),
           machine: z.object({
             id: z.literal('checkout'),
             version: z.literal('1')
@@ -79,7 +79,7 @@ describe('machineVersions', () => {
       historyValue: {},
       timers: [],
       _nextActorId: 0,
-      _nextTimerId: 0,
+      nextTimerId: 0,
       machine: { id: 'checkout', version: '1' },
       version: '1'
     } as const;
@@ -122,7 +122,7 @@ describe('machineVersions', () => {
         children: {};
         historyValue: {};
         timers: [];
-        _nextTimerId: number;
+        nextTimerId: number;
       }>()
     } as const;
     const current = createMachine({
@@ -151,7 +151,7 @@ describe('machineVersions', () => {
         children: {};
         historyValue: {};
         timers: [];
-        _nextTimerId: number;
+        nextTimerId: number;
       }>()
     } as const;
     const current = createMachine({
@@ -1007,7 +1007,7 @@ describe('machineVersions', () => {
         historyValue: z.object({}),
         timers: z.tuple([]),
         _nextActorId: z.number().optional(),
-        _nextTimerId: z.number()
+        nextTimerId: z.number()
       })
     } as const;
     const versions = machineVersions([historical], { unversioned: '0' });
@@ -1019,7 +1019,7 @@ describe('machineVersions', () => {
       children: {},
       historyValue: {},
       timers: [],
-      _nextTimerId: 0
+      nextTimerId: 0
     });
 
     expect(parsed.source).toBe(historical);

@@ -412,13 +412,15 @@ export function restoreMachineSnapshot<TMachine extends AnyStateMachine>(
     // `_nextActorIds` plus the child-id fold below; dropped so old and new
     // snapshots round-trip to the same shape.
     _nextActorId: _legacyNextActorId,
+    nextTimerId,
+    nextActorIds,
+    stateInputs: _persistedStateInputs,
     ...persistedRest
   } = snapshot as any;
   // Fold generated-shaped child ids into the counters as a floor: snapshots
   // persisted before per-actor counters (or hand-crafted ones) still must
   // never reuse a live child's id.
-  let restoredCounters: Record<string, number> | undefined =
-    persistedRest._nextActorIds;
+  let restoredCounters: Record<string, number> | undefined = nextActorIds;
   for (const childId of Object.keys(snapshotChildren)) {
     const generated = parseGeneratedActorId(childId);
     if (
@@ -486,6 +488,7 @@ export function restoreMachineSnapshot<TMachine extends AnyStateMachine>(
       context: reviveContext(persistedRest.context, true),
       children,
       timers,
+      _nextTimerId: nextTimerId,
       _nextActorIds: restoredCounters,
       _nodes: nodes,
       // Derived from the resolved configuration, so a partial value such as

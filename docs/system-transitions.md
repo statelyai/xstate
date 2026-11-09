@@ -150,8 +150,8 @@ input, outputs, events and effect arguments are JSON-compatible. Actor reference
 state-node references, errors and named mappers use data markers. Errors retain
 name/message. Undefined properties follow ordinary JSON rules. Cycles,
 unregistered functions, live actors, class instances, symbols, bigint and
-nonfinite numbers are rejected. `@actor`, `$stateNode`, `$error` and
-`$systemMapper` marker shapes are reserved. Logic versions must match on replay.
+nonfinite numbers are rejected. `@actor`, `@stateNode`, `@error` and
+`@systemMapper` marker shapes are reserved. Logic versions must match on replay.
 
 Transition functions, guards and mappers must be deterministic and pure.
 Read external values from input/events and virtual time from `system._clock.now()`.

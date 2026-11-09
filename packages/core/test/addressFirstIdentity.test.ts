@@ -361,9 +361,9 @@ describe('children-by-address persistence', () => {
     coordinator.send({ type: 'MORE' });
     // Persist ONLY the subtree; its counters must travel with it.
     const persistedSubtree = coordinator.getPersistedSnapshot() as {
-      _nextActorIds?: Record<string, number>;
+      nextActorIds?: Record<string, number>;
     };
-    expect(persistedSubtree._nextActorIds).toEqual({ worker: 2 });
+    expect(persistedSubtree.nextActorIds).toEqual({ worker: 2 });
     root.stop();
 
     // Restore the subtree standalone (a different placement) and keep
@@ -887,7 +887,7 @@ describe('review findings: eighth round', () => {
     const restored = restoreActor(machine, persisted).start();
     const repersisted = restored.getPersistedSnapshot() as any;
     expect('_nextActorId' in repersisted).toBe(false);
-    expect(repersisted._nextActorIds).toEqual({ worker: 1 });
+    expect(repersisted.nextActorIds).toEqual({ worker: 1 });
   });
 });
 

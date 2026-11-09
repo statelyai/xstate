@@ -2725,13 +2725,13 @@ export class PropertyScenarioRunner<
 }
 
 /**
- * Replaces every `Error` in `value` with `{ $error: name, message }`, which JSON can carry: `JSON.stringify(new Error('x'))` is `{}`.
+ * Replaces every `Error` in `value` with `{ "@error": name, message }`, which JSON can carry: `JSON.stringify(new Error('x'))` is `{}`.
  * Fixtures are portable data, so this runs on everything they record;
  * `replayTest()` turns the marked objects back into errors.
  */
 function toPortableValue(value: unknown, seen = new Map<object, unknown>()) {
   if (value instanceof Error) {
-    return { $error: value.name, message: value.message };
+    return { '@error': value.name, message: value.message };
   }
   if (!value || typeof value !== 'object') {
     return value;
@@ -2773,9 +2773,12 @@ function fromPortableValue(value: unknown): unknown {
     return value;
   }
   const record = value as Record<string, unknown>;
-  if (typeof record.$error === 'string' && typeof record.message === 'string') {
+  if (
+    typeof record['@error'] === 'string' &&
+    typeof record.message === 'string'
+  ) {
     const error = new Error(record.message);
-    error.name = record.$error;
+    error.name = record['@error'];
     return error;
   }
   return Object.fromEntries(

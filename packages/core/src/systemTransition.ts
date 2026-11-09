@@ -203,7 +203,7 @@ function encode(
   mappers?: ReadonlyMap<(...args: any[]) => unknown, string>
 ): any {
   if (typeof value === 'function' && mappers?.has(value))
-    return { $systemMapper: mappers.get(value) };
+    return { '@systemMapper': mappers.get(value) };
   if (isHandle(value)) {
     if (!(value as any)[systemActorHandle])
       throw new Error(
@@ -233,9 +233,9 @@ function encode(
     typeof value.id === 'string' &&
     Array.isArray(value.path)
   ) {
-    result = { $stateNode: value.id };
+    result = { '@stateNode': value.id };
   } else if (value instanceof Error) {
-    result = { $error: value.name, message: value.message };
+    result = { '@error': value.name, message: value.message };
   } else if (Array.isArray(value)) {
     result = value.map((item) => encode(item, seen, mappers));
   } else {
@@ -271,10 +271,20 @@ function snapshotData(
     getMeta,
     getInputs,
     toJSON,
+    // Stores such as Convex reject `_`-prefixed field names.
+    _stateInputs: stateInputs,
+    _nextTimerId: nextTimerId,
+    _nextActorIds: nextActorIds,
     ...data
   } = snapshot;
   return encode(
-    { ...data, nodeIds: nodes.map((node: any) => node.id) },
+    {
+      ...data,
+      stateInputs,
+      nextTimerId,
+      nextActorIds,
+      nodeIds: nodes.map((node: any) => node.id)
+    },
     new Set(),
     mappers
   );
@@ -397,19 +407,19 @@ class SystemReduction {
   private decode(value: any, machine?: any): any {
     if (isReference(value)) return this.handle(value);
     if (!value || typeof value !== 'object') return value;
-    if (typeof value.$systemMapper === 'string') {
+    if (typeof value['@systemMapper'] === 'string') {
       const mapper =
-        Object.hasOwn(this.mappers, value.$systemMapper) &&
-        this.mappers[value.$systemMapper];
+        Object.hasOwn(this.mappers, value['@systemMapper']) &&
+        this.mappers[value['@systemMapper']];
       if (!mapper)
-        throw new Error(`Missing pure mapper '${value.$systemMapper}'.`);
+        throw new Error(`Missing pure mapper '${value['@systemMapper']}'.`);
       return mapper;
     }
-    if (typeof value.$stateNode === 'string')
-      return machine.getStateNodeById(value.$stateNode);
-    if (typeof value.$error === 'string') {
+    if (typeof value['@stateNode'] === 'string')
+      return machine.getStateNodeById(value['@stateNode']);
+    if (typeof value['@error'] === 'string') {
       const error = new Error(value.message);
-      error.name = value.$error;
+      error.name = value['@error'];
       if (error.name === 'TimeoutError')
         Object.setPrototypeOf(error, TimeoutError.prototype);
       return error;
@@ -517,6 +527,9 @@ class SystemReduction {
         ? createMachineSnapshot(
             {
               ...data,
+              _stateInputs: data.stateInputs,
+              _nextTimerId: data.nextTimerId,
+              _nextActorIds: data.nextActorIds,
               _nodes: data.nodeIds.map((id: string) =>
                 logic.getStateNodeById(id)
               )

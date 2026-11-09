@@ -801,7 +801,7 @@ it('owns async timeouts and rejects results arriving after cancellation', () => 
   });
   expect(next.actors.root.snapshot.status).toBe('error');
   expect(next.actors.root.snapshot.error).toMatchObject({
-    $error: 'TimeoutError'
+    '@error': 'TimeoutError'
   });
   expect(cancellations).toContainEqual(
     expect.objectContaining({
