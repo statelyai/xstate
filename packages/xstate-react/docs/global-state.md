@@ -39,7 +39,7 @@ The actor is started at import time and never stopped, so it survives every unmo
 | Lifetime | The page session | The provider's mount |
 | Instances | Exactly one | One per rendered provider |
 | Input | Fixed at module load | Per provider, via `options.input` |
-| Server rendering | Unsafe — shared between requests | Safe — one actor per render |
+| Server rendering | Unsafe: shared between requests | Safe: one actor per render |
 | Reset | Manual, via an event | Unmount and remount |
 
 Choose a module-scope actor when there is exactly one of the thing and it should outlive any component. Choose a provider when the actor is scoped to a screen, a route, a dialog, or an item, or when it needs input that only a component knows.

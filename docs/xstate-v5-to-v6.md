@@ -79,12 +79,12 @@ Beyond simplifying the action/guard surface, v6 introduces a number of features 
 
 ## 1. Inline functions replace action creators
 
-This is the largest change. Action creators (`assign`, `raise`, `sendTo`, `emit`, `log`, `cancel`, `enqueueActions`, `spawnChild`, `stopChild`, `forwardTo`, `sendParent`) are **no longer exported**.
+This is the largest change. Action creators (`assign`, `raise`, `sendTo`, `emit`, `log`, `cancel`, `enqueueActions`, `spawnChild`, `stopChild`, `forwardTo`, `sendParent`) are no longer exported.
 
-In v6, every `entry`, `exit`, and transition handler is a **single function** that receives `(args, enq)` where `enq` is a queue of side effects. The function can also **return** an object that the engine applies after it runs:
+In v6, every `entry`, `exit`, and transition handler is a **single function** that receives `(args, enq)` where `enq` is a queue of side effects. The function can also return an object that the engine applies after it runs:
 
 - **Transition handlers** (`on`, `always`, `after`, `onTimeout`, `onDone`, `onError`) - may return a target, a new `context`, `reenter`, or `meta`.
-- **Entry / exit actions** - may return a new `context` (or `children`). They **cannot** return a `target`; entry/exit cannot transition.
+- **Entry / exit actions** - may return a new `context` (or `children`). They cannot return a `target`; entry/exit cannot transition.
 
 Returned `context` values are patches. XState merges a patch into the current context at the top level (`{ ...context, ...patch }`): omitted keys keep their current values, and a nested object in the patch replaces the current value of that key. If a transition targets a state with a narrower `schemas.context`, the patch type requires the keys needed to satisfy that state's context.
 
@@ -241,7 +241,7 @@ An **entry / exit action** may return:
 | `context`  | shallow context patch       |
 | `children` | replacement children record |
 
-Returning nothing (`undefined`) means "no changes". For transition handlers specifically, returning nothing without calling `enq` also means **the event is treated as unhandled at this state** - useful for inline guarding. A handler that calls `enq` is taken even when it returns nothing, so check the condition first:
+Returning nothing (`undefined`) means "no changes". For transition handlers specifically, returning nothing without calling `enq` also means the event is treated as unhandled at this state - useful for inline guarding. A handler that calls `enq` is taken even when it returns nothing, so check the condition first:
 
 ```ts
 // v6 - guard inline by returning undefined
@@ -306,8 +306,8 @@ runs, because the two exit sets no longer overlap.
 ```ts
 // Parallel state `p` with regions `a` and `b`.
 // Event `t`: `a` reenters itself; `b.b1` moves to `b.b2`.
-// v5 after `t`: { a: 'a1', b: 'b1' } — `b` was reset when `p` was exited.
-// v6 after `t`: { a: 'a1', b: 'b2' } — only `a` was exited.
+// v5 after `t`: { a: 'a1', b: 'b1' }: `b` was reset when `p` was exited.
+// v6 after `t`: { a: 'a1', b: 'b2' }: only `a` was exited.
 ```
 
 Reset the sibling regions explicitly if the v5 behavior was intended: target
@@ -737,7 +737,7 @@ const fetchUser = createAsyncLogic({
 });
 ```
 
-`enq.step(key, exec)` records each step's outcome on the snapshot under `effects[key]`, so on rehydration the step is **not re-executed** - the previous result is replayed. This makes async logic durable across restarts.
+`enq.step(key, exec)` records each step's outcome on the snapshot under `effects[key]`, so on rehydration the step is not re-executed - the previous result is replayed. This makes async logic durable across restarts.
 
 When `timeout` elapses, the logic aborts and rejects with `TimeoutError` (also exported):
 
@@ -942,8 +942,8 @@ on: {
 
 ## 12. Internal events
 
-Events declared in `schemas.internalEvents` can be **raised** internally but
-are **rejected** by the public actor protocol. Wildcard patterns are supported.
+Events declared in `schemas.internalEvents` can be raised internally but
+are rejected by the public actor protocol. Wildcard patterns are supported.
 
 ```ts
 const machine = createMachine({
@@ -1014,7 +1014,7 @@ states: {
 
 The function must resolve to a target - returning `undefined` throws "must resolve to a target".
 
-Choice states are entered automatically by routing **into** them. They cannot themselves declare `invoke`, `after`, `on`, or `entry`/`exit` (machine creation rejects these).
+Choice states are entered automatically by routing into them. They cannot themselves declare `invoke`, `after`, `on`, or `entry`/`exit` (machine creation rejects these).
 
 ---
 
@@ -1046,7 +1046,7 @@ State `timeout` and `createAsyncLogic({ timeout })` accept `number` (ms) or `str
 | Seconds           | `'5s'`, `'1.5s'`                                               | integer or decimal + `s` suffix |
 | ISO 8601 duration | `'PT5S'`, `'PT1M30S'`, `'PT2H'`, `'P1D'`, `'P1W'`, `'P1DT12H'` | always starts with `P`          |
 
-Plain `'5m'`, `'1h'`, `'1d'`, `'1w'` (without the `P`/`PT` prefix) are **not** accepted - use the ISO 8601 form for anything beyond seconds and milliseconds.
+Plain `'5m'`, `'1h'`, `'1d'`, `'1w'` (without the `P`/`PT` prefix) are not accepted - use the ISO 8601 form for anything beyond seconds and milliseconds.
 
 `after` delays accept the same duration formats. A string delay is resolved against the machine's named `delays` first; only strings that don't match a named delay are parsed as durations.
 
@@ -1089,7 +1089,7 @@ loop until the process ran out of memory.
 
 <!-- exports removed from and added to packages/core/src/index.ts on the v6 branch (relative to main / v5) -->
 
-These exports have been **removed** from `xstate`:
+These exports have been removed from `xstate`:
 
 - Action creators (entire `actions.ts` module): `assign`, `raise`, `sendTo`, `sendParent`, `forwardTo`, `emit`, `log`, `cancel`, `enqueueActions`, `spawnChild`, `stopChild`, `stop`, plus their `*Action`/`*Params` types
 - Guard combinators and helpers: `and`, `or`, `not`, `stateIn`
@@ -1116,7 +1116,7 @@ These exports have been **removed** from `xstate`:
 
 `SetupReturn`, the type returned by `setup(...)`, is still exported, but its type parameters changed, so a v5 `SetupReturn<TContext, TEvent, ...>` annotation no longer type-checks. Use `typeof yourSetup` to name the type of a specific setup.
 
-These exports have been **added**:
+These exports have been added:
 
 - `setup` (reshaped - see §4) and `createSystem` for typed system registries
 - Setup state contract types: `SetupStateSchema`, `SetupStateSchemas`, `SetupStateType`
@@ -1275,7 +1275,7 @@ on: {
 
 ## 20. Persistence / rehydration
 
-Persisted snapshots round-trip through `JSON.stringify` and rehydrate via `restoreActor(machine, persisted)` from `xstate/persist`. The internal shape changed, so v5 persisted snapshots are **not** binary-compatible with v6 - drain or migrate stored state during your rollout.
+Persisted snapshots round-trip through `JSON.stringify` and rehydrate via `restoreActor(machine, persisted)` from `xstate/persist`. The internal shape changed, so v5 persisted snapshots are not binary-compatible with v6 - drain or migrate stored state during your rollout.
 
 ```ts
 import { restoreActor } from 'xstate/persist';

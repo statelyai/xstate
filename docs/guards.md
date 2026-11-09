@@ -38,7 +38,7 @@ Do not fetch data in a guard. Invoke an actor, store the result in context, then
 
 ## Named guards
 
-Define reusable guards on `setup(...)` or the machine's `guards`. A named guard is a plain predicate function: it receives only the arguments you pass it and knows nothing about the machine. The caller decides what the guard sees — pass values from `context` or the event explicitly.
+Define reusable guards on `setup(...)` or the machine's `guards`. A named guard is a plain predicate function: it receives only the arguments you pass it and knows nothing about the machine. The caller decides what the guard sees: pass values from `context` or the event explicitly.
 
 ```ts
 const orderMachine = createMachine({

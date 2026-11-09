@@ -55,7 +55,7 @@ const [snapshot, send] = useActor(uploadMachine, {
 });
 ```
 
-Options are read when the actor is created. Changing `input` on a later render does not restart the actor — see [input and snapshots](input-and-snapshots.md).
+Options are read when the actor is created. Changing `input` on a later render does not restart the actor. See [input and snapshots](input-and-snapshots.md).
 
 ## Re-render semantics
 

@@ -141,7 +141,7 @@ import {
   setupEffect
 } from '@xstate/effect';
 
-// A deployment feed drives the workflow, rather than just displaying data.
+// A deployment feed drives the workflow, rather than only displaying data.
 const deploymentEvents = createEffectEventStreamLogic(
   Stream.make({ type: 'HEALTHY' }, { type: 'UNHEALTHY' })
 );

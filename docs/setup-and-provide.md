@@ -140,8 +140,8 @@ Validation can be installed, replaced or disabled by a derived setup. Installing
 
 Where a validation failure surfaces depends on which side of the delivery boundary produced the invalid value:
 
-- **Events arriving from outside the actor** — from `actor.send` or from another actor — are rejected at the boundary when their payload fails its schema, or when the event type is undeclared and `unknownEvents` is `'error'`. The event is never delivered: the actor does not transition, does not error, and no API throws. The rejection is reported to the `onRejectedEvent` dead-letter hook on `createActor` options and as a development-mode console warning. In pure `transition(...)` calls, the snapshot is returned unchanged together with a `@xstate.deadLetter` effect carrying the rejection.
-- **Values the actor produces itself** — input, context, output, emitted events and delayed raised events — error the actor when they fail their schema, and pure `transition(...)`/`initialTransition(...)` throw an `ActorValidationError`. These are machine bugs.
+- **Events arriving from outside the actor** (from `actor.send` or from another actor) are rejected at the boundary when their payload fails its schema, or when the event type is undeclared and `unknownEvents` is `'error'`. The event is never delivered: the actor does not transition, does not error, and no API throws. The rejection is reported to the `onRejectedEvent` dead-letter hook on `createActor` options and as a development-mode console warning. In pure `transition(...)` calls, the snapshot is returned unchanged together with a `@xstate.deadLetter` effect carrying the rejection.
+- **Values the actor produces itself** (input, context, output, emitted events and delayed raised events) error the actor when they fail their schema, and pure `transition(...)`/`initialTransition(...)` throw an `ActorValidationError`. These are machine bugs.
 
 ## Sources on the machine
 
@@ -175,7 +175,7 @@ idle: {
 }
 ```
 
-Named actions and guards are plain functions called with only their params — nothing is injected. Pass values from `context` or the event explicitly. Declare param types on the function itself, or with `schemas.actions` and `schemas.guards` so the params are checked before the implementations exist:
+Named actions and guards are plain functions called with only their params. Nothing is injected. Pass values from `context` or the event explicitly. Declare param types on the function itself, or with `schemas.actions` and `schemas.guards` so the params are checked before the implementations exist:
 
 ```ts
 setup({
