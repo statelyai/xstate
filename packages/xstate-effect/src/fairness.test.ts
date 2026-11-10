@@ -22,30 +22,31 @@ const traffic = createMachine({
   }
 });
 
-const childTraffic = createMachine({
-  context: { count: 0 },
-  initial: 'running',
-  states: {
-    running: {
-      after: { 5: { target: 'expired' } },
-      initial: 'idle',
-      states: {
-        idle: { on: { TICK: { target: 'working' } } },
-        working: {
-          invoke: {
-            src: createAsyncLogic({ run: () => Promise.resolve() }),
-            onDone: ({ context }) => ({
-              target: context.count < 1500 ? 'working' : 'idle',
-              reenter: true,
-              context: { count: context.count + 1 }
-            })
+const createChildTraffic = (completeChild: () => Promise<void>) =>
+  createMachine({
+    context: { count: 0 },
+    initial: 'running',
+    states: {
+      running: {
+        after: { 5: { target: 'expired' } },
+        initial: 'idle',
+        states: {
+          idle: { on: { TICK: { target: 'working' } } },
+          working: {
+            invoke: {
+              src: createAsyncLogic({ run: completeChild }),
+              onDone: ({ context }) => ({
+                target: context.count < 1500 ? 'working' : 'idle',
+                reenter: true,
+                context: { count: context.count + 1 }
+              })
+            }
           }
         }
-      }
-    },
-    expired: {}
-  }
-});
+      },
+      expired: {}
+    }
+  });
 
 describe('actor scheduling fairness', () => {
   it.each([
@@ -115,7 +116,15 @@ describe('actor scheduling fairness', () => {
 
   it.each([
     ['self-sends', traffic],
-    ['child replies', childTraffic]
+    ['immediate child replies', createChildTraffic(() => Promise.resolve())],
+    [
+      'child replies that arrive after the loop waits',
+      createChildTraffic(async () => {
+        for (let turn = 0; turn < 10; turn++) {
+          await null;
+        }
+      })
+    ]
   ] as const)(
     'fires an after timer during %s with a frozen host clock',
     async (_description, machine) => {
