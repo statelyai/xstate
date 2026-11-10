@@ -682,6 +682,10 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
   // Records a send on the *sender's* transition for the `sent[]` inspection
   // facet. Captures the send when it is initiated (including delayed sends that
   // may never deliver), keyed to the source actor's in-flight transition.
+  // A send made with no transition in flight (a callback's `sendBack`, a value
+  // an observable relays to its parent) is not recorded: no transition reports
+  // it, so it would be held until the source's next transition, or for as long
+  // as the source lives if it never makes one.
   private _recordSent(
     source: AnyActor | undefined,
     target: AnyActor,
@@ -694,7 +698,11 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
     }
     const inspectionSource = source as AnyActor & {
       _collectedSent?: SentRecord[];
+      _inTransition?: boolean;
     };
+    if (!inspectionSource._inTransition) {
+      return;
+    }
     const collected = (inspectionSource._collectedSent ??= []);
     collected.push({
       targetRef: target,
