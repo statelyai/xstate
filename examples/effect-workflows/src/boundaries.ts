@@ -1,6 +1,5 @@
 import { Effect, Schema } from 'effect';
-import { createEffectActor, setupEffect } from '@xstate/effect';
-import { sendAndAwait } from '@xstate/effect/test';
+import { createEffectActor, sendAndAwait, setupEffect } from '@xstate/effect';
 import { standardSchemaValidator } from 'xstate/validation';
 
 const Input = Schema.Struct({ count: Schema.NumberFromString });

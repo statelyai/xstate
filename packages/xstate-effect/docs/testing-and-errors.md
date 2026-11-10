@@ -7,13 +7,13 @@ Test the workflow with its real machine and provide local Effect services. Use `
 
 ## Acknowledging an event
 
-Import `sendAndAwait` from `@xstate/effect/test` when a test must know that one particular send was processed. The persistence example also uses it to checkpoint after each request.
+Import `sendAndAwait` from `@xstate/effect` when you need acknowledgment that one particular send was processed. The persistence example also uses it to checkpoint after each request.
 
-It returns that mailbox item's snapshot after publication and immediate effect scheduling. Ignored events succeed with an unchanged snapshot. Concurrent sends of the same object get independent receipts. An event that completes or errors the actor returns its terminal snapshot; use `join` for its outcome.
+It returns that mailbox item's snapshot after its transition is published and its immediate effects have run, including its child actors' handling of events it sent them, if those effects complete. Ignored events succeed with an unchanged snapshot. An event whose action fails also succeeds; the failure is processed afterwards, through `onError` or an error snapshot, unless the actor has stopped by then. Concurrent sends of the same object get independent receipts. An event that completes or errors the actor returns its terminal snapshot; use `join` for its outcome.
 
 Invalid and externally sent internal events fail with `EventRejectedError`. Stop, scope closure or completion before processing a queued send fails it with `ActorStoppedError`. Interrupting the waiter detaches the receipt without retracting the event. A reentrant listener or observer stop rejects the currently processed receipt only when the step leaves the actor active.
 
-This helper does not await invoked tasks, background actions, child replies, future timers or global quiescence. Keep `waitFor` or a domain-specific completion signal for those conditions.
+This helper does not await invoked tasks, background actions, child replies such as an invoked child's `onDone`, future timers or global quiescence. Keep `waitFor` or a domain-specific completion signal for those conditions.
 
 Existing `@xstate/test` SUT sessions accept async sends. Set their `send` function to an adapter that runs `sendAndAwait` and resolves to void, and `read` to the actor's snapshot projection. The package test suite exercises this through the real `testPaths` API.
 
