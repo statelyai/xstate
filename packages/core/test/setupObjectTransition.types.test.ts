@@ -42,9 +42,9 @@ it('checks targets returned by an object-wrapped transition function', () => {
     states: {
       idle: {
         on: {
+          // @ts-expect-error The target must be a declared state.
           Go: {
             description: 'Finishes',
-            // @ts-expect-error The target must be a declared state.
             to: () => ({ target: 'nowhere' })
           }
         }
@@ -98,4 +98,37 @@ it('validates targets against states authored in createMachine', () => {
       }
     });
   }
+});
+
+it('rejects ignored wrapper settings but accepts supported metadata', () => {
+  const s = setup({ schemas: { events: { Go: types<{}>() } } });
+  if (false) {
+    s.createMachine({
+      on: {
+        // @ts-expect-error Static reenter is ignored when to is present.
+        Go: { to: () => ({}), reenter: true }
+      }
+    });
+    s.createMachine({
+      on: {
+        // @ts-expect-error Static context is ignored when to is present.
+        Go: { to: () => ({}), context: {} }
+      }
+    });
+    s.createMachine({
+      on: {
+        // @ts-expect-error Static target is ignored when to is present.
+        Go: { to: () => ({}), target: 'idle' }
+      }
+    });
+  }
+  s.createMachine({
+    on: {
+      Go: {
+        to: () => ({}),
+        description: 'Supported',
+        input: ({ event }) => ({ kind: event.type })
+      }
+    }
+  });
 });

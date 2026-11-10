@@ -85,7 +85,9 @@ See [transition functions and graph analysis](transition-functions.md) for why f
 
 To attach a description to a function transition, put the function under `to`.
 The function receives the same typed arguments and its result follows the same
-context and target rules as a function written directly on the event.
+context and target rules as a function written directly on the event. Put
+`target`, `context`, and `reenter` in the function result, not on the wrapper;
+the runtime does not apply those static wrapper settings.
 
 ```ts
 submit: {
