@@ -145,7 +145,7 @@ from `xstate` adds the runtime to your bundle.
 
 - `machine.initialState` is the initial `{ status: 'active', value, context }`.
   FSM snapshots are always `'active'`. The `output` and `error` fields of the
-  snapshot type are always `undefined` and are not set on the object.
+  snapshot are own properties with `undefined` values.
 - `machine.getInitialSnapshot()` returns `machine.initialState`.
 - `machine.transition(state, event)` returns `[nextState, effects]`. `effects`
   is always empty.
