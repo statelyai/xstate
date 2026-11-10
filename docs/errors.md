@@ -616,7 +616,7 @@ Values: the address.
 ## E57
 
 ```text
-State key "{key}" contains "." — nest the states or escape it as "{escapedKey}".
+State key "{key}" contains ".". Nest the states or escape it as "{escapedKey}".
 ```
 
 Values: the state key.

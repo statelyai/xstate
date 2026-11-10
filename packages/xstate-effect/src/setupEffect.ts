@@ -440,6 +440,10 @@ function wrapActions(
           )
         : (result as void | PromiseLike<void>);
     };
+    // Built-in effect descriptors use these reserved prefixes.
+    if (!key.startsWith('xstate.') && !key.startsWith('@xstate.')) {
+      Object.defineProperty(wrapped[key], 'name', { value: key });
+    }
   }
   return wrapped;
 }

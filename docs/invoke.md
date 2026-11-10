@@ -112,7 +112,7 @@ const machine = s.createMachine({
 
 Keep the helper call inline: its enclosing state supplies narrowed context, ancestor context, state input and transition targets. In this example, `context.userId` is `string` and `event.output` is `{ name: string }`.
 
-For an async `src`, `schemas.input` types the actor input, `schemas.output` checks the function's resolved value and types `onDone.event.output`, and `schemas.error` types `onError.event.error`. Omit the output schema to infer output from the async return value. The function receives `{ input, signal, self, system }` and the async enqueue object, including `emit` and `step`, just like `createAsyncLogic`. Its input comes from the invoke's static value or input mapper; parent context stays in the mapper and transition handlers.
+For an async `src`, `schemas.input` types the actor input, `schemas.output` checks the function's resolved value and types `onDone.event.output`, and `schemas.error` types `onError.event.error`. Omit the output schema to infer output from the async return value. The function receives `{ input, signal, self, system }` and the async enqueue object, including `emit` and `step`, as `createAsyncLogic` does. Its input comes from the invoke's static value or input mapper; parent context stays in the mapper and transition handlers.
 
 You can also pass an existing actor logic value, including machine and callback logic:
 

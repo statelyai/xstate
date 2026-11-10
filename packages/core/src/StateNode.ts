@@ -173,7 +173,7 @@ export class StateNode<
       throw new Error(
         isDevelopment
           ? // The suggestion is written as a JS string literal.
-            `State key "${this.key}" contains "." — nest the states or escape it as "${this.key.replaceAll(/(?<!\\)\./g, '\\\\.')}".`
+            `State key "${this.key}" contains ".". Nest the states or escape it as "${this.key.replaceAll(/(?<!\\)\./g, '\\\\.')}".`
           : xstateError(57, this.key)
       );
     }

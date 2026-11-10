@@ -280,7 +280,7 @@ describe('state keys with dots', () => {
         states: { a: {}, 'foo.bar': {} }
       } as any)
     ).toThrow(
-      'State key "foo.bar" contains "." — nest the states or escape it as "foo\\\\.bar".'
+      'State key "foo.bar" contains ".". Nest the states or escape it as "foo\\\\.bar".'
     );
     expect(() =>
       machineFromJSON({ initial: 'a', states: { a: {}, 'foo.bar': {} } })
