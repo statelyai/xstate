@@ -1,4 +1,5 @@
 import { restoreLogicSnapshot } from '../persist/index.ts';
+import { isMachineSnapshot } from '../State.ts';
 import { getTimerStart, recordTimerStart } from '../timerClock.ts';
 import {
   describeExecutableEffect,
@@ -12,7 +13,11 @@ import {
 } from '../inertActorScope.ts';
 import { isRemoteActorRef } from '../remoteActorRef.ts';
 import { createStartEffect, createTimerEffect } from '../transitionActions.ts';
-import { getSnapshotActorRef } from '../snapshotActorRef.ts';
+import {
+  adoptSystem,
+  getSnapshotActorRef,
+  withExecutionOwner
+} from '../snapshotActorRef.ts';
 import {
   encodeAddressSegment,
   withExecutionIdentity,
@@ -34,6 +39,7 @@ import type {
   InputFrom,
   LogicalTimer,
   OutputFrom,
+  SerializedActorRef,
   Snapshot,
   SnapshotFrom,
   TimerKey
@@ -65,6 +71,62 @@ export interface DurableWaitMetadata {
 export interface DurableRootEvent<TEvent> {
   event: TEvent;
   source: AnyActor | undefined;
+}
+
+/**
+ * A root-addressed event that the execution received but has not processed,
+ * stored in a checkpoint. `source` is the sender's logical address.
+ *
+ * @experimental
+ */
+export interface DurableInboxEntry {
+  event: AnyEventObject;
+  source: SerializedActorRef | undefined;
+}
+
+/**
+ * Everything needed to resume an execution: the persisted snapshot, the next
+ * transition index and the events received but not yet processed. Persist
+ * the whole object atomically and pass it to `restore()`.
+ *
+ * @experimental
+ */
+export interface DurableCheckpoint {
+  snapshot: Snapshot<unknown>;
+  nextTransitionIndex: number;
+  inbox: DurableInboxEntry[];
+}
+
+// Lifecycle events that address a child by `actorId`. Snapshot updates are
+// not stored: a restored child reports its current snapshot when it starts.
+const storedLifecycleEvents = new Set([
+  'xstate.done.actor',
+  'xstate.error.actor',
+  'xstate.timeout.actor'
+]);
+
+function isCheckpoint(value: unknown): value is DurableCheckpoint {
+  return (
+    !!value &&
+    typeof value === 'object' &&
+    'inbox' in value &&
+    'nextTransitionIndex' in value &&
+    'snapshot' in value
+  );
+}
+
+function isInboxEntry(item: unknown): item is DurableInboxEntry {
+  if (!item || typeof item !== 'object') return false;
+  const { event, source } = item as Partial<DurableInboxEntry>;
+  return (
+    !!event &&
+    typeof event.type === 'string' &&
+    (source === undefined ||
+      (!!source &&
+        typeof source['@actor'] === 'string' &&
+        (source.incarnation === undefined ||
+          typeof source.incarnation === 'string')))
+  );
 }
 
 /** @experimental */
@@ -220,14 +282,30 @@ export interface DurableExecution<TLogic extends AnyActorLogic> {
   /** Index assigned to the next transition. Persist this with checkpoints. */
   readonly nextTransitionIndex: number;
   /**
-   * Restores a checkpoint on a fresh execution. Returns effects that start
-   * active embedded children and re-arm pending root timers; execute them
-   * with `executeEffects` before waiting or processing the next event.
-   * Does not send a machine event, replay entry actions, or advance the
-   * transition index. Restoration effect IDs use `restore:<index>:<effect>`.
+   * Returns a checkpoint of `snapshot`: its persisted form, the next
+   * transition index and the inbox of root events captured by settled
+   * `executeEffects` batches but not yet taken by `waitForEvent()`. Call it
+   * after `executeEffects` resolves. Inbox event payloads are stored as they
+   * are, so they must be serializable data, like timer events in persisted
+   * snapshots. Lifecycle events for children no longer in `snapshot` are
+   * dropped, and child snapshot updates are not stored: a restored child
+   * reports its current snapshot when it starts.
+   */
+  checkpoint(
+    snapshot: SnapshotFrom<TLogic>,
+    options?: unknown
+  ): DurableCheckpoint;
+  /**
+   * Restores a checkpoint on a fresh execution. Accepts a `checkpoint()`
+   * result, whose inbox `waitForEvent()` hands out first, or a bare persisted
+   * snapshot. Returns effects that start active embedded children and re-arm
+   * pending root timers; execute them with `executeEffects` before waiting or
+   * processing the next event. Does not send a machine event, replay entry
+   * actions, or advance the transition index. Restoration effect IDs use
+   * `restore:<index>:<effect>`.
    */
   restore(
-    persistedSnapshot: Snapshot<unknown>
+    checkpoint: DurableCheckpoint | Snapshot<unknown>
   ): [
     snapshot: DurableSnapshot<TLogic>,
     effects: DurableEffect<ExecutableEffectFrom<TLogic>>[]
@@ -282,7 +360,7 @@ export interface DurableExecution<TLogic extends AnyActorLogic> {
    * an event a prior `executeEffects` batch captured (an invoked actor
    * completing, a child reporting up), or — once none are queued — whatever
    * the adapter's durable wait produces. With `captureRootEvents: false`,
-   * always delegates to the adapter's wait.
+   * delegates to the adapter's wait once a restored inbox is empty.
    */
   waitForEvent(): Promise<EventFromLogic<TLogic>>;
   run(
@@ -416,6 +494,22 @@ export function createDurable<TLogic extends AnyActorLogic>(
   // Root-addressed events captured by settled batches, waiting for the drive
   // loop to take them through `waitForEvent()`.
   const pendingRootEvents: DurableRootEvent<AnyEventObject>[] = [];
+
+  // For a stored lifecycle event: the child it addresses in `snapshot`, or
+  // `null` when that child is gone. `undefined` for any other event.
+  const lifecycleChild = (
+    snapshot: unknown,
+    event: AnyEventObject
+  ): AnyActor | null | undefined => {
+    if (
+      !isMachineSnapshot(snapshot) ||
+      !storedLifecycleEvents.has(event.type) ||
+      typeof event.actorId !== 'string'
+    ) {
+      return undefined;
+    }
+    return snapshot.children[event.actorId] ?? null;
+  };
 
   // Every inter-actor edge is an async handoff to the runtime, and every
   // handoff queues behind the last one: hosts whose step or activity model
@@ -616,6 +710,13 @@ export function createDurable<TLogic extends AnyActorLogic>(
 
   const inspect = options?.inspect;
 
+  // Runs a transition as this execution: views it derives belong to this
+  // execution, and its systems report to the execution's inspector.
+  const owner = { runtime: wrappedSystemRuntime, inspect };
+  function inExecution<T>(fn: () => T): T {
+    return withExecutionOwner(owner, () => withSystemInspector(inspect, fn));
+  }
+
   // Attaches the execution's inspector to a system that does not have it
   // yet. Systems constructed inside a transition get it at construction (the
   // ambient inspector); this covers systems materialized outside that window
@@ -648,10 +749,12 @@ export function createDurable<TLogic extends AnyActorLogic>(
       const visit = (actor: AnyActor) => {
         if (!systems.has(actor.system)) {
           systems.add(actor.system);
-          if (wrappedSystemRuntime) {
-            actor.system.runtime = wrappedSystemRuntime;
+          if (adoptSystem(actor.system, owner)) {
+            if (wrappedSystemRuntime) {
+              actor.system.runtime = wrappedSystemRuntime;
+            }
+            wireInspection(actor.system);
           }
-          wireInspection(actor.system);
         }
         if (recursive) {
           const children = (
@@ -692,7 +795,43 @@ export function createDurable<TLogic extends AnyActorLogic>(
     get nextTransitionIndex() {
       return nextTransitionIndex;
     },
-    restore(persistedSnapshot) {
+    checkpoint(snapshot, persistOptions) {
+      const inbox: DurableInboxEntry[] = [];
+      for (const { event, source } of pendingRootEvents) {
+        const child = lifecycleChild(snapshot, event);
+        if (
+          event.type === 'xstate.snapshot.actor' ||
+          (child !== undefined &&
+            (!child ||
+              (event.sessionId !== undefined &&
+                child.sessionId !== undefined &&
+                child.sessionId !== event.sessionId)))
+        ) {
+          continue;
+        }
+        inbox.push({
+          event,
+          source: source && {
+            '@actor': source.address,
+            ...(isRemoteActorRef(source) && source.sessionId !== undefined
+              ? { incarnation: source.sessionId }
+              : {})
+          }
+        });
+      }
+      return {
+        snapshot: (logic.getPersistedSnapshot?.(
+          snapshot,
+          persistOptions as any
+        ) ?? snapshot) as Snapshot<unknown>,
+        nextTransitionIndex,
+        inbox
+      };
+    },
+    restore(checkpointOrSnapshot) {
+      const checkpoint = isCheckpoint(checkpointOrSnapshot)
+        ? checkpointOrSnapshot
+        : undefined;
       if (
         restored ||
         nextTransitionIndex !== startingTransitionIndex ||
@@ -700,7 +839,37 @@ export function createDurable<TLogic extends AnyActorLogic>(
       ) {
         throw new Error('restore() requires a fresh durable execution');
       }
-      const { snapshot, scope } = withSystemInspector(inspect, () =>
+      if (checkpoint) {
+        if (
+          !Array.isArray(checkpoint.inbox) ||
+          !checkpoint.inbox.every(isInboxEntry)
+        ) {
+          throw new TypeError('The checkpoint inbox is invalid.');
+        }
+        if (
+          adapter.transitionIndex !== undefined &&
+          adapter.transitionIndex !== checkpoint.nextTransitionIndex
+        ) {
+          throw new RangeError(
+            `The adapter's transitionIndex (${adapter.transitionIndex}) does not match the checkpoint's nextTransitionIndex (${checkpoint.nextTransitionIndex}).`
+          );
+        }
+        if (
+          !Number.isSafeInteger(checkpoint.nextTransitionIndex) ||
+          checkpoint.nextTransitionIndex < 0
+        ) {
+          throw new RangeError(
+            'nextTransitionIndex must be a non-negative safe integer'
+          );
+        }
+        nextTransitionIndex = checkpoint.nextTransitionIndex;
+        lastTransitionIndex =
+          nextTransitionIndex === 0 ? undefined : nextTransitionIndex - 1;
+      }
+      const persistedSnapshot = checkpoint
+        ? checkpoint.snapshot
+        : (checkpointOrSnapshot as Snapshot<unknown>);
+      const { snapshot, scope } = inExecution(() =>
         withExecutionIdentity(executionIdentity, () => {
           const scope = createInertActorScope(logic);
           const snapshot = restoreLogicSnapshot(
@@ -718,6 +887,26 @@ export function createDurable<TLogic extends AnyActorLogic>(
           };
         })
       );
+      for (const { event, source } of checkpoint?.inbox ?? []) {
+        const child = lifecycleChild(snapshot, event);
+        if (child === null) {
+          continue;
+        }
+        pendingRootEvents.push({
+          // A restored child has a new session; its pending lifecycle events
+          // follow it.
+          event:
+            child && child.sessionId !== undefined && 'sessionId' in event
+              ? { ...event, sessionId: child.sessionId }
+              : event,
+          source:
+            source &&
+            execution.getActorRef(
+              snapshot as SnapshotFrom<TLogic>,
+              source['@actor']
+            )
+        });
+      }
       const effects: ExecutableEffect[] = [];
       if ((snapshot as Snapshot<unknown>).status === 'active') {
         const { children, timers } = snapshot as {
@@ -756,7 +945,7 @@ export function createDurable<TLogic extends AnyActorLogic>(
           'initialTransition() cannot initialize a restored execution'
         );
       }
-      const [snapshot, effects] = withSystemInspector(inspect, () =>
+      const [snapshot, effects] = inExecution(() =>
         withExecutionIdentity(executionIdentity, () =>
           initialTransition(logic, ...args)
         )
@@ -764,7 +953,7 @@ export function createDurable<TLogic extends AnyActorLogic>(
       return [installSystemRuntime(snapshot), tagEffects(effects)];
     },
     transition(snapshot, event) {
-      const [nextSnapshot, effects] = withSystemInspector(inspect, () =>
+      const [nextSnapshot, effects] = inExecution(() =>
         withExecutionIdentity(executionIdentity, () =>
           transition(logic, snapshot, event)
         )
