@@ -4063,7 +4063,7 @@ type StateTransitionConfigOrTarget<
   TOutput = OutputArg<TExpressionEvent>['output']
 > =
   | undefined
-  | StateTransitionObjectConfig<
+  | (StateTransitionObjectConfig<
       TStateSchemas,
       TContext,
       TContextShape,
@@ -4078,7 +4078,27 @@ type StateTransitionConfigOrTarget<
       true,
       TTarget,
       TKnownTarget
-    >
+    > & {
+      to?: StateTransitionFunction<
+        TStateSchemas,
+        TContext,
+        TContextShape,
+        TExpressionEvent,
+        TEvent,
+        TEmitted,
+        TChildren,
+        TMeta,
+        TActionMap,
+        TActorMap,
+        TGuardMap,
+        TDelayMap,
+        TSystemRegistry,
+        TInput,
+        TTarget,
+        TKnownTarget,
+        TOutput
+      >;
+    })
   | StateTransitionFunction<
       TStateSchemas,
       TContext,
