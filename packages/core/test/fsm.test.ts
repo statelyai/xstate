@@ -158,4 +158,63 @@ describe('createFSM', () => {
       expect(Object.keys(roundTripped)).toEqual(keys);
     }
   });
+
+  it('ignores inherited state definitions when resolving transitions', () => {
+    const states = Object.create({ b: { on: { back: 'a' } } });
+    states.a = { on: { go: 'b' } };
+
+    const machine = createFSM({ initial: 'a', states });
+
+    const [afterGo] = machine.transition(machine.initialState, { type: 'go' });
+    expect(afterGo.value).toBe('b');
+
+    const [afterBack, backEffects] = machine.transition(afterGo, {
+      type: 'back'
+    });
+    expect(afterBack.value).toBe('b');
+    expect(afterBack).toBe(afterGo);
+    expect(backEffects).toEqual([]);
+  });
+
+  it('keeps the initial state when the current state is not an own property', () => {
+    const states = Object.create({ b: { on: { back: 'a' } } });
+    states.a = { on: { go: 'b' } };
+
+    const machine = createFSM({ initial: 'b', states });
+
+    const [next, effects] = machine.transition(machine.initialState, {
+      type: 'back'
+    });
+    expect(next.value).toBe('b');
+    expect(next).toBe(machine.initialState);
+    expect(effects).toEqual([]);
+  });
+
+  it('still resolves transitions for own state properties', () => {
+    const states = Object.create({ b: { on: { back: 'a' } } });
+    states.a = { on: { go: 'b' } };
+    states.b = { on: { back: 'a' } };
+
+    const machine = createFSM({ initial: 'a', states });
+
+    const [afterGo] = machine.transition(machine.initialState, { type: 'go' });
+    expect(afterGo.value).toBe('b');
+
+    const [afterBack] = machine.transition(afterGo, { type: 'back' });
+    expect(afterBack.value).toBe('a');
+  });
+
+  it('supports state maps created with a null prototype', () => {
+    const states = Object.create(null);
+    states.a = { on: { go: 'b' } };
+    states.b = { on: { back: 'a' } };
+
+    const machine = createFSM({ initial: 'a', states });
+
+    const [afterGo] = machine.transition(machine.initialState, { type: 'go' });
+    expect(afterGo.value).toBe('b');
+
+    const [afterBack] = machine.transition(afterGo, { type: 'back' });
+    expect(afterBack.value).toBe('a');
+  });
 });

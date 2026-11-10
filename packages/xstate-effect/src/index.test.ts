@@ -15,6 +15,7 @@ import {
   createMachine,
   initialTransition,
   setup,
+  transition,
   types,
   type StandardSchemaV1
 } from 'xstate';
@@ -74,6 +75,30 @@ const runScoped = async <A, E>(
 };
 
 describe('@xstate/effect', () => {
+  it('uses registered Effect action keys in transition descriptors', () => {
+    const machine = setupEffect({
+      actions: {
+        track: () => Effect.void,
+        'record-metric': () => Effect.void
+      }
+    }).createMachine({
+      on: {
+        Ping: ({ actions }, enq) => {
+          enq(actions.track);
+          enq(actions['record-metric']);
+        }
+      }
+    });
+    const [snapshot] = initialTransition(machine);
+    const [, effects] = transition(machine, snapshot, { type: 'Ping' });
+
+    expect(
+      effects
+        .filter((effect) => effect.kind === 'action')
+        .map((effect) => effect.type)
+    ).toEqual(['track', 'record-metric']);
+  });
+
   it('accepts Effect schemas in setupEffect with full type inference', async () => {
     const effectSetup = setupEffect({
       schemas: {
