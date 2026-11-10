@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://stately.ai/schemas/xstate/persisted-snapshot/v1.json",
   "title": "XState persisted machine snapshot",
-  "description": "The JSON envelope returned by getPersistedSnapshot() for machine logic, after JSON.stringify/JSON.parse. Nested machine children carry their own envelope in children[id].snapshot; other actor logic (async, callback, transition, observable) persists its own snapshot shape there. Fields prefixed with '_' are private runtime bookkeeping: they round-trip verbatim, but their shape is not part of the contract. The envelope, child entries and timer entries are open: new optional fields may be added in minor releases, and readers must ignore fields they do not recognize.",
+  "description": "The JSON envelope returned by getPersistedSnapshot() for machine logic, after JSON.stringify/JSON.parse. Nested machine children carry their own envelope in children[id].snapshot; other actor logic (async, callback, transition, observable) persists its own snapshot shape there. nextTimerId and nextActorIds are private runtime bookkeeping: they round-trip verbatim, but their shape is not part of the contract. No field name starts with '$' or '_', so the envelope can be stored in document databases that reserve those prefixes. The envelope, child entries and timer entries are open: new optional fields may be added in minor releases, and readers must ignore fields they do not recognize.",
   "type": "object",
   "required": [
     "status",
@@ -16,7 +16,7 @@
     "status": { "enum": ["active", "done", "error", "stopped"] },
     "value": { "$ref": "#/$defs/stateValue" },
     "context": {
-      "description": "Application context. Actor refs are replaced by { $actor: address }."
+      "description": "Application context. Actor refs are replaced by { '@actor': address }."
     },
     "output": { "description": "Present when status is 'done'." },
     "error": { "description": "Present when status is 'error'." },
@@ -47,6 +47,15 @@
       "type": "array",
       "items": { "$ref": "#/$defs/timer" }
     },
+    "nextTimerId": {
+      "description": "Private: next generated timer id.",
+      "type": "integer"
+    },
+    "nextActorIds": {
+      "description": "Private: generated child id prefix -> next index. Omitted when empty.",
+      "type": "object",
+      "additionalProperties": { "type": "integer" }
+    },
     "machine": {
       "description": "Machine identity. Present only when the machine declares a version.",
       "type": "object",
@@ -56,11 +65,6 @@
         "version": { "type": "string" }
       },
       "additionalProperties": false
-    }
-  },
-  "patternProperties": {
-    "^_": {
-      "description": "Private runtime bookkeeping (e.g. _nextTimerId, _nextActorIds)."
     }
   },
   "$defs": {
@@ -123,9 +127,9 @@
             { "type": "string" },
             {
               "type": "object",
-              "required": ["$actor"],
+              "required": ["@actor"],
               "properties": {
-                "$actor": { "type": "string" },
+                "@actor": { "type": "string" },
                 "incarnation": { "type": "string" }
               },
               "additionalProperties": false

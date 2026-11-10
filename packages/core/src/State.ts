@@ -598,6 +598,8 @@ const machineSnapshotToJSON = function toJSON(this: AnyMachineSnapshot) {
   const {
     nodes,
     _stateInputs,
+    _nextTimerId,
+    _nextActorIds,
     tags,
     machine,
     getMeta,
@@ -784,6 +786,8 @@ export function getPersistedSnapshot<
   const {
     nodes,
     _stateInputs,
+    _nextTimerId,
+    _nextActorIds,
     tags,
     machine,
     children,
@@ -949,6 +953,11 @@ export function getPersistedSnapshot<
   if (_stateInputs && Object.keys(_stateInputs).length > 0) {
     persisted.stateInputs = _stateInputs;
   }
+  // Stores such as Convex reject `_`-prefixed field names.
+  persisted.nextTimerId = _nextTimerId;
+  if (_nextActorIds && Object.keys(_nextActorIds).length > 0) {
+    persisted.nextActorIds = _nextActorIds;
+  }
 
   if (machine.version !== undefined) {
     persisted.machine = {
@@ -993,7 +1002,7 @@ function persistContext(
           ? (contextPart.slice() as typeof contextPart)
           : { ...contextPart };
         // The address lets refs to non-children still route after restore.
-        copy[key] = { $actor: (value as any as AnyActor).address };
+        copy[key] = { '@actor': (value as any as AnyActor).address };
       } else {
         const valuePath = Array.isArray(contextPart)
           ? `${path}[${key}]`

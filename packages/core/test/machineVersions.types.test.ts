@@ -40,7 +40,7 @@ const checkoutV0 = {
     historyValue: Record<string, unknown>;
     timers: readonly unknown[];
     _nextActorId: number;
-    _nextTimerId: number;
+    nextTimerId: number;
     machine: { id: 'checkout'; version: '0' };
     version: '0';
   }>()

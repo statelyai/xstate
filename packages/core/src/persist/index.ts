@@ -1,3 +1,4 @@
+import { upgradeLegacyPersistedSnapshot } from '../legacySnapshot.ts';
 import isDevelopment from '#is-development';
 import { Actor } from '../createActor.ts';
 import { diagnoseActorOptions } from '../devDiagnostics.ts';
@@ -177,6 +178,8 @@ export function restoreMachineSnapshot<TMachine extends AnyStateMachine>(
   if (machine instanceof StateMachine) {
     machine = machine._raw() as TMachine;
   }
+  // TODO(v7): remove with legacySnapshot.ts.
+  snapshot = upgradeLegacyPersistedSnapshot(snapshot);
   const usesInertScope = !actorScope;
   const resolvedActorScope = (actorScope ??
     createInertActorScope(machine)) as AnyActorScope;
@@ -412,13 +415,15 @@ export function restoreMachineSnapshot<TMachine extends AnyStateMachine>(
     // `_nextActorIds` plus the child-id fold below; dropped so old and new
     // snapshots round-trip to the same shape.
     _nextActorId: _legacyNextActorId,
+    nextTimerId,
+    nextActorIds,
+    stateInputs: _persistedStateInputs,
     ...persistedRest
   } = snapshot as any;
   // Fold generated-shaped child ids into the counters as a floor: snapshots
   // persisted before per-actor counters (or hand-crafted ones) still must
   // never reuse a live child's id.
-  let restoredCounters: Record<string, number> | undefined =
-    persistedRest._nextActorIds;
+  let restoredCounters: Record<string, number> | undefined = nextActorIds;
   for (const childId of Object.keys(snapshotChildren)) {
     const generated = parseGeneratedActorId(childId);
     if (
@@ -441,7 +446,7 @@ export function restoreMachineSnapshot<TMachine extends AnyStateMachine>(
       return value;
     }
     // The context object itself is data, never a serialized actor ref.
-    // Only an object whose keys are exactly `$actor` (+ `incarnation`)
+    // Only an object whose keys are exactly `@actor` (+ `incarnation`)
     // is a serialized ref; any other object is data.
     if (!isRoot && isSerializedActorRef(value)) {
       // A ref that names one of this snapshot's children revives to that
@@ -453,7 +458,7 @@ export function restoreMachineSnapshot<TMachine extends AnyStateMachine>(
       }
       return (
         Object.values(children).find(
-          (child) => child.address === value.$actor
+          (child) => child.address === value['@actor']
         ) ?? value
       );
     }
@@ -486,6 +491,7 @@ export function restoreMachineSnapshot<TMachine extends AnyStateMachine>(
       context: reviveContext(persistedRest.context, true),
       children,
       timers,
+      _nextTimerId: nextTimerId,
       _nextActorIds: restoredCounters,
       _nodes: nodes,
       // Derived from the resolved configuration, so a partial value such as

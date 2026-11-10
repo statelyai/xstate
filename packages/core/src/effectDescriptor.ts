@@ -10,7 +10,7 @@ import type {
 
 /**
  * A serializable view of an executable effect. Actor references are replaced
- * by `{ $actor: address, incarnation? }` and actor sources by their registered
+ * by `{ "@actor": address, incarnation? }` and actor sources by their registered
  * source keys, so a durable host can journal, deduplicate, and route effects without
  * holding live actor references. Payload fields (`event`, `input`, `params`,
  * `output`, `error`) pass through by reference and are only as serializable
@@ -117,14 +117,14 @@ function toRef(actor: AnyActor | SerializedActorRef): SerializedActorRef {
     ? actor.sessionId
     : undefined;
   return incarnation === undefined
-    ? { $actor: (actor as any).address }
-    : { $actor: (actor as any).address, incarnation };
+    ? { '@actor': (actor as any).address }
+    : { '@actor': (actor as any).address, incarnation };
 }
 
 /**
  * Returns the serializable descriptor for an executable effect: the same
  * discriminants (`kind`, `type`) with actor references replaced by
- * `{ $actor: address, incarnation? }` and actor sources by source keys. Payload fields pass through by
+ * `{ "@actor": address, incarnation? }` and actor sources by source keys. Payload fields pass through by
  * reference.
  *
  * @experimental

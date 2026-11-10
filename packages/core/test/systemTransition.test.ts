@@ -136,7 +136,7 @@ it('owns child state, immediate communication and completion notifications', () 
   const [snapshot] = initialSystemTransition(logic);
   expect(snapshot.actors['root/child'].started).toBe(true);
   expect(snapshot.actors.root.snapshot.children.child).toEqual({
-    $actor: 'root/child',
+    '@actor': 'root/child',
     incarnation: '1'
   });
   const [next] = systemTransition(logic, freeze(snapshot), 'root', {
@@ -543,7 +543,7 @@ it.each(['done', 'error'] as const)(
     const observer = Object.values(finished.actors).find(
       (actor) => actor.src === '@xstate.subscription'
     )!;
-    expect(observer.parent?.$actor).toBe('root');
+    expect(observer.parent?.['@actor']).toBe('root');
     expect(observer.snapshot.status).toBe('stopped');
   }
 );
@@ -591,7 +591,7 @@ it('handles prototype-shaped root IDs and registry keys as ordinary data', () =>
     registryKey: '__proto__'
   });
   expect(snapshot.registry.__proto__).toEqual({
-    $actor: '__proto__',
+    '@actor': '__proto__',
     incarnation: '0'
   });
   const [next] = systemTransition(
@@ -631,7 +631,9 @@ it('prevents an actor send from impersonating the system scheduler', () => {
   };
   const [snapshot] = initialSystemTransition(logic);
   expect(() =>
-    systemTransition(logic, freeze(snapshot), snapshot.root, { type: 'INJECT' })
+    systemTransition(logic, freeze(snapshot), snapshot.root, {
+      type: 'INJECT'
+    })
   ).toThrow('Only the system scheduler');
 });
 
@@ -799,7 +801,7 @@ it('owns async timeouts and rejects results arriving after cancellation', () => 
   });
   expect(next.actors.root.snapshot.status).toBe('error');
   expect(next.actors.root.snapshot.error).toMatchObject({
-    $error: 'TimeoutError'
+    '@error': 'TimeoutError'
   });
   expect(cancellations).toContainEqual(
     expect.objectContaining({

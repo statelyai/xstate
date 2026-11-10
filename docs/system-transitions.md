@@ -67,8 +67,8 @@ actor's macrostep. Microsteps are atomic; system snapshots contain no unfinished
 microstep or continuation state. A UI presenting individual completed
 microsteps within a macrostep needs a separate tracing interface.
 
-Snapshot actor references are data: `{ $actor, incarnation }`, the same shape as `SerializedActorRef`, with a string `incarnation`. Use `$actor`
-as `actorPath`, for example `snapshot.actors[snapshot.root].snapshot.children.worker.$actor`.
+Snapshot actor references are data: `{ '@actor': address, incarnation }`, the same shape as `SerializedActorRef`, with a string `incarnation`. Use `@actor`
+as `actorPath`, for example `snapshot.actors[snapshot.root].snapshot.children.worker["@actor"]`.
 Paths encode IDs; avoid concatenating unescaped IDs. Replacing an actor at the
 same path allocates a fresh incarnation.
 
@@ -101,7 +101,7 @@ Select a pending timer in a simulator with its current occurrence:
 
 ```ts
 const selected = snapshot.timers.find((timer) => timer.dueAt === 6000)!;
-const [next] = systemTransition(systemLogic, snapshot, selected.source.$actor, {
+const [next] = systemTransition(systemLogic, snapshot, selected.source["@actor"], {
   type: 'xstate.timer',
   occurrence: selected.occurrence
 });
@@ -128,7 +128,7 @@ using the source actor's definition and saved input; the host owns the
 external implementation. Its result reenters as a correlated input:
 
 ```ts
-const [resolved] = systemTransition(systemLogic, pendingSnapshot, effect.source.$actor, {
+const [resolved] = systemTransition(systemLogic, pendingSnapshot, effect.source["@actor"], {
   type: 'xstate.system.effect.result',
   effectId: effect.id,
   event: { type: 'xstate.async.resolve', data: result }
@@ -150,8 +150,8 @@ input, outputs, events and effect arguments are JSON-compatible. Actor reference
 state-node references, errors and named mappers use data markers. Errors retain
 name/message. Undefined properties follow ordinary JSON rules. Cycles,
 unregistered functions, live actors, class instances, symbols, bigint and
-nonfinite numbers are rejected. `$actor`, `$stateNode`, `$error` and
-`$systemMapper` marker shapes are reserved. Logic versions must match on replay.
+nonfinite numbers are rejected. `@actor`, `@stateNode`, `@error` and
+`@systemMapper` marker shapes are reserved. Logic versions must match on replay.
 
 Transition functions, guards and mappers must be deterministic and pure.
 Read external values from input/events and virtual time from `system._clock.now()`.

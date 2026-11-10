@@ -20,7 +20,7 @@ const fields = {
   children: Schema.Record(Schema.String, Schema.Unknown),
   timers: Schema.Array(Schema.Unknown),
   historyValue: Schema.Record(Schema.String, Schema.Unknown),
-  _nextTimerId: Schema.Number,
+  nextTimerId: Schema.Number,
   machine: Schema.Struct({
     id: Schema.Literal('counter'),
     version: Schema.String
@@ -131,7 +131,7 @@ it('preserves core metadata and rejects schemas that discard it', async () => {
   const metadata = {
     ...persisted(),
     stateInputs: { idle: { value: 1 } },
-    _nextActorIds: { worker: 4 },
+    nextActorIds: { worker: 4 },
     extraMetadata: { retained: true }
   };
   const complete = createSnapshotCodec(
@@ -139,7 +139,7 @@ it('preserves core metadata and rejects schemas that discard it', async () => {
     Schema.Struct({
       ...fields,
       stateInputs: Schema.Unknown,
-      _nextActorIds: Schema.Unknown,
+      nextActorIds: Schema.Unknown,
       extraMetadata: Schema.Unknown
     })
   );
@@ -147,7 +147,7 @@ it('preserves core metadata and rejects schemas that discard it', async () => {
     Effect.flatMap(complete.encode(metadata), complete.decode)
   );
   expect(decoded.stateInputs).toEqual(metadata.stateInputs);
-  expect(decoded._nextActorIds).toEqual(metadata._nextActorIds);
+  expect(decoded.nextActorIds).toEqual(metadata.nextActorIds);
   expect(decoded.extraMetadata).toEqual(metadata.extraMetadata);
   expect(
     await Effect.runPromise(Effect.flip(codec.encode(metadata)))

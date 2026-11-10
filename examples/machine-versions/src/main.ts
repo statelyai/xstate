@@ -78,8 +78,8 @@ const storedSnapshot = {
   children: {},
   historyValue: {},
   timers: [],
-  _nextActorIds: {},
-  _nextTimerId: 0,
+  nextActorIds: {},
+  nextTimerId: 0,
   machine: { id: 'checkout', version: '1' },
   version: '1'
 };

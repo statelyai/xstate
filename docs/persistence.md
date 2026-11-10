@@ -65,13 +65,13 @@ children and pending timers. Persist `execution.nextTransitionIndex` with the
 checkpoint and pass it to the next execution's adapter. See
 [durable checkpoint restoration](durable-execution.md).
 
-An actor's address is the `/`-joined path of actor ids from the root, such as `order/worker:0`. It is stable across persistence and restore, unlike `sessionId`, which identifies one incarnation. Generated child ids are recorded in each snapshot's `_nextActorIds`, so restored actors keep numbering where they left off.
+An actor's address is the `/`-joined path of actor ids from the root, such as `order/worker:0`. It is stable across persistence and restore, unlike `sessionId`, which identifies one incarnation. Generated child ids are recorded in each snapshot's `nextActorIds`, so restored actors keep numbering where they left off.
 
 ## Compatibility
 
 A persisted snapshot is a plain JSON-shaped object. Restoring one is lenient: XState reads the fields it knows and does not check a format marker.
 
-These envelope fields are stable across 6.x releases: `status`, `value`, `context`, `output`, `error`, `historyValue`, `stateInputs`, `children`, `timers` and `machine`. The [persisted snapshot JSON Schema](https://github.com/statelyai/xstate/blob/next/packages/core/src/persistedSnapshot.schema.json) (draft 2020-12) describes them. Nested machine children carry their own envelope in `children[id].snapshot`. A child entry's `src` is the registered source key the child restores from. A child invoked with inline logic has no `src`; it restores through the invoke definition with its id among the restored active states, and restoring fails when no active state, or more than one, invokes that id. Fields prefixed with `_`, such as `_nextActorIds`, are private. They round-trip verbatim; do not read or write them.
+These envelope fields are stable across 6.x releases: `status`, `value`, `context`, `output`, `error`, `historyValue`, `stateInputs`, `children`, `timers` and `machine`. The [persisted snapshot JSON Schema](https://github.com/statelyai/xstate/blob/next/packages/core/src/persistedSnapshot.schema.json) (draft 2020-12) describes them. Nested machine children carry their own envelope in `children[id].snapshot`. A child entry's `src` is the registered source key the child restores from. A child invoked with inline logic has no `src`; it restores through the invoke definition with its id among the restored active states, and restoring fails when no active state, or more than one, invokes that id. `nextTimerId` and `nextActorIds` are private. They round-trip verbatim; do not read or write them. No field name in the envelope starts with `$` or `_`, so it can be stored in document databases such as Convex and MongoDB that reserve those prefixes.
 
 `timers` is a list of pending timers in scheduling order. A delayed `enq.raise(...)` or `enq.sendTo(...)` entry carries its `id`, or a `seq` number when scheduled without one. Built-in `after` and `timeout` timers have neither; their `event` (`xstate.after`, `xstate.timeout.state` or `xstate.timeout.actor`) identifies them.
 
@@ -101,15 +101,15 @@ In development builds, `getPersistedSnapshot()` warns once per call with the pat
 
 `Date` values are not reported. `JSON.stringify` writes them as ISO strings, and `JSON.parse` does not turn them back into `Date` objects. Convert them on restore if your context needs `Date` instances.
 
-Actor refs in `context` persist as `{ $actor: address }` and are not reported. A ref that names one of the snapshot's children restores to that child.
+Actor refs in `context` persist as `{ '@actor': address }` and are not reported. A ref that names one of the snapshot's children restores to that child.
 
-`$actor` is a reserved key in persisted context. On restore, any object in `context` whose keys are exactly `$actor` (and optionally `incarnation`) is read as a serialized actor ref: without an `incarnation`, it becomes the live child at that address, if there is one. Objects with other keys alongside `$actor` stay plain data. Do not store application data as an object with only an `$actor` key.
+`@actor` is a reserved key in persisted context. On restore, any object in `context` whose keys are exactly `@actor` (and optionally `incarnation`) is read as a serialized actor ref: without an `incarnation`, it becomes the live child at that address, if there is one. Objects with other keys alongside `@actor` stay plain data. Do not store application data as an object with only an `@actor` key.
 
 ### Serialized actor refs
 
-An actor ref serializes with `JSON.stringify` as `{ $actor: address }` (the `SerializedActorRef` type, which also allows an optional string `incarnation`). This shape appears when a ref travels in an event payload, such as a `replyTo` field, and the event is persisted or crosses a process boundary. A serialized ref in `context` keeps its address across persistence and restore.
+An actor ref serializes with `JSON.stringify` as `{ '@actor': address }` (the `SerializedActorRef` type, which also allows an optional string `incarnation`). This shape appears when a ref travels in an event payload, such as a `replyTo` field, and the event is persisted or crosses a process boundary. A serialized ref in `context` keeps its address across persistence and restore.
 
-A serialized ref is a valid `enq.sendTo(...)` target. The event is delivered to the live actor at the ref's `$actor` address, including an actor restored after the ref was serialized. If no live actor has that address, the event becomes a dead letter with reason `'missingTarget'`.
+A serialized ref is a valid `enq.sendTo(...)` target. The event is delivered to the live actor at the ref's `@actor` address, including an actor restored after the ref was serialized. If no live actor has that address, the event becomes a dead letter with reason `'missingTarget'`.
 
 ```ts
 const server = createMachine({
@@ -160,8 +160,8 @@ const checkoutVersions = machineVersions([
       children: z.object({}),
       historyValue: z.object({}),
       timers: z.tuple([]),
-      _nextActorIds: z.record(z.string(), z.number()).optional(),
-      _nextTimerId: z.number(),
+      nextActorIds: z.record(z.string(), z.number()).optional(),
+      nextTimerId: z.number(),
       stateInputs: z.undefined().optional(),
       machine: z.object({
         id: z.literal('checkout'),

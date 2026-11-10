@@ -226,8 +226,8 @@ describe('effect descriptors', () => {
     expect(spawnDescriptor).toEqual({
       kind: 'builtin',
       type: '@xstate.spawn',
-      source: { $actor: 'order' },
-      actor: { $actor: 'order/worker:0' },
+      source: { '@actor': 'order' },
+      actor: { '@actor': 'order/worker:0' },
       id: 'worker:0',
       src: 'worker',
       input: undefined
@@ -240,8 +240,8 @@ describe('effect descriptors', () => {
     expect(sendDescriptor).toEqual({
       kind: 'builtin',
       type: '@xstate.sendTo',
-      source: { $actor: 'order' },
-      target: { $actor: 'order/worker:0' },
+      source: { '@actor': 'order' },
+      target: { '@actor': 'order/worker:0' },
       event: { type: 'PING' },
       id: undefined,
       delay: undefined
@@ -361,9 +361,9 @@ describe('children-by-address persistence', () => {
     coordinator.send({ type: 'MORE' });
     // Persist ONLY the subtree; its counters must travel with it.
     const persistedSubtree = coordinator.getPersistedSnapshot() as {
-      _nextActorIds?: Record<string, number>;
+      nextActorIds?: Record<string, number>;
     };
-    expect(persistedSubtree._nextActorIds).toEqual({ worker: 2 });
+    expect(persistedSubtree.nextActorIds).toEqual({ worker: 2 });
     root.stop();
 
     // Restore the subtree standalone (a different placement) and keep
@@ -887,7 +887,7 @@ describe('review findings: eighth round', () => {
     const restored = restoreActor(machine, persisted).start();
     const repersisted = restored.getPersistedSnapshot() as any;
     expect('_nextActorId' in repersisted).toBe(false);
-    expect(repersisted._nextActorIds).toEqual({ worker: 1 });
+    expect(repersisted.nextActorIds).toEqual({ worker: 1 });
   });
 });
 
@@ -1172,7 +1172,7 @@ describe('incarnation tokens on remote handles', () => {
     const descriptor = describeExecutableEffect(effects[0]!) as any;
     expect(descriptor.type).toBe('@xstate.sendTo');
     expect(descriptor.target).toEqual({
-      $actor: 'order/w',
+      '@actor': 'order/w',
       incarnation: 'runtime-b:7'
     });
   });
@@ -1531,11 +1531,11 @@ describe('remote handle serialization', () => {
 
     const restored = restoreActor(machine, persisted).start();
     const handle = restored.getSnapshot().children.w as AnyActor;
-    expect(handle.toJSON!()).toEqual({ $actor: 'order/w' });
+    expect(handle.toJSON!()).toEqual({ '@actor': 'order/w' });
     // JSON round-trip of the whole snapshot keeps the same shape, so
     // tooling that detects actor references sees remote children too.
     const json = JSON.parse(JSON.stringify(restored.getSnapshot())) as any;
-    expect(json.children.w).toEqual({ $actor: 'order/w' });
+    expect(json.children.w).toEqual({ '@actor': 'order/w' });
     restored.stop();
   });
 });
@@ -1681,7 +1681,7 @@ describe('serialized actor refs as send targets', () => {
     const actor = createActor(client, {
       onRejectedEvent: (rejection) => rejections.push(rejection)
     }).start();
-    const replyTo: SerializedActorRef = { $actor: 'client/ghost' };
+    const replyTo: SerializedActorRef = { '@actor': 'client/ghost' };
 
     expect(() =>
       actor.send({ type: 'FORWARD', replyTo, requestId: 'r1' })
@@ -1742,14 +1742,14 @@ describe('serialized actor refs as send targets', () => {
   it('serializes to the address in effect descriptors', () => {
     const [, effects] = transition(server, initialTransition(server)[0], {
       type: 'PING',
-      replyTo: { $actor: 'other/elsewhere' },
+      replyTo: { '@actor': 'other/elsewhere' },
       requestId: 'd1'
     });
     expect(
       effects
         .map(describeExecutableEffect)
         .find((d) => d.type === '@xstate.sendTo')
-    ).toMatchObject({ target: { $actor: 'other/elsewhere' } });
+    ).toMatchObject({ target: { '@actor': 'other/elsewhere' } });
   });
 
   it('routes and dead-letters by address in pure system transitions', () => {
@@ -1757,21 +1757,21 @@ describe('serialized actor refs as send targets', () => {
     const [snapshot] = initialSystemTransition(logic);
     const [next] = systemTransition(logic, snapshot, 'client', {
       type: 'FORWARD',
-      replyTo: { $actor: 'client' },
+      replyTo: { '@actor': 'client' },
       requestId: 'p1'
     });
     expect(next.actors.client.snapshot.context.got).toBe('p1');
 
     const [, effects] = systemTransition(logic, snapshot, 'client', {
       type: 'FORWARD',
-      replyTo: { $actor: 'ghost' },
+      replyTo: { '@actor': 'ghost' },
       requestId: 'p2'
     });
     expect(effects).toContainEqual(
       expect.objectContaining({
         kind: 'builtin',
         type: '@xstate.deadLetter',
-        source: expect.objectContaining({ $actor: 'client/server' }),
+        source: expect.objectContaining({ '@actor': 'client/server' }),
         reason: 'missingTarget',
         event: { type: 'PONG', requestId: 'p2' }
       })
@@ -1916,7 +1916,7 @@ describe('delayed sends to serialized actor refs', () => {
       server.send({
         type: 'PING',
         replyTo: {
-          $actor: requester.address,
+          '@actor': requester.address,
           incarnation: requester.sessionId
         },
         requestId: 'r1'
@@ -1937,7 +1937,7 @@ describe('delayed sends to serialized actor refs', () => {
       system.onRejectedEvent((rejection) => rejections.push(rejection));
       const original = system.createActor(requesterMachine).start();
       const replyTo: SerializedActorRef = {
-        $actor: original.address,
+        '@actor': original.address,
         incarnation: original.sessionId
       };
       const server = system.createActor(delayedServer).start();

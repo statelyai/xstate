@@ -156,7 +156,7 @@ export function deliverEvent(
         throw error;
       }
       void system.deadLetter(source, undefined, event, 'missingTarget', {
-        targetId: getAddressId(serialized.$actor),
+        targetId: getAddressId(serialized['@actor']),
         error
       });
       return;

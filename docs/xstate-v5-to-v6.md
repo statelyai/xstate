@@ -1296,7 +1296,7 @@ Child actors, async logic with effects, and listener-resume semantics are all pa
 
 The host serializes the payload. Development builds warn when `context`, `output`, `error`, or state input holds a value that does not survive a JSON round-trip: functions, symbols, `BigInt`, `Map`, `Set`, cycles, `NaN`, and `Infinity`. Persisting a snapshot whose `context` contains a circular reference throws an error that names the actor and the context path. See [Persistence](persistence.md) for the format rules.
 
-Actor refs in persisted `context` are stored as `{ "$actor": "<address>" }`. v5 stored them as `{ "xstate$$type": 1, "id": "<id>" }`; v6 does not read that shape, so convert those entries with [`machineVersions`](persistence.md#migrate-machine-versions) before restoring v5 snapshots.
+Actor refs in persisted `context` are stored as `{ "@actor": "<address>" }`. v5 stored them as `{ "xstate$$type": 1, "id": "<id>" }`; v6 does not read that shape, so convert those entries with [`machineVersions`](persistence.md#migrate-machine-versions) before restoring v5 snapshots.
 
 ### Snapshot versioning
 
@@ -1752,7 +1752,7 @@ A diff that matches a known v6 change is classified with a rule instead of `uncl
 | --- | --- |
 | `anonymous-child-id` | Child or send-target ids that differ only by a generated suffix. |
 | `error-string-shape` | Error strings with the same message after the prefix is removed. |
-| `context-reference` | `context` that is equal after removing actor-reference keys (`$actor`). |
+| `context-reference` | `context` that is equal after removing actor-reference keys (`@actor`). |
 | `done-event-session` | Processed events that are equal after dropping `sessionId`. |
 | `final-state-output` | `output` that is undefined in v5 and set in v6, because v6 uses a top-level final state's `output` when the root has none (see [Machine output](#machine-output)). |
 | `root-send-parent` | `status` and `error` where v5 errored with `Unable to send event to actor '#_parent'` and v6 did not, because v6 makes a send to a missing parent a dead letter (see [Sending to a missing target](#sending-to-a-missing-target)). Later fields of that step, such as `value`, can still differ. |
@@ -1840,7 +1840,7 @@ Code written against a v6 alpha uses names that changed before the beta. The old
 | `xstate.system.cancelEffect`, `xstate.logic.cleanup` effects | `@xstate.cancelEffect`, `@xstate.cleanup`                |
 | `xstate.logic.effect`, `xstate.log` system effects           | `@xstate.effect`, `@xstate.log`                          |
 | suffixed `xstate.done.actor.<id>` etc. descriptors           | category types with `matches` (see [Internal lifecycle events](#internal-lifecycle-events)) |
-| `{ xstate$type: 'actorRef', id, address, src }`              | `{ $actor: address }` (`SerializedActorRef`)             |
+| `{ xstate$type: 'actorRef', id, address, src }`              | `{ '@actor': address }` (`SerializedActorRef`; `$actor` in 6.0.0-beta.1) |
 | persisted timer `startedAt`                                  | `scheduledAt`                                            |
 | `snapshot.timers` record keyed by generated ids (`xstate.after.<delay>.<stateId>`, `xstate.timeout.state.<stateId>`, `xstate.timer.auto.<n>`) | list; built-in timers have no `id`, delayed sends without an `id` carry `seq` |
 | `scheduleTimer(source, id, delay)`, `cancelTimer(source, id)`, `{ type: 'xstate.timer', id }` | `scheduleTimer(source, timer, delay)`, `cancelTimer(source, timer)`, `{ type: 'xstate.timer', ...timer }` (`TimerKey`) |

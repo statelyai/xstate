@@ -122,7 +122,7 @@ describe('durable checkpoint restoration', () => {
     expect(effects.map(({ id }) => id)).toEqual(['restore:0:0']);
     expect(effects[0].descriptor).toMatchObject({
       type: '@xstate.start',
-      actor: { $actor: 'request/worker' }
+      actor: { '@actor': 'request/worker' }
     });
     await execution.executeEffects(effects);
     expect(run).toHaveBeenCalledOnce();
@@ -220,7 +220,7 @@ describe('durable checkpoint restoration', () => {
       expect.arrayContaining([
         expect.objectContaining({
           type: '@xstate.sendTo',
-          target: { $actor: 'timers/worker' },
+          target: { '@actor': 'timers/worker' },
           id: 'ping',
           delay: 200
         }),

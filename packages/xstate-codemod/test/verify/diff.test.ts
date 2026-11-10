@@ -135,7 +135,7 @@ describe('classify', () => {
       rule: 'anonymous-child-id'
     });
     expect(
-      classify('context', { a: 1, ref: { $actor: 'c' } }, { a: 1 }, 1, steps)
+      classify('context', { a: 1, ref: { '@actor': 'c' } }, { a: 1 }, 1, steps)
     ).toMatchObject({
       rule: 'context-reference'
     });

@@ -99,7 +99,7 @@ describe('toJson', () => {
     const cyclic: any = { ref };
     cyclic.self = cyclic;
     expect(toJson(cyclic, stats())).toEqual({
-      ref: { $actor: '(anon)' },
+      ref: { '@actor': '(anon)' },
       self: '[circular]'
     });
   });

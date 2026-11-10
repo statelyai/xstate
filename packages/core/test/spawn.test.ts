@@ -90,7 +90,7 @@ describe('spawn during speculative evaluation', () => {
     expect(inert!.sessionId).toBeUndefined();
     expect(inert!.id).toBe('worker:0');
     expect(inert!.address).toBe('parent/worker:0');
-    expect(inert!.toJSON!()).toEqual({ $actor: 'parent/worker:0' });
+    expect(inert!.toJSON!()).toEqual({ '@actor': 'parent/worker:0' });
     expect(real!.id).toBe('worker:0');
     expect(real!.address).toBe(inert!.address);
     expect(Object.keys(actor.getSnapshot().children)).toEqual(['worker:0']);
