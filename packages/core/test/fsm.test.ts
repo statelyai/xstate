@@ -64,6 +64,70 @@ describe('createFSM', () => {
     );
   });
 
+  it.each([
+    ['NaN', { value: NaN }, { value: NaN }, true],
+    ['negative zero', { value: 0 }, { value: -0 }, false],
+    ['positive zero', { value: -0 }, { value: 0 }, false],
+    ['missing undefined key', {}, { value: undefined }, false],
+    ['inherited value', {}, { toString: Object.prototype.toString }, false],
+    ['equal value', { value: 1 }, { value: 1 }, true],
+    ['changed value', { value: 1 }, { value: 2 }, false],
+    ['empty patch', { value: 1 }, {}, true]
+  ] as const)(
+    'applies a %s patch and reuses only unchanged snapshots',
+    (_name, context, patch, reused) => {
+      const machine = createFSM<Record<string, unknown>, { type: 'set' }>({
+        context,
+        initial: 'idle',
+        states: { idle: { on: { set: { context: patch } } } }
+      });
+      const [next] = machine.transition(machine.initialState, { type: 'set' });
+
+      expect(next === machine.initialState).toBe(reused);
+      const expected: Record<string, unknown> = { ...context, ...patch };
+      expect(Object.keys(next.context)).toEqual(Object.keys(expected));
+      for (const key of Object.keys(expected)) {
+        expect(Object.hasOwn(next.context, key)).toBe(true);
+        expect(Object.is(next.context[key], expected[key])).toBe(true);
+      }
+    }
+  );
+
+  it.each([
+    'new',
+    'undefined',
+    'changed',
+    'equal',
+    'inherited',
+    'hidden'
+  ] as const)('handles a %s symbol context patch', (kind) => {
+    const key = Symbol('count');
+    const context = kind === 'equal' || kind === 'changed' ? { [key]: 1 } : {};
+    const patch =
+      kind === 'inherited'
+        ? Object.create({ [key]: 2 })
+        : kind === 'hidden'
+          ? Object.defineProperty({}, key, { value: 2 })
+          : {
+              [key]: kind === 'undefined' ? undefined : kind === 'equal' ? 1 : 2
+            };
+    const machine = createFSM<Record<PropertyKey, unknown>, { type: 'set' }>({
+      context,
+      initial: 'idle',
+      states: { idle: { on: { set: { context: patch } } } }
+    });
+    const [next] = machine.transition(machine.initialState, { type: 'set' });
+    const unchanged =
+      kind === 'equal' || kind === 'inherited' || kind === 'hidden';
+    expect(next === machine.initialState).toBe(unchanged);
+    expect(Object.hasOwn(next.context, key)).toBe(
+      !['inherited', 'hidden'].includes(kind)
+    );
+    if (!unchanged) {
+      expect(next.context[key]).toBe(kind === 'undefined' ? undefined : 2);
+    }
+  });
+
   it('applies only own context patch keys', () => {
     const machine = createFSM<
       { count: number; inherited?: number },

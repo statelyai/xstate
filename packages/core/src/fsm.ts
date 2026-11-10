@@ -466,8 +466,11 @@ export function createFSM<
       // current snapshot. After the first copy every key matches. Iterate a
       // spread copy so inherited keys, which the spread below ignores, are
       // skipped.
-      for (const key in { ...patch }) {
-        if (patch![key] !== context[key]) {
+      for (const key of Reflect.ownKeys({ ...patch }) as (keyof TContext)[]) {
+        if (
+          !Object.hasOwn(context, key) ||
+          !Object.is(patch![key], context[key])
+        ) {
           context = { ...context, ...patch };
         }
       }
