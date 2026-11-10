@@ -93,6 +93,41 @@ describe('createFSM', () => {
     }
   );
 
+  it.each([
+    'new',
+    'undefined',
+    'changed',
+    'equal',
+    'inherited',
+    'hidden'
+  ] as const)('handles a %s symbol context patch', (kind) => {
+    const key = Symbol('count');
+    const context = kind === 'equal' || kind === 'changed' ? { [key]: 1 } : {};
+    const patch =
+      kind === 'inherited'
+        ? Object.create({ [key]: 2 })
+        : kind === 'hidden'
+          ? Object.defineProperty({}, key, { value: 2 })
+          : {
+              [key]: kind === 'undefined' ? undefined : kind === 'equal' ? 1 : 2
+            };
+    const machine = createFSM<Record<PropertyKey, unknown>, { type: 'set' }>({
+      context,
+      initial: 'idle',
+      states: { idle: { on: { set: { context: patch } } } }
+    });
+    const [next] = machine.transition(machine.initialState, { type: 'set' });
+    const unchanged =
+      kind === 'equal' || kind === 'inherited' || kind === 'hidden';
+    expect(next === machine.initialState).toBe(unchanged);
+    expect(Object.hasOwn(next.context, key)).toBe(
+      !['inherited', 'hidden'].includes(kind)
+    );
+    if (!unchanged) {
+      expect(next.context[key]).toBe(kind === 'undefined' ? undefined : 2);
+    }
+  });
+
   it('applies only own context patch keys', () => {
     const machine = createFSM<
       { count: number; inherited?: number },
