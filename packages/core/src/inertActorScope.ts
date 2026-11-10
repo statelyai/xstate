@@ -7,6 +7,8 @@ import {
   peekSnapshotActorRef,
   setLazySnapshotActorRef,
   setSnapshotActorRef,
+  takeExecutionOwner,
+  type ExecutionOwner,
   type SnapshotActorRef
 } from './snapshotActorRef.ts';
 import {
@@ -87,6 +89,7 @@ type LazyInertActorState = {
   identityProvider?: () => SnapshotActorRef;
   parent?: AnyActor;
   parentKnown: boolean;
+  owner?: ExecutionOwner;
   materialize: () => AnyActorScope;
 };
 
@@ -171,7 +174,8 @@ function createMaterializedInertActorScope<T extends AnyActorLogic>(
   sourceRef: (() => SnapshotActorRef) | undefined,
   sourceChildren: Record<string, AnyActor | undefined>,
   currentSnapshot: SnapshotFrom<T> | undefined,
-  sourceSelf?: AnyActor
+  sourceSelf?: AnyActor,
+  owner?: ExecutionOwner
 ): AnyActorScope {
   inertActorMaterializationObserver?.();
   const snapshotRef = sourceRef?.();
@@ -182,7 +186,8 @@ function createMaterializedInertActorScope<T extends AnyActorLogic>(
       ? createSnapshotSystem(
           baseSystem,
           sourceChildren,
-          sourceSelf ? undefined : snapshotRef?.systemState
+          sourceSelf ? undefined : snapshotRef?.systemState,
+          owner
         )
       : undefined;
   const self = createActor(
@@ -260,6 +265,10 @@ export function createInertActorScope<T extends AnyActorLogic>(
       sourceSelf?._parent ??
       sourceState?.parent ??
       eagerSourceRef?.actor._parent,
+    // Only the outermost scope of an owned transition belongs to the owner;
+    // scopes for its intermediate snapshots inherit it, and nested pure
+    // transitions run unowned.
+    owner: sourceActorScope ? sourceState?.owner : takeExecutionOwner(),
     parentKnown:
       !!sourceSelf ||
       !!sourceState?.parentKnown ||
@@ -272,7 +281,8 @@ export function createInertActorScope<T extends AnyActorLogic>(
       state.sourceRef,
       state.sourceChildren,
       state.snapshot as SnapshotFrom<T>,
-      sourceSelf
+      sourceSelf,
+      state.owner
     );
     return commitMaterialization(state, scope);
   };
@@ -286,7 +296,8 @@ export function createInertActorScope<T extends AnyActorLogic>(
           state.sourceRef,
           state.sourceChildren,
           undefined,
-          sourceSelf
+          sourceSelf,
+          state.owner
         );
         if (state.snapshot !== undefined) {
           (state.identityScope.self as any)._snapshot = state.snapshot;

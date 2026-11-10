@@ -15,6 +15,8 @@ import {
 } from '../src';
 import { createMachineFromCompiledConfig } from '../src/createMachine.ts';
 import type {
+  ActorLogic,
+  Snapshot,
   AnyActor,
   AnyEventObject,
   ExecutableEffect,
@@ -33,6 +35,7 @@ import { getSnapshotActorRef } from '../src/snapshotActorRef';
 import { setInertActorMaterializationObserver } from '../src/inertActorScope';
 import { z } from 'zod';
 import { restoreActor } from '../src/persist/index.ts';
+import { createDurable } from '../src/durable/index.ts';
 
 const isEffect =
   <T extends SpecialExecutableEffect['type']>(type: T) =>
@@ -153,6 +156,38 @@ describe('transition function', () => {
         entry: ({ context }) => ({ context })
       });
       initialTransition(entryMachine);
+      expect(materializations).toBe(0);
+    } finally {
+      setInertActorMaterializationObserver(undefined);
+    }
+  });
+
+  it('does not materialize an unchanged durable transition scope to wire its runtime', () => {
+    const initial: Snapshot<never> = {
+      status: 'active',
+      output: undefined,
+      error: undefined
+    };
+    const logic: ActorLogic<Snapshot<never>, { type: 'GO' }, undefined> = {
+      initialTransition: () => [initial, []],
+      transition: (snapshot) => [snapshot, []],
+      getInitialSnapshot: () => initial,
+      getPersistedSnapshot: (snapshot) => snapshot
+    };
+    const execution = createDurable(logic, {
+      executionId: 'pinned',
+      executeAction: (effect) => effect.exec(),
+      waitForEvent: () => ({ type: 'GO' }),
+      sendEvent: () => {}
+    });
+    const [snapshot] = execution.initialTransition();
+    execution.getActorRef(snapshot);
+    let materializations = 0;
+    setInertActorMaterializationObserver(() => materializations++);
+    try {
+      const [next, effects] = execution.transition(snapshot, { type: 'GO' });
+      expect(next).toBe(snapshot);
+      expect(effects).toEqual([]);
       expect(materializations).toBe(0);
     } finally {
       setInertActorMaterializationObserver(undefined);

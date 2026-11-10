@@ -12,7 +12,10 @@ import {
 } from '../inertActorScope.ts';
 import { isRemoteActorRef } from '../remoteActorRef.ts';
 import { createStartEffect, createTimerEffect } from '../transitionActions.ts';
-import { getSnapshotActorRef } from '../snapshotActorRef.ts';
+import {
+  getSnapshotActorRef,
+  withExecutionOwner
+} from '../snapshotActorRef.ts';
 import {
   encodeAddressSegment,
   withExecutionIdentity,
@@ -616,6 +619,12 @@ export function createDurable<TLogic extends AnyActorLogic>(
 
   const inspect = options?.inspect;
 
+  // Runs a transition as this execution: views it derives belong to this
+  // execution, and its systems report to the execution's inspector.
+  const owner = { runtime: wrappedSystemRuntime };
+  const inExecution = <T>(fn: () => T): T =>
+    withExecutionOwner(owner, () => withSystemInspector(inspect, fn));
+
   // Attaches the execution's inspector to a system that does not have it
   // yet. Systems constructed inside a transition get it at construction (the
   // ambient inspector); this covers systems materialized outside that window
@@ -700,7 +709,7 @@ export function createDurable<TLogic extends AnyActorLogic>(
       ) {
         throw new Error('restore() requires a fresh durable execution');
       }
-      const { snapshot, scope } = withSystemInspector(inspect, () =>
+      const { snapshot, scope } = inExecution(() =>
         withExecutionIdentity(executionIdentity, () => {
           const scope = createInertActorScope(logic);
           const snapshot = restoreLogicSnapshot(
@@ -756,7 +765,7 @@ export function createDurable<TLogic extends AnyActorLogic>(
           'initialTransition() cannot initialize a restored execution'
         );
       }
-      const [snapshot, effects] = withSystemInspector(inspect, () =>
+      const [snapshot, effects] = inExecution(() =>
         withExecutionIdentity(executionIdentity, () =>
           initialTransition(logic, ...args)
         )
@@ -764,7 +773,7 @@ export function createDurable<TLogic extends AnyActorLogic>(
       return [installSystemRuntime(snapshot), tagEffects(effects)];
     },
     transition(snapshot, event) {
-      const [nextSnapshot, effects] = withSystemInspector(inspect, () =>
+      const [nextSnapshot, effects] = inExecution(() =>
         withExecutionIdentity(executionIdentity, () =>
           transition(logic, snapshot, event)
         )

@@ -1,6 +1,7 @@
 import isDevelopment from '#is-development';
 import { hasAmbientInspector } from './inspectionAmbient.ts';
 import { xstateError } from './xstateError.ts';
+import type { ActorSystemRuntime } from './system.ts';
 import type { AnyActor, Snapshot } from './types.ts';
 
 /** Snapshot-scoped actor identity and system view. @internal */
@@ -18,6 +19,33 @@ interface SnapshotSystemState {
   sourceVersion: number;
 }
 
+// Each view's execution system and whether it forwards inspection. Views
+// never chain: they all inherit from the execution system directly.
+const snapshotSystemViews = new WeakMap<
+  AnyActor['system'],
+  {
+    executionSystem: AnyActor['system'];
+    rootSystem: AnyActor['system'];
+    forwardInspection: boolean;
+  }
+>();
+// Facilities owned by the execution rather than by one snapshot's view. A view
+// reads and writes them on the execution system, so timers, listeners and the
+// runtime installed through any snapshot are visible through every other.
+const executionFacilities = [
+  'runtime',
+  '_timerMap',
+  '_rejectionListeners',
+  '_inspectionObservers',
+  '_emissionListeners'
+] as const;
+// The durable execution that owns each execution system.
+/** A durable execution, as the owner of the views its transitions create. @internal */
+export interface ExecutionOwner {
+  runtime: Partial<ActorSystemRuntime> | undefined;
+}
+const executionOwners = new WeakMap<AnyActor['system'], ExecutionOwner>();
+let ambientExecutionOwner: ExecutionOwner | undefined;
 const snapshotActorRefs = new WeakMap<object, SnapshotActorRef>();
 const lazySnapshotActorRefs = new WeakMap<object, () => SnapshotActorRef>();
 const emptyKeyedActors = new Map<PropertyKey, AnyActor | undefined>();
@@ -91,69 +119,116 @@ function getSnapshotChildren(
 export function createSnapshotSystem(
   baseSystem: AnyActor['system'],
   children: Record<string, AnyActor | undefined>,
-  baseState?: SnapshotSystemState
+  baseState?: SnapshotSystemState,
+  owner?: ExecutionOwner
 ): AnyActor['system'] {
-  const forwardInspection = hasAmbientInspector();
+  const baseView = snapshotSystemViews.get(baseSystem);
+  const baseExecutionSystem = baseView?.executionSystem ?? baseSystem;
+  // The runtime system at the bottom of every view; a forked view runs its
+  // methods against its own facilities.
+  const rootSystem = baseView?.rootSystem ?? baseSystem;
+  const methods = Object.getPrototypeOf(rootSystem) as AnyActor['system'];
+  const forks =
+    owner !== undefined && executionOwners.get(baseExecutionSystem) !== owner;
+  const forwardInspection =
+    hasAmbientInspector() && (baseView?.forwardInspection ?? true);
   const registeredActors = copyRegisteredActors(baseSystem, baseState);
   const keyedActors = new Map<PropertyKey, AnyActor | undefined>(
     baseState?.keyedActors ?? getKeyedActors(baseSystem)
   );
   const reverseKeyedActors = new WeakMap<AnyActor, PropertyKey>();
-  const system: AnyActor['system'] = Object.assign(Object.create(baseSystem), {
-    children: registeredActors,
-    keyedActors,
-    reverseKeyedActors,
-    _snapshot: { ...(baseState?.snapshot ?? baseSystem._snapshot) },
-    _snapshotVersion: baseState?.sourceVersion ?? baseSystem._snapshotVersion,
-    _register: (sessionId: string, actor: AnyActor) => {
-      registeredActors.set(sessionId, actor);
-      markSystemSnapshotDirty(system);
-      return sessionId;
-    },
-    _unregister: (actor: AnyActor) => {
-      if (actor.sessionId) {
-        registeredActors.delete(actor.sessionId);
-      }
-      const registryKey = reverseKeyedActors.get(actor);
-      if (registryKey !== undefined && keyedActors.get(registryKey) === actor) {
-        keyedActors.delete(registryKey);
-      }
-      reverseKeyedActors.delete(actor);
-      markSystemSnapshotDirty(system);
-    },
-    _set: (registryKey: PropertyKey, actor: AnyActor) => {
-      const existing = keyedActors.get(registryKey);
-      if (existing && existing !== actor) {
-        throw new Error(
-          isDevelopment
-            ? `Actor with registry key '${String(registryKey)}' already exists.`
-            : xstateError(45, String(registryKey))
-        );
-      }
-      keyedActors.set(registryKey, actor);
-      reverseKeyedActors.set(actor, registryKey);
-      markSystemSnapshotDirty(system);
-    },
-    get: (registryKey: PropertyKey) => keyedActors.get(registryKey),
-    getAll: () => Object.fromEntries(keyedActors),
-    onEmitted: (listener: Parameters<AnyActor['system']['onEmitted']>[0]) =>
-      baseSystem.onEmitted(listener),
-    _notifyEmitted: (
-      actorRef: AnyActor,
-      event: Parameters<AnyActor['system']['_notifyEmitted']>[1]
-    ) => baseSystem._notifyEmitted(actorRef, event),
-    // Pure transition resolution must not leak topology inspection events
-    // into a live runtime system — planning branches stay silent. The one
-    // exception is a durable execution's own transitions (marked by the
-    // ambient inspector at creation time): there the pure path IS the
-    // execution, so inspection forwards to the base system's observers.
-    _hasInspectionObservers: forwardInspection
-      ? () => baseSystem._hasInspectionObservers?.() ?? false
-      : () => false,
-    _sendInspectionEvent: forwardInspection
-      ? (event: Parameters<AnyActor['system']['_sendInspectionEvent']>[0]) =>
-          baseSystem._sendInspectionEvent(event)
-      : () => {}
+  let executionSystem: AnyActor['system'];
+  const system: AnyActor['system'] = Object.assign(
+    Object.create(baseExecutionSystem),
+    {
+      children: registeredActors,
+      keyedActors,
+      reverseKeyedActors,
+      _snapshot: { ...(baseState?.snapshot ?? baseSystem._snapshot) },
+      _snapshotVersion: baseState?.sourceVersion ?? baseSystem._snapshotVersion,
+      _register: (sessionId: string, actor: AnyActor) => {
+        registeredActors.set(sessionId, actor);
+        markSystemSnapshotDirty(system);
+        return sessionId;
+      },
+      _unregister: (actor: AnyActor) => {
+        if (actor.sessionId) {
+          registeredActors.delete(actor.sessionId);
+        }
+        const registryKey = reverseKeyedActors.get(actor);
+        if (
+          registryKey !== undefined &&
+          keyedActors.get(registryKey) === actor
+        ) {
+          keyedActors.delete(registryKey);
+        }
+        reverseKeyedActors.delete(actor);
+        markSystemSnapshotDirty(system);
+      },
+      _set: (registryKey: PropertyKey, actor: AnyActor) => {
+        const existing = keyedActors.get(registryKey);
+        if (existing && existing !== actor) {
+          throw new Error(
+            isDevelopment
+              ? `Actor with registry key '${String(registryKey)}' already exists.`
+              : xstateError(45, String(registryKey))
+          );
+        }
+        keyedActors.set(registryKey, actor);
+        reverseKeyedActors.set(actor, registryKey);
+        markSystemSnapshotDirty(system);
+      },
+      get: (registryKey: PropertyKey) => keyedActors.get(registryKey),
+      getAll: () => Object.fromEntries(keyedActors),
+      onEmitted: (listener: Parameters<AnyActor['system']['onEmitted']>[0]) =>
+        methods.onEmitted.call(executionSystem, listener),
+      _notifyEmitted: (
+        actorRef: AnyActor,
+        event: Parameters<AnyActor['system']['_notifyEmitted']>[1]
+      ) => methods._notifyEmitted.call(executionSystem, actorRef, event),
+      // Pure transition resolution must not leak topology inspection events
+      // into a live runtime system — planning branches stay silent. The one
+      // exception is a durable execution's own transitions (marked by the
+      // ambient inspector at creation time): there the pure path IS the
+      // execution, so inspection forwards to the execution system's observers.
+      _hasInspectionObservers: forwardInspection
+        ? () => methods._hasInspectionObservers?.call(executionSystem) ?? false
+        : () => false,
+      _sendInspectionEvent: forwardInspection
+        ? (event: Parameters<AnyActor['system']['_sendInspectionEvent']>[0]) =>
+            methods._sendInspectionEvent.call(executionSystem, event)
+        : () => {}
+    }
+  );
+
+  executionSystem = forks ? system : baseExecutionSystem;
+  for (const key of executionFacilities) {
+    if (forks && key === 'runtime') {
+      system.runtime = owner.runtime;
+    } else if (forks) {
+      const value = (baseExecutionSystem as any)[key];
+      (system as any)[key] =
+        value instanceof Set
+          ? new Set(value)
+          : key === '_timerMap' && value
+            ? { ...value }
+            : value;
+    } else {
+      Object.defineProperty(system, key, {
+        get: () => (executionSystem as any)[key],
+        set: (value) => {
+          (executionSystem as any)[key] = value;
+        }
+      });
+    }
+  }
+  if (forks) {
+    executionOwners.set(system, owner!);
+  }
+  snapshotSystemViews.set(system, {
+    executionSystem,
+    rootSystem,
+    forwardInspection
   });
 
   for (const [registryKey, actor] of keyedActors) {
@@ -177,6 +252,31 @@ export function createSnapshotSystem(
   }
 
   return system;
+}
+
+/**
+ * Runs `fn` as a transition of `owner`. A view it derives from a system the
+ * owner does not own forks: it gets the owner's runtime and copies of the
+ * timers and listeners it saw, so executions that adopt the same snapshot
+ * never share them.
+ *
+ * @internal
+ */
+export function withExecutionOwner<T>(owner: ExecutionOwner, fn: () => T): T {
+  const previous = ambientExecutionOwner;
+  ambientExecutionOwner = owner;
+  try {
+    return fn();
+  } finally {
+    ambientExecutionOwner = previous;
+  }
+}
+
+/** Hands the ambient owner to the first scope that asks for it. @internal */
+export function takeExecutionOwner(): ExecutionOwner | undefined {
+  const owner = ambientExecutionOwner;
+  ambientExecutionOwner = undefined;
+  return owner;
 }
 
 /** Returns the actor identity associated with a transition snapshot. @internal */
