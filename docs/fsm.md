@@ -153,7 +153,7 @@ from `xstate` adds the runtime to your bundle.
 - A transition can be a state name, `{ target, context }`, or a function that
   receives `{ context, event }` and returns `{ target, context }`. Return
   `undefined` from a function for no transition.
-- Context updates are shallow patches.
+- Context updates are shallow patches. A patch adds its own keys even when a new value is `undefined` or matches an inherited value. If the target is unchanged, a patch whose keys already exist with `Object.is`-equal values keeps the current snapshot.
 - `types<T>()` adds types without runtime validation. Setup schema values are
   ignored by the FSM runtime; state `schemas.input` is accepted for upgrade
   compatibility but no input is consumed by this pure API.
