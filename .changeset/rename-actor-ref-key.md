@@ -1,13 +1,15 @@
 ---
 'xstate': major
 '@xstate/test': major
+'@xstate/effect': major
+'@xstate/codemod': patch
 ---
 
 Serialized output no longer uses field names that start with `$` or `_`. Stores such as Convex reject both prefixes, and MongoDB restricts `$`-prefixed field names, so persisted snapshots, `systemTransition` snapshots and effect descriptors could not be stored without rewriting them.
 
 | Before                    | After                    | Where                                                                                                      |
 | ------------------------- | ------------------------ | ---------------------------------------------------------------------------------------------------------- |
-| `{ $actor, incarnation }` | `{ '@actor', incarnation }` | `SerializedActorRef`: persisted context, `systemTransition` snapshots, effect descriptors, `sendTo` targets, dead letters |
+| `{ $actor: address, incarnation }` | `{ '@actor': address, incarnation }` | `SerializedActorRef`: persisted context, `systemTransition` snapshots, effect descriptors, `sendTo` targets, dead letters, `@xstate/effect` actor `toJSON()` |
 | `_nextTimerId`            | `nextTimerId`            | Persisted snapshots, `systemTransition` snapshots                                                          |
 | `_nextActorIds`           | `nextActorIds`           | Persisted snapshots, `systemTransition` snapshots                                                          |
 | `_stateInputs`            | `stateInputs`            | `systemTransition` snapshots (persisted snapshots already used `stateInputs`)                              |

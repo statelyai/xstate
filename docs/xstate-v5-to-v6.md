@@ -1840,7 +1840,7 @@ Code written against a v6 alpha uses names that changed before the beta. The old
 | `xstate.system.cancelEffect`, `xstate.logic.cleanup` effects | `@xstate.cancelEffect`, `@xstate.cleanup`                |
 | `xstate.logic.effect`, `xstate.log` system effects           | `@xstate.effect`, `@xstate.log`                          |
 | suffixed `xstate.done.actor.<id>` etc. descriptors           | category types with `matches` (see [Internal lifecycle events](#internal-lifecycle-events)) |
-| `{ xstate$type: 'actorRef', id, address, src }`              | `{ @actor: address }` (`SerializedActorRef`)             |
+| `{ xstate$type: 'actorRef', id, address, src }`              | `{ '@actor': address }` (`SerializedActorRef`; `$actor` in 6.0.0-beta.1) |
 | persisted timer `startedAt`                                  | `scheduledAt`                                            |
 | `snapshot.timers` record keyed by generated ids (`xstate.after.<delay>.<stateId>`, `xstate.timeout.state.<stateId>`, `xstate.timer.auto.<n>`) | list; built-in timers have no `id`, delayed sends without an `id` carry `seq` |
 | `scheduleTimer(source, id, delay)`, `cancelTimer(source, id)`, `{ type: 'xstate.timer', id }` | `scheduleTimer(source, timer, delay)`, `cancelTimer(source, timer)`, `{ type: 'xstate.timer', ...timer }` (`TimerKey`) |

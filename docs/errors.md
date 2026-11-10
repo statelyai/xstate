@@ -551,7 +551,7 @@ Unable to send event to actor '{address}' (incarnation '{incarnation}'): no live
 
 Values: the address, and the incarnation when the reference has one.
 
-A serialized actor reference (`{ @actor }`) points to an actor that is not running in this system, or to an earlier incarnation of it. Check that the actor is running, or refresh the stored reference.
+A serialized actor reference (`{ '@actor' }`) points to an actor that is not running in this system, or to an earlier incarnation of it. Check that the actor is running, or refresh the stored reference.
 
 ## E51
 
