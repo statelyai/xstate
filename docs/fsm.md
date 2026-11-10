@@ -153,6 +153,7 @@ from `xstate` adds the runtime to your bundle.
 - A transition can be a state name, `{ target, context }`, or a function that
   receives `{ context, event }` and returns `{ target, context }`. Return
   `undefined` from a function for no transition.
+- Only own entries in `states` and `on` define transitions. A state inherited from the `states` prototype has no outgoing transitions, like an undeclared state. Transition targets are not validated.
 - Context updates are shallow patches.
 - `types<T>()` adds types without runtime validation. Setup schema values are
   ignored by the FSM runtime; state `schemas.input` is accepted for upgrade
