@@ -1,3 +1,4 @@
+import { upgradeLegacyPersistedSnapshot } from '../legacySnapshot.ts';
 import isDevelopment from '#is-development';
 import { Actor } from '../createActor.ts';
 import { diagnoseActorOptions } from '../devDiagnostics.ts';
@@ -177,6 +178,8 @@ export function restoreMachineSnapshot<TMachine extends AnyStateMachine>(
   if (machine instanceof StateMachine) {
     machine = machine._raw() as TMachine;
   }
+  // TODO(v7): remove with legacySnapshot.ts.
+  snapshot = upgradeLegacyPersistedSnapshot(snapshot);
   const usesInertScope = !actorScope;
   const resolvedActorScope = (actorScope ??
     createInertActorScope(machine)) as AnyActorScope;

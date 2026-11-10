@@ -1,3 +1,4 @@
+import { upgradeLegacySystemSnapshot } from './legacySnapshot.ts';
 import { createMachineSnapshot, isMachineSnapshot } from './State.ts';
 import { createDoneActorEvent, createErrorActorEvent } from './eventUtils.ts';
 import { encodeAddressSegment, getActorIdPrefix } from './system.ts';
@@ -346,6 +347,8 @@ class SystemReduction {
   constructor(logic: SystemLogic, snapshot: SystemSnapshot, maxSteps = 10_000) {
     if (!Number.isSafeInteger(maxSteps) || maxSteps < 1)
       throw new Error('maxSteps must be a positive integer.');
+    // TODO(v7): remove with legacySnapshot.ts.
+    snapshot = upgradeLegacySystemSnapshot(snapshot);
     this.logic = definitions(logic);
     this.mappers = logic.mappers ?? {};
     this.mapperNames = new Map(

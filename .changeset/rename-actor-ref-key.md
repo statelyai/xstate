@@ -23,4 +23,4 @@ Serialized output no longer uses field names that start with `$` or `_`. Stores 
 
 `snapshot.toJSON()` no longer includes the private `_nextTimerId` and `_nextActorIds` counters.
 
-Snapshots written by `6.0.0-beta.1` with the old field names are not converted on restore. Schemas that validate persisted snapshots (for example with `machineVersions`) must use the new names.
+Snapshots written by `6.0.0-beta.1` with the old field names still restore: `restoreActor`, `restoreMachineSnapshot` and `systemTransition` read both shapes. New snapshots use only the new names. Schemas that validate persisted snapshots (for example with `machineVersions`) must use the new names.

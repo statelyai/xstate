@@ -1,0 +1,228 @@
+{
+  "persisted": {
+    "status": "active",
+    "value": "active",
+    "historyValue": {},
+    "_nextTimerId": 1,
+    "_nextActorIds": {
+      "child": 1
+    },
+    "context": {
+      "spawned": {
+        "$actor": "parent/spawned"
+      },
+      "generated": {
+        "$actor": "parent/child:0"
+      }
+    },
+    "children": {
+      "spawned": {
+        "address": "parent/spawned",
+        "snapshot": {
+          "status": "active",
+          "value": "idle",
+          "historyValue": {},
+          "_nextTimerId": 0,
+          "context": {},
+          "children": {},
+          "timers": []
+        },
+        "src": "child"
+      },
+      "child:0": {
+        "address": "parent/child:0",
+        "snapshot": {
+          "status": "active",
+          "value": "idle",
+          "historyValue": {},
+          "_nextTimerId": 0,
+          "context": {},
+          "children": {},
+          "timers": []
+        },
+        "src": "child"
+      },
+      "invoked": {
+        "address": "parent/invoked",
+        "snapshot": {
+          "status": "active",
+          "value": "idle",
+          "historyValue": {},
+          "_nextTimerId": 0,
+          "context": {},
+          "children": {},
+          "timers": []
+        },
+        "src": "child",
+        "syncSnapshot": false
+      }
+    },
+    "timers": [
+      {
+        "seq": 0,
+        "delay": 2000,
+        "type": "@xstate.raise",
+        "event": {
+          "type": "TICK"
+        },
+        "target": "self",
+        "scheduledAt": 1794283559125
+      }
+    ]
+  },
+  "system": {
+    "root": "root",
+    "executionId": "system",
+    "now": 500,
+    "actors": {
+      "root": {
+        "id": "root",
+        "address": "root",
+        "incarnation": "0",
+        "src": "root",
+        "started": true,
+        "snapshot": {
+          "status": "error",
+          "error": {
+            "$error": "TimeoutError",
+            "message": "Async logic timed out after 100."
+          },
+          "context": {
+            "last": "idle"
+          },
+          "value": "a",
+          "children": {
+            "child": {
+              "$actor": "root/child",
+              "incarnation": "1"
+            }
+          },
+          "timers": [
+            {
+              "delay": 1000,
+              "type": "@xstate.raise",
+              "event": {
+                "type": "xstate.after",
+                "delay": 1000,
+                "stateId": "root.a"
+              },
+              "target": "self"
+            }
+          ],
+          "historyValue": {},
+          "_stateInputs": {},
+          "_nextTimerId": 0,
+          "nodeIds": ["root", "root.a"]
+        }
+      },
+      "root/child": {
+        "id": "child",
+        "address": "root/child",
+        "incarnation": "1",
+        "src": "actors/child",
+        "parent": {
+          "$actor": "root",
+          "incarnation": "0"
+        },
+        "started": true,
+        "snapshot": {
+          "status": "active",
+          "context": {},
+          "value": "idle",
+          "children": {},
+          "timers": [],
+          "historyValue": {},
+          "_stateInputs": {},
+          "_nextTimerId": 0,
+          "nodeIds": ["child", "child.idle"]
+        }
+      },
+      "root/@xstate.subscription:2": {
+        "id": "@xstate.subscription:2",
+        "address": "root/@xstate.subscription:2",
+        "incarnation": "2",
+        "src": "@xstate.subscription",
+        "parent": {
+          "$actor": "root",
+          "incarnation": "0"
+        },
+        "started": true,
+        "input": {
+          "actor": {
+            "$actor": "root/child",
+            "incarnation": "1"
+          },
+          "mappers": {
+            "snapshot": {
+              "$systemMapper": "snapshot"
+            }
+          }
+        },
+        "snapshot": {
+          "status": "stopped",
+          "input": {
+            "actor": {
+              "$actor": "root/child",
+              "incarnation": "1"
+            },
+            "mappers": {
+              "snapshot": {
+                "$systemMapper": "snapshot"
+              }
+            }
+          }
+        }
+      },
+      "root/failing": {
+        "id": "failing",
+        "address": "root/failing",
+        "incarnation": "3",
+        "src": "actors/failing",
+        "parent": {
+          "$actor": "root",
+          "incarnation": "0"
+        },
+        "started": true,
+        "snapshot": {
+          "status": "error",
+          "effects": {
+            "async": {
+              "status": "error",
+              "error": {
+                "$error": "TimeoutError",
+                "message": "Async logic timed out after 100."
+              }
+            }
+          },
+          "error": {
+            "$error": "TimeoutError",
+            "message": "Async logic timed out after 100."
+          }
+        }
+      }
+    },
+    "registry": {},
+    "messages": [],
+    "timers": [],
+    "externalEffects": {
+      "system:1": {
+        "id": "system:1",
+        "source": {
+          "$actor": "root/failing",
+          "incarnation": "3"
+        },
+        "kind": "action",
+        "type": "@xstate.cancelEffect",
+        "params": {
+          "effectId": "system:0"
+        }
+      }
+    },
+    "counters": {
+      "actor": 4,
+      "timer": 2,
+      "sequence": 6,
+      "effect": 2
+    }
+  }
+}
