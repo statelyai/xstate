@@ -14,6 +14,7 @@ import {
 import { isRemoteActorRef } from '../remoteActorRef.ts';
 import { createStartEffect, createTimerEffect } from '../transitionActions.ts';
 import {
+  adoptSystem,
   getSnapshotActorRef,
   withExecutionOwner
 } from '../snapshotActorRef.ts';
@@ -711,9 +712,10 @@ export function createDurable<TLogic extends AnyActorLogic>(
 
   // Runs a transition as this execution: views it derives belong to this
   // execution, and its systems report to the execution's inspector.
-  const owner = { runtime: wrappedSystemRuntime };
-  const inExecution = <T>(fn: () => T): T =>
-    withExecutionOwner(owner, () => withSystemInspector(inspect, fn));
+  const owner = { runtime: wrappedSystemRuntime, inspect };
+  function inExecution<T>(fn: () => T): T {
+    return withExecutionOwner(owner, () => withSystemInspector(inspect, fn));
+  }
 
   // Attaches the execution's inspector to a system that does not have it
   // yet. Systems constructed inside a transition get it at construction (the
@@ -747,10 +749,12 @@ export function createDurable<TLogic extends AnyActorLogic>(
       const visit = (actor: AnyActor) => {
         if (!systems.has(actor.system)) {
           systems.add(actor.system);
-          if (wrappedSystemRuntime) {
-            actor.system.runtime = wrappedSystemRuntime;
+          if (adoptSystem(actor.system, owner)) {
+            if (wrappedSystemRuntime) {
+              actor.system.runtime = wrappedSystemRuntime;
+            }
+            wireInspection(actor.system);
           }
-          wireInspection(actor.system);
         }
         if (recursive) {
           const children = (

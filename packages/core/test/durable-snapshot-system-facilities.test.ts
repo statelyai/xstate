@@ -219,7 +219,7 @@ describe('durable snapshot system facilities', () => {
     expect(innerRuntime).toBeUndefined();
   });
 
-  it('does not register an inspector twice when adopting a silent view', () => {
+  it('keeps each inspector with its own execution when adopting a silent view', () => {
     const machine = createMachine({
       context: { n: 0 },
       on: {
@@ -247,12 +247,13 @@ describe('durable snapshot system facilities', () => {
     const [view] = transition(machine, root, { type: 'GO' });
     a.getActorRef(view);
     b.transition(view, { type: 'UNKNOWN' });
-    const before = bEvents.length;
+    const before = { a: aEvents.length, b: bEvents.length };
     a.transition(root, { type: 'GO' });
-    expect(bEvents.slice(before)).toEqual([
+    expect(aEvents.slice(before.a)).toEqual([
       '@xstate.actor',
       '@xstate.transition'
     ]);
+    expect(bEvents.slice(before.b)).toEqual([]);
   });
 
   it.each([
@@ -357,14 +358,9 @@ describe('durable snapshot system facilities', () => {
         b: seenB.slice(beforeEffects.b)
       };
       const announcements = ['@xstate.actor', '@xstate.transition'];
-      expect(afterB).toEqual({
-        a: viewKind === 'silent' ? [] : announcements,
-        b: []
-      });
-      expect(afterA).toEqual({
-        a: announcements,
-        b: viewKind === 'silent' ? announcements : []
-      });
+      // Each execution reports only to its own inspector.
+      expect(afterB).toEqual({ a: [], b: announcements });
+      expect(afterA).toEqual({ a: announcements, b: [] });
       expect(afterEffects).toEqual({ a: [], b: [] });
       expect(routes).toEqual(hostRuntime ? ['B:PING'] : []);
       expect(deliveries).toEqual(hostRuntime ? ['PING'] : []);

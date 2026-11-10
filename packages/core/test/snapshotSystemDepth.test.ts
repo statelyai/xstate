@@ -2,6 +2,7 @@ import { createActor, createMachine } from '../src/index.ts';
 import { createDurable } from '../src/durable/index.ts';
 import { withSystemInspector } from '../src/inspectionAmbient.ts';
 import {
+  adoptSystem,
   createSnapshotSystem,
   getSnapshotActorRef
 } from '../src/snapshotActorRef.ts';
@@ -147,5 +148,54 @@ describe('snapshot system view facilities', () => {
     earlier.onRejectedEvent(listener);
     later.deadLetter(undefined, root, { type: 'LOST' }, 'stopped');
     expect(listener).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('forked execution systems', () => {
+  it('starts a fork without the listeners of the system it forked from', () => {
+    const root = createActor(createMachine({}));
+    const listener = vi.fn();
+    root.system.onRejectedEvent(listener);
+    const fork = createSnapshotSystem(root.system, {}, undefined, {
+      runtime: undefined,
+      inspect: undefined
+    });
+    fork.deadLetter(undefined, root, { type: 'LOST' }, 'stopped');
+    expect(listener).not.toHaveBeenCalled();
+  });
+
+  it('gives a fork its owner inspector and no other', () => {
+    const root = createActor(createMachine({}));
+    const other = vi.fn();
+    root.system.inspect(other);
+    const own = vi.fn();
+    const fork = createSnapshotSystem(root.system, {}, undefined, {
+      runtime: undefined,
+      inspect: own
+    });
+    fork._sendInspectionEvent({
+      type: '@xstate.actor',
+      actorRef: root,
+      parentRef: undefined,
+      id: root.id,
+      src: root.logic,
+      snapshot: root.getSnapshot()
+    });
+    expect(own).toHaveBeenCalledTimes(1);
+    expect(other).not.toHaveBeenCalled();
+  });
+
+  it('installs a runtime on an adopted view without reaching the system it came from', () => {
+    const live = createActor(createMachine({})).start();
+    const view = createSnapshotSystem(live.system, {});
+    const owner = { runtime: undefined, inspect: undefined };
+    expect(adoptSystem(view, owner)).toBe(true);
+    const runtime = {};
+    view.runtime = runtime;
+    expect(view.runtime).toBe(runtime);
+    expect(live.system.runtime).not.toBe(runtime);
+    expect(adoptSystem(view, { runtime: undefined, inspect: undefined })).toBe(
+      false
+    );
   });
 });

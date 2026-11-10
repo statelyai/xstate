@@ -2,6 +2,7 @@ import isDevelopment from '#is-development';
 import { hasAmbientInspector } from './inspectionAmbient.ts';
 import { xstateError } from './xstateError.ts';
 import type { ActorSystemRuntime } from './system.ts';
+import type { InspectionEvent } from './inspection.ts';
 import type { AnyActor, Snapshot } from './types.ts';
 
 /** Snapshot-scoped actor identity and system view. @internal */
@@ -43,6 +44,7 @@ const executionFacilities = [
 /** A durable execution, as the owner of the views its transitions create. @internal */
 export interface ExecutionOwner {
   runtime: Partial<ActorSystemRuntime> | undefined;
+  inspect: ((inspectionEvent: InspectionEvent) => void) | undefined;
 }
 const executionOwners = new WeakMap<AnyActor['system'], ExecutionOwner>();
 let ambientExecutionOwner: ExecutionOwner | undefined;
@@ -129,15 +131,17 @@ export function createSnapshotSystem(
   const rootSystem = baseView?.rootSystem ?? baseSystem;
   const forks =
     owner !== undefined && executionOwners.get(baseExecutionSystem) !== owner;
-  const forwardInspection =
-    hasAmbientInspector() && (baseView?.forwardInspection ?? true);
+  const forwardInspection = forks
+    ? !!owner!.inspect
+    : hasAmbientInspector() && (baseView?.forwardInspection ?? true);
   const registeredActors = copyRegisteredActors(baseSystem, baseState);
   const keyedActors = new Map<PropertyKey, AnyActor | undefined>(
     baseState?.keyedActors ?? getKeyedActors(baseSystem)
   );
   const reverseKeyedActors = new WeakMap<AnyActor, PropertyKey>();
-  // A forked view is its own execution system.
-  const execution = () => (forks ? system : baseExecutionSystem);
+  // The view's execution system; adoption can make the view its own.
+  const execution = () => snapshotSystemViews.get(system)!.executionSystem;
+  const forwards = () => snapshotSystemViews.get(system)!.forwardInspection;
   const system: AnyActor['system'] = Object.assign(
     Object.create(baseExecutionSystem),
     {
@@ -191,39 +195,32 @@ export function createSnapshotSystem(
       // exception is a durable execution's own transitions (marked by the
       // ambient inspector at creation time): there the pure path IS the
       // execution, so inspection forwards to the execution system's observers.
-      _hasInspectionObservers: forwardInspection
-        ? () => rootSystem._hasInspectionObservers?.call(execution()) ?? false
-        : () => false,
-      _sendInspectionEvent: forwardInspection
-        ? (event: Parameters<AnyActor['system']['_sendInspectionEvent']>[0]) =>
-            rootSystem._sendInspectionEvent.call(execution(), event)
-        : () => {}
+      _hasInspectionObservers: () =>
+        forwards() &&
+        (rootSystem._hasInspectionObservers?.call(execution()) ?? false),
+      _sendInspectionEvent: (
+        event: Parameters<AnyActor['system']['_sendInspectionEvent']>[0]
+      ) => {
+        if (forwards()) {
+          rootSystem._sendInspectionEvent.call(execution(), event);
+        }
+      }
     }
   );
 
   const executionSystem = forks ? system : baseExecutionSystem;
-  for (const key of executionFacilities) {
-    if (forks && key === 'runtime') {
-      system.runtime = owner.runtime;
-    } else if (forks) {
-      const value = (baseExecutionSystem as any)[key];
-      (system as any)[key] =
-        value instanceof Set
-          ? new Set(value)
-          : key === '_timerMap' && value
-            ? { ...value }
-            : value;
-    } else {
+  if (forks) {
+    forkFacilities(system, baseExecutionSystem, owner!);
+  } else {
+    for (const key of executionFacilities) {
       Object.defineProperty(system, key, {
-        get: () => (executionSystem as any)[key],
+        configurable: true,
+        get: () => (execution() as any)[key],
         set: (value) => {
-          (executionSystem as any)[key] = value;
+          (execution() as any)[key] = value;
         }
       });
     }
-  }
-  if (forks) {
-    executionOwners.set(system, owner!);
   }
   snapshotSystemViews.set(system, {
     executionSystem,
@@ -255,10 +252,69 @@ export function createSnapshotSystem(
 }
 
 /**
+ * Makes `system` the execution system of `owner`, a new incarnation: it gets
+ * the owner's runtime and the pending timers it saw, and starts with no
+ * listeners or inspectors, so nothing registered on another execution
+ * observes it.
+ */
+function forkFacilities(
+  system: AnyActor['system'],
+  from: AnyActor['system'],
+  owner: ExecutionOwner
+): void {
+  const timers = (from as any)._timerMap;
+  for (const key of executionFacilities) {
+    Object.defineProperty(system, key, {
+      configurable: true,
+      writable: true,
+      value:
+        key === 'runtime'
+          ? owner.runtime
+          : key === '_timerMap' && timers
+            ? { ...timers }
+            : undefined
+    });
+  }
+  executionOwners.set(system, owner);
+  if (owner.inspect) {
+    system.inspect(owner.inspect);
+  }
+}
+
+/**
+ * Makes `owner` own `system` before it installs its runtime there, and
+ * returns whether it does. An unowned view forks in place, so the install
+ * never reaches the system it was derived from. A system another execution
+ * owns is left alone.
+ *
+ * @internal
+ */
+export function adoptSystem(
+  system: AnyActor['system'],
+  owner: ExecutionOwner
+): boolean {
+  const view = snapshotSystemViews.get(system);
+  const current = executionOwners.get(view?.executionSystem ?? system);
+  if (current === owner) {
+    return true;
+  }
+  // A system another execution owns stays with it.
+  if (current) {
+    return false;
+  }
+  if (!view) {
+    executionOwners.set(system, owner);
+    return true;
+  }
+  forkFacilities(system, view.executionSystem, owner);
+  view.executionSystem = system;
+  view.forwardInspection = !!owner.inspect;
+  return true;
+}
+
+/**
  * Runs `fn` as a transition of `owner`. A view it derives from a system the
- * owner does not own forks: it gets the owner's runtime and copies of the
- * timers and listeners it saw, so executions that adopt the same snapshot
- * never share them.
+ * owner does not own forks into the owner's own execution system.
  *
  * @internal
  */
