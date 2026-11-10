@@ -48,6 +48,16 @@ function renameMarkers(value: any, allowed: readonly string[]): any {
   return copy ?? value;
 }
 
+// beta.1 always wrote `_nextTimerId` on machine snapshots. Current snapshots
+// write `nextTimerId`, so marker-shaped data in them is left alone.
+function isLegacyEnvelope(envelope: any): boolean {
+  return (
+    isPlain(envelope) &&
+    '_nextTimerId' in envelope &&
+    !('nextTimerId' in envelope)
+  );
+}
+
 function renameFields(envelope: any): any {
   // A live machine snapshot keeps its `_`-prefixed in-memory fields.
   if (!isPlain(envelope) || typeof envelope.matches === 'function')
@@ -69,21 +79,25 @@ export function upgradeLegacyPersistedSnapshot<T>(snapshot: T): T {
     typeof (snapshot as any).matches === 'function'
   )
     return snapshot;
+  if (!isLegacyEnvelope(snapshot)) return snapshot;
   return renameMarkers(renameFields(snapshot), ['$actor']);
 }
 
 /** Upgrades a `systemTransition` snapshot written by 6.0.0-beta.1. */
 export function upgradeLegacySystemSnapshot<T>(snapshot: T): T {
+  const actors: any[] = Object.values((snapshot as any)?.actors ?? {});
+  if (!actors.some((actor) => isLegacyEnvelope(actor?.snapshot)))
+    return snapshot;
   const upgraded = renameMarkers(snapshot, Object.keys(markers));
   if (!upgraded?.actors) return upgraded;
-  let actors: any;
+  let renamed: any;
   for (const [address, actor] of Object.entries<any>(upgraded.actors)) {
     const data = renameFields(actor?.snapshot);
     if (data !== actor?.snapshot)
-      (actors ??= { ...upgraded.actors })[address] = {
+      (renamed ??= { ...upgraded.actors })[address] = {
         ...actor,
         snapshot: data
       };
   }
-  return actors ? { ...upgraded, actors } : upgraded;
+  return renamed ? { ...upgraded, actors: renamed } : upgraded;
 }

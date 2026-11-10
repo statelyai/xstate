@@ -1,9 +1,11 @@
 // TODO(v7): remove with src/legacySnapshot.ts.
 import { z } from 'zod';
 import {
+  advanceSystemTime,
   createActor,
   createAsyncLogic,
   createMachine,
+  initialSystemTransition,
   systemTransition
 } from '../src';
 import { restoreActor } from '../src/persist/index.ts';
@@ -136,4 +138,23 @@ it('continues a systemTransition snapshot written by 6.0.0-beta.1', () => {
     '@error': 'TimeoutError'
   });
   expect(reservedKeys(toJSON(next))).toEqual([]);
+});
+
+it('leaves marker-shaped data in current snapshots alone', () => {
+  const actor = createActor(parent).start();
+  const persisted = toJSON(actor.getPersistedSnapshot());
+  actor.stop();
+  const data = { $actor: 'parent/spawned' };
+  persisted.context.spawned = data;
+  const restored = restoreActor(parent, persisted);
+  expect(restored.getSnapshot().context.spawned).toEqual(data);
+
+  const [snapshot] = initialSystemTransition(system);
+  const current = toJSON(snapshot);
+  current.actors['root'].snapshot.context.last = { $error: 'E', message: 'm' };
+  const [next] = advanceSystemTime(system, current, { time: 1 });
+  expect(toJSON(next).actors['root'].snapshot.context.last).toEqual({
+    $error: 'E',
+    message: 'm'
+  });
 });

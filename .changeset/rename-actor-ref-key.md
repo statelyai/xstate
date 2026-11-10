@@ -13,8 +13,8 @@ Serialized output no longer uses field names that start with `$` or `_`. Stores 
 | `_nextTimerId`            | `nextTimerId`            | Persisted snapshots, `systemTransition` snapshots                                                          |
 | `_nextActorIds`           | `nextActorIds`           | Persisted snapshots, `systemTransition` snapshots                                                          |
 | `_stateInputs`            | `stateInputs`            | `systemTransition` snapshots (persisted snapshots already used `stateInputs`)                              |
-| `{ $error, message }`     | `{ '@error', message }`  | `systemTransition` snapshots, `@xstate/test` traces                                                        |
-| `$stateNode`, `$systemMapper` | `@stateNode`, `@systemMapper` | `systemTransition` snapshots                                                                        |
+| `{ $error: name, message }` | `{ '@error': name, message }` | `systemTransition` snapshots, `@xstate/test` traces                                                        |
+| `{ $stateNode: id }`, `{ $systemMapper: key }` | `{ '@stateNode': id }`, `{ '@systemMapper': key }` | `systemTransition` snapshots                                                                        |
 
 ```ts
 // Before

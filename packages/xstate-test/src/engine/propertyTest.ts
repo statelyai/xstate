@@ -2773,12 +2773,11 @@ function fromPortableValue(value: unknown): unknown {
     return value;
   }
   const record = value as Record<string, unknown>;
-  if (
-    typeof record['@error'] === 'string' &&
-    typeof record.message === 'string'
-  ) {
+  // TODO(v7): drop `$error`, written by 6.0.0-beta.1 fixtures.
+  const errorName = record['@error'] ?? record.$error;
+  if (typeof errorName === 'string' && typeof record.message === 'string') {
     const error = new Error(record.message);
-    error.name = record['@error'];
+    error.name = errorName;
     return error;
   }
   return Object.fromEntries(

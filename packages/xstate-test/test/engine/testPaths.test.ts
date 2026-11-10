@@ -313,6 +313,26 @@ describe('testPaths() with invoke sources', () => {
     };
     expect(replayed.error).toBeInstanceOf(Error);
     expect((replayed.error as Error).message).toBe('generated failure');
+
+    // TODO(v7): remove. 6.0.0-beta.1 fixtures wrote `$error`.
+    const legacy = JSON.parse(
+      JSON.stringify(fixture).replaceAll('"@error"', '"$error"')
+    ) as TestFixture;
+    const legacyFailure = await captureFailure(() =>
+      replayTest(
+        fetchMachine(createAsyncLogic({ run: async () => 1 })),
+        legacy,
+        {
+          invariant: ({ snapshot }) => {
+            expect(snapshot.value).not.toBe('failure');
+          }
+        }
+      )
+    );
+    expect(
+      (legacyFailure.trace.steps.at(-1)!.event as unknown as { error: unknown })
+        .error
+    ).toBeInstanceOf(Error);
   });
 });
 
