@@ -450,4 +450,41 @@ describe('durable snapshot system facilities', () => {
       vi.useRealTimers();
     }
   });
+
+  it('reports to the inspector once after adopting its own silent view', () => {
+    const machine = createMachine({
+      context: { n: 0 },
+      on: {
+        GO: ({ context, self }) => {
+          void self.id;
+          return { context: { n: context.n + 1 } };
+        }
+      }
+    });
+    const events: string[] = [];
+    const execution = createDurable(
+      machine,
+      {
+        executeAction: (effect) => effect.exec(),
+        waitForEvent: () => ({ type: 'GO' }),
+        sendEvent: () => {}
+      },
+      { inspect: (event) => events.push(event.type) }
+    );
+    let [snapshot] = execution.initialTransition();
+    [snapshot] = execution.transition(snapshot, { type: 'GO' });
+    const [silent] = transition(machine, snapshot, { type: 'GO' });
+    const before = events.length;
+    [snapshot] = execution.transition(silent, { type: 'GO' });
+    expect(events.slice(before)).toEqual([
+      '@xstate.actor',
+      '@xstate.transition'
+    ]);
+    const after = events.length;
+    execution.transition(snapshot, { type: 'GO' });
+    expect(events.slice(after)).toEqual([
+      '@xstate.actor',
+      '@xstate.transition'
+    ]);
+  });
 });

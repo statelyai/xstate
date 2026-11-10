@@ -131,8 +131,9 @@ export function createSnapshotSystem(
   const rootSystem = baseView?.rootSystem ?? baseSystem;
   const forks =
     owner !== undefined && executionOwners.get(baseExecutionSystem) !== owner;
-  const forwardInspection = forks
-    ? !!owner!.inspect
+  // A view an execution owns reports to that execution's inspector.
+  const forwardInspection = owner
+    ? !!owner.inspect
     : hasAmbientInspector() && (baseView?.forwardInspection ?? true);
   const registeredActors = copyRegisteredActors(baseSystem, baseState);
   const keyedActors = new Map<PropertyKey, AnyActor | undefined>(
@@ -296,6 +297,9 @@ export function adoptSystem(
   const view = snapshotSystemViews.get(system);
   const current = executionOwners.get(view?.executionSystem ?? system);
   if (current === owner) {
+    if (view) {
+      view.forwardInspection = !!owner.inspect;
+    }
     return true;
   }
   // A system another execution owns stays with it.
