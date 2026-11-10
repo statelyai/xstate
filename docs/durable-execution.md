@@ -120,19 +120,38 @@ while (state.status === 'active') {
 reporting up), and only when none are queued defers to the adapter's durable
 wait.
 
-Checkpoint with `getPersistedSnapshot(state)` after `executeEffects`
-resolves, and persist `durable.nextTransitionIndex` alongside; pass it as
-`transitionIndex` when recreating the execution from a checkpoint instead of
-replaying from the beginning. Restore the checkpoint before entering the loop:
+Checkpoint with `durable.checkpoint(state)` after `executeEffects` resolves,
+and persist the whole result atomically. A checkpoint holds three things:
+
+- `snapshot`: the persisted snapshot. `checkpoint(state, options)` passes
+  `options` to the logic's `getPersistedSnapshot`.
+- `nextTransitionIndex`: the index the next transition gets.
+- `inbox`: root-addressed events that settled batches captured and
+  `waitForEvent()` has not handed out yet, such as a child's
+  `xstate.done.actor` or an event a child sent to its parent. Each entry's
+  `source` is the sender's address, `{ '@actor': address }`.
+
+Without the inbox, an event captured in the last batch exists only in memory.
+A child that completed during that batch is not restarted on restore, so its
+completion would never arrive.
+
+Inbox event payloads are stored as they are and must be serializable data,
+like timer events in a persisted snapshot. Child snapshot updates
+(`xstate.snapshot.actor`) are not stored: a restored active child reports its
+current snapshot when it starts. Completion, error and timeout events for a
+child that is no longer in the snapshot, or that a later transition replaced,
+are dropped.
+
+Restore the checkpoint on a fresh execution before entering the loop:
 
 <!-- checkpoint restoration contract from packages/core/src/durable/index.ts -->
 
 ```ts
-const resumed = createDurable(machine, {
-  ...adapter,
-  transitionIndex: checkpoint.nextTransitionIndex
-});
-let [state, effects] = resumed.restore(checkpoint.snapshot);
+await db.save(durable.checkpoint(state));
+
+// later, on any worker
+const resumed = createDurable(machine, adapter);
+let [state, effects] = resumed.restore(await db.load());
 await resumed.executeEffects(effects);
 
 while (state.status === 'active') {
@@ -140,6 +159,12 @@ while (state.status === 'active') {
   await resumed.executeEffects(effects);
 }
 ```
+
+The resumed execution continues from the checkpoint's `nextTransitionIndex`,
+and `waitForEvent()` hands out the inbox before the adapter's wait. If the
+adapter also sets `transitionIndex`, it must equal the checkpoint's
+`nextTransitionIndex`. `restore()` also accepts a bare persisted snapshot; pass
+`transitionIndex` to `createDurable` in that case.
 
 `restore()` rehydrates the snapshot and attaches the adapter across the actor
 tree. It returns effects that start active embedded children and re-arm pending

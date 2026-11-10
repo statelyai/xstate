@@ -124,10 +124,9 @@ export function createSnapshotSystem(
 ): AnyActor['system'] {
   const baseView = snapshotSystemViews.get(baseSystem);
   const baseExecutionSystem = baseView?.executionSystem ?? baseSystem;
-  // The runtime system at the bottom of every view; a forked view runs its
-  // methods against its own facilities.
+  // The runtime system under every view. A view runs its methods against the
+  // execution system's facilities.
   const rootSystem = baseView?.rootSystem ?? baseSystem;
-  const methods = Object.getPrototypeOf(rootSystem) as AnyActor['system'];
   const forks =
     owner !== undefined && executionOwners.get(baseExecutionSystem) !== owner;
   const forwardInspection =
@@ -137,7 +136,8 @@ export function createSnapshotSystem(
     baseState?.keyedActors ?? getKeyedActors(baseSystem)
   );
   const reverseKeyedActors = new WeakMap<AnyActor, PropertyKey>();
-  let executionSystem: AnyActor['system'];
+  // A forked view is its own execution system.
+  const execution = () => (forks ? system : baseExecutionSystem);
   const system: AnyActor['system'] = Object.assign(
     Object.create(baseExecutionSystem),
     {
@@ -181,27 +181,27 @@ export function createSnapshotSystem(
       get: (registryKey: PropertyKey) => keyedActors.get(registryKey),
       getAll: () => Object.fromEntries(keyedActors),
       onEmitted: (listener: Parameters<AnyActor['system']['onEmitted']>[0]) =>
-        methods.onEmitted.call(executionSystem, listener),
+        rootSystem.onEmitted.call(execution(), listener),
       _notifyEmitted: (
         actorRef: AnyActor,
         event: Parameters<AnyActor['system']['_notifyEmitted']>[1]
-      ) => methods._notifyEmitted.call(executionSystem, actorRef, event),
+      ) => rootSystem._notifyEmitted.call(execution(), actorRef, event),
       // Pure transition resolution must not leak topology inspection events
       // into a live runtime system — planning branches stay silent. The one
       // exception is a durable execution's own transitions (marked by the
       // ambient inspector at creation time): there the pure path IS the
       // execution, so inspection forwards to the execution system's observers.
       _hasInspectionObservers: forwardInspection
-        ? () => methods._hasInspectionObservers?.call(executionSystem) ?? false
+        ? () => rootSystem._hasInspectionObservers?.call(execution()) ?? false
         : () => false,
       _sendInspectionEvent: forwardInspection
         ? (event: Parameters<AnyActor['system']['_sendInspectionEvent']>[0]) =>
-            methods._sendInspectionEvent.call(executionSystem, event)
+            rootSystem._sendInspectionEvent.call(execution(), event)
         : () => {}
     }
   );
 
-  executionSystem = forks ? system : baseExecutionSystem;
+  const executionSystem = forks ? system : baseExecutionSystem;
   for (const key of executionFacilities) {
     if (forks && key === 'runtime') {
       system.runtime = owner.runtime;
