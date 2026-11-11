@@ -584,6 +584,40 @@ it.each(['done', 'error'] as const)(
   }
 );
 
+it('preserves Error details from an initial pure subscription failure', () => {
+  const mapError = (error: unknown) => ({ type: 'FAIL' as const, error });
+  const worker = createStepLogic({
+    context: {},
+    run: () => ({ status: 'error', error: new Error('boom') })
+  });
+  const logic = {
+    actors: { worker },
+    mappers: { mapError },
+    root: createMachine({
+      id: 'root',
+      context: { message: undefined as string | undefined },
+      schemas: {
+        events: { FAIL: z.object({ error: z.unknown() }) }
+      },
+      entry: (_, enq) => {
+        const child = enq.spawn(worker, { id: 'worker' });
+        enq.subscribeTo(child, { error: mapError });
+      },
+      on: {
+        FAIL: ({ event }) => ({
+          context: {
+            message:
+              event.error instanceof Error ? event.error.message : undefined
+          }
+        })
+      }
+    })
+  };
+
+  const [snapshot] = initialSystemTransition(logic);
+  expect(snapshot.actors.root.snapshot.context.message).toBe('boom');
+});
+
 it('handles prototype-shaped root IDs and registry keys as ordinary data', () => {
   const logic = { root: createMachine({ on: { PING: {} } }) };
   const [snapshot] = initialSystemTransition(logic, {

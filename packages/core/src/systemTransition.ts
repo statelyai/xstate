@@ -450,7 +450,7 @@ class SystemReduction {
     this.process({
       source: ref,
       target: ref,
-      event: { type: XSTATE_ATTACHED_FORWARD, event },
+      event: this.encode({ type: XSTATE_ATTACHED_FORWARD, event }),
       sequence: this.snapshot.counters.sequence++
     });
   }
