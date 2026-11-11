@@ -367,13 +367,18 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
         // transition functions; computing an initial snapshot here would run
         // init-time side effects (context factories, entry) a second time.
       } else {
-        const [snapshot, effects] = finalizeTransitionResult(
-          this._actorScope,
-          undefined,
-          this.logic.initialTransition(this.options?.input, this._actorScope)
-        );
-        this._setSnapshot(snapshot);
-        this._initialEffects = effects.length ? effects : undefined;
+        this._inTransition = true;
+        try {
+          const [snapshot, effects] = finalizeTransitionResult(
+            this._actorScope,
+            undefined,
+            this.logic.initialTransition(this.options?.input, this._actorScope)
+          );
+          this._setSnapshot(snapshot);
+          this._initialEffects = effects.length ? effects : undefined;
+        } finally {
+          this._inTransition = false;
+        }
       }
     } catch (err) {
       // Restored logic may keep its snapshot shape on restore failures (e.g.

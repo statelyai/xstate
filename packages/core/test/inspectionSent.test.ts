@@ -5,6 +5,7 @@ import {
   createActor,
   createCallbackLogic,
   createMachine,
+  type ActorLogic,
   type InspectionEvent
 } from '../src/index.ts';
 
@@ -71,6 +72,38 @@ describe('sent[] inspection', () => {
       ['TICK', child],
       ['TICK', child],
       ['ANSWER', child]
+    ]);
+    actor.stop();
+  });
+
+  it('reports sends made during the initial transition', () => {
+    const snapshot = {
+      status: 'active' as const,
+      output: undefined,
+      error: undefined
+    };
+    const logic: ActorLogic<typeof snapshot, { type: 'READY' }> = {
+      initialTransition: (_, scope) => {
+        scope.system.sendEvent(scope.self, scope.self, { type: 'READY' });
+        return [snapshot, []];
+      },
+      transition: (current) => [current, []],
+      getInitialSnapshot: () => snapshot,
+      getPersistedSnapshot: (current) => current
+    };
+    const inspection: InspectionEvent[] = [];
+    const actor = createActor(logic, {
+      inspect: (event) => inspection.push(event)
+    }).start();
+
+    expect(
+      transitions(inspection).map((event) => [
+        event.event.type,
+        event.sent.map((sent) => sent.event.type)
+      ])
+    ).toEqual([
+      ['xstate.init', ['READY']],
+      ['READY', []]
     ]);
     actor.stop();
   });
