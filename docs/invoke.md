@@ -223,6 +223,12 @@ invoke: {
 }
 ```
 
+With actors registered in `setup({ actors })`, `src: 'watchItems'` types
+`onSnapshot`'s `event.snapshot` as that actor's snapshot. A logic value or a
+resolver function as `src` (`src: ({ actors }) => actors.watchItems`) does not
+correlate the snapshot type; use `s.createInvoke({ src, onSnapshot })` for a
+typed snapshot there, or annotate the callback's `event` parameter.
+
 These are conveniences over lifecycle events. The child sends `xstate.done.actor`, `xstate.error.actor` and `xstate.snapshot.actor` events with an `actorId` payload; `onDone`, `onError` and `onSnapshot` set `matches: { actorId }` for you so each one only handles its own child. Handle the event directly when the transition belongs on an ancestor state:
 
 ```ts
