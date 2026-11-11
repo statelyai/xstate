@@ -224,6 +224,12 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
   public _collectedActions: ActionRecord[] | undefined;
   /** @internal Events relayed to other actors during the in-flight transition. */
   public _collectedSent: SentRecord[] | undefined;
+  /**
+   * @internal Whether a transition is in flight: while the actor starts,
+   * processes an event, or recovers from an execution error. Sends are recorded
+   * for `sent[]` only then.
+   */
+  public _inTransition = false;
   private _initialEffects: ExecutableEffect[] | undefined;
   public registryKey: string | undefined;
 
@@ -361,13 +367,18 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
         // transition functions; computing an initial snapshot here would run
         // init-time side effects (context factories, entry) a second time.
       } else {
-        const [snapshot, effects] = finalizeTransitionResult(
-          this._actorScope,
-          undefined,
-          this.logic.initialTransition(this.options?.input, this._actorScope)
-        );
-        this._setSnapshot(snapshot);
-        this._initialEffects = effects.length ? effects : undefined;
+        this._inTransition = true;
+        try {
+          const [snapshot, effects] = finalizeTransitionResult(
+            this._actorScope,
+            undefined,
+            this.logic.initialTransition(this.options?.input, this._actorScope)
+          );
+          this._setSnapshot(snapshot);
+          this._initialEffects = effects.length ? effects : undefined;
+        } finally {
+          this._inTransition = false;
+        }
       }
     } catch (err) {
       // Restored logic may keep its snapshot shape on restore failures (e.g.
@@ -560,6 +571,8 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
       return false;
     }
 
+    const inTransition = this._inTransition;
+    this._inTransition = true;
     try {
       const [nextSnapshot, effects] = finalizeTransitionResult(
         this._actorScope,
@@ -572,6 +585,8 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
       return true;
     } catch {
       return false;
+    } finally {
+      this._inTransition = inTransition;
     }
   }
 
@@ -836,6 +851,16 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
 
   /** Starts the Actor from the initial state */
   public start(): this {
+    const inTransition = this._inTransition;
+    this._inTransition = true;
+    try {
+      return this._start();
+    } finally {
+      this._inTransition = inTransition;
+    }
+  }
+
+  private _start(): this {
     if (this._processingStatus === ProcessingStatus.Running) {
       // Do not restart the service if it is already started
       return this;
@@ -993,7 +1018,17 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
     return this;
   }
 
-  private _process({
+  private _process(item: ActorMailboxEvent<EventFromLogic<TLogic>>) {
+    const inTransition = this._inTransition;
+    this._inTransition = true;
+    try {
+      this._processEvent(item);
+    } finally {
+      this._inTransition = inTransition;
+    }
+  }
+
+  private _processEvent({
     event,
     sourceRef
   }: ActorMailboxEvent<EventFromLogic<TLogic>>) {
