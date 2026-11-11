@@ -46,12 +46,39 @@ describe('bare string transition targets', () => {
     );
   });
 
-  it('are still accepted by xstate/fsm', () => {
-    const fsm = createFSM({
-      initial: 'a',
-      states: { a: { on: { GO: 'b' } }, b: {} }
-    });
-    const [next] = fsm.transition(fsm.getInitialSnapshot(), { type: 'GO' });
-    expect(next.value).toBe('b');
+  it.each([{ on: { GO: 'b' } }, { always: 'b' }])(
+    'rejects string transitions in xstate/fsm',
+    (state) => {
+      expect(() =>
+        createFSM({
+          initial: 'a',
+          states: { a: {}, b: state }
+        } as any)
+      ).toThrow('Use { target: "b" } instead of a string transition.');
+    }
+  );
+
+  it.each(['on', 'always'])(
+    'rejects string callback results in FSM %s',
+    (kind) => {
+      const invalid = () => 'b';
+      expect(() => {
+        const fsm = createFSM({
+          initial: 'a',
+          states: {
+            a: kind === 'on' ? { on: { GO: invalid } } : { always: invalid },
+            b: {}
+          }
+        } as any);
+        fsm.transition(fsm.initialState, { type: 'GO' });
+      }).toThrow('Use { target: "b" }');
+    }
+  );
+
+  it('validates nonenumerable event targets', () => {
+    const on = Object.defineProperty({}, 'GO', { value: 'b' });
+    expect(() =>
+      createFSM({ initial: 'a', states: { a: { on }, b: {} } } as any)
+    ).toThrow('Use { target: "b" }');
   });
 });

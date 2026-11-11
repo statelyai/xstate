@@ -1,0 +1,590 @@
+{
+  "baseline": "da64b0aa177a40501f488612296f527a4f8b46ab",
+  "featureSha256": "2f8d9ed35897b90a42985ea30bb623a9c7425f0d57a9e37e26ecc982cc383795",
+  "environment": {
+    "runtime": {
+      "node": "24.3.0",
+      "bun": "1.3.0",
+      "boringssl": "29a2cd359458c9384694b75456026e4b57e3e567",
+      "openssl": "1.1.0",
+      "llhttp": "9.3.0",
+      "libarchive": "898dc8319355b7e985f68a9819f182aaed61b53a",
+      "mimalloc": "4c283af60cdae205df5a872530c77e2a6a307d43",
+      "picohttpparser": "066d2b1e9ab820703db0837a7255d92d30f0c9f5",
+      "uwebsockets": "b0a6feca57bf5c2a9ec2ef9773499cab7d904b30",
+      "webkit": "0ddf6f47af0a9782a354f61e06d7f83d097d9f84",
+      "zig": "0.14.1",
+      "zlib": "886098f3f339617b4243b286f5ed364b9989e245",
+      "tinycc": "ab631362d839333660a265d3084d8ff060b96753",
+      "lolhtml": "8d4c273ded322193d017042d1f48df2766b0f88b",
+      "ares": "d1722e6e8acaf10eb73fa995798a9cd421d9f85e",
+      "libdeflate": "dc76454a39e7e83b68c3704b6e3784654f8d5ac5",
+      "usockets": "b0a6feca57bf5c2a9ec2ef9773499cab7d904b30",
+      "lshpack": "3d0f1fc1d6e66a642e7a98c55deb38aa986eb4b0",
+      "zstd": "794ea1b0afca0f020f4e57b6732332231fb23c70",
+      "v8": "13.6.233.10-node.18",
+      "uv": "1.48.0",
+      "napi": "10",
+      "icu": "74.2",
+      "unicode": "15.1",
+      "modules": "137"
+    },
+    "cpu": "Apple M1 Max",
+    "cores": 10,
+    "os": "Darwin 23.5.0 arm64",
+    "load": [81.27587890625, 46.71875, 35.48291015625]
+  },
+  "rounds": 9,
+  "sampleMs": 400,
+  "minimumCpuMs": 150,
+  "results": [
+    {
+      "profile": "toggle",
+      "load": [65.00732421875, 44.81982421875, 35.00146484375],
+      "verified": true,
+      "samples": {
+        "base": [
+          {
+            "iterations": 8863744,
+            "wallMs": 400.27162499999986,
+            "cpuMs": 390.047,
+            "wallNsPerOperation": 45.15830161611164,
+            "cpuNsPerOperation": 44.00476818825092
+          },
+          {
+            "iterations": 9093120,
+            "wallMs": 400.5599589999997,
+            "cpuMs": 402.375,
+            "wallNsPerOperation": 44.05088231542086,
+            "cpuNsPerOperation": 44.25048828125
+          },
+          {
+            "iterations": 9175040,
+            "wallMs": 400.1728750000002,
+            "cpuMs": 402.679,
+            "wallNsPerOperation": 43.61538205827988,
+            "cpuNsPerOperation": 43.88852800641741
+          },
+          {
+            "iterations": 7766016,
+            "wallMs": 400.14554099999987,
+            "cpuMs": 350.584,
+            "wallNsPerOperation": 51.52520172505437,
+            "cpuNsPerOperation": 45.143352782173
+          },
+          {
+            "iterations": 8749056,
+            "wallMs": 400.13525000000027,
+            "cpuMs": 393.235,
+            "wallNsPerOperation": 45.73467697543601,
+            "cpuNsPerOperation": 44.945991887581926
+          },
+          {
+            "iterations": 8912896,
+            "wallMs": 400.88204099999984,
+            "cpuMs": 399.398,
+            "wallNsPerOperation": 44.97775369531966,
+            "cpuNsPerOperation": 44.811248779296875
+          },
+          {
+            "iterations": 9453568,
+            "wallMs": 400.0432500000006,
+            "cpuMs": 404.247,
+            "wallNsPerOperation": 42.31664171665138,
+            "cpuNsPerOperation": 42.76131509288345
+          },
+          {
+            "iterations": 9469952,
+            "wallMs": 400.16629099999955,
+            "cpuMs": 404.645,
+            "wallNsPerOperation": 42.256422313439344,
+            "cpuNsPerOperation": 42.72936124702638
+          },
+          {
+            "iterations": 9437184,
+            "wallMs": 400.0450409999994,
+            "cpuMs": 405.524,
+            "wallNsPerOperation": 42.39029788970941,
+            "cpuNsPerOperation": 42.97086927625868
+          }
+        ],
+        "feature": [
+          {
+            "iterations": 8519680,
+            "wallMs": 400.51579200000015,
+            "cpuMs": 405.095,
+            "wallNsPerOperation": 47.010661433293286,
+            "cpuNsPerOperation": 47.54814734825721
+          },
+          {
+            "iterations": 8355840,
+            "wallMs": 400.04879200000005,
+            "cpuMs": 407.37,
+            "wallNsPerOperation": 47.876550053615205,
+            "cpuNsPerOperation": 48.7527286305147
+          },
+          {
+            "iterations": 7077888,
+            "wallMs": 400.26279200000045,
+            "cpuMs": 348.059,
+            "wallNsPerOperation": 56.55116215458629,
+            "cpuNsPerOperation": 49.1755450213397
+          },
+          {
+            "iterations": 8126464,
+            "wallMs": 400.5539170000002,
+            "cpuMs": 397.121,
+            "wallNsPerOperation": 49.29006231984787,
+            "cpuNsPerOperation": 48.86762557491179
+          },
+          {
+            "iterations": 8486912,
+            "wallMs": 400.1007499999996,
+            "cpuMs": 403.559,
+            "wallNsPerOperation": 47.14326600770688,
+            "cpuNsPerOperation": 47.550746372767854
+          },
+          {
+            "iterations": 8585216,
+            "wallMs": 400.1220000000003,
+            "cpuMs": 405.158,
+            "wallNsPerOperation": 46.605932803554424,
+            "cpuNsPerOperation": 47.192522587666986
+          },
+          {
+            "iterations": 8355840,
+            "wallMs": 400.39166699999987,
+            "cpuMs": 397.993,
+            "wallNsPerOperation": 47.91758422851561,
+            "cpuNsPerOperation": 47.63051949295343
+          },
+          {
+            "iterations": 8028160,
+            "wallMs": 400.0632089999999,
+            "cpuMs": 381.929,
+            "wallNsPerOperation": 49.83249075753348,
+            "cpuNsPerOperation": 47.57366569674745
+          },
+          {
+            "iterations": 8339456,
+            "wallMs": 400.0419579999998,
+            "cpuMs": 404.013,
+            "wallNsPerOperation": 47.96979059545369,
+            "cpuNsPerOperation": 48.4459657800221
+          }
+        ]
+      }
+    },
+    {
+      "profile": "counter",
+      "load": [56.37646484375, 43.63916015625, 34.69677734375],
+      "verified": true,
+      "samples": {
+        "base": [
+          {
+            "iterations": 3702784,
+            "wallMs": 400.40216599999985,
+            "cpuMs": 409.541,
+            "wallNsPerOperation": 108.13543701171872,
+            "cpuNsPerOperation": 110.60353506982854
+          },
+          {
+            "iterations": 3719168,
+            "wallMs": 400.94450000000006,
+            "cpuMs": 391.91,
+            "wallNsPerOperation": 107.80489077126929,
+            "cpuNsPerOperation": 105.37571844025331
+          },
+          {
+            "iterations": 3784704,
+            "wallMs": 401.42891699999973,
+            "cpuMs": 400.609,
+            "wallNsPerOperation": 106.06613278079335,
+            "cpuNsPerOperation": 105.84949311755952
+          },
+          {
+            "iterations": 3850240,
+            "wallMs": 401.26337499999954,
+            "cpuMs": 403.056,
+            "wallNsPerOperation": 104.21775655543539,
+            "cpuNsPerOperation": 104.68334441489361
+          },
+          {
+            "iterations": 3768320,
+            "wallMs": 401.4682499999999,
+            "cpuMs": 400.312,
+            "wallNsPerOperation": 106.5377276876698,
+            "cpuNsPerOperation": 106.2308933423913
+          },
+          {
+            "iterations": 3244032,
+            "wallMs": 400.856667,
+            "cpuMs": 352.559,
+            "wallNsPerOperation": 123.56742072827888,
+            "cpuNsPerOperation": 108.67926087042298
+          },
+          {
+            "iterations": 3686400,
+            "wallMs": 400.54829099999915,
+            "cpuMs": 392.58,
+            "wallNsPerOperation": 108.65567789713519,
+            "cpuNsPerOperation": 106.494140625
+          },
+          {
+            "iterations": 3784704,
+            "wallMs": 400.9630419999994,
+            "cpuMs": 401.097,
+            "wallNsPerOperation": 105.94303861015271,
+            "cpuNsPerOperation": 105.97843318790585
+          },
+          {
+            "iterations": 3801088,
+            "wallMs": 400.6222080000007,
+            "cpuMs": 400.923,
+            "wallNsPerOperation": 105.39672009698293,
+            "cpuNsPerOperation": 105.47585322939116
+          }
+        ],
+        "feature": [
+          {
+            "iterations": 3833856,
+            "wallMs": 400.17754200000013,
+            "cpuMs": 402.437,
+            "wallNsPerOperation": 104.37990941756814,
+            "cpuNsPerOperation": 104.96925288795406
+          },
+          {
+            "iterations": 3735552,
+            "wallMs": 400.99000000000024,
+            "cpuMs": 402.809,
+            "wallNsPerOperation": 107.34424256441892,
+            "cpuNsPerOperation": 107.83118532415023
+          },
+          {
+            "iterations": 3686400,
+            "wallMs": 401.4467079999995,
+            "cpuMs": 399.279,
+            "wallNsPerOperation": 108.89938910590263,
+            "cpuNsPerOperation": 108.31136067708333
+          },
+          {
+            "iterations": 3751936,
+            "wallMs": 400.4192920000005,
+            "cpuMs": 402.425,
+            "wallNsPerOperation": 106.72338014294499,
+            "cpuNsPerOperation": 107.25795962404476
+          },
+          {
+            "iterations": 3325952,
+            "wallMs": 401.42816700000003,
+            "cpuMs": 366.33,
+            "wallNsPerOperation": 120.69571869948817,
+            "cpuNsPerOperation": 110.14290043873153
+          },
+          {
+            "iterations": 3588096,
+            "wallMs": 400.8296249999994,
+            "cpuMs": 394.494,
+            "wallNsPerOperation": 111.71095338586242,
+            "cpuNsPerOperation": 109.94521885702055
+          },
+          {
+            "iterations": 3735552,
+            "wallMs": 401.10229099999924,
+            "cpuMs": 401.381,
+            "wallNsPerOperation": 107.37430264656983,
+            "cpuNsPerOperation": 107.44891250342654
+          },
+          {
+            "iterations": 3653632,
+            "wallMs": 400.9237499999999,
+            "cpuMs": 397.96,
+            "wallNsPerOperation": 109.73293150486965,
+            "cpuNsPerOperation": 108.921752382287
+          },
+          {
+            "iterations": 3637248,
+            "wallMs": 401.27479100000164,
+            "cpuMs": 398.55,
+            "wallNsPerOperation": 110.3237367922126,
+            "cpuNsPerOperation": 109.57460145692568
+          }
+        ]
+      }
+    },
+    {
+      "profile": "ignored",
+      "load": [48.630859375, 42.3994140625, 34.36083984375],
+      "verified": true,
+      "samples": {
+        "base": [
+          {
+            "iterations": 6078464,
+            "wallMs": 400.467042,
+            "cpuMs": 257.955,
+            "wallNsPerOperation": 65.88293391225152,
+            "cpuNsPerOperation": 42.437530270805254
+          },
+          {
+            "iterations": 9879552,
+            "wallMs": 400.31054099999983,
+            "cpuMs": 405.766,
+            "wallNsPerOperation": 40.51909853807135,
+            "cpuNsPerOperation": 41.071295540526535
+          },
+          {
+            "iterations": 9928704,
+            "wallMs": 400.835333,
+            "cpuMs": 406.295,
+            "wallNsPerOperation": 40.37136498378842,
+            "cpuNsPerOperation": 40.92125215939563
+          },
+          {
+            "iterations": 9748480,
+            "wallMs": 400.02208299999984,
+            "cpuMs": 402.773,
+            "wallNsPerOperation": 41.03430309135371,
+            "cpuNsPerOperation": 41.31649241727941
+          },
+          {
+            "iterations": 9879552,
+            "wallMs": 400.3842910000003,
+            "cpuMs": 406.02,
+            "wallNsPerOperation": 40.52656345146018,
+            "cpuNsPerOperation": 41.097005208333336
+          },
+          {
+            "iterations": 9732096,
+            "wallMs": 400.0877499999997,
+            "cpuMs": 404.092,
+            "wallNsPerOperation": 41.11013187703858,
+            "cpuNsPerOperation": 41.52157972958754
+          },
+          {
+            "iterations": 9863168,
+            "wallMs": 400.3647920000003,
+            "cpuMs": 405.13,
+            "wallNsPerOperation": 40.59190637328699,
+            "cpuNsPerOperation": 41.075037959406146
+          },
+          {
+            "iterations": 9846784,
+            "wallMs": 400.2140839999993,
+            "cpuMs": 405.254,
+            "wallNsPerOperation": 40.64414168118233,
+            "cpuNsPerOperation": 41.155975392574874
+          },
+          {
+            "iterations": 9584640,
+            "wallMs": 400.1429169999992,
+            "cpuMs": 401.393,
+            "wallNsPerOperation": 41.74835121611237,
+            "cpuNsPerOperation": 41.87877687633547
+          }
+        ],
+        "feature": [
+          {
+            "iterations": 11370496,
+            "wallMs": 400.01820799999996,
+            "cpuMs": 367.498,
+            "wallNsPerOperation": 35.180365746577806,
+            "cpuNsPerOperation": 32.32031390715058
+          },
+          {
+            "iterations": 12173312,
+            "wallMs": 400.3697089999996,
+            "cpuMs": 401.042,
+            "wallNsPerOperation": 32.88913559432302,
+            "cpuNsPerOperation": 32.94436222451211
+          },
+          {
+            "iterations": 12337152,
+            "wallMs": 400.3747910000002,
+            "cpuMs": 401.64,
+            "wallNsPerOperation": 32.45277281174781,
+            "cpuNsPerOperation": 32.555325572709165
+          },
+          {
+            "iterations": 12632064,
+            "wallMs": 400.4716669999998,
+            "cpuMs": 403.772,
+            "wallNsPerOperation": 31.702789583713304,
+            "cpuNsPerOperation": 31.96405591358625
+          },
+          {
+            "iterations": 12156928,
+            "wallMs": 400.46749999999975,
+            "cpuMs": 400.981,
+            "wallNsPerOperation": 32.94150463011706,
+            "cpuNsPerOperation": 32.983743919516506
+          },
+          {
+            "iterations": 12304384,
+            "wallMs": 400.3852909999996,
+            "cpuMs": 401.312,
+            "wallNsPerOperation": 32.54005165963608,
+            "cpuNsPerOperation": 32.61536701065246
+          },
+          {
+            "iterations": 12599296,
+            "wallMs": 400.48983299999963,
+            "cpuMs": 403.842,
+            "wallNsPerOperation": 31.786683398818447,
+            "cpuNsPerOperation": 32.05274326438557
+          },
+          {
+            "iterations": 12222464,
+            "wallMs": 400.16470800000025,
+            "cpuMs": 400.078,
+            "wallNsPerOperation": 32.740101177634905,
+            "cpuNsPerOperation": 32.73300702706099
+          },
+          {
+            "iterations": 11468800,
+            "wallMs": 400.251542,
+            "cpuMs": 374.103,
+            "wallNsPerOperation": 34.89916486467634,
+            "cpuNsPerOperation": 32.619192940848215
+          }
+        ]
+      }
+    },
+    {
+      "profile": "construction",
+      "load": [40.76953125, 40.96044921875, 33.9873046875],
+      "verified": true,
+      "samples": {
+        "base": [
+          {
+            "iterations": 11452416,
+            "wallMs": 400.0395840000001,
+            "cpuMs": 399.25,
+            "wallNsPerOperation": 34.93058442864808,
+            "cpuNsPerOperation": 34.861639674982115
+          },
+          {
+            "iterations": 12746752,
+            "wallMs": 400.17379200000005,
+            "cpuMs": 412.809,
+            "wallNsPerOperation": 31.3941772774743,
+            "cpuNsPerOperation": 32.38542649923683
+          },
+          {
+            "iterations": 13352960,
+            "wallMs": 400.4422499999996,
+            "cpuMs": 410.987,
+            "wallNsPerOperation": 29.98902490533931,
+            "cpuNsPerOperation": 30.778718726035276
+          },
+          {
+            "iterations": 13287424,
+            "wallMs": 400.10016599999926,
+            "cpuMs": 409.184,
+            "wallNsPerOperation": 30.111191303897527,
+            "cpuNsPerOperation": 30.794832768187423
+          },
+          {
+            "iterations": 12746752,
+            "wallMs": 400.2438339999999,
+            "cpuMs": 411.625,
+            "wallNsPerOperation": 31.39967216746665,
+            "cpuNsPerOperation": 32.29254009178181
+          },
+          {
+            "iterations": 13041664,
+            "wallMs": 400.68491600000016,
+            "cpuMs": 414.468,
+            "wallNsPerOperation": 30.72345032044992,
+            "cpuNsPerOperation": 31.780300427920853
+          },
+          {
+            "iterations": 13156352,
+            "wallMs": 400.3125,
+            "cpuMs": 412.4,
+            "wallNsPerOperation": 30.42731754212718,
+            "cpuNsPerOperation": 31.346075264632628
+          },
+          {
+            "iterations": 11927552,
+            "wallMs": 400.11325000000033,
+            "cpuMs": 400.98,
+            "wallNsPerOperation": 33.54529496077656,
+            "cpuNsPerOperation": 33.617962847699175
+          },
+          {
+            "iterations": 12976128,
+            "wallMs": 400.2525000000005,
+            "cpuMs": 412.779,
+            "wallNsPerOperation": 30.84529529918328,
+            "cpuNsPerOperation": 31.81064490116004
+          }
+        ],
+        "feature": [
+          {
+            "iterations": 6258688,
+            "wallMs": 400.165708,
+            "cpuMs": 410.544,
+            "wallNsPerOperation": 63.93763485254418,
+            "cpuNsPerOperation": 65.5958565117801
+          },
+          {
+            "iterations": 6045696,
+            "wallMs": 401.23262499999964,
+            "cpuMs": 406.733,
+            "wallNsPerOperation": 66.366655716728,
+            "cpuNsPerOperation": 67.27645584561314
+          },
+          {
+            "iterations": 6225920,
+            "wallMs": 400.3253329999998,
+            "cpuMs": 409.229,
+            "wallNsPerOperation": 64.29978750128491,
+            "cpuNsPerOperation": 65.72988409745066
+          },
+          {
+            "iterations": 5570560,
+            "wallMs": 402.51787500000046,
+            "cpuMs": 375.565,
+            "wallNsPerOperation": 72.25806292365587,
+            "cpuNsPerOperation": 67.41961310891544
+          },
+          {
+            "iterations": 6193152,
+            "wallMs": 400.5745420000003,
+            "cpuMs": 412.31,
+            "wallNsPerOperation": 64.68023746228097,
+            "cpuNsPerOperation": 66.57514622602513
+          },
+          {
+            "iterations": 6275072,
+            "wallMs": 400.53000000000065,
+            "cpuMs": 411.443,
+            "wallNsPerOperation": 63.82874969402752,
+            "cpuNsPerOperation": 65.56785324534921
+          },
+          {
+            "iterations": 5947392,
+            "wallMs": 401.2045829999988,
+            "cpuMs": 407.025,
+            "wallNsPerOperation": 67.4589102248513,
+            "cpuNsPerOperation": 68.43756053073348
+          },
+          {
+            "iterations": 4620288,
+            "wallMs": 400.33879199999865,
+            "cpuMs": 321.911,
+            "wallNsPerOperation": 86.64801674700769,
+            "cpuNsPerOperation": 69.67336235316932
+          },
+          {
+            "iterations": 5980160,
+            "wallMs": 400.5605830000004,
+            "cpuMs": 405.52,
+            "wallNsPerOperation": 66.98158293423595,
+            "cpuNsPerOperation": 67.81089469178082
+          }
+        ]
+      }
+    }
+  ]
+}

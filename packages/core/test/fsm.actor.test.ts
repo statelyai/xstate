@@ -15,7 +15,7 @@ function createCounter() {
       active: {
         on: {
           inc: ({ context }) => ({ context: { count: context.count + 1 } }),
-          stop: 'stopped'
+          stop: { target: 'stopped' }
         }
       },
       stopped: {}

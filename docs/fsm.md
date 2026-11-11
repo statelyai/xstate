@@ -17,8 +17,8 @@ import { createFSM } from 'xstate/fsm';
 const machine = createFSM({
   initial: 'inactive',
   states: {
-    inactive: { on: { toggle: 'active' } },
-    active: { on: { toggle: 'inactive' } }
+    inactive: { on: { toggle: { target: 'active' } } },
+    active: { on: { toggle: { target: 'inactive' } } }
   }
 });
 
@@ -121,8 +121,8 @@ import { createFSM } from 'xstate/fsm';
 const machine = createFSM({
   initial: 'inactive',
   states: {
-    inactive: { on: { toggle: 'active' } },
-    active: { on: { toggle: 'inactive' } }
+    inactive: { on: { toggle: { target: 'active' } } },
+    active: { on: { toggle: { target: 'inactive' } } }
   }
 });
 
@@ -143,23 +143,66 @@ from `xstate` adds the runtime to your bundle.
 
 `createFSM` is pure. It does not create or run actors:
 
-- `machine.initialState` is the initial `{ status: 'active', value, context }`.
-  FSM snapshots are always `'active'`. The `output` and `error` fields of the
-  snapshot type are always `undefined` and are not set on the object.
+- `machine.initialState` is the settled initial
+  `{ status: 'active', value, context }` snapshot. FSM snapshots are always
+  `'active'`. The `output` and `error` fields are always `undefined`.
 - `machine.getInitialSnapshot()` returns `machine.initialState`.
 - `machine.transition(state, event)` returns `[nextState, effects]`. `effects`
   is always empty.
 - Missing transitions return the current state unchanged.
-- A transition can be a state name, `{ target, context }`, or a function that
+- A transition can be `{ target, context }` or a function that
   receives `{ context, event }` and returns `{ target, context }`. Return
   `undefined` from a function for no transition.
-- Only own entries in `states` and `on` define transitions. A state inherited from the `states` prototype has no outgoing transitions, like an undeclared state. Transition targets are not validated.
+- Only own entries in `states` and `on` define transitions. A state inherited from the `states` prototype has no outgoing transitions, like an undeclared state. Target state names are not validated at runtime. Bare string transitions are rejected.
 - Context updates are shallow patches. A patch adds its own enumerable string and symbol keys even when a new value is `undefined` or matches an inherited value. If the target is unchanged, a patch whose keys already exist with `Object.is`-equal values keeps the current snapshot.
 - `types<T>()` adds types without runtime validation. Setup schema values are
   ignored by the FSM runtime; state `schemas.input` is accepted for upgrade
   compatibility but no input is consumed by this pure API.
 
+## Eventless transitions
+
+A state can declare `always` with the same object or function form as
+an event transition. Return `undefined` from a function when no transition
+is enabled:
+
+```ts
+const machine = createFSM<{ attempts: number }>({
+  initial: 'checking',
+  context: { attempts: 0 },
+  states: {
+    checking: {
+      always: ({ context }) =>
+        context.attempts < 3
+          ? { context: { attempts: context.attempts + 1 } }
+          : { target: 'ready' }
+    },
+    ready: {}
+  }
+});
+
+machine.initialState.value; // 'ready'
+```
+
+The presence of `always` transitions is detected once during construction.
+Define all `always` transitions before calling `createFSM`.
+
+The machine follows enabled `always` transitions during construction and after
+each handled event until none is enabled. Ignored events and callbacks that
+return `undefined` do not start another eventless chain. Subscribers receive
+only the settled snapshot. During construction, callbacks receive
+`{ type: 'xstate.init' }`; afterward, they receive the triggering event.
+
+There is no transition-count limit. An unconditional cycle does not terminate.
+Each state supports one `always` transition. Transition arrays and a separate
+guard API are not supported.
+
 The package intentionally has no actions, guards, effects, timers, child
-actors, hierarchical or parallel states, or eventless transitions. Use
+actors, hierarchical or parallel states. Use
 `createMachine` and `createActor` from `xstate` when the state machine needs
 those statechart or runtime features.
+
+## Transition target migration
+
+`on` and `always` require transition objects or functions returning transition objects. Replace `on: { GO: 'ready' }` with `on: { GO: { target: 'ready' } }` and `always: 'ready'` with `always: { target: 'ready' }`. `initial: 'idle'` stays a string. Invalid string transitions throw a `TypeError`.
+
+The `@xstate/codemod` `string-targets` transform updates inline `createFSM` and `setup(...).createFSM` configurations, including aliased `createFSM` imports. Review configurations stored separately and functions returning strings manually.

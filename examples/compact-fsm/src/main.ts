@@ -14,8 +14,8 @@ const toggleFSM = createFSM({
   id: 'toggle',
   initial: 'inactive',
   states: {
-    inactive: { on: { toggle: 'active' } },
-    active: { on: { toggle: 'inactive' } }
+    inactive: { on: { toggle: { target: 'active' } } },
+    active: { on: { toggle: { target: 'inactive' } } }
   }
 });
 
@@ -77,7 +77,7 @@ const keypadFSM = keypadSetup.createFSM({
                 }
       }
     },
-    unlocked: { on: { clear: 'entering' } },
+    unlocked: { on: { clear: { target: 'entering' } } },
     // A state with no `on` is terminal by construction: every event returns
     // the same snapshot.
     locked: {}
@@ -250,8 +250,8 @@ requestSetup.createFSM({
   states: {
     idle: {
       on: {
-        // @ts-expect-error a bare string target cannot carry incompatible context
-        fetch: 'loading'
+        // @ts-expect-error a target must provide incompatible context
+        fetch: { target: 'loading' }
       }
     },
     loading: {},

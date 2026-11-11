@@ -9,3 +9,5 @@ The transforms rename imports, wrap string targets, convert inline `types` decla
 
 <!-- helper binding and output validation from src/util.ts, src/transforms/types-to-schemas.ts and src/runner.ts -->
 The codemod supports named, namespace and type-only imports. It checks transformed syntax before saving. Run your application's typecheck and tests after migration, and review any reported manual migration steps.
+
+The `string-targets` transform also wraps inline `xstate/fsm` targets in `on` and `always`, including `setup(...).createFSM` and aliased `createFSM` imports. It preserves string `initial` values. Review separately stored configurations and string-returning transition functions manually.
