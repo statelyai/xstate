@@ -218,6 +218,62 @@ describe('transition function', () => {
       ]);
     });
 
+    it('reenters the region of a targetless source when another region reenters the parallel parent', () => {
+      const record = vi.fn();
+      const log = (name: string) => ({
+        entry: (_: unknown, enq: (fn: typeof record, arg: string) => void) =>
+          enq(record, `entry ${name}`),
+        exit: (_: unknown, enq: (fn: typeof record, arg: string) => void) =>
+          enq(record, `exit ${name}`)
+      });
+      const machine = createMachine({
+        id: 'm',
+        initial: 'parent',
+        states: {
+          parent: {
+            ...log('parent'),
+            type: 'parallel',
+            states: {
+              left: {
+                ...log('left'),
+                initial: 'active',
+                states: {
+                  active: { ...log('active'), on: { GO: { reenter: true } } }
+                }
+              },
+              right: {
+                ...log('right'),
+                on: { GO: { target: '#m.parent', reenter: true } }
+              }
+            }
+          }
+        }
+      });
+
+      const [initial] = initialTransition(machine);
+      const [next, effects] = transition(machine, initial, { type: 'GO' });
+
+      expect(next.nodes.map((node) => node.id)).toEqual([
+        'm',
+        'm.parent',
+        'm.parent.left',
+        'm.parent.left.active',
+        'm.parent.right'
+      ]);
+      expect(
+        effects.map((effect) => ('args' in effect ? effect.args[0] : undefined))
+      ).toEqual([
+        'exit right',
+        'exit active',
+        'exit left',
+        'exit parent',
+        'entry parent',
+        'entry left',
+        'entry active',
+        'entry right'
+      ]);
+    });
+
     it('preserves an active descendant without rerunning parent entry in a running actor', () => {
       const record = vi.fn();
       const machine = createMachine({
