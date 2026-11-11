@@ -1,0 +1,71 @@
+{
+  "base": "da64b0aa177a40501f488612296f527a4f8b46ab",
+  "node": "v26.11.1",
+  "esbuild": "0.25.4",
+  "profiles": {
+    "library": {
+      "base": {
+        "esbuild": {
+          "minified": 812,
+          "gzip": 478
+        },
+        "terser": {
+          "minified": 807,
+          "gzip": 468
+        }
+      },
+      "feature": {
+        "esbuild": {
+          "minified": 1138,
+          "gzip": 622
+        },
+        "terser": {
+          "minified": 1133,
+          "gzip": 609
+        }
+      },
+      "delta": {
+        "esbuild": {
+          "minified": 326,
+          "gzip": 144
+        },
+        "terser": {
+          "minified": 326,
+          "gzip": 141
+        }
+      }
+    },
+    "toggle": {
+      "base": {
+        "esbuild": {
+          "minified": 780,
+          "gzip": 459
+        },
+        "terser": {
+          "minified": 772,
+          "gzip": 449
+        }
+      },
+      "feature": {
+        "esbuild": {
+          "minified": 1106,
+          "gzip": 595
+        },
+        "terser": {
+          "minified": 1098,
+          "gzip": 583
+        }
+      },
+      "delta": {
+        "esbuild": {
+          "minified": 326,
+          "gzip": 136
+        },
+        "terser": {
+          "minified": 326,
+          "gzip": 134
+        }
+      }
+    }
+  }
+}
