@@ -2699,7 +2699,8 @@ export function macrostep(
     return completeMacrostep();
   }
 
-  let shouldSelectEventlessTransitions = true;
+  // A timer notification must not run eventless transitions before delivery.
+  let shouldSelectEventlessTransitions = event.type !== XSTATE_TIMER;
   const maxIterations = snapshot.machine.options?.maxIterations ?? Infinity;
   let iterationCount = 0;
   // The last few state values visited, for the infinite-loop error.
