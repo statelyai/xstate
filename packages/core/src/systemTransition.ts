@@ -8,6 +8,7 @@ import { TimeoutError } from './actors/promise.ts';
 import { systemLogicMetadata } from './systemLogicMetadata.ts';
 import { listenerLogic } from './actors/listener.ts';
 import { subscriptionLogic } from './actors/subscription.ts';
+import { XSTATE_ATTACHED_FORWARD } from './actors/attached.ts';
 import { matchesEventDescriptor } from './utils.ts';
 import { IndexedHeap } from './IndexedHeap.ts';
 import { XSTATE_STOP, XSTATE_STOP_EFFECT } from './constants.ts';
@@ -445,6 +446,15 @@ class SystemReduction {
     return (this.logic.get(actor.src) as any)?.[systemLogicMetadata]?.kind;
   }
 
+  private forwardAttachment(ref: SystemActorReference, event: AnyEventObject) {
+    this.process({
+      source: ref,
+      target: ref,
+      event: { type: XSTATE_ATTACHED_FORWARD, event },
+      sequence: this.snapshot.counters.sequence++
+    });
+  }
+
   private relayAttachments(
     source: SystemActorReference,
     emitted?: AnyEventObject
@@ -493,9 +503,8 @@ class SystemReduction {
           );
       }
       if (event)
-        this.enqueue(
+        this.forwardAttachment(
           { '@actor': actor.address, incarnation: actor.incarnation },
-          actor.parent,
           event
         );
     }
@@ -908,9 +917,8 @@ class SystemReduction {
         input.mappers.error &&
         actor.parent
       ) {
-        this.enqueue(
+        this.forwardAttachment(
           ref,
-          actor.parent,
           input.mappers.error(this.hydrate(target).error)
         );
       }

@@ -10,7 +10,7 @@ import type {
 import { createSendToEffect } from '../transitionActions.ts';
 
 const subscriptions = /* #__PURE__ */ new WeakMap<AnyActor, Subscription>();
-const XSTATE_ATTACHED_FORWARD = 'xstate.attached.forward';
+export const XSTATE_ATTACHED_FORWARD = 'xstate.attached.forward';
 
 /**
  * Internal factory for actor logic that attaches to another actor on start
