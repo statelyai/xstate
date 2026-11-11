@@ -278,20 +278,18 @@ export function closeEffectHost(host: EffectHost): void {
   );
 }
 
-/**
- * Delivers a stream item to the parent as an event. This runs outside a
- * transition, so it uses the system relay like core's observable logic does.
- */
+export const EFFECT_FORWARD = 'xstate.effect.forward';
+
+/** Queues a stream item for the source actor to forward in its transition. */
 export function relayToParent(
   actor: AnyActorRef,
   event: { type: string; [key: string]: unknown }
 ): void {
   const actorWithParent = actor as AnyActor & { _parent?: AnyActor };
   if (actorWithParent._parent) {
-    (actor as AnyActor).system._relay(
-      actorWithParent,
-      actorWithParent._parent,
+    (actor as AnyActor).system._relay(actorWithParent, actorWithParent, {
+      type: EFFECT_FORWARD,
       event
-    );
+    });
   }
 }

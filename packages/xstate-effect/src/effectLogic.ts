@@ -13,7 +13,11 @@ import {
 } from 'xstate';
 import { EffectFailure } from './errors.ts';
 import type { EffectRequirements } from './types.ts';
-import { relayToParent, startHostedEffect } from './internal.ts';
+import {
+  EFFECT_FORWARD,
+  relayToParent,
+  startHostedEffect
+} from './internal.ts';
 import {
   type EffectSchemaLike,
   type ToStandardSchema,
@@ -710,10 +714,19 @@ export function createEffectEventStreamLogic<
     EventObject
   >({
     id: config.id,
-    validator: config.validator,
+    validator: config.validator && {
+      check: (request) =>
+        request.kind === 'event' && request.event.type === EFFECT_FORWARD
+          ? undefined
+          : config.validator!.check(request)
+    },
     schemas: toLogicSchemas(config.schemas),
     context: undefined,
     run: ({ event, input, self, system }, enq) => {
+      if (event.type === EFFECT_FORWARD) {
+        enq.sendBack((event as EventObject & { event: EventObject }).event);
+        return;
+      }
       if (event.type === EFFECT_COMPLETE) {
         return { status: 'done', input: undefined };
       }
@@ -760,6 +773,10 @@ export function createEffectEventStreamLogic<
         )
       );
     }
+  });
+
+  Object.assign(logic, {
+    isInternalEventType: (eventType: string) => eventType === EFFECT_FORWARD
   });
 
   return brandLogic(

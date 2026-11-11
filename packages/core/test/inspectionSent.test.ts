@@ -1,10 +1,14 @@
 import { setImmediate } from 'node:timers/promises';
 import v8 from 'node:v8';
 import vm from 'node:vm';
+import { Subject } from 'rxjs';
 import {
   createActor,
   createCallbackLogic,
+  createEventObservableLogic,
   createMachine,
+  type AnyActor,
+  type AnyActorRef,
   type ActorLogic,
   type InspectionEvent
 } from '../src/index.ts';
@@ -30,7 +34,7 @@ function transitions(events: InspectionEvent[]): InspectedTransition[] {
 }
 
 describe('sent[] inspection', () => {
-  it('reports only the sends made by the transition', () => {
+  it('reports callback sends in the callback actor transitions', () => {
     let sendBack: ((event: { type: string }) => void) | undefined;
     const machine = createMachine({
       invoke: {
@@ -47,9 +51,13 @@ describe('sent[] inspection', () => {
       inspect: (event) => inspection.push(event)
     }).start();
     const child = actor.getSnapshot().children.child!;
+    let childSnapshots = 0;
+    child.subscribe(() => childSnapshots++);
+    const beforeSends = childSnapshots;
 
     sendBack!({ type: 'TICK' });
     sendBack!({ type: 'TICK' });
+    expect(childSnapshots - beforeSends).toBe(2);
     child.send({ type: 'ASK' });
 
     expect(
@@ -61,7 +69,10 @@ describe('sent[] inspection', () => {
         ])
     ).toEqual([
       ['xstate.init', []],
-      ['ASK', ['ANSWER']]
+      ['xstate.callback.sendBack', ['TICK']],
+      ['xstate.callback.sendBack', ['TICK']],
+      ['ASK', ['xstate.callback.sendBack']],
+      ['xstate.callback.sendBack', ['ANSWER']]
     ]);
     expect(
       transitions(inspection)
@@ -73,6 +84,113 @@ describe('sent[] inspection', () => {
       ['TICK', child],
       ['ANSWER', child]
     ]);
+    actor.stop();
+  });
+
+  it('reports event observable sends in the source transition', () => {
+    const stream = new Subject<{ type: 'TICK' }>();
+    const machine = createMachine({
+      invoke: {
+        id: 'stream',
+        src: createEventObservableLogic(() => stream)
+      },
+      on: { TICK: {} }
+    });
+    const inspection: InspectionEvent[] = [];
+    const actor = createActor(machine, {
+      inspect: (event) => inspection.push(event)
+    }).start();
+    const child = actor.getSnapshot().children.stream!;
+
+    stream.next({ type: 'TICK' });
+
+    expect(
+      transitions(inspection)
+        .filter((event) => event.actorRef === child)
+        .map((event) => [
+          event.event.type,
+          event.sent.map((sent) => sent.event.type)
+        ])
+    ).toEqual([
+      ['xstate.init', []],
+      ['xstate.observable.next', ['TICK']]
+    ]);
+    expect(
+      transitions(inspection)
+        .filter((event) => event.actorRef === actor)
+        .map((event) => event.event.type)
+    ).toEqual(['xstate.init', 'TICK']);
+    actor.stop();
+  });
+
+  it('reports listener sends in the listener transition', () => {
+    let emitSource: ((event: { type: 'PING' }) => void) | undefined;
+    let listener: AnyActor | undefined;
+    const source = createCallbackLogic(({ emit }) => {
+      emitSource = emit;
+    });
+    const machine = createMachine({
+      entry: (_, enq) => {
+        const child = enq.spawn(source);
+        listener = enq.listen(child, 'PING', () => ({ type: 'PONG' }));
+      },
+      on: { PONG: {} }
+    });
+    const inspection: InspectionEvent[] = [];
+    const actor = createActor(machine, {
+      inspect: (event) => inspection.push(event)
+    }).start();
+
+    emitSource!({ type: 'PING' });
+
+    expect(
+      transitions(inspection)
+        .filter((event) => event.actorRef === listener)
+        .map((event) => [
+          event.event.type,
+          event.sent.map((sent) => sent.event.type)
+        ])
+    ).toEqual([
+      ['xstate.init', []],
+      ['xstate.attached.forward', ['PONG']]
+    ]);
+    actor.stop();
+  });
+
+  it('reports subscription sends in the subscription transition', () => {
+    let source: AnyActorRef | undefined;
+    let subscription: AnyActor | undefined;
+    const childLogic = createMachine({
+      context: { count: 0 },
+      on: {
+        INC: ({ context }) => ({ context: { count: context.count + 1 } })
+      }
+    });
+    const machine = createMachine({
+      entry: (_, enq) => {
+        source = enq.spawn(childLogic);
+        subscription = enq.subscribeTo(source, {
+          snapshot: () => ({ type: 'CHANGED' })
+        });
+      },
+      on: { CHANGED: {} }
+    });
+    const inspection: InspectionEvent[] = [];
+    const actor = createActor(machine, {
+      inspect: (event) => inspection.push(event)
+    }).start();
+    const before = inspection.length;
+
+    source!.send({ type: 'INC' });
+
+    expect(
+      transitions(inspection.slice(before))
+        .filter((event) => event.actorRef === subscription)
+        .map((event) => [
+          event.event.type,
+          event.sent.map((sent) => sent.event.type)
+        ])
+    ).toEqual([['xstate.attached.forward', ['CHANGED']]]);
     actor.stop();
   });
 

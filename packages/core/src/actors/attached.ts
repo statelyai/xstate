@@ -7,8 +7,10 @@ import type {
   Snapshot,
   Subscription
 } from '../types.ts';
+import { createSendToEffect } from '../transitionActions.ts';
 
 const subscriptions = /* #__PURE__ */ new WeakMap<AnyActor, Subscription>();
+const XSTATE_ATTACHED_FORWARD = 'xstate.attached.forward';
 
 /**
  * Internal factory for actor logic that attaches to another actor on start
@@ -75,7 +77,22 @@ export function createAttachedLogic(
 
       subscriptions.set(self, { unsubscribe: teardown });
     },
-    transition: (state: any, event: EventObject, { self }: any) => {
+    transition: (state: any, event: EventObject, scope: any) => {
+      const self: AnyActor = scope.self;
+      if (event.type === XSTATE_ATTACHED_FORWARD) {
+        return [
+          state,
+          state.status === 'active' && self._parent
+            ? [
+                createSendToEffect(
+                  scope,
+                  self._parent,
+                  (event as EventObject & { event: EventObject }).event
+                )
+              ]
+            : []
+        ];
+      }
       if (event.type === XSTATE_STOP) {
         subscriptions.get(self)?.unsubscribe();
         subscriptions.delete(self);
@@ -94,7 +111,9 @@ export function createAttachedLogic(
     getInitialSnapshot: (actorScope: unknown, input: unknown) =>
       initialTransition(input, actorScope)[0],
     getPersistedSnapshot: (snapshot: Snapshot<unknown>) => snapshot,
-    restoreSnapshot: (snapshot: Snapshot<unknown>) => snapshot
+    restoreSnapshot: (snapshot: Snapshot<unknown>) => snapshot,
+    isInternalEventType: (eventType: string) =>
+      eventType === XSTATE_ATTACHED_FORWARD
   };
   Object.defineProperty(logic, systemLogicMetadata, { value: { kind: id } });
   return logic;
@@ -112,5 +131,8 @@ export function relayMappedToParent(
   if (self.getSnapshot().status === 'stopped' || !self._parent) {
     return;
   }
-  system._relay(self, self._parent, getEvent());
+  system._relay(self, self, {
+    type: XSTATE_ATTACHED_FORWARD,
+    event: getEvent()
+  });
 }

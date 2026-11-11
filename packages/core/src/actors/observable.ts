@@ -17,7 +17,10 @@ import {
 } from '../types';
 import type { NonReducibleUnknown } from '../typeUtils.ts';
 import { createStepLogic as createBaseLogic } from './logic.ts';
-import { finalizeTransitionResult } from '../transitionActions.ts';
+import {
+  createSendToEffect,
+  finalizeTransitionResult
+} from '../transitionActions.ts';
 
 const XSTATE_OBSERVABLE_NEXT = 'xstate.observable.next';
 const XSTATE_OBSERVABLE_ERROR = 'xstate.observable.error';
@@ -450,6 +453,21 @@ export function createEventObservableLogic<
       }
 
       switch (event.type) {
+        case XSTATE_OBSERVABLE_NEXT: {
+          const parent = (actorScope.self as AnyActor)._parent;
+          return [
+            state,
+            parent
+              ? [
+                  createSendToEffect(
+                    actorScope,
+                    parent,
+                    (event as unknown as { data: TEvent }).data
+                  )
+                ]
+              : []
+          ];
+        }
         case XSTATE_OBSERVABLE_ERROR:
           return finalizeTransitionResult(
             actorScope,
@@ -526,7 +544,10 @@ export function createEventObservableLogic<
       }).subscribe({
         next: (value) => {
           if (self._parent) {
-            system._relay(self, self._parent, value);
+            system._relay(self, self, {
+              type: XSTATE_OBSERVABLE_NEXT,
+              data: value
+            });
           }
         },
         error: (err) => {
@@ -546,6 +567,13 @@ export function createEventObservableLogic<
       _subscription: undefined
     })
   };
+
+  Object.assign(logic, {
+    isInternalEventType: (eventType: string) =>
+      eventType === XSTATE_OBSERVABLE_NEXT ||
+      eventType === XSTATE_OBSERVABLE_ERROR ||
+      eventType === XSTATE_OBSERVABLE_COMPLETE
+  });
 
   return logic;
 }

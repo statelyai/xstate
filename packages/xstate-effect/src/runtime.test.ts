@@ -17,7 +17,8 @@ import {
   setup,
   types,
   type AnyActorRef,
-  type EventRejection
+  type EventRejection,
+  type InspectionEvent
 } from 'xstate';
 import {
   EffectActor,
@@ -67,6 +68,42 @@ const runScoped = async <A, E>(
 };
 
 describe('@xstate/effect runtime', () => {
+  it('reports event stream sends in the source transition', async () => {
+    const next = Promise.withResolvers<{ type: 'TICK' }>();
+    const stream = Stream.fromEffect(Effect.promise(() => next.promise));
+    const childLogic = createEffectEventStreamLogic(stream);
+    const machine = setup({ actors: { childLogic } }).createMachine({
+      invoke: { id: 'child', src: 'childLogic' },
+      on: { TICK: {} }
+    });
+    const actor = await runScoped(createEffectActor(machine));
+    const inspection: InspectionEvent[] = [];
+    actor.inspect((event) => inspection.push(event));
+    const child = actor.getSnapshot().children.child;
+
+    next.resolve({ type: 'TICK' });
+    await until(() =>
+      inspection.some(
+        (event) =>
+          event.type === '@xstate.transition' &&
+          event.actorRef === child &&
+          event.event.type === 'xstate.effect.forward'
+      )
+    );
+
+    const forwarded = inspection.find(
+      (event) =>
+        event.type === '@xstate.transition' &&
+        event.actorRef === child &&
+        event.event.type === 'xstate.effect.forward'
+    );
+    expect(forwarded?.type).toBe('@xstate.transition');
+    if (forwarded?.type !== '@xstate.transition') {
+      throw new Error('Expected the stream actor to forward TICK');
+    }
+    expect(forwarded.sent.map((sent) => sent.event.type)).toEqual(['TICK']);
+  });
+
   it.each([20, 1000])(
     'receives %i asynchronous child events in send order',
     async (count) => {
