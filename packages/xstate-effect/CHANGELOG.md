@@ -1,5 +1,42 @@
 # @xstate/effect
 
+## 1.0.0-beta.1
+
+### Major Changes
+
+- 3cbcc3f: Serialized output no longer uses field names that start with `$` or `_`. Stores such as Convex reject both prefixes, and MongoDB restricts `$`-prefixed field names, so persisted snapshots, `systemTransition` snapshots and effect descriptors could not be stored without rewriting them.
+  
+  | Before                    | After                    | Where                                                                                                      |
+  | ------------------------- | ------------------------ | ---------------------------------------------------------------------------------------------------------- |
+  | `{ $actor: address, incarnation }` | `{ '@actor': address, incarnation }` | `SerializedActorRef`: persisted context, `systemTransition` snapshots, effect descriptors, `sendTo` targets, dead letters, `@xstate/effect` actor `toJSON()` |
+  | `_nextTimerId`            | `nextTimerId`            | Persisted snapshots, `systemTransition` snapshots                                                          |
+  | `_nextActorIds`           | `nextActorIds`           | Persisted snapshots, `systemTransition` snapshots                                                          |
+  | `_stateInputs`            | `stateInputs`            | `systemTransition` snapshots (persisted snapshots already used `stateInputs`)                              |
+  | `{ $error: name, message }` | `{ '@error': name, message }` | `systemTransition` snapshots, `@xstate/test` traces                                                        |
+  | `{ $stateNode: id }`, `{ $systemMapper: key }` | `{ '@stateNode': id }`, `{ '@systemMapper': key }` | `systemTransition` snapshots                                                                        |
+  
+  ```ts
+  // Before
+  { $actor: 'order/worker', incarnation: 'a:1' }
+  // After
+  { '@actor': 'order/worker', incarnation: 'a:1' }
+  ```
+  
+  `snapshot.toJSON()` no longer includes the private `_nextTimerId` and `_nextActorIds` counters.
+  
+  Snapshots written by `6.0.0-beta.1` with the old field names still restore: `restoreActor`, `restoreMachineSnapshot` and `systemTransition` read both shapes. New snapshots use only the new names. Schemas that validate persisted snapshots (for example with `machineVersions`) must use the new names.
+
+### Minor Changes
+
+- bddb8a6: Export `sendAndAwait` from the main `@xstate/effect` entrypoint. `@xstate/effect/test` still re-exports it for compatibility. Document its one-event acknowledgment boundary: the transition and immediate effects, without awaiting child replies or background work.
+
+### Patch Changes
+
+- d56483f: `createEffectActor` now shows observers each step in the order that `createActor` uses. The events that a transition emits come first. Then an active step gives `next`, a `done` step gives `next` and then `complete`, and an `error` step gives `error`. `join` resolves, and the `emitted(actor)` stream ends, after the events of the final transition.
+  
+  A `stop()` that an `on` listener or an observer calls synchronously while the actor delivers a step now runs when that step ends, as in `createActor`. A `stop()` from anywhere else still stops the actor at once. If the step ends the actor with `done` or `error`, its `sendAndAwait` receipt now succeeds with that snapshot, also when a listener stopped the actor during the step.
+- 389a4a2: Preserve registered Effect action keys in transition descriptors so consumers can identify enqueued actions.
+
 ## 1.0.0-beta.0
 
 ### Patch Changes

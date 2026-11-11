@@ -1,5 +1,73 @@
 # xstate
 
+## 6.0.0-beta.2
+
+### Major Changes
+
+- 3cbcc3f: Serialized output no longer uses field names that start with `$` or `_`. Stores such as Convex reject both prefixes, and MongoDB restricts `$`-prefixed field names, so persisted snapshots, `systemTransition` snapshots and effect descriptors could not be stored without rewriting them.
+  
+  | Before                    | After                    | Where                                                                                                      |
+  | ------------------------- | ------------------------ | ---------------------------------------------------------------------------------------------------------- |
+  | `{ $actor: address, incarnation }` | `{ '@actor': address, incarnation }` | `SerializedActorRef`: persisted context, `systemTransition` snapshots, effect descriptors, `sendTo` targets, dead letters, `@xstate/effect` actor `toJSON()` |
+  | `_nextTimerId`            | `nextTimerId`            | Persisted snapshots, `systemTransition` snapshots                                                          |
+  | `_nextActorIds`           | `nextActorIds`           | Persisted snapshots, `systemTransition` snapshots                                                          |
+  | `_stateInputs`            | `stateInputs`            | `systemTransition` snapshots (persisted snapshots already used `stateInputs`)                              |
+  | `{ $error: name, message }` | `{ '@error': name, message }` | `systemTransition` snapshots, `@xstate/test` traces                                                        |
+  | `{ $stateNode: id }`, `{ $systemMapper: key }` | `{ '@stateNode': id }`, `{ '@systemMapper': key }` | `systemTransition` snapshots                                                                        |
+  
+  ```ts
+  // Before
+  { $actor: 'order/worker', incarnation: 'a:1' }
+  // After
+  { '@actor': 'order/worker', incarnation: 'a:1' }
+  ```
+  
+  `snapshot.toJSON()` no longer includes the private `_nextTimerId` and `_nextActorIds` counters.
+  
+  Snapshots written by `6.0.0-beta.1` with the old field names still restore: `restoreActor`, `restoreMachineSnapshot` and `systemTransition` read both shapes. New snapshots use only the new names. Schemas that validate persisted snapshots (for example with `machineVersions`) must use the new names.
+
+### Minor Changes
+
+- c558afa: `durable.checkpoint(snapshot)` returns a checkpoint that `restore()` accepts: the persisted snapshot, the next transition index, and the inbox of root-addressed events that settled `executeEffects` batches captured but `waitForEvent()` has not handed out. A child that completed in the last batch before a checkpoint now reaches its parent after restore, instead of leaving the parent waiting.
+  
+  ```ts
+  await db.save(durable.checkpoint(state));
+  
+  const resumed = createDurable(machine, adapter);
+  let [state, effects] = resumed.restore(await db.load());
+  await resumed.executeEffects(effects);
+  ```
+  
+  `restore()` still accepts a bare persisted snapshot.
+  
+  Long-running durable executions no longer slow down or retain earlier snapshot system views as transitions accumulate. Executions that start from the same snapshot keep separate runtimes, timers and listeners.
+
+### Patch Changes
+
+- c70dd85: fix: apply new context keys and signed-zero updates in `createFSM`, and preserve the snapshot for unchanged `NaN` values
+- 975ba72: An inline invoke's `onDone.event.output` is now `unknown` with no registered
+  actor sources. Use `s.createInvoke({ src, onDone })` or register the
+  actor in `setup({ actors })` to get its exact output type.
+  
+  ```ts
+  const s = setup({});
+  const machine = s.createMachine({
+    invoke: s.createInvoke({
+      src: loadUser,
+      onDone: ({ event }) => ({ context: { user: event.output } })
+    })
+  });
+  ```
+  
+  A literal invoke ID now types its entry in `snapshot.children` from the invoked
+  actor. An empty `schemas.events: {}` no longer erases the context and input
+  types in a final state's output callback. Restoring a machine held in Vue
+  reactive state now keeps its state value consistent after the next transition.
+- 0ebc550: Transitions that read `self` or `system` no longer keep earlier snapshots alive.
+- bbc8797: The error for a state key with an unescaped `.` now uses plain punctuation: `State key "foo.bar" contains ".". Nest the states or escape it as "foo\\.bar".`
+- 757b605: `createFSM` ignores inherited state definitions when looking up outgoing transitions. Own state definitions, including state maps with a null prototype, continue to work.
+- bcd3840: With an inspector attached, events that an actor sends outside a transition, such as a callback actor's `sendBack` or an observable's values relayed to its parent, are no longer held in memory until that actor's next transition. They are also no longer listed in the `sent[]` of that later `@xstate.transition` event. `sent[]` lists only the events the transition itself sent. The receiving actor's `@xstate.transition` still reports each event with its `sourceRef`.
+
 ## 6.0.0-beta.1
 
 ### Patch Changes
