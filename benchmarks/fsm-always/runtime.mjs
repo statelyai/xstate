@@ -20,8 +20,8 @@ const [profile, selectedVariant, mode] = process.argv.slice(2);
 const config = {
   initial: 'off',
   states: {
-    off: { on: { TOGGLE: 'on' } },
-    on: { on: { TOGGLE: 'off' } }
+    off: { on: { TOGGLE: { target: 'on' } } },
+    on: { on: { TOGGLE: { target: 'off' } } }
   }
 };
 

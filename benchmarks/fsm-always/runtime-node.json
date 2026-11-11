@@ -1,6 +1,6 @@
 {
   "baseline": "da64b0aa177a40501f488612296f527a4f8b46ab",
-  "featureSha256": "167eceaef848fc16b1d419fc7f90b3bbb2fffaaa2ea33411ba356b23ec5d7a05",
+  "featureSha256": "2f8d9ed35897b90a42985ea30bb623a9c7425f0d57a9e37e26ecc982cc383795",
   "environment": {
     "runtime": {
       "node": "26.11.1",
@@ -38,7 +38,7 @@
     "cpu": "Apple M1 Max",
     "cores": 10,
     "os": "Darwin 23.5.0 arm64",
-    "load": [11.03564453125, 9.95068359375, 9.716796875]
+    "load": [92.33056640625, 43.2158203125, 33.73681640625]
   },
   "rounds": 9,
   "sampleMs": 400,
@@ -46,548 +46,548 @@
   "results": [
     {
       "profile": "toggle",
-      "load": [10.2802734375, 9.82080078125, 9.6728515625],
+      "load": [80.47314453125, 42.28759765625, 33.517578125],
       "verified": true,
       "samples": {
         "base": [
           {
-            "iterations": 4046848,
-            "wallMs": 401.06620799999996,
-            "cpuMs": 386.469,
-            "wallNsPerOperation": 99.10582458248986,
-            "cpuNsPerOperation": 95.49876842421558
+            "iterations": 3866624,
+            "wallMs": 401.2679170000001,
+            "cpuMs": 369.778,
+            "wallNsPerOperation": 103.77733056019932,
+            "cpuNsPerOperation": 95.63329664327331
+          },
+          {
+            "iterations": 4341760,
+            "wallMs": 401.3554589999999,
+            "cpuMs": 402.973,
+            "wallNsPerOperation": 92.44072887492626,
+            "cpuNsPerOperation": 92.81328309257076
+          },
+          {
+            "iterations": 4341760,
+            "wallMs": 400.02,
+            "cpuMs": 402.215,
+            "wallNsPerOperation": 92.13314416273585,
+            "cpuNsPerOperation": 92.63869951356132
+          },
+          {
+            "iterations": 4292608,
+            "wallMs": 401.39995799999997,
+            "cpuMs": 402.239,
+            "wallNsPerOperation": 93.50957692852455,
+            "cpuNsPerOperation": 93.70503898795324
+          },
+          {
+            "iterations": 4325376,
+            "wallMs": 400.43724999999995,
+            "cpuMs": 402.68,
+            "wallNsPerOperation": 92.57859894723602,
+            "cpuNsPerOperation": 93.09710878314394
           },
           {
             "iterations": 3866624,
-            "wallMs": 400.0858750000002,
-            "cpuMs": 371.491,
-            "wallNsPerOperation": 103.47162666967365,
-            "cpuNsPerOperation": 96.07631877317267
+            "wallMs": 401.03629199999887,
+            "cpuMs": 374.712,
+            "wallNsPerOperation": 103.71742688195151,
+            "cpuNsPerOperation": 96.90934520656779
           },
           {
-            "iterations": 4227072,
-            "wallMs": 401.1015830000001,
-            "cpuMs": 397.674,
-            "wallNsPerOperation": 94.88875112607501,
-            "cpuNsPerOperation": 94.07788653706395
+            "iterations": 3473408,
+            "wallMs": 400.0799169999991,
+            "cpuMs": 342.435,
+            "wallNsPerOperation": 115.18368040840555,
+            "cpuNsPerOperation": 98.58761193617335
           },
           {
-            "iterations": 4145152,
-            "wallMs": 400.89950000000044,
-            "cpuMs": 392.281,
-            "wallNsPerOperation": 96.71527123733952,
-            "cpuNsPerOperation": 94.63609537117095
+            "iterations": 3145728,
+            "wallMs": 400.14995799999997,
+            "cpuMs": 339.766,
+            "wallNsPerOperation": 127.2042458852132,
+            "cpuNsPerOperation": 108.00870259602864
           },
           {
-            "iterations": 4145152,
-            "wallMs": 400.41762500000004,
-            "cpuMs": 393.478,
-            "wallNsPerOperation": 96.59902097679411,
-            "cpuNsPerOperation": 94.92486644639328
-          },
-          {
-            "iterations": 4259840,
-            "wallMs": 400.72649999999976,
-            "cpuMs": 400.192,
-            "wallNsPerOperation": 94.07078669621389,
-            "cpuNsPerOperation": 93.9453125
-          },
-          {
-            "iterations": 4276224,
-            "wallMs": 401.1720829999995,
-            "cpuMs": 402.936,
-            "wallNsPerOperation": 93.81456233349783,
-            "cpuNsPerOperation": 94.22705639367815
-          },
-          {
-            "iterations": 4014080,
-            "wallMs": 401.21479200000067,
-            "cpuMs": 381.229,
-            "wallNsPerOperation": 99.95186742665832,
-            "cpuNsPerOperation": 94.97294523278062
-          },
-          {
-            "iterations": 4276224,
-            "wallMs": 400.77995799999917,
-            "cpuMs": 403.683,
-            "wallNsPerOperation": 93.72286344213941,
-            "cpuNsPerOperation": 94.40174322018679
+            "iterations": 4079616,
+            "wallMs": 400.6675840000007,
+            "cpuMs": 397.592,
+            "wallNsPerOperation": 98.21208270582346,
+            "cpuNsPerOperation": 97.4581921435743
           }
         ],
         "feature": [
           {
-            "iterations": 3981312,
-            "wallMs": 400.7837079999997,
-            "cpuMs": 393.552,
-            "wallNsPerOperation": 100.66623967174633,
-            "cpuNsPerOperation": 98.84982638888889
+            "iterations": 4210688,
+            "wallMs": 400.5001249999998,
+            "cpuMs": 403.801,
+            "wallNsPerOperation": 95.11512726661292,
+            "cpuNsPerOperation": 95.89905497628891
           },
           {
-            "iterations": 3850240,
-            "wallMs": 401.505459,
-            "cpuMs": 386.11,
-            "wallNsPerOperation": 104.28063159699136,
-            "cpuNsPerOperation": 100.28206033909575
+            "iterations": 4177920,
+            "wallMs": 400.970875,
+            "cpuMs": 402.768,
+            "wallNsPerOperation": 95.97380395029106,
+            "cpuNsPerOperation": 96.40395220588235
           },
           {
-            "iterations": 3063808,
-            "wallMs": 401.11291699999947,
-            "cpuMs": 311.533,
-            "wallNsPerOperation": 130.91973028335963,
-            "cpuNsPerOperation": 101.68163279161097
+            "iterations": 4227072,
+            "wallMs": 400.2942499999999,
+            "cpuMs": 402.947,
+            "wallNsPerOperation": 94.69776005707969,
+            "cpuNsPerOperation": 95.32532211421996
           },
           {
-            "iterations": 3932160,
-            "wallMs": 401.17062499999975,
-            "cpuMs": 386.795,
-            "wallNsPerOperation": 102.02296574910476,
-            "cpuNsPerOperation": 98.36705525716145
+            "iterations": 4177920,
+            "wallMs": 401.4184580000001,
+            "cpuMs": 402.416,
+            "wallNsPerOperation": 96.08093453201596,
+            "cpuNsPerOperation": 96.31969975490196
           },
           {
-            "iterations": 4161536,
-            "wallMs": 401.00816699999996,
-            "cpuMs": 402.569,
-            "wallNsPerOperation": 96.36061468650036,
-            "cpuNsPerOperation": 96.73567644254429
-          },
-          {
-            "iterations": 3588096,
-            "wallMs": 400.62591599999996,
-            "cpuMs": 363.271,
-            "wallNsPerOperation": 111.65417982127566,
-            "cpuNsPerOperation": 101.24338925156964
-          },
-          {
-            "iterations": 3981312,
-            "wallMs": 415.1073329999999,
-            "cpuMs": 396.283,
-            "wallNsPerOperation": 104.26395444516781,
-            "cpuNsPerOperation": 99.53578116962449
-          },
-          {
-            "iterations": 3997696,
-            "wallMs": 400.1566249999996,
-            "cpuMs": 399.602,
-            "wallNsPerOperation": 100.09681201371981,
-            "cpuNsPerOperation": 99.95807585169058
+            "iterations": 3883008,
+            "wallMs": 401.5423330000003,
+            "cpuMs": 378.819,
+            "wallNsPerOperation": 103.41012251326813,
+            "cpuNsPerOperation": 97.55813019185126
           },
           {
             "iterations": 4079616,
-            "wallMs": 401.3328330000004,
-            "cpuMs": 403.632,
-            "wallNsPerOperation": 98.37514927875576,
-            "cpuNsPerOperation": 98.93872364457832
+            "wallMs": 400.05612500000007,
+            "cpuMs": 400.119,
+            "wallNsPerOperation": 98.06220119736761,
+            "cpuNsPerOperation": 98.07761318712349
+          },
+          {
+            "iterations": 3063808,
+            "wallMs": 400.09762500000033,
+            "cpuMs": 333.747,
+            "wallNsPerOperation": 130.58834789908516,
+            "cpuNsPerOperation": 108.93208712817513
+          },
+          {
+            "iterations": 3227648,
+            "wallMs": 400.6053749999992,
+            "cpuMs": 337.417,
+            "wallNsPerOperation": 124.11681044525275,
+            "cpuNsPerOperation": 104.5395904386104
+          },
+          {
+            "iterations": 2310144,
+            "wallMs": 401.28070800000023,
+            "cpuMs": 259.675,
+            "wallNsPerOperation": 173.7037639212102,
+            "cpuNsPerOperation": 112.40641276041667
           }
         ]
       }
     },
     {
       "profile": "counter",
-      "load": [9.12109375, 9.58447265625, 9.59033203125],
+      "load": [76.45751953125, 42.6357421875, 33.740234375],
       "verified": true,
       "samples": {
         "base": [
           {
-            "iterations": 2654208,
-            "wallMs": 402.0686249999999,
-            "cpuMs": 407.606,
-            "wallNsPerOperation": 151.48346512405956,
-            "cpuNsPerOperation": 153.5697277681327
+            "iterations": 1736704,
+            "wallMs": 407.74025000000006,
+            "cpuMs": 311.205,
+            "wallNsPerOperation": 234.7782063034346,
+            "cpuNsPerOperation": 179.19288491303067
           },
           {
-            "iterations": 2654208,
-            "wallMs": 401.18512499999997,
-            "cpuMs": 407.191,
-            "wallNsPerOperation": 151.15059746636285,
-            "cpuNsPerOperation": 153.41337227527006
+            "iterations": 2572288,
+            "wallMs": 400.6454170000002,
+            "cpuMs": 398.624,
+            "wallNsPerOperation": 155.75449444230202,
+            "cpuNsPerOperation": 154.968650477707
           },
           {
-            "iterations": 2605056,
-            "wallMs": 401.0944589999999,
-            "cpuMs": 402.945,
-            "wallNsPerOperation": 153.96769167342273,
-            "cpuNsPerOperation": 154.67805682488208
+            "iterations": 2064384,
+            "wallMs": 401.8039170000002,
+            "cpuMs": 347.005,
+            "wallNsPerOperation": 194.63622901553208,
+            "cpuNsPerOperation": 168.091304718502
           },
           {
-            "iterations": 2473984,
-            "wallMs": 401.2230840000002,
-            "cpuMs": 396.861,
-            "wallNsPerOperation": 162.17691141090654,
-            "cpuNsPerOperation": 160.41372943398179
+            "iterations": 1343488,
+            "wallMs": 403.35254200000054,
+            "cpuMs": 280.43,
+            "wallNsPerOperation": 300.22787103420393,
+            "cpuNsPerOperation": 208.7327910632622
           },
           {
-            "iterations": 2506752,
-            "wallMs": 402.0186250000006,
-            "cpuMs": 397.547,
-            "wallNsPerOperation": 160.37431106068755,
-            "cpuNsPerOperation": 158.59047883476308
+            "iterations": 1589248,
+            "wallMs": 400.8735000000006,
+            "cpuMs": 287.782,
+            "wallNsPerOperation": 252.2409969998393,
+            "cpuNsPerOperation": 181.08061171069588
           },
           {
-            "iterations": 2097152,
-            "wallMs": 401.62633300000016,
-            "cpuMs": 321.392,
-            "wallNsPerOperation": 191.51035928726205,
-            "cpuNsPerOperation": 153.25164794921875
+            "iterations": 1490944,
+            "wallMs": 406.1094579999999,
+            "cpuMs": 305.19,
+            "wallNsPerOperation": 272.38411234761327,
+            "cpuNsPerOperation": 204.69581687843407
           },
           {
-            "iterations": 2752512,
-            "wallMs": 402.0277499999993,
-            "cpuMs": 404.593,
-            "wallNsPerOperation": 146.05849129813032,
-            "cpuNsPerOperation": 146.9904581705729
+            "iterations": 1867776,
+            "wallMs": 401.04866700000093,
+            "cpuMs": 329.391,
+            "wallNsPerOperation": 214.71989521227437,
+            "cpuNsPerOperation": 176.35465923108552
           },
           {
-            "iterations": 2719744,
-            "wallMs": 400.70179200000166,
-            "cpuMs": 402.758,
-            "wallNsPerOperation": 147.33070171310302,
-            "cpuNsPerOperation": 148.08673169239458
+            "iterations": 1425408,
+            "wallMs": 400.56691599999976,
+            "cpuMs": 259.56,
+            "wallNsPerOperation": 281.01912996138634,
+            "cpuNsPerOperation": 182.09523168103448
           },
           {
-            "iterations": 2736128,
-            "wallMs": 401.38704099999995,
-            "cpuMs": 404.23,
-            "wallNsPerOperation": 146.69892673149792,
-            "cpuNsPerOperation": 147.73797132297904
+            "iterations": 1802240,
+            "wallMs": 400.41491700000006,
+            "cpuMs": 307.984,
+            "wallNsPerOperation": 222.1762456720526,
+            "cpuNsPerOperation": 170.8895596590909
           }
         ],
         "feature": [
           {
-            "iterations": 2588672,
-            "wallMs": 401.7253330000001,
-            "cpuMs": 406.832,
-            "wallNsPerOperation": 155.1858763875841,
-            "cpuNsPerOperation": 157.158573971519
+            "iterations": 2523136,
+            "wallMs": 400.91650000000027,
+            "cpuMs": 405.622,
+            "wallNsPerOperation": 158.89611182274768,
+            "cpuNsPerOperation": 160.7610529119318
           },
           {
-            "iterations": 2244608,
-            "wallMs": 400.3442500000001,
-            "cpuMs": 358.525,
-            "wallNsPerOperation": 178.3582033032049,
-            "cpuNsPerOperation": 159.72722185789235
+            "iterations": 2490368,
+            "wallMs": 401.66479200000003,
+            "cpuMs": 402.191,
+            "wallNsPerOperation": 161.2873246042352,
+            "cpuNsPerOperation": 161.4986218904194
           },
           {
-            "iterations": 2244608,
-            "wallMs": 401.7837920000002,
-            "cpuMs": 372.834,
-            "wallNsPerOperation": 178.9995366674271,
-            "cpuNsPerOperation": 166.10205434534672
+            "iterations": 1654784,
+            "wallMs": 400.44958300000053,
+            "cpuMs": 321.513,
+            "wallNsPerOperation": 241.99507790744929,
+            "cpuNsPerOperation": 194.29303159808168
           },
           {
-            "iterations": 2031616,
-            "wallMs": 401.1662919999999,
-            "cpuMs": 360.136,
-            "wallNsPerOperation": 197.46167189075095,
-            "cpuNsPerOperation": 177.26578251008064
+            "iterations": 851968,
+            "wallMs": 426.4568329999993,
+            "cpuMs": 151.728,
+            "wallNsPerOperation": 500.5549891545214,
+            "cpuNsPerOperation": 178.09119591346155
           },
           {
-            "iterations": 2670592,
-            "wallMs": 400.96037499999966,
-            "cpuMs": 402.837,
-            "wallNsPerOperation": 150.13913581707712,
-            "cpuNsPerOperation": 150.84183581767638
+            "iterations": 1376256,
+            "wallMs": 401.3195000000005,
+            "cpuMs": 253.36,
+            "wallNsPerOperation": 291.60236176990367,
+            "cpuNsPerOperation": 184.09365699404762
           },
           {
-            "iterations": 2539520,
-            "wallMs": 400.6985829999994,
-            "cpuMs": 389.01,
-            "wallNsPerOperation": 157.7851653068294,
-            "cpuNsPerOperation": 153.1824911794355
+            "iterations": 1228800,
+            "wallMs": 412.3432499999999,
+            "cpuMs": 239.783,
+            "wallNsPerOperation": 335.5657958984374,
+            "cpuNsPerOperation": 195.13590494791666
           },
           {
-            "iterations": 2654208,
-            "wallMs": 401.65200000000004,
-            "cpuMs": 403.69,
-            "wallNsPerOperation": 151.32649739583334,
-            "cpuNsPerOperation": 152.0943347318673
+            "iterations": 2097152,
+            "wallMs": 400.00637500000084,
+            "cpuMs": 351.366,
+            "wallNsPerOperation": 190.73790311813394,
+            "cpuNsPerOperation": 167.54436492919922
           },
           {
-            "iterations": 2654208,
-            "wallMs": 400.9890830000004,
-            "cpuMs": 402.866,
-            "wallNsPerOperation": 151.07673663857557,
-            "cpuNsPerOperation": 151.78388430748456
+            "iterations": 1785856,
+            "wallMs": 404.1450420000001,
+            "cpuMs": 316.806,
+            "wallNsPerOperation": 226.30326409296165,
+            "cpuNsPerOperation": 177.3972817517202
           },
           {
-            "iterations": 2670592,
-            "wallMs": 401.46558300000106,
-            "cpuMs": 403.705,
-            "wallNsPerOperation": 150.32831035216202,
-            "cpuNsPerOperation": 151.16685738592793
+            "iterations": 1802240,
+            "wallMs": 408.77820900000006,
+            "cpuMs": 313.644,
+            "wallNsPerOperation": 226.81674416281965,
+            "cpuNsPerOperation": 174.0300958806818
           }
         ]
       }
     },
     {
       "profile": "ignored",
-      "load": [9.275390625, 9.5986328125, 9.5947265625],
+      "load": [86.73193359375, 46.51708984375, 35.27783203125],
       "verified": true,
       "samples": {
         "base": [
           {
-            "iterations": 5718016,
-            "wallMs": 400.98029199999996,
-            "cpuMs": 385.64,
-            "wallNsPerOperation": 70.1257729953886,
-            "cpuNsPerOperation": 67.44297322707736
+            "iterations": 3915776,
+            "wallMs": 400.0621249999999,
+            "cpuMs": 300.589,
+            "wallNsPerOperation": 102.16675443130555,
+            "cpuNsPerOperation": 76.76358402523536
           },
           {
-            "iterations": 5963776,
-            "wallMs": 400.5401659999998,
-            "cpuMs": 398.655,
-            "wallNsPerOperation": 67.16217476981022,
-            "cpuNsPerOperation": 66.84607201880151
+            "iterations": 2801664,
+            "wallMs": 401.1133749999999,
+            "cpuMs": 218.511,
+            "wallNsPerOperation": 143.1696930823967,
+            "cpuNsPerOperation": 77.9932925575658
           },
           {
-            "iterations": 5914624,
-            "wallMs": 400.1242079999997,
-            "cpuMs": 398.064,
-            "wallNsPerOperation": 67.6499821459487,
-            "cpuNsPerOperation": 67.30165772160665
+            "iterations": 2998272,
+            "wallMs": 404.2469159999996,
+            "cpuMs": 259.106,
+            "wallNsPerOperation": 134.82663214011257,
+            "cpuNsPerOperation": 86.41844369023224
           },
           {
-            "iterations": 5947392,
-            "wallMs": 400.2708330000005,
-            "cpuMs": 397.699,
-            "wallNsPerOperation": 67.30190863491097,
-            "cpuNsPerOperation": 66.86947825198003
+            "iterations": 2539520,
+            "wallMs": 403.02858299999934,
+            "cpuMs": 231.058,
+            "wallNsPerOperation": 158.70266152658743,
+            "cpuNsPerOperation": 90.98491053427419
           },
           {
-            "iterations": 4849664,
-            "wallMs": 400.5337920000002,
-            "cpuMs": 331.921,
-            "wallNsPerOperation": 82.5900087098818,
-            "cpuNsPerOperation": 68.44206114073057
+            "iterations": 3407872,
+            "wallMs": 400.09970799999974,
+            "cpuMs": 289.164,
+            "wallNsPerOperation": 117.40455862192,
+            "cpuNsPerOperation": 84.85177847055289
           },
           {
-            "iterations": 5931008,
-            "wallMs": 400.0236250000007,
-            "cpuMs": 398.319,
-            "wallNsPerOperation": 67.4461449048797,
-            "cpuNsPerOperation": 67.15873591807666
+            "iterations": 3162112,
+            "wallMs": 400.30895899999905,
+            "cpuMs": 282.245,
+            "wallNsPerOperation": 126.5954396934704,
+            "cpuNsPerOperation": 89.25838173979922
           },
           {
-            "iterations": 5914624,
-            "wallMs": 401.07495799999924,
-            "cpuMs": 398.329,
-            "wallNsPerOperation": 67.8107277825267,
-            "cpuNsPerOperation": 67.34646192217798
+            "iterations": 1982464,
+            "wallMs": 401.1462080000001,
+            "cpuMs": 176.44,
+            "wallNsPerOperation": 202.34728499483478,
+            "cpuNsPerOperation": 89.00035511363636
           },
           {
-            "iterations": 5980160,
-            "wallMs": 400.3737920000003,
-            "cpuMs": 399.414,
-            "wallNsPerOperation": 66.95034781678088,
-            "cpuNsPerOperation": 66.7898517765411
+            "iterations": 4472832,
+            "wallMs": 400.5660829999997,
+            "cpuMs": 343.579,
+            "wallNsPerOperation": 89.5553606752947,
+            "cpuNsPerOperation": 76.81464450263279
           },
           {
-            "iterations": 5931008,
-            "wallMs": 400.3264589999999,
-            "cpuMs": 398.15,
-            "wallNsPerOperation": 67.49720435379616,
-            "cpuNsPerOperation": 67.13024160479972
+            "iterations": 3866624,
+            "wallMs": 400.9056670000009,
+            "cpuMs": 326.396,
+            "wallNsPerOperation": 103.6836441815912,
+            "cpuNsPerOperation": 84.41369008209746
           }
         ],
         "feature": [
           {
-            "iterations": 14548992,
-            "wallMs": 400.00016700000015,
-            "cpuMs": 397.876,
-            "wallNsPerOperation": 27.493325104584574,
-            "cpuNsPerOperation": 27.347324130771398
+            "iterations": 9060352,
+            "wallMs": 401.37908400000015,
+            "cpuMs": 299.905,
+            "wallNsPerOperation": 44.300605980871396,
+            "cpuNsPerOperation": 33.1008110943151
           },
           {
-            "iterations": 14548992,
-            "wallMs": 400.32745799999975,
-            "cpuMs": 399.142,
-            "wallNsPerOperation": 27.51582088985957,
-            "cpuNsPerOperation": 27.434340468398087
+            "iterations": 9748480,
+            "wallMs": 400.47837500000014,
+            "cpuMs": 313.805,
+            "wallNsPerOperation": 41.08110956785059,
+            "cpuNsPerOperation": 32.190146566439076
           },
           {
-            "iterations": 14696448,
-            "wallMs": 400.2949580000004,
-            "cpuMs": 398.533,
-            "wallNsPerOperation": 27.237531000688087,
-            "cpuNsPerOperation": 27.117640942899943
+            "iterations": 10665984,
+            "wallMs": 400.1566670000002,
+            "cpuMs": 319.28,
+            "wallNsPerOperation": 37.51708862492201,
+            "cpuNsPerOperation": 29.934415802611365
           },
           {
-            "iterations": 14565376,
-            "wallMs": 400.1319590000003,
-            "cpuMs": 398.388,
-            "wallNsPerOperation": 27.47144728704568,
-            "cpuNsPerOperation": 27.351714092379076
+            "iterations": 8962048,
+            "wallMs": 400.31745799999953,
+            "cpuMs": 309.981,
+            "wallNsPerOperation": 44.66807787684238,
+            "cpuNsPerOperation": 34.588187878484916
           },
           {
-            "iterations": 14565376,
-            "wallMs": 400.2487080000001,
-            "cpuMs": 397.907,
-            "wallNsPerOperation": 27.479462802745363,
-            "cpuNsPerOperation": 27.318690571393418
+            "iterations": 8536064,
+            "wallMs": 400.06183299999975,
+            "cpuMs": 291.317,
+            "wallNsPerOperation": 46.86724853515622,
+            "cpuNsPerOperation": 34.1277900446857
           },
           {
-            "iterations": 14499840,
-            "wallMs": 400.22400000000016,
-            "cpuMs": 397.961,
-            "wallNsPerOperation": 27.601959745762723,
-            "cpuNsPerOperation": 27.44588905808616
+            "iterations": 9437184,
+            "wallMs": 400.9253749999998,
+            "cpuMs": 305.955,
+            "wallNsPerOperation": 42.483581437004915,
+            "cpuNsPerOperation": 32.42015838623047
           },
           {
-            "iterations": 14499840,
-            "wallMs": 400.00574999999844,
-            "cpuMs": 397.454,
-            "wallNsPerOperation": 27.58690785553485,
-            "cpuNsPerOperation": 27.410923155014125
+            "iterations": 7340032,
+            "wallMs": 400.41312500000095,
+            "cpuMs": 252.466,
+            "wallNsPerOperation": 54.55195903778089,
+            "cpuNsPerOperation": 34.39576285226004
           },
           {
-            "iterations": 14761984,
-            "wallMs": 400.22758299999987,
-            "cpuMs": 398.729,
-            "wallNsPerOperation": 27.11204557598761,
-            "cpuNsPerOperation": 27.010529207998058
+            "iterations": 7225344,
+            "wallMs": 400.2546249999996,
+            "cpuMs": 275.664,
+            "wallNsPerOperation": 55.39592647768737,
+            "cpuNsPerOperation": 38.152370323129254
           },
           {
-            "iterations": 13533184,
-            "wallMs": 400.3172919999997,
-            "cpuMs": 378.397,
-            "wallNsPerOperation": 29.58042187263542,
-            "cpuNsPerOperation": 27.960677989747275
+            "iterations": 9666560,
+            "wallMs": 400.0064170000005,
+            "cpuMs": 312.865,
+            "wallNsPerOperation": 41.38043078406388,
+            "cpuNsPerOperation": 32.36570196636652
           }
         ]
       }
     },
     {
       "profile": "construction",
-      "load": [9.5849609375, 9.64599609375, 9.61083984375],
+      "load": [81.27587890625, 46.71875, 35.48291015625],
       "verified": true,
       "samples": {
         "base": [
           {
-            "iterations": 13926400,
-            "wallMs": 400.09950000000003,
-            "cpuMs": 414.143,
-            "wallNsPerOperation": 28.729571174172797,
-            "cpuNsPerOperation": 29.737979664522058
+            "iterations": 10076160,
+            "wallMs": 400.33662500000014,
+            "cpuMs": 325.955,
+            "wallNsPerOperation": 39.731070665809206,
+            "cpuNsPerOperation": 32.34912903328252
           },
           {
-            "iterations": 14286848,
-            "wallMs": 400.4237500000004,
-            "cpuMs": 404.897,
-            "wallNsPerOperation": 28.0274382425011,
-            "cpuNsPerOperation": 28.3405408946746
+            "iterations": 8667136,
+            "wallMs": 400.411834,
+            "cpuMs": 255.762,
+            "wallNsPerOperation": 46.198863615385754,
+            "cpuNsPerOperation": 29.50940195238658
           },
           {
-            "iterations": 14090240,
-            "wallMs": 400.2389159999998,
-            "cpuMs": 402.359,
-            "wallNsPerOperation": 28.40540090161699,
-            "cpuNsPerOperation": 28.555865620457848
+            "iterations": 9961472,
+            "wallMs": 400.07995900000014,
+            "cpuMs": 301.82,
+            "wallNsPerOperation": 40.162734884964806,
+            "cpuNsPerOperation": 30.2987349660773
           },
           {
-            "iterations": 12566528,
-            "wallMs": 400.426958,
-            "cpuMs": 380.692,
-            "wallNsPerOperation": 31.864565773457873,
-            "cpuNsPerOperation": 30.294127383474578
+            "iterations": 13139968,
+            "wallMs": 400.0031249999993,
+            "cpuMs": 377.664,
+            "wallNsPerOperation": 30.441712262921744,
+            "cpuNsPerOperation": 28.741622506234414
           },
           {
-            "iterations": 14352384,
-            "wallMs": 400.49591599999985,
-            "cpuMs": 404.671,
-            "wallNsPerOperation": 27.904487226651675,
-            "cpuNsPerOperation": 28.195385519228026
+            "iterations": 12124160,
+            "wallMs": 400.21770800000013,
+            "cpuMs": 361.115,
+            "wallNsPerOperation": 33.00993289432011,
+            "cpuNsPerOperation": 29.78474385029561
           },
           {
-            "iterations": 14090240,
-            "wallMs": 400.34387499999957,
-            "cpuMs": 402.282,
-            "wallNsPerOperation": 28.41284995855284,
-            "cpuNsPerOperation": 28.550400844840116
+            "iterations": 13647872,
+            "wallMs": 400.37833299999966,
+            "cpuMs": 393.626,
+            "wallNsPerOperation": 29.336319464309135,
+            "cpuNsPerOperation": 28.841565923244296
           },
           {
-            "iterations": 14303232,
-            "wallMs": 400.40762500000164,
-            "cpuMs": 400.476,
-            "wallNsPerOperation": 27.99420613466954,
-            "cpuNsPerOperation": 27.998986522766323
+            "iterations": 14204928,
+            "wallMs": 400.2387499999986,
+            "cpuMs": 401.695,
+            "wallNsPerOperation": 28.176049185184088,
+            "cpuNsPerOperation": 28.278566424271915
           },
           {
-            "iterations": 14712832,
-            "wallMs": 400.2206669999996,
-            "cpuMs": 395.016,
-            "wallNsPerOperation": 27.202150272632732,
-            "cpuNsPerOperation": 26.84840009047884
+            "iterations": 14745600,
+            "wallMs": 400.11670799999956,
+            "cpuMs": 397.767,
+            "wallNsPerOperation": 27.13465087890622,
+            "cpuNsPerOperation": 26.975301106770832
           },
           {
-            "iterations": 15433728,
-            "wallMs": 400.0366249999988,
-            "cpuMs": 402.944,
-            "wallNsPerOperation": 25.919636849891276,
-            "cpuNsPerOperation": 26.108014861995752
+            "iterations": 15335424,
+            "wallMs": 400.33629199999996,
+            "cpuMs": 403.487,
+            "wallNsPerOperation": 26.105329203809426,
+            "cpuNsPerOperation": 26.310782147268963
           }
         ],
         "feature": [
           {
-            "iterations": 6864896,
-            "wallMs": 400.8376250000001,
-            "cpuMs": 409.696,
-            "wallNsPerOperation": 58.38946795406662,
-            "cpuNsPerOperation": 59.67985531026253
+            "iterations": 4489216,
+            "wallMs": 400.919208,
+            "cpuMs": 409.925,
+            "wallNsPerOperation": 89.30717702155566,
+            "cpuNsPerOperation": 91.31327162693887
           },
           {
-            "iterations": 7077888,
-            "wallMs": 400.16283299999986,
-            "cpuMs": 406.059,
-            "wallNsPerOperation": 56.53703943888345,
-            "cpuNsPerOperation": 57.370079888237846
+            "iterations": 4276224,
+            "wallMs": 401.208666,
+            "cpuMs": 388.745,
+            "wallNsPerOperation": 93.82311731097342,
+            "cpuNsPerOperation": 90.90847439236111
           },
           {
-            "iterations": 6701056,
-            "wallMs": 400.8719169999995,
-            "cpuMs": 397.573,
-            "wallNsPerOperation": 59.82220070985819,
-            "cpuNsPerOperation": 59.329902630272
+            "iterations": 4718592,
+            "wallMs": 400.72400000000016,
+            "cpuMs": 404.988,
+            "wallNsPerOperation": 84.92448594835074,
+            "cpuNsPerOperation": 85.82814534505208
           },
           {
-            "iterations": 2342912,
-            "wallMs": 404.27437499999996,
-            "cpuMs": 171.648,
-            "wallNsPerOperation": 172.5520954265461,
-            "cpuNsPerOperation": 73.26267482517483
+            "iterations": 4718592,
+            "wallMs": 400.60058299999946,
+            "cpuMs": 404.758,
+            "wallNsPerOperation": 84.89833047654882,
+            "cpuNsPerOperation": 85.77940199110243
           },
           {
-            "iterations": 6897664,
-            "wallMs": 400.7084169999998,
-            "cpuMs": 402.604,
-            "wallNsPerOperation": 58.093351169323384,
-            "cpuNsPerOperation": 58.36816638212589
+            "iterations": 3309568,
+            "wallMs": 400.67925000000014,
+            "cpuMs": 305.811,
+            "wallNsPerOperation": 121.06693381130108,
+            "cpuNsPerOperation": 92.40208994043935
           },
           {
-            "iterations": 6963200,
-            "wallMs": 400.41075,
-            "cpuMs": 403.609,
-            "wallNsPerOperation": 57.50384162454044,
-            "cpuNsPerOperation": 57.96314912683823
+            "iterations": 4325376,
+            "wallMs": 400.95687500000076,
+            "cpuMs": 386.166,
+            "wallNsPerOperation": 92.69873301188169,
+            "cpuNsPerOperation": 89.2791748046875
           },
           {
-            "iterations": 7159808,
-            "wallMs": 400.6855420000011,
-            "cpuMs": 400.452,
-            "wallNsPerOperation": 55.96316856541419,
-            "cpuNsPerOperation": 55.93055009296339
+            "iterations": 5062656,
+            "wallMs": 401.1810839999998,
+            "cpuMs": 404.587,
+            "wallNsPerOperation": 79.24320435755457,
+            "cpuNsPerOperation": 79.91595715766586
           },
           {
-            "iterations": 7307264,
-            "wallMs": 400.1373330000006,
-            "cpuMs": 401.457,
-            "wallNsPerOperation": 54.75884448680116,
-            "cpuNsPerOperation": 54.9394410821889
+            "iterations": 4734976,
+            "wallMs": 400.3272079999988,
+            "cpuMs": 394.431,
+            "wallNsPerOperation": 84.54682938202829,
+            "cpuNsPerOperation": 83.30158378838668
           },
           {
-            "iterations": 7290880,
-            "wallMs": 400.1684170000008,
-            "cpuMs": 403.027,
-            "wallNsPerOperation": 54.88616147844989,
-            "cpuNsPerOperation": 55.278238017907306
+            "iterations": 4554752,
+            "wallMs": 400.84850000000006,
+            "cpuMs": 379.591,
+            "wallNsPerOperation": 88.00665766215154,
+            "cpuNsPerOperation": 83.33955394278327
           }
         ]
       }

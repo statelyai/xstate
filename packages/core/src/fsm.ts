@@ -54,7 +54,6 @@ export type FSMTransition<
   TState extends string,
   TTransitionContext extends MachineContext = TContext
 > =
-  | TState
   | FSMTransitionConfig<TTransitionContext, TState>
   | FSMTransitionFunction<TContext, TEvent, TState, TTransitionContext>;
 
@@ -301,18 +300,6 @@ type FSMSetupTransitionConfig<
       >;
     }[keyof TStates & string];
 
-type FSMSetupStringTransition<
-  TSourceContext extends MachineContext,
-  TStates extends FSMSetupStates,
-  TGlobalContext extends MachineContext
-> = {
-  [TTarget in keyof TStates & string]: [TSourceContext] extends [
-    FSMSetupStateContext<TTarget, TStates, TGlobalContext>
-  ]
-    ? TTarget
-    : never;
-}[keyof TStates & string];
-
 type FSMSetupTransitionFunction<
   TSourceContext extends MachineContext,
   TEvent extends EventObject,
@@ -333,7 +320,6 @@ type FSMSetupTransition<
 > = [keyof TStates] extends [never]
   ? FSMTransition<TSourceContext, TEvent, keyof TMachineStates & string>
   :
-      | FSMSetupStringTransition<TSourceContext, TStates, TGlobalContext>
       | FSMSetupTransitionConfig<TSourceContext, TStates, TGlobalContext>
       | FSMSetupTransitionFunction<
           TSourceContext,
@@ -449,9 +435,22 @@ export function createFSM<
       output: undefined,
       error: undefined
     }) as TSnapshot;
-  const hasAlways = Object.getOwnPropertyNames(config.states).some(
-    (value) => config.states[value as TState]?.always !== undefined
-  );
+  const checkTransition = (transition: unknown) => {
+    if (typeof transition === 'string') {
+      throw new TypeError(
+        `Use { target: ${JSON.stringify(transition)} } instead of a string transition. Run the @xstate/codemod string-targets transform.`
+      );
+    }
+  };
+  let hasAlways = false;
+  for (const value of Object.getOwnPropertyNames(config.states)) {
+    const state = config.states[value as TState];
+    checkTransition(state?.always);
+    hasAlways ||= state?.always !== undefined;
+    for (const type of Object.getOwnPropertyNames(state?.on ?? {})) {
+      checkTransition((state!.on as Record<string, unknown>)[type]);
+    }
+  }
   const getState = (value: TState) =>
     Object.hasOwn(config.states, value) ? config.states[value] : undefined;
   const step = <TStepEvent extends EventObject>(
@@ -460,11 +459,10 @@ export function createFSM<
     event: TStepEvent
   ): TSnapshot | undefined => {
     const result =
-      typeof selected === 'string'
-        ? { target: selected }
-        : typeof selected === 'function'
-          ? selected({ context: snapshot.context, event })
-          : selected;
+      typeof selected === 'function'
+        ? selected({ context: snapshot.context, event })
+        : selected;
+    checkTransition(result);
     if (!result) {
       return undefined;
     }

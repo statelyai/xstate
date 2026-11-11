@@ -13,8 +13,8 @@ describe('xstate/fsm', () => {
     const machine = fsm.createFSM({
       initial: 'inactive',
       states: {
-        inactive: { on: { toggle: 'active' } },
-        active: { on: { toggle: 'inactive' } }
+        inactive: { on: { toggle: { target: 'active' } } },
+        active: { on: { toggle: { target: 'inactive' } } }
       }
     });
 

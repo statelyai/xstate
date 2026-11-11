@@ -5,8 +5,8 @@ describe('createFSM', () => {
     const machine = createFSM({
       initial: 'off',
       states: {
-        off: { on: { toggle: 'on' } },
-        on: { on: { toggle: 'off' } }
+        off: { on: { toggle: { target: 'on' } } },
+        on: { on: { toggle: { target: 'off' } } }
       }
     });
 
@@ -157,7 +157,7 @@ describe('createFSM', () => {
   it('ignores inherited event names', () => {
     const machine = createFSM({
       initial: 'idle',
-      states: { idle: { on: { ping: 'idle' } } }
+      states: { idle: { on: { ping: { target: 'idle' } } } }
     });
 
     expect(
@@ -170,7 +170,7 @@ describe('createFSM', () => {
       initial: 'inactive',
       context: { count: 0 },
       states: {
-        inactive: { on: { toggle: 'active' } },
+        inactive: { on: { toggle: { target: 'active' } } },
         active: {}
       }
     });
@@ -195,8 +195,8 @@ describe('createFSM', () => {
   });
 
   it('ignores inherited state definitions when resolving transitions', () => {
-    const states = Object.create({ b: { on: { back: 'a' } } });
-    states.a = { on: { go: 'b' } };
+    const states = Object.create({ b: { on: { back: { target: 'a' } } } });
+    states.a = { on: { go: { target: 'b' } } };
 
     const machine = createFSM({ initial: 'a', states });
 
@@ -212,8 +212,8 @@ describe('createFSM', () => {
   });
 
   it('keeps the initial state when the current state is not an own property', () => {
-    const states = Object.create({ b: { on: { back: 'a' } } });
-    states.a = { on: { go: 'b' } };
+    const states = Object.create({ b: { on: { back: { target: 'a' } } } });
+    states.a = { on: { go: { target: 'b' } } };
 
     const machine = createFSM({ initial: 'b', states });
 
@@ -226,9 +226,9 @@ describe('createFSM', () => {
   });
 
   it('still resolves transitions for own state properties', () => {
-    const states = Object.create({ b: { on: { back: 'a' } } });
-    states.a = { on: { go: 'b' } };
-    states.b = { on: { back: 'a' } };
+    const states = Object.create({ b: { on: { back: { target: 'a' } } } });
+    states.a = { on: { go: { target: 'b' } } };
+    states.b = { on: { back: { target: 'a' } } };
 
     const machine = createFSM({ initial: 'a', states });
 
@@ -241,8 +241,8 @@ describe('createFSM', () => {
 
   it('supports state maps created with a null prototype', () => {
     const states = Object.create(null);
-    states.a = { on: { go: 'b' } };
-    states.b = { on: { back: 'a' } };
+    states.a = { on: { go: { target: 'b' } } };
+    states.b = { on: { back: { target: 'a' } } };
 
     const machine = createFSM({ initial: 'a', states });
 

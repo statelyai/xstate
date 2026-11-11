@@ -7,7 +7,7 @@ describe('compact FSM eventless transitions', () => {
     const machine = createFSM({
       initial: 'first',
       states: {
-        first: { always: 'second' },
+        first: { always: { target: 'second' } },
         second: { always: { target: 'ready' } },
         ready: {}
       }
@@ -22,7 +22,7 @@ describe('compact FSM eventless transitions', () => {
       context: { count: 0 },
       initial: 'idle',
       states: {
-        idle: { on: { RUN: 'counting' } },
+        idle: { on: { RUN: { target: 'counting' } } },
         counting: {
           always: ({ context }) =>
             context.count < 3
@@ -98,7 +98,7 @@ describe('compact FSM eventless transitions', () => {
   it('detects an always transition targeting the empty state name', () => {
     const machine = createFSM({
       initial: 'checking',
-      states: { checking: { always: '' }, '': {} }
+      states: { checking: { always: { target: '' } }, '': {} }
     });
     expect(machine.initialState.value).toBe('');
   });
@@ -106,7 +106,7 @@ describe('compact FSM eventless transitions', () => {
   it('does not read inherited state configurations', () => {
     const machine = createFSM({
       initial: 'inherited',
-      states: Object.create({ inherited: { always: 'done' } })
+      states: Object.create({ inherited: { always: { target: 'done' } } })
     });
     expect(machine.initialState.value).toBe('inherited');
   });
@@ -132,7 +132,7 @@ describe('compact FSM eventless transitions', () => {
       initial: 'idle',
       context: { count: 0 },
       states: {
-        idle: { on: { RUN: 'counting' } },
+        idle: { on: { RUN: { target: 'counting' } } },
         counting: {
           always: ({ context }) =>
             context.count < 10_000
@@ -150,8 +150,8 @@ describe('compact FSM eventless transitions', () => {
     const machine = createFSM({
       initial: 'idle',
       states: {
-        idle: { on: { RUN: 'transient' } },
-        transient: { always: 'done' },
+        idle: { on: { RUN: { target: 'transient' } } },
+        transient: { always: { target: 'done' } },
         done: {}
       }
     });

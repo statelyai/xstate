@@ -16,54 +16,54 @@
       },
       "feature": {
         "esbuild": {
-          "minified": 1138,
-          "gzip": 622
+          "minified": 1395,
+          "gzip": 748
         },
         "terser": {
-          "minified": 1133,
-          "gzip": 609
+          "minified": 1390,
+          "gzip": 728
         }
       },
       "delta": {
         "esbuild": {
-          "minified": 326,
-          "gzip": 144
+          "minified": 583,
+          "gzip": 270
         },
         "terser": {
-          "minified": 326,
-          "gzip": 141
+          "minified": 583,
+          "gzip": 260
         }
       }
     },
     "toggle": {
       "base": {
         "esbuild": {
-          "minified": 780,
-          "gzip": 459
+          "minified": 798,
+          "gzip": 463
         },
         "terser": {
-          "minified": 772,
-          "gzip": 449
+          "minified": 790,
+          "gzip": 454
         }
       },
       "feature": {
         "esbuild": {
-          "minified": 1106,
-          "gzip": 595
+          "minified": 1381,
+          "gzip": 725
         },
         "terser": {
-          "minified": 1098,
-          "gzip": 583
+          "minified": 1373,
+          "gzip": 708
         }
       },
       "delta": {
         "esbuild": {
-          "minified": 326,
-          "gzip": 136
+          "minified": 583,
+          "gzip": 262
         },
         "terser": {
-          "minified": 326,
-          "gzip": 134
+          "minified": 583,
+          "gzip": 254
         }
       }
     }

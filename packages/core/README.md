@@ -171,8 +171,8 @@ import { createFSM } from 'xstate/fsm';
 const machine = createFSM({
   initial: 'inactive',
   states: {
-    inactive: { on: { toggle: 'active' } },
-    active: { on: { toggle: 'inactive' } }
+    inactive: { on: { toggle: { target: 'active' } } },
+    active: { on: { toggle: { target: 'inactive' } } }
   }
 });
 

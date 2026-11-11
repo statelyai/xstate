@@ -27,7 +27,7 @@ const profiles = {
   library: `export { createFSM, setup } from 'fsm-feature';
     export { types } from './packages/core/src/schema.types.ts';`,
   toggle: `import {createFSM} from 'fsm-feature';
-  const m=createFSM({initial:'off',states:{off:{on:{TOGGLE:'on'}},on:{on:{TOGGLE:'off'}}}});
+  const m=createFSM({initial:'off',states:{off:{on:{TOGGLE: { target: 'on' }}},on:{on:{TOGGLE: { target: 'off' }}}}});
   console.log(m.transition(m.initialState,{type:'TOGGLE'})[0].value);`
 };
 const report = {

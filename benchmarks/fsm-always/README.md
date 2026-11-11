@@ -1,6 +1,6 @@
 # Eventless transitions measurements
 
-These measurements compare `xstate/fsm` with eventless transitions against
+These measurements compare `xstate/fsm` with eventless transitions and object-only transition targets against
 integration commit `da64b0aa177a40501f488612296f527a4f8b46ab`, before the feature.
 Raw samples, environment details, and the feature source hash are retained
 with the results.
@@ -9,12 +9,12 @@ with the results.
 
 <!-- measurements from benchmarks/fsm-always/size.json, produced by measure.mjs -->
 
-| Bundle | Minifier | Baseline | With always | Added | Gzip baseline | Gzip with always | Gzip added |
+| Bundle | Minifier | Baseline | Updated FSM | Added | Gzip baseline | Gzip updated FSM | Gzip added |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Full FSM entry | Terser | 807 | 1133 | 326 | 468 | 609 | 141 |
-| Full FSM entry | esbuild | 812 | 1138 | 326 | 478 | 622 | 144 |
-| Toggle app | Terser | 772 | 1098 | 326 | 449 | 583 | 134 |
-| Toggle app | esbuild | 780 | 1106 | 326 | 459 | 595 | 136 |
+| Full FSM entry | Terser | 807 | 1390 | 583 | 468 | 728 | 260 |
+| Full FSM entry | esbuild | 812 | 1395 | 583 | 478 | 748 | 270 |
+| Toggle app | Terser | 790 | 1373 | 583 | 454 | 708 | 254 |
+| Toggle app | esbuild | 798 | 1381 | 583 | 463 | 725 | 262 |
 
 All values are bytes. The full entry includes `createFSM`, `setup`, and
 `types`. The toggle application does not declare `always`, so its increase
@@ -31,27 +31,25 @@ samples per variant. Percentage changes are medians and ranges of paired
 CPU-cost ratios, not ratios of the two unpaired medians. Positive means
 slower. No actors or subscribers are included.
 
-| Runtime | Operation | Baseline CPU ns | With always support CPU ns | Paired CPU change |
+| Runtime | Operation | Baseline CPU ns | Updated FSM CPU ns | Paired CPU change |
 | --- | --- | ---: | ---: | ---: |
-| Node | toggle | 94.6 (93.9 to 96.1) | 99.5 (96.7 to 101.7) | +4.8% (+1.9% to +8.1%) |
-| Node | counter | 153.4 (147.0 to 160.4) | 153.2 (150.8 to 177.3) | +2.5% (-4.9% to +10.5%) |
-| Node | ignored | 67.2 (66.8 to 68.4) | 27.4 (27.0 to 28.0) | -59.3% (-60.1% to -58.3%) |
-| Node | construction | 28.3 (26.1 to 30.3) | 58.0 (54.9 to 73.3) | +104.6% (+99.8% to +141.8%) |
-| Bun | toggle | 45.9 (44.7 to 46.8) | 46.0 (45.4 to 46.9) | +0.5% (-1.4% to +2.7%) |
-| Bun | counter | 106.2 (104.4 to 110.7) | 106.8 (106.1 to 109.8) | +1.3% (-2.7% to +5.2%) |
-| Bun | ignored | 40.4 (40.0 to 42.1) | 31.6 (30.8 to 33.9) | -21.9% (-23.6% to -17.1%) |
-| Bun | construction | 31.5 (28.5 to 36.7) | 49.0 (46.1 to 58.4) | +57.9% (+51.2% to +65.2%) |
+| Node | toggle | 95.6 (92.6 to 108.0) | 97.6 (95.3 to 112.4) | +2.9% (-3.2% to +15.3%) |
+| Node | counter | 179.2 (155.0 to 208.7) | 177.4 (160.8 to 195.1) | -2.6% (-14.7% to +15.6%) |
+| Node | ignored | 84.9 (76.8 to 91.0) | 33.1 (29.9 to 38.2) | -61.4% (-65.4% to -50.3%) |
+| Node | construction | 28.8 (26.3 to 32.3) | 85.8 (79.9 to 92.4) | +208.1% (+182.3% to +216.8%) |
+| Bun | toggle | 44.0 (42.7 to 45.1) | 47.6 (47.2 to 49.2) | +10.2% (+5.3% to +12.7%) |
+| Bun | counter | 106.0 (104.7 to 110.6) | 108.3 (105.0 to 110.1) | +2.3% (-5.1% to +3.9%) |
+| Bun | ignored | 41.2 (40.9 to 42.4) | 32.6 (32.0 to 33.0) | -21.4% (-23.8% to -19.7%) |
+| Bun | construction | 31.8 (30.8 to 34.9) | 67.3 (65.6 to 69.7) | +107.7% (+88.2% to +118.9%) |
 
-Node retains about 5 ns of toggle overhead. Bun toggle and both counter
-comparisons have paired ranges that include zero change; their small
-median differences are inconclusive. Ignored events return before the
-baseline's empty patch-copy and key-enumeration work.
+Both variants use identical object-target configurations. The updated FSM
+includes eventless transitions and rejection of bare string transitions.
+Small differences whose paired ranges include zero are inconclusive.
+Ignored events bypass patch processing. Construction pays for scanning all
+own state and event definitions to validate strings and detect `always`.
+This scan runs once per `createFSM`, not per event or per `createActor`.
+Machines without `always` bypass settlement during initialization and after events.
 
-A scan for `always` declarations runs once per `createFSM`, not per event
-or per `createActor`. Machines without `always` bypass initialization
-settlement and the settlement loop after events. Construction remains
-more expensive: about 58 ns on Node and 49 ns on Bun for the two-state
-fixture. The feature trades setup cost for lower event-processing overhead.
 
 Both sources are bundled and minified with identical esbuild settings, ESM
 format, and ES2022 target. Each case runs in a fresh process; variants
@@ -67,8 +65,8 @@ time, paired wall-time changes, and raw samples are retained in the JSON
 files. CPU time includes runtime helper threads and is not application
 latency. These are synchronous microbenchmarks.
 
-Separate Node diagnostic profiles identify transition lookup, patch
-processing, allocation, and GC as the measured work. Profiling runs use an
+Separate Node diagnostic profiles inspect transition lookup, patch
+processing, validation, allocation, and GC. Profiling runs use an
 unminified build and do not contribute to the timing results.
 
 ## Reproduction

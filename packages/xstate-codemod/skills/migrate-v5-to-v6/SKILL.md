@@ -50,3 +50,5 @@ Rules:
 - Never widen `--compare` to make a diff disappear.
 - Report every `unstubbed` entry to the user. Inline actor logic runs for real and is not stubbed.
 - Stop and ask the user after 5 repair rounds without exit 0.
+
+The `string-targets` transform also wraps inline `xstate/fsm` targets in `on` and `always`, including `setup(...).createFSM` and aliased `createFSM` imports. It preserves string `initial` values. Review separately stored configurations and string-returning transition functions manually.

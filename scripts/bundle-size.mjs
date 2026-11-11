@@ -49,8 +49,8 @@ const PROFILES = {
     const logic = createFSM({
       initial: 'inactive',
       states: {
-        inactive: { on: { toggle: 'active' } },
-        active: { on: { toggle: 'inactive' } }
+        inactive: { on: { toggle: { target: 'active' } } },
+        active: { on: { toggle: { target: 'inactive' } } }
       }
     });
     console.log(logic.transition(logic.initialState, { type: 'toggle' })[0].value);
@@ -79,8 +79,8 @@ const PROFILES = {
     const machine = createFSM({
       initial: 'inactive',
       states: {
-        inactive: { on: { toggle: 'active' } },
-        active: { on: { toggle: 'inactive' } }
+        inactive: { on: { toggle: { target: 'active' } } },
+        active: { on: { toggle: { target: 'inactive' } } }
       }
     });
     console.log(machine.transition(machine.initialState, { type: 'toggle' })[0].value);
@@ -98,8 +98,8 @@ const PROFILES = {
     const machine = app.createFSM({
       initial: 'inactive',
       states: {
-        inactive: { on: { toggle: 'active' } },
-        active: { on: { toggle: 'inactive' } }
+        inactive: { on: { toggle: { target: 'active' } } },
+        active: { on: { toggle: { target: 'inactive' } } }
       }
     });
     console.log(machine.transition(machine.initialState, { type: 'toggle' })[0].value);
