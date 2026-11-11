@@ -143,9 +143,9 @@ from `xstate` adds the runtime to your bundle.
 
 `createFSM` is pure. It does not create or run actors:
 
-- `machine.initialState` is the initial `{ status: 'active', value, context }`.
-  FSM snapshots are always `'active'`. The `output` and `error` fields of the
-  snapshot type are always `undefined` and are not set on the object.
+- `machine.initialState` is the settled initial
+  `{ status: 'active', value, context }` snapshot. FSM snapshots are always
+  `'active'`. The `output` and `error` fields are always `undefined`.
 - `machine.getInitialSnapshot()` returns `machine.initialState`.
 - `machine.transition(state, event)` returns `[nextState, effects]`. `effects`
   is always empty.
@@ -159,7 +159,44 @@ from `xstate` adds the runtime to your bundle.
   ignored by the FSM runtime; state `schemas.input` is accepted for upgrade
   compatibility but no input is consumed by this pure API.
 
+## Eventless transitions
+
+A state can declare `always` with the same target, object, or function form as
+an event transition. Return `undefined` from a function when no transition
+is enabled:
+
+```ts
+const machine = createFSM<{ attempts: number }>({
+  initial: 'checking',
+  context: { attempts: 0 },
+  states: {
+    checking: {
+      always: ({ context }) =>
+        context.attempts < 3
+          ? { context: { attempts: context.attempts + 1 } }
+          : { target: 'ready' }
+    },
+    ready: {}
+  }
+});
+
+machine.initialState.value; // 'ready'
+```
+
+The presence of `always` transitions is detected once during construction.
+Define all `always` transitions before calling `createFSM`.
+
+The machine follows enabled `always` transitions during construction and after
+each handled event until none is enabled. Ignored events and callbacks that
+return `undefined` do not start another eventless chain. Subscribers receive
+only the settled snapshot. During construction, callbacks receive
+`{ type: 'xstate.init' }`; afterward, they receive the triggering event.
+
+There is no transition-count limit. An unconditional cycle does not terminate.
+Each state supports one `always` transition. Transition arrays and a separate
+guard API are not supported.
+
 The package intentionally has no actions, guards, effects, timers, child
-actors, hierarchical or parallel states, or eventless transitions. Use
+actors, hierarchical or parallel states. Use
 `createMachine` and `createActor` from `xstate` when the state machine needs
 those statechart or runtime features.

@@ -180,6 +180,8 @@ let state = machine.initialState;
 [state] = machine.transition(state, { type: 'toggle' });
 ```
 
+States can declare eventless `always` transitions. The machine follows them
+during initialization and after handled events until it reaches a stable state.
 The FSM is also actor logic, so `createActor(machine)` from `xstate` runs it.
 
 For typed context, event payloads, or state-specific context snapshots, use

@@ -7,6 +7,8 @@ import type {
 } from './base.types.ts';
 import type { StandardSchemaV1 } from './schema.types.ts';
 
+type FSMInitEvent = { type: 'xstate.init' };
+
 /** @public */
 export type FSMArgs<
   TContext extends MachineContext,
@@ -78,6 +80,12 @@ export type FSMStateConfig<
   TTransitionContext extends MachineContext = TContext
 > = {
   on?: FSMOn<TContext, TEvent, TState, TTransitionContext>;
+  always?: FSMTransition<
+    TContext,
+    TEvent | FSMInitEvent,
+    TState,
+    TTransitionContext
+  >;
 };
 
 type FSMContextConfig<TContext extends MachineContext> =
@@ -341,6 +349,13 @@ type FSMSetupStateConfig<
   TGlobalContext extends MachineContext,
   TMachineStates extends Record<string, unknown>
 > = {
+  always?: FSMSetupTransition<
+    TSourceContext,
+    TEvent | FSMInitEvent,
+    TStates,
+    TGlobalContext,
+    TMachineStates
+  >;
   on?: {
     [TType in TEvent['type'] & string]?: FSMSetupTransition<
       TSourceContext,
@@ -434,10 +449,58 @@ export function createFSM<
       output: undefined,
       error: undefined
     }) as TSnapshot;
-  const initialState = createSnapshot(
+  const hasAlways = Object.getOwnPropertyNames(config.states).some(
+    (value) => config.states[value as TState]?.always !== undefined
+  );
+  const getState = (value: TState) =>
+    Object.hasOwn(config.states, value) ? config.states[value] : undefined;
+  const step = <TStepEvent extends EventObject>(
+    snapshot: TSnapshot,
+    selected: FSMTransition<TContext, TStepEvent, TState> | undefined,
+    event: TStepEvent
+  ): TSnapshot | undefined => {
+    const result =
+      typeof selected === 'string'
+        ? { target: selected }
+        : typeof selected === 'function'
+          ? selected({ context: snapshot.context, event })
+          : selected;
+    if (!result) {
+      return undefined;
+    }
+    let { value, context } = snapshot;
+    const { target = value, context: patch } = result;
+    for (const key of Reflect.ownKeys({ ...patch }) as (keyof TContext)[]) {
+      if (
+        !Object.hasOwn(context, key) ||
+        !Object.is(patch![key], context[key])
+      ) {
+        context = { ...context, ...patch };
+      }
+    }
+    return target === value && context === snapshot.context
+      ? snapshot
+      : createSnapshot(target, context);
+  };
+  const settle = (
+    snapshot: TSnapshot,
+    event: TEvent | FSMInitEvent
+  ): TSnapshot => {
+    for (;;) {
+      const next = step(snapshot, getState(snapshot.value)?.always, event);
+      if (!next) {
+        return snapshot;
+      }
+      snapshot = next;
+    }
+  };
+  const initialSnapshot = createSnapshot(
     config.initial,
     config.context ?? ({} as TContext)
   );
+  const initialState = hasAlways
+    ? settle(initialSnapshot, { type: 'xstate.init' })
+    : initialSnapshot;
 
   return {
     id: config.id,
@@ -447,40 +510,18 @@ export function createFSM<
     getInitialSnapshot: () => initialState,
     getPersistedSnapshot: (snapshot) => snapshot,
     transition(snapshot, event) {
-      let { value, context } = snapshot;
       const transitions = (
-        Object.hasOwn(config.states, value) ? config.states[value] : undefined
+        Object.hasOwn(config.states, snapshot.value)
+          ? config.states[snapshot.value]
+          : undefined
       )?.on as
         | Record<string, FSMTransition<TContext, TEvent, TState> | undefined>
         | undefined;
-      const transition =
-        Object.hasOwn(transitions || {}, event.type) &&
-        transitions![event.type];
-      const { target = value, context: patch } =
-        (typeof transition === 'string'
-          ? { target: transition }
-          : typeof transition === 'function'
-            ? transition({ context, event })
-            : transition) || {};
-      // Copy only when the patch changes a value, so a no-op patch keeps the
-      // current snapshot. After the first copy every key matches. Iterate a
-      // spread copy so inherited keys, which the spread below ignores, are
-      // skipped.
-      for (const key of Reflect.ownKeys({ ...patch }) as (keyof TContext)[]) {
-        if (
-          !Object.hasOwn(context, key) ||
-          !Object.is(patch![key], context[key])
-        ) {
-          context = { ...context, ...patch };
-        }
-      }
-
-      return [
-        target === value && context === snapshot.context
-          ? snapshot
-          : createSnapshot(target, context),
-        []
-      ];
+      const selected = Object.hasOwn(transitions || {}, event.type)
+        ? transitions![event.type]
+        : undefined;
+      const next = step(snapshot, selected, event);
+      return [next ? (hasAlways ? settle(next, event) : next) : snapshot, []];
     }
   };
 }
