@@ -60,7 +60,9 @@ active: {
 // after `interrupt`: { playback: 'paused', volume: 'muted' }
 ```
 
-Regions that do not handle the event are untouched, and an event no region handles changes nothing. A transition from one region into another exits only the target's region; the source region stays where it is.
+Regions that do not handle the event are untouched, and an event no region handles changes nothing. By default, a transition from one region into another exits states inside the target region; the source region stays where it is. Without `reenter: true`, targeting the region itself resets its children through its initial transition while retaining the region's input and invoked actors. The retained region does not run its exit or entry behavior again.
+
+Transitions conflict when their exit sets overlap, or when one exits the other's target or an ancestor of that target. This prevents a transition from entering a region while another leaves its parallel parent. A transition whose source is a descendant of the other source takes priority; otherwise, the first transition in document order wins. Only the winning transitions apply context updates and execute effects.
 
 ## Completion
 

@@ -1066,6 +1066,10 @@ function removeConflictingTransitions(
 ): Array<AnyTransitionDefinition> {
   const filteredTransitions = new Set<AnyTransitionDefinition>();
   const exitSets = new Map<AnyTransitionDefinition, Array<AnyStateNode>>();
+  const targetAncestries = new Map<
+    AnyTransitionDefinition,
+    Set<AnyStateNode>
+  >();
 
   const getExitSet = (transition: AnyTransitionDefinition) => {
     let exitSet = exitSets.get(transition);
@@ -1082,11 +1086,37 @@ function removeConflictingTransitions(
     return exitSet;
   };
 
+  const getTargetAncestry = (transition: AnyTransitionDefinition) => {
+    let ancestry = targetAncestries.get(transition);
+    if (!ancestry) {
+      ancestry = new Set<AnyStateNode>();
+      for (const target of getEffectiveTargetStates(
+        transition,
+        snapshot,
+        resolveTransition
+      )) {
+        let node: AnyStateNode | undefined = target;
+        while (node) {
+          ancestry.add(node);
+          node = node.parent;
+        }
+      }
+      targetAncestries.set(transition, ancestry);
+    }
+    return ancestry;
+  };
+
   for (const t1 of enabledTransitions) {
     let t1Preempted = false;
     const transitionsToRemove = new Set<AnyTransitionDefinition>();
     for (const t2 of filteredTransitions) {
-      if (hasIntersection(getExitSet(t1), getExitSet(t2))) {
+      // Narrowed parallel domains can have empty exit sets while still
+      // targeting a region that another transition exits.
+      if (
+        hasIntersection(getExitSet(t1), getExitSet(t2)) ||
+        hasIntersection(getExitSet(t1), getTargetAncestry(t2)) ||
+        hasIntersection(getExitSet(t2), getTargetAncestry(t1))
+      ) {
         if (isDescendant(t1.source, t2.source)) {
           transitionsToRemove.add(t2);
         } else {
@@ -1686,6 +1716,7 @@ function microstep(
       };
 
       const statesToEnter = new Set<AnyStateNode>();
+      const retainedRegions = new Set<AnyStateNode>();
       // those are states that were directly targeted or indirectly targeted by the explicit target
       // in other words, those are states for which initial actions should be executed
       // when we target `#deep_child` initial actions of its ancestors shouldn't be executed
@@ -1813,7 +1844,17 @@ function microstep(
               transition.source !== domain ||
               reenter)
           ) {
-            enteredTargets.add(targetNode);
+            if (
+              targetNode === domain &&
+              targetNode.parent?.type === 'parallel' &&
+              mutStateNodeSet.has(targetNode)
+            ) {
+              // The narrowed region stays active, but its initial transition
+              // still supplies the default children and their input.
+              retainedRegions.add(targetNode);
+            } else {
+              enteredTargets.add(targetNode);
+            }
             statesToEnter.add(targetNode);
             statesForDefaultEntry.add(targetNode);
           }
@@ -1879,16 +1920,18 @@ function microstep(
       for (const stateNodeToEnter of [...statesToEnter].sort(
         (a, b) => a.order - b.order
       )) {
+        const isRetainedRegion = retainedRegions.has(stateNodeToEnter);
         mutStateNodeSet.add(stateNodeToEnter);
         const actions: AnyAction[] = [];
         // Read the children for each state: the entry actions of the states
         // entered before this one may have spawned or stopped children.
         let children = nextState.children;
 
-        // Final states are inert, so (as in SCXML) their invocations never
-        // start.
+        // Retained regions keep their invocations. Final states are inert,
+        // so (as in SCXML) their invocations never start.
         let invoked = false;
-        for (const invokeDef of stateNodeToEnter.type === 'final'
+        for (const invokeDef of isRetainedRegion ||
+        stateNodeToEnter.type === 'final'
           ? []
           : stateNodeToEnter.invoke) {
           invoked = true;
@@ -1958,7 +2001,7 @@ function microstep(
 
         const stateInput = stateInputMap[stateNodeToEnter.id];
 
-        if (stateNodeToEnter.entry) {
+        if (!isRetainedRegion && stateNodeToEnter.entry) {
           const [resultActions, nextContext, nextInternalEvents, nextChildren] =
             getStateActionsAndContext(
               stateNodeToEnter.entry,
@@ -2034,7 +2077,7 @@ function microstep(
         actions.length = 0;
         executableActions.push(...resolvedActions);
 
-        if (stateNodeToEnter.type !== 'final') {
+        if (isRetainedRegion || stateNodeToEnter.type !== 'final') {
           continue;
         }
 
