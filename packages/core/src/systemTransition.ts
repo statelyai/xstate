@@ -446,7 +446,15 @@ class SystemReduction {
     return (this.logic.get(actor.src) as any)?.[systemLogicMetadata]?.kind;
   }
 
-  private forwardAttachment(ref: SystemActorReference, event: AnyEventObject) {
+  private forwardAttachment(
+    ref: SystemActorReference,
+    event: AnyEventObject,
+    immediate = false
+  ) {
+    if (!immediate) {
+      this.enqueue(ref, ref, { type: XSTATE_ATTACHED_FORWARD, event });
+      return;
+    }
     this.process({
       source: ref,
       target: ref,
@@ -457,7 +465,8 @@ class SystemReduction {
 
   private relayAttachments(
     source: SystemActorReference,
-    emitted?: AnyEventObject
+    emitted?: AnyEventObject,
+    immediate = false
   ) {
     for (const actor of Object.values(this.snapshot.actors)) {
       const kind = this.attachedKind(actor);
@@ -505,7 +514,8 @@ class SystemReduction {
       if (event)
         this.forwardAttachment(
           { '@actor': actor.address, incarnation: actor.incarnation },
-          event
+          event,
+          immediate
         );
     }
   }
@@ -987,7 +997,7 @@ class SystemReduction {
     const actor = this.current(ref);
     if (!actor) return;
     // Publish terminal observations before cleanup and the native parent event.
-    this.relayAttachments(ref);
+    this.relayAttachments(ref, undefined, true);
     this.cancel(ref);
     this.cancelExternal(ref);
     this.stopAttachments(ref);
