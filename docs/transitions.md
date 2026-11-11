@@ -35,7 +35,7 @@ schemas: {
 
 There is no `guard` property. Conditions live inside the transition function, which returns `undefined` to reject the event. Check the condition before calling `enq`: a function that calls `enq` is taken even if it returns `undefined`. See [guards](guards.md).
 
-A targetless transition can update context and run effects without leaving the current state. Set `reenter: true` when a self-transition should run exit and entry behavior again.
+A targetless transition can update context and run effects without leaving the current state. It does not run exit or entry behavior, even with `reenter: true`. Specify a target and set `reenter: true` when a self-transition should run exit and entry behavior again.
 
 ```ts
 on: {

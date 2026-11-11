@@ -154,9 +154,9 @@ Invoked actors belong to the state that starts them:
 - leaving the state stops it
 - re-entering the state stops the old actor and starts a new one
 
-A state is re-entered by an external transition back to itself, or by a transition with `reenter: true`. A transition that stays inside the invoking state does not restart the child.
+A state is re-entered by an external transition back to itself, or by a targeted transition with `reenter: true`. A transition that stays inside the invoking state does not restart the child. Targetless transitions do not restart the child, even with `reenter: true`.
 
-Invoke on the machine root runs for the whole lifetime of the actor. Root invocations survive ordinary transitions between top-level states, and restart only on a root [transition](transitions.md) with `reenter: true`.
+Invoke on the machine root runs for the whole lifetime of the actor. Root invocations survive ordinary transitions between top-level states, and restart only on a root [transition](transitions.md) with an explicit target and `reenter: true`.
 
 ```ts
 const machine = createMachine({
