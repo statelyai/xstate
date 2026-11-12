@@ -101,6 +101,10 @@ Transition functions must be synchronous. A transition function that returns a p
 
 `always` runs without an external event. `after` runs after a delay. `onDone`, `onError` and `onTimeout` handle actor outcomes.
 
+When an `after` timer, state timeout, or delayed `enq.raise(...)` becomes due, the delayed event is processed before `always` is reevaluated. Eventless transitions then settle before immediately raised events are processed. Timer bookkeeping does not itself run `always`: a delayed `enq.sendTo(...)` delivers its event without reevaluating eventless transitions in the sender. If the sender is also the recipient, it processes the delivered event and then reevaluates `always`.
+
+If an `always` condition depends only on context updated through transitions, it is reevaluated during those updates and cannot become enabled silently while the machine waits. This also applies to observable values whose updates reach the machine as events and update context. The timer ordering issue concerns conditions that read outside mutable values or depend on the current event. `always` does not poll outside values for changes.
+
 Use targetless transitions for edits that keep a form on the same step. Use re-entering transitions to restart a timer, subscription or invoked request.
 
 Put shared transitions on a parent state. A child can set an event to `undefined` to forbid that parent transition. Wildcards such as `pointer.*` match an event family when no exact transition matches.

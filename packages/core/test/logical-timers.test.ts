@@ -140,6 +140,167 @@ describe('logical snapshot timers', () => {
     expect(staleEffects).toEqual([]);
   });
 
+  it.each(['outside', 'event-dependent'])(
+    'takes an after transition before reevaluating an %s always guard',
+    (guard) => {
+      let ready = false;
+      const machine = createMachine({
+        initial: 'waiting',
+        states: {
+          waiting: {
+            always: ({ event }) =>
+              (guard === 'outside' ? ready : event.type !== 'xstate.init')
+                ? { target: 'early' }
+                : undefined,
+            after: { 10: { target: 'elapsed' } }
+          },
+          early: {},
+          elapsed: {}
+        }
+      });
+      const clock = new SimulatedClock();
+      const actor = createActor(machine, { clock }).start();
+
+      try {
+        expect(actor.getSnapshot().value).toBe('waiting');
+        ready = true;
+        clock.increment(9);
+        expect(actor.getSnapshot().value).toBe('waiting');
+        clock.increment(1);
+        expect(actor.getSnapshot().value).toBe('elapsed');
+      } finally {
+        actor.stop();
+      }
+    }
+  );
+
+  it.each(['raise', 'sendTo'])(
+    'handles a delayed %s before always and settles before raised events',
+    (delivery) => {
+      let ready = false;
+      const machine = createMachine({
+        initial: 'waiting',
+        states: {
+          waiting: {
+            entry: ({ self }, enq) => {
+              if (delivery === 'raise') {
+                enq.raise({ type: 'EXPIRE' }, { delay: 10 });
+              } else {
+                enq.sendTo(self, { type: 'EXPIRE' }, { delay: 10 });
+              }
+            },
+            always: () => (ready ? { target: 'early' } : undefined),
+            on: { EXPIRE: { target: 'elapsed' } }
+          },
+          early: {},
+          elapsed: {
+            entry: (_, enq) => {
+              enq.raise({ type: 'INTERNAL' });
+            },
+            always: ({ event }) =>
+              event.type === 'EXPIRE' ? { target: 'settled' } : undefined,
+            on: { INTERNAL: { target: 'early' } }
+          },
+          settled: {}
+        }
+      });
+      const clock = new SimulatedClock();
+      const actor = createActor(machine, { clock }).start();
+
+      try {
+        ready = true;
+        clock.increment(10);
+        expect(actor.getSnapshot().value).toBe('settled');
+      } finally {
+        actor.stop();
+      }
+    }
+  );
+
+  it('handles a state timeout before reevaluating always', () => {
+    let ready = false;
+    const machine = createMachine({
+      initial: 'waiting',
+      states: {
+        waiting: {
+          always: () => (ready ? { target: 'early' } : undefined),
+          timeout: 10,
+          onTimeout: { target: 'elapsed' }
+        },
+        early: {},
+        elapsed: {}
+      }
+    });
+    const clock = new SimulatedClock();
+    const actor = createActor(machine, { clock }).start();
+
+    try {
+      ready = true;
+      clock.increment(10);
+      expect(actor.getSnapshot().value).toBe('elapsed');
+    } finally {
+      actor.stop();
+    }
+  });
+
+  it('reevaluates always after an unhandled delayed raise', () => {
+    const machine = createMachine({
+      initial: 'waiting',
+      states: {
+        waiting: {
+          entry: (_, enq) => {
+            enq.raise({ type: 'IGNORED' }, { delay: 10 });
+          },
+          always: ({ event }) =>
+            event.type === 'IGNORED' ? { target: 'settled' } : undefined
+        },
+        settled: {}
+      }
+    });
+    const clock = new SimulatedClock();
+    const actor = createActor(machine, { clock }).start();
+
+    try {
+      clock.increment(10);
+      expect(actor.getSnapshot().value).toBe('settled');
+    } finally {
+      actor.stop();
+    }
+  });
+
+  it('does not reevaluate the sender always transitions for a delayed send to a child', () => {
+    let ready = false;
+    const received = vi.fn();
+    const child = createCallbackLogic(({ receive }) => {
+      receive(received);
+    });
+    const machine = createMachine({
+      actors: { child },
+      invoke: { id: 'child', src: 'child' },
+      initial: 'waiting',
+      states: {
+        waiting: {
+          entry: ({ children }, enq) => {
+            enq.sendTo(children.child, { type: 'PING' }, { delay: 10 });
+          },
+          always: () => (ready ? { target: 'early' } : undefined)
+        },
+        early: {}
+      }
+    });
+    const clock = new SimulatedClock();
+    const actor = createActor(machine, { clock }).start();
+
+    try {
+      ready = true;
+      clock.increment(10);
+      expect(actor.getSnapshot().value).toBe('waiting');
+      expect(received).toHaveBeenCalledExactlyOnceWith({ type: 'PING' });
+    } finally {
+      actor.stop();
+    }
+  });
+
   it('uses the same timer mechanism for delayed sends to children', () => {
     const childLogic = createCallbackLogic(() => {});
     const machine = createMachine({
@@ -231,15 +392,21 @@ describe('logical snapshot timers', () => {
   });
 
   it('exposes timer consumption as its own microstep', () => {
+    let ready = false;
     const machine = createMachine({
       initial: 'waiting',
       states: {
-        waiting: { after: { 10: { target: 'done' } } },
+        waiting: {
+          always: () => (ready ? { target: 'early' } : undefined),
+          after: { 10: { target: 'done' } }
+        },
+        early: {},
         done: {}
       }
     });
     const [waiting] = initialTransition(machine);
     const [{ event }] = waiting.timers;
+    ready = true;
 
     const microsteps = getMicrosteps(machine, waiting, {
       type: 'xstate.timer',
@@ -247,6 +414,7 @@ describe('logical snapshot timers', () => {
     } as any);
 
     expect(microsteps).toHaveLength(2);
+    expect(microsteps[0][0].value).toBe('waiting');
     expect(microsteps[0][0].timers).toEqual([]);
     expect(microsteps[0][1]).toEqual([]);
     expect(microsteps[1][0].value).toBe('done');
