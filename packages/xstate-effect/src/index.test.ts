@@ -22,6 +22,7 @@ import {
 import { standardSchemaValidator } from 'xstate/validation';
 import {
   EffectFailure,
+  causeFromError,
   createEffectActor,
   createEffectLogic,
   createEffectEventStreamLogic,
@@ -836,7 +837,7 @@ describe('@xstate/effect', () => {
             src: 'request',
             onError: ({ event }) => {
               const code: 'NOT_FOUND' = Option.getOrThrow(
-                Cause.findErrorOption(event.error.cause)
+                Cause.findErrorOption(causeFromError(event.error))
               ).code;
               // @ts-expect-error -- the Effect failure is discriminated
               const other: 'OTHER' = code;

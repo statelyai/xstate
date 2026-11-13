@@ -1,5 +1,6 @@
 import { Cause, Effect, Option } from 'effect';
 import {
+  causeFromError,
   createEffectActor,
   createEffectLogic,
   setupEffect,
@@ -15,7 +16,7 @@ const machine = setupEffect({ actors: { request } }).createMachine({
       invoke: {
         src: 'request',
         onError: ({ event }) => {
-          const failure = Cause.findErrorOption(event.error.cause);
+          const failure = Cause.findErrorOption(causeFromError(event.error));
           return {
             target: 'failed',
             context: {

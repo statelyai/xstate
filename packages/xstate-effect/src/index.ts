@@ -34,7 +34,9 @@ export {
   ActorStoppedError,
   EventRejectedError,
   EffectFailure,
-  EffectInterruptedError
+  EffectInterruptedError,
+  causeFromError,
+  type UnwrapEffectFailure
 } from './errors.ts';
 export {
   setupEffect,
