@@ -128,6 +128,8 @@ The demo stream is finite. Replace it with your upload SDK's progress stream; th
 
 ## `createEffectEventStreamLogic`
 
+Each stream item enters the stream actor's mailbox. Its transition forwards the item to the parent as an event and publishes a snapshot notification from the stream actor.
+
 Use `createEffectEventStreamLogic` when stream items should trigger transitions. This deployment feed first reports a healthy rollout, then a health failure that requests rollback:
 
 <!-- example from examples/effect-workflows/src/event-stream.ts -->

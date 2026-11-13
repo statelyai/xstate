@@ -79,6 +79,8 @@ such as `actor.send`, `actor.start`, `actor.on` and `actor.subscribe` throw.
 For `enq.listen`/`enq.subscribeTo`, register named pure mapper functions in
 `systemLogic.mappers`; mapped communication and attachment lifetimes belong
 to the snapshot too.
+Mapped events transition through their listener or subscription actor before
+reaching the owner.
 Subscription `done`/`error` mappings enter the owner's message queue before
 the native child completion/error notification, matching live actor ordering.
 

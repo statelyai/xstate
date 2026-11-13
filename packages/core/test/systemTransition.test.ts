@@ -584,6 +584,109 @@ it.each(['done', 'error'] as const)(
   }
 );
 
+it('preserves Error details from an initial pure subscription failure', () => {
+  const mapError = (error: unknown) => ({ type: 'FAIL' as const, error });
+  const worker = createStepLogic({
+    context: {},
+    run: () => ({ status: 'error', error: new Error('boom') })
+  });
+  const logic = {
+    actors: { worker },
+    mappers: { mapError },
+    root: createMachine({
+      id: 'root',
+      context: { message: undefined as string | undefined },
+      schemas: {
+        events: { FAIL: z.object({ error: z.unknown() }) }
+      },
+      entry: (_, enq) => {
+        const child = enq.spawn(worker, { id: 'worker' });
+        enq.subscribeTo(child, { error: mapError });
+      },
+      on: {
+        FAIL: ({ event }) => ({
+          context: {
+            message:
+              event.error instanceof Error ? event.error.message : undefined
+          }
+        })
+      }
+    })
+  };
+
+  const [snapshot] = initialSystemTransition(logic);
+  expect(snapshot.actors.root.snapshot.context.message).toBe('boom');
+});
+
+it('preserves attachment mailbox order when a worker emits', () => {
+  const ready = (event: any) => ({
+    type: 'READY' as const,
+    value: event.value as string
+  });
+  const worker = createMachine({
+    schemas: { emitted: { ready: z.object({ value: z.string() }) } },
+    on: {
+      WORK: (_, enq) => enq.emit({ type: 'ready', value: 'newer' })
+    }
+  });
+  const logic = {
+    actors: { worker },
+    mappers: { ready },
+    root: createMachine({
+      id: 'root',
+      context: { values: [] as string[] },
+      schemas: { events: { READY: z.object({ value: z.string() }) } },
+      entry: (_, enq) => {
+        const actor = enq.spawn(worker, { id: 'worker' });
+        enq.listen(actor, 'ready', ready);
+      },
+      on: {
+        READY: ({ context, event }) => ({
+          context: { values: [...context.values, event.value] }
+        })
+      }
+    })
+  };
+  const [snapshot] = initialSystemTransition(logic);
+  const pending: any = structuredClone(snapshot);
+  const listener = Object.values(pending.actors as Record<string, any>).find(
+    (actor) => actor.src === '@xstate.listener'
+  )!;
+  const workerRef = pending.actors['root/worker'];
+  const listenerRef = {
+    '@actor': listener.address,
+    incarnation: listener.incarnation
+  };
+  pending.messages.push(
+    {
+      source: {
+        '@actor': 'root',
+        incarnation: pending.actors.root.incarnation
+      },
+      target: {
+        '@actor': workerRef.address,
+        incarnation: workerRef.incarnation
+      },
+      event: { type: 'WORK' },
+      sequence: pending.counters.sequence++
+    },
+    {
+      source: listenerRef,
+      target: listenerRef,
+      event: {
+        type: 'xstate.attached.forward',
+        event: { type: 'READY', value: 'older' }
+      },
+      sequence: pending.counters.sequence++
+    }
+  );
+
+  const [next] = systemTransition(logic, freeze(pending), 'root', {
+    type: 'UNKNOWN'
+  });
+  expect(next.actors.root.snapshot.context.values).toEqual(['older', 'newer']);
+});
+
 it('handles prototype-shaped root IDs and registry keys as ordinary data', () => {
   const logic = { root: createMachine({ on: { PING: {} } }) };
   const [snapshot] = initialSystemTransition(logic, {

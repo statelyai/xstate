@@ -8,6 +8,7 @@ import { TimeoutError } from './actors/promise.ts';
 import { systemLogicMetadata } from './systemLogicMetadata.ts';
 import { listenerLogic } from './actors/listener.ts';
 import { subscriptionLogic } from './actors/subscription.ts';
+import { XSTATE_ATTACHED_FORWARD } from './actors/attached.ts';
 import { matchesEventDescriptor } from './utils.ts';
 import { IndexedHeap } from './IndexedHeap.ts';
 import { XSTATE_STOP, XSTATE_STOP_EFFECT } from './constants.ts';
@@ -445,9 +446,27 @@ class SystemReduction {
     return (this.logic.get(actor.src) as any)?.[systemLogicMetadata]?.kind;
   }
 
+  private forwardAttachment(
+    ref: SystemActorReference,
+    event: AnyEventObject,
+    immediate = false
+  ) {
+    if (!immediate) {
+      this.enqueue(ref, ref, { type: XSTATE_ATTACHED_FORWARD, event });
+      return;
+    }
+    this.process({
+      source: ref,
+      target: ref,
+      event: this.encode({ type: XSTATE_ATTACHED_FORWARD, event }),
+      sequence: this.snapshot.counters.sequence++
+    });
+  }
+
   private relayAttachments(
     source: SystemActorReference,
-    emitted?: AnyEventObject
+    emitted?: AnyEventObject,
+    immediate = false
   ) {
     for (const actor of Object.values(this.snapshot.actors)) {
       const kind = this.attachedKind(actor);
@@ -493,10 +512,10 @@ class SystemReduction {
           );
       }
       if (event)
-        this.enqueue(
+        this.forwardAttachment(
           { '@actor': actor.address, incarnation: actor.incarnation },
-          actor.parent,
-          event
+          event,
+          immediate
         );
     }
   }
@@ -908,9 +927,8 @@ class SystemReduction {
         input.mappers.error &&
         actor.parent
       ) {
-        this.enqueue(
+        this.forwardAttachment(
           ref,
-          actor.parent,
           input.mappers.error(this.hydrate(target).error)
         );
       }
@@ -979,7 +997,7 @@ class SystemReduction {
     const actor = this.current(ref);
     if (!actor) return;
     // Publish terminal observations before cleanup and the native parent event.
-    this.relayAttachments(ref);
+    this.relayAttachments(ref, undefined, true);
     this.cancel(ref);
     this.cancelExternal(ref);
     this.stopAttachments(ref);
