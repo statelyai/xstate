@@ -94,6 +94,231 @@ function describeEffects(effects: ExecutableEffect[]): string[] {
 }
 
 describe('transition function', () => {
+  describe('targetless reentry', () => {
+    it.each([undefined, []])(
+      'does not return lifecycle effects with target %j and reenter: true',
+      (target) => {
+        const record = vi.fn();
+        const machine = createMachine({
+          initial: 'active',
+          states: {
+            active: {
+              entry: (_, enq) => enq(record, 'entry'),
+              exit: (_, enq) => enq(record, 'exit'),
+              on: { GO: { target, reenter: true } }
+            }
+          }
+        });
+
+        const [initial] = initialTransition(machine);
+        const [next, effects] = transition(machine, initial, { type: 'GO' });
+
+        expect(next.value).toBe('active');
+        expect(effects).toEqual([]);
+      }
+    );
+
+    it.each([undefined, []])(
+      'preserves transition effects and context updates with dynamic target %j',
+      (target) => {
+        const record = vi.fn();
+        const machine = createMachine({
+          context: { count: 0 },
+          initial: 'active',
+          states: {
+            active: {
+              entry: (_, enq) => enq(record, 'entry'),
+              exit: (_, enq) => enq(record, 'exit'),
+              on: {
+                GO: ({ context }, enq) => {
+                  enq(record, 'transition');
+                  return {
+                    target,
+                    reenter: true,
+                    context: { count: context.count + 1 }
+                  };
+                }
+              }
+            }
+          }
+        });
+
+        const [initial] = initialTransition(machine);
+        const [next, effects] = transition(machine, initial, { type: 'GO' });
+
+        expect(next.value).toBe('active');
+        expect(next.context).toEqual({ count: 1 });
+        expect(effects).toMatchObject([
+          { action: record, args: ['transition'] }
+        ]);
+        expect(record).not.toHaveBeenCalled();
+      }
+    );
+
+    it('still returns exit and entry effects for explicit self-reentry', () => {
+      const record = vi.fn();
+      const machine = createMachine({
+        initial: 'active',
+        states: {
+          active: {
+            entry: (_, enq) => enq(record, 'entry'),
+            exit: (_, enq) => enq(record, 'exit'),
+            on: { GO: { target: 'active', reenter: true } }
+          }
+        }
+      });
+
+      const [initial] = initialTransition(machine);
+      const [next, effects] = transition(machine, initial, { type: 'GO' });
+
+      expect(next.value).toBe('active');
+      expect(effects).toMatchObject([
+        { action: record, args: ['exit'] },
+        { action: record, args: ['entry'] }
+      ]);
+    });
+
+    it('does not reenter a targetless source when another parallel region changes state', () => {
+      const record = vi.fn();
+      const machine = createMachine({
+        type: 'parallel',
+        states: {
+          left: {
+            initial: 'active',
+            states: {
+              active: {
+                entry: (_, enq) => enq(record, 'entry left'),
+                exit: (_, enq) => enq(record, 'exit left'),
+                on: { GO: { reenter: true } }
+              }
+            }
+          },
+          right: {
+            initial: 'before',
+            states: {
+              before: {
+                exit: (_, enq) => enq(record, 'exit right'),
+                on: { GO: { target: 'after' } }
+              },
+              after: {
+                entry: (_, enq) => enq(record, 'entry right')
+              }
+            }
+          }
+        }
+      });
+
+      const [initial] = initialTransition(machine);
+      const [next, effects] = transition(machine, initial, { type: 'GO' });
+
+      expect(next.value).toEqual({ left: 'active', right: 'after' });
+      expect(effects).toMatchObject([
+        { action: record, args: ['exit right'] },
+        { action: record, args: ['entry right'] }
+      ]);
+    });
+
+    it('reenters the region of a targetless source when another region reenters the parallel parent', () => {
+      const record = vi.fn();
+      const log = (name: string) => ({
+        entry: (_: unknown, enq: (fn: typeof record, arg: string) => void) =>
+          enq(record, `entry ${name}`),
+        exit: (_: unknown, enq: (fn: typeof record, arg: string) => void) =>
+          enq(record, `exit ${name}`)
+      });
+      const machine = createMachine({
+        id: 'm',
+        initial: 'parent',
+        states: {
+          parent: {
+            ...log('parent'),
+            type: 'parallel',
+            states: {
+              left: {
+                ...log('left'),
+                initial: 'active',
+                states: {
+                  active: { ...log('active'), on: { GO: { reenter: true } } }
+                }
+              },
+              right: {
+                ...log('right'),
+                on: { GO: { target: '#m.parent', reenter: true } }
+              }
+            }
+          }
+        }
+      });
+
+      const [initial] = initialTransition(machine);
+      const [next, effects] = transition(machine, initial, { type: 'GO' });
+
+      expect(next.nodes.map((node) => node.id)).toEqual([
+        'm',
+        'm.parent',
+        'm.parent.left',
+        'm.parent.left.active',
+        'm.parent.right'
+      ]);
+      expect(
+        effects.map((effect) => ('args' in effect ? effect.args[0] : undefined))
+      ).toEqual([
+        'exit right',
+        'exit active',
+        'exit left',
+        'exit parent',
+        'entry parent',
+        'entry left',
+        'entry active',
+        'entry right'
+      ]);
+    });
+
+    it('preserves an active descendant without rerunning parent entry in a running actor', () => {
+      const record = vi.fn();
+      const machine = createMachine({
+        context: { count: 0 },
+        initial: 'active',
+        states: {
+          active: {
+            initial: 'first',
+            entry: (_, enq) => enq(record, 'entry active'),
+            exit: (_, enq) => enq(record, 'exit active'),
+            on: {
+              GO: ({ context }, enq) => {
+                enq(record, 'transition');
+                return {
+                  reenter: true,
+                  context: { count: context.count + 1 }
+                };
+              }
+            },
+            states: {
+              first: { on: { NEXT: { target: 'second' } } },
+              second: {
+                entry: (_, enq) => enq(record, 'entry second'),
+                exit: (_, enq) => enq(record, 'exit second')
+              }
+            }
+          }
+        }
+      });
+      const actor = createActor(machine).start();
+      try {
+        actor.send({ type: 'NEXT' });
+        record.mockClear();
+
+        actor.send({ type: 'GO' });
+
+        expect(actor.getSnapshot().value).toEqual({ active: 'second' });
+        expect(actor.getSnapshot().context).toEqual({ count: 1 });
+        expect(record.mock.calls).toEqual([['transition']]);
+      } finally {
+        actor.stop();
+      }
+    });
+  });
+
   it('does not materialize actors or systems for context-only planning', () => {
     let materializations = 0;
     setInertActorMaterializationObserver(() => materializations++);

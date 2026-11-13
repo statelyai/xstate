@@ -1834,7 +1834,7 @@ function microstep(
             !transition.source.parent && reenter ? undefined : domain
           );
         }
-        if (reenter && domain === transition.source) {
+        if (targets?.length && reenter && domain === transition.source) {
           // A reentering transition whose domain is its own source exits and
           // reenters the source, so the source must be entered explicitly —
           // it has no ancestor inside the domain to add it.
