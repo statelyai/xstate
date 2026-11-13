@@ -66,6 +66,7 @@ import {
   createTransitionEnqueue,
   createSendToEffect,
   deriveDeferredStarts,
+  discardSpawnedActors,
   mergeContextPatch,
   resolveActionsWithContext
 } from './transitionActions.ts';
@@ -1483,19 +1484,21 @@ function microstep(
             input,
             stateNode
           };
-      let res;
       try {
-        res = transitionFn(args, enqueue);
+        const res = transitionFn(args, enqueue);
+        assertSyncTransitionResult(res, event, stateNode.id, kind);
+
+        if (res?.context !== undefined) {
+          updatedContext = mergeContextPatch(context, res.context);
+        }
+
+        return [actions, updatedContext, internalEvents, res?.children];
+      } catch (error) {
+        discardSpawnedActors(actorScope, actions);
+        throw error;
       } finally {
         closeTransitionEnqueue(enqueue);
       }
-      assertSyncTransitionResult(res, event, stateNode.id, kind);
-
-      if (res?.context !== undefined) {
-        updatedContext = mergeContextPatch(context, res.context);
-      }
-
-      return [actions, updatedContext, internalEvents, res?.children];
     };
 
     let nextState = currentSnapshot;
@@ -2001,9 +2004,7 @@ function microstep(
             );
           }
         } catch (error) {
-          for (const { actor } of pendingInvokes) {
-            actor.system._unregister(actor);
-          }
+          discardSpawnedActors(actorScope, actions);
           throw error;
         }
 

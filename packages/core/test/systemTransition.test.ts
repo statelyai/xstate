@@ -194,6 +194,56 @@ it.each(['initial', 'transition'])(
   }
 );
 
+it('discards an aborted invoke reservation before retrying its explicit id', () => {
+  const child = createMachine({});
+  const first = createMachine({
+    invoke: { src: child, registryKey: 'nested' }
+  });
+  const logic = {
+    root: createMachine({
+      id: 'root',
+      context: { retry: false },
+      initial: 'invoking',
+      onError: { target: '.failed' },
+      states: {
+        invoking: {
+          invoke: [
+            { id: 'first', src: first },
+            {
+              id: 'worker',
+              src: child,
+              registryKey: 'worker',
+              input: ({ context }) => {
+                if (!context.retry) {
+                  throw new Error('input failed');
+                }
+              }
+            }
+          ]
+        },
+        failed: {
+          entry: () => ({ context: { retry: true } }),
+          on: { RETRY: { target: 'invoking' } }
+        }
+      }
+    })
+  };
+  const [failed] = initialSystemTransition(logic);
+  expect(failed.actors.root.snapshot.value).toBe('failed');
+  expect(Object.keys(failed.actors)).toEqual(['root']);
+  expect(failed.registry.nested).toBeUndefined();
+  expect(failed.actors['root/worker']).toBeUndefined();
+  expect(failed.registry.worker).toBeUndefined();
+
+  const [retried] = systemTransition(logic, freeze(failed), 'root', {
+    type: 'RETRY'
+  });
+  expect(retried.actors.root.snapshot.value).toBe('invoking');
+  expect(retried.actors['root/worker'].started).toBe(true);
+  expect(retried.registry.worker).toBeDefined();
+  expect(retried.registry.nested).toBeDefined();
+});
+
 it('orders timers across actors and applies a child send before a later parent timer', () => {
   const child = createMachine({
     initial: 'active',

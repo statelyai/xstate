@@ -4,7 +4,7 @@ import { diagnoseActorOptions } from './devDiagnostics.ts';
 import { publishEmittedEvent } from './runtimeHelpers.ts';
 import type { ActionRecord, SentRecord } from './inspection.ts';
 import { Mailbox } from './Mailbox.ts';
-import { XSTATE_STOP, XSTATE_TIMER } from './constants.ts';
+import { XSTATE_SPAWN, XSTATE_STOP, XSTATE_TIMER } from './constants.ts';
 import {
   createDoneActorEvent,
   createErrorActorEvent,
@@ -67,7 +67,10 @@ import {
   Subscription
 } from './types.ts';
 import { toObserver } from './utils.ts';
-import { finalizeTransitionResult } from './transitionActions.ts';
+import {
+  finalizeTransitionResult,
+  isBuiltInExecutableEffect
+} from './transitionActions.ts';
 import {
   refreshSnapshotActorRefRoot,
   setSnapshotActorRef
@@ -154,6 +157,11 @@ function createActorRef(
 /** @internal Completes an invoke reference reserved before parent entry. */
 function initializeActorRef(actor: AnyActor, input: unknown): void {
   (actor as Actor<AnyActorLogic>)._initialize(input);
+}
+
+/** @internal Releases actors whose creation effects were discarded. */
+function discardActorRef(actor: AnyActor): void {
+  (actor as Actor<AnyActorLogic>)._discard();
 }
 
 /**
@@ -322,7 +330,8 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
           clock,
           logger,
           createActorRef,
-          initializeActorRef
+          initializeActorRef,
+          discardActorRef
         }));
 
     if (
@@ -1167,6 +1176,33 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
     if (termination.status === 'error') {
       this._error(termination.error);
     }
+  }
+
+  /** @internal Discards a newly allocated actor without running its effects. */
+  public _discard(): void {
+    if (this._processingStatus !== ProcessingStatus.NotStarted) {
+      return;
+    }
+    this._stop();
+    for (const child of Object.values(
+      (this._snapshot as { children?: Record<string, AnyActor> } | undefined)
+        ?.children ?? {}
+    )) {
+      if (child?._parent === this) {
+        this.system.discardActorRef(child);
+      }
+    }
+    for (const effect of this._initialEffects ?? []) {
+      if (
+        isBuiltInExecutableEffect(effect) &&
+        effect.type === XSTATE_SPAWN &&
+        effect.actor._parent === this
+      ) {
+        this.system.discardActorRef(effect.actor);
+      }
+    }
+    this._initialEffects = undefined;
+    this._deferred = undefined;
   }
 
   /** @internal */

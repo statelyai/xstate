@@ -622,6 +622,8 @@ class SystemReduction {
         this.allocate(logic, options),
       initializeActorRef: (actor: AnyActor, input: unknown) =>
         this.initializeActorRef(this.reference(actor), input),
+      discardActorRef: (actor: AnyActor) =>
+        this.discardActorRef(this.reference(actor)),
       _unregister: (actor: AnyActor) => {
         this.stopping.add(JSON.stringify(this.reference(actor)));
         for (const [key, ref] of Object.entries(this.snapshot.registry)) {
@@ -749,6 +751,36 @@ class SystemReduction {
     );
     this.store(ref, snapshot);
     this.initialEffects.set(JSON.stringify(ref), effects);
+  }
+
+  private discardActorRef(ref: SystemActorReference) {
+    const actor = this.current(ref);
+    if (!actor || actor.started) return;
+    for (const child of Object.values(this.snapshot.actors)) {
+      if (
+        child.parent?.['@actor'] === ref['@actor'] &&
+        child.parent.incarnation === ref.incarnation
+      ) {
+        this.discardActorRef({
+          '@actor': child.address,
+          incarnation: child.incarnation
+        });
+      }
+    }
+    for (const [key, registered] of Object.entries(this.snapshot.registry)) {
+      if (
+        registered['@actor'] === ref['@actor'] &&
+        registered.incarnation === ref.incarnation
+      ) {
+        delete this.snapshot.registry[key];
+      }
+    }
+    const key = JSON.stringify(ref);
+    delete this.snapshot.actors[ref['@actor']];
+    this.snapshots.delete(key);
+    this.initialEffects.delete(key);
+    this.handles.delete(key);
+    this.stopping.delete(key);
   }
 
   private store(ref: SystemActorReference, snapshot: any) {

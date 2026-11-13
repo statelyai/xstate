@@ -475,6 +475,8 @@ export interface ActorSystem<
   ): AnyActor;
   /** @internal Completes an invoke reference reserved before parent entry. */
   initializeActorRef(actor: AnyActor, input: unknown): void;
+  /** @internal Discards an allocation whose creation effects will not run. */
+  discardActorRef(actor: AnyActor): void;
   /** @internal */
   children: Map<string, AnyActor>;
   /** @internal Avoids materializing the registered-actor map. */
@@ -614,6 +616,7 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
   public _logger: (...args: any[]) => void;
   public createActorRef: ActorSystem<T>['createActorRef'];
   public initializeActorRef: ActorSystem<T>['initializeActorRef'];
+  public discardActorRef: ActorSystem<T>['discardActorRef'];
 
   public get children(): Map<string, AnyActor> {
     const children = (this._children ??= new Map());
@@ -665,12 +668,14 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
       logger: (...args: any[]) => void;
       createActorRef: ActorSystem<T>['createActorRef'];
       initializeActorRef: ActorSystem<T>['initializeActorRef'];
+      discardActorRef: ActorSystem<T>['discardActorRef'];
     }
   ) {
     this._clock = options.clock;
     this._logger = options.logger;
     this.createActorRef = options.createActorRef;
     this.initializeActorRef = options.initializeActorRef;
+    this.discardActorRef = options.discardActorRef;
     const ambientInspector = getAmbientInspector();
     if (ambientInspector) {
       this.inspect(ambientInspector);
@@ -1194,6 +1199,7 @@ export function createRuntimeSystem<T extends ActorSystemInfo>(
     logger: (...args: any[]) => void;
     createActorRef: ActorSystem<T>['createActorRef'];
     initializeActorRef: ActorSystem<T>['initializeActorRef'];
+    discardActorRef: ActorSystem<T>['discardActorRef'];
   }
 ): ActorSystem<T> {
   return new RuntimeSystem(rootActor, options);

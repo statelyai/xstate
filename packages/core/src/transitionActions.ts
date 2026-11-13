@@ -428,6 +428,21 @@ function getTransitionActionRecord(
   return undefined;
 }
 
+/** @internal Rolls back allocations recorded by an aborted action block. */
+export function discardSpawnedActors(
+  actorScope: AnyActorScope,
+  actions: AnyAction[]
+): void {
+  for (const action of actions) {
+    const record = getTransitionActionRecord(action);
+    if (record?.action === builtInActions['@xstate.spawn']) {
+      const actor: AnyActor = record.args[0];
+      actorScope.system.discardActorRef(actor);
+      recordStoppedChild(actorScope, actor);
+    }
+  }
+}
+
 function pushSpawnedChild(
   actions: any[],
   actor: AnyActor,

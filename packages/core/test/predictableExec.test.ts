@@ -421,6 +421,7 @@ describe('predictableExec', () => {
         receive(({ type }) => received.push(type));
       });
       let entryRef;
+      let directEmission: unknown;
       const machine = createMachine({
         schemas: {
           events: {
@@ -436,6 +437,9 @@ describe('predictableExec', () => {
           b: {
             entry: ({ children }, enq) => {
               entryRef = children.worker;
+              children.worker!.on('ready', (event) => {
+                directEmission = event;
+              });
               children.worker!.send({ type: 'direct' });
               enq.sendTo(children.worker!, { type: 'queued' });
               enq.listen(
@@ -469,6 +473,7 @@ describe('predictableExec', () => {
       }
       expect(entryRef).toBe(actor.getSnapshot().children.worker);
       expect(received).toEqual(['direct', 'queued']);
+      expect(directEmission).toEqual({ type: 'ready', consent: 'patched' });
       expect(actor.getSnapshot().context).toEqual({
         consent: 'patched',
         heard: 'patched',
@@ -513,6 +518,122 @@ describe('predictableExec', () => {
       actor.stop();
     }
   );
+
+  it.each(['entry', 'input'])(
+    'should release actors spawned during entry when %s throws and allow retry',
+    (phase) => {
+      const started = vi.fn();
+      const caught = vi.fn();
+      const failure = new Error('expected failure');
+      const leaf = createCallbackLogic(started);
+      const spawned = createMachine({
+        invoke: { src: leaf, registryKey: 'nested' }
+      });
+      const machine = createMachine({
+        context: { retry: false },
+        initial: 'b',
+        onError: ({ event }) => {
+          caught(event.error);
+          return { target: '.failed' };
+        },
+        states: {
+          b: {
+            entry: ({ context }, enq) => {
+              enq.spawn(spawned, { registryKey: 'spawned' });
+              if (phase === 'entry' && !context.retry) {
+                throw failure;
+              }
+            },
+            invoke: {
+              id: 'worker',
+              src: leaf,
+              input: ({ context }) => {
+                if (!context.retry) {
+                  throw failure;
+                }
+              }
+            }
+          },
+          failed: {
+            entry: () => ({ context: { retry: true } }),
+            on: { RETRY: { target: 'b' } }
+          }
+        }
+      });
+      const actor = createActor(machine).start();
+      expect(actor.getSnapshot().value).toBe('failed');
+      expect(caught).toHaveBeenCalledExactlyOnceWith(failure);
+      expect(actor.system.get('spawned')).toBeUndefined();
+      expect(actor.system.get('nested')).toBeUndefined();
+      expect(started).not.toHaveBeenCalled();
+
+      actor.send({ type: 'RETRY' });
+      expect(actor.getSnapshot().value).toBe('b');
+      expect(actor.getSnapshot().status).toBe('active');
+      expect(actor.system.get('spawned')).toBeDefined();
+      expect(actor.system.get('nested')).toBeDefined();
+      expect(started).toHaveBeenCalledTimes(2);
+      actor.stop();
+    }
+  );
+
+  it('should reuse an aborted invoke id during immediate error recovery', () => {
+    const started = vi.fn();
+    const errors = vi.fn();
+    const machine = createMachine({
+      context: { retry: false },
+      initial: 'b',
+      onError: () => ({ target: '.b', context: { retry: true } }),
+      states: {
+        b: {
+          invoke: {
+            id: 'worker',
+            src: createCallbackLogic(started),
+            input: ({ context }) => {
+              if (!context.retry) throw new Error('input failed');
+            }
+          }
+        }
+      }
+    });
+    const actor = createActor(machine);
+    actor.subscribe({ error: errors });
+    actor.start();
+    expect(errors).not.toHaveBeenCalled();
+    expect(actor.getSnapshot().status).toBe('active');
+    expect(actor.getSnapshot().children.worker).toBeDefined();
+    expect(started).toHaveBeenCalledOnce();
+    actor.stop();
+  });
+
+  it('should keep existing actors when entry allocations are discarded', () => {
+    const started = vi.fn();
+    const child = createCallbackLogic(started);
+    const machine = createMachine({
+      invoke: { src: child, registryKey: 'existing' },
+      initial: 'idle',
+      onError: { target: '.failed' },
+      states: {
+        idle: { on: { NEXT: { target: 'b' } } },
+        b: {
+          entry: (_, enq) => {
+            enq.spawn(child, { registryKey: 'new' });
+            throw new Error('entry failed');
+          }
+        },
+        failed: {}
+      }
+    });
+    const actor = createActor(machine).start();
+    const existing = actor.system.get('existing');
+    actor.send({ type: 'NEXT' });
+    expect(actor.getSnapshot().value).toBe('failed');
+    expect(actor.system.get('existing')).toBe(existing);
+    expect(existing!.getSnapshot().status).toBe('active');
+    expect(actor.system.get('new')).toBeUndefined();
+    expect(started).toHaveBeenCalledOnce();
+    actor.stop();
+  });
 
   it('should deliver events sent from the entry actions to a service invoked in the same state', () => {
     let received: any;

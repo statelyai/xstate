@@ -76,6 +76,8 @@ Invoke input is evaluated after the invoking state's `entry` function returns an
 
 Invoke references are available in `entry` through `children`. You can send events to these references and enqueue listeners or subscriptions. The children initialize after `entry` returns, so their snapshots are not available during that entry function. Child startup remains deferred until the macrostep finishes, with listeners and subscriptions attached before the children start.
 
+If `entry` or an invoke input mapper throws, actor allocations from that entry are discarded without starting them. Retrying the state can reuse their ids and registry keys.
+
 ## Typed inline invokes
 
 Use `s.createInvoke(...)` inside a machine created with `s = setup(...)` when actor logic is used in one state. It infers the actor's input, completion output, error and snapshot types without registering the actor in `setup.actors`. For async work, pass the function directly as `src` and declare its schemas in the same invoke config.
