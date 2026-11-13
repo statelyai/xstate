@@ -70,7 +70,12 @@ export class NotReadyError extends Data.TaggedError('NotReadyError') {
   }
 }
 
-/** @internal */
+/**
+ * Returns an EffectFailure's original Cause, or wraps an ordinary error with
+ * Cause.fail. Defects and interruption in an existing Cause are preserved.
+ *
+ * @experimental
+ */
 export function causeFromError<E>(
   error: E
 ): Cause.Cause<UnwrapEffectFailure<E>> {
@@ -79,6 +84,11 @@ export function causeFromError<E>(
   ) as Cause.Cause<UnwrapEffectFailure<E>>;
 }
 
+/**
+ * Extracts the typed failure from EffectFailure while retaining ordinary errors.
+ *
+ * @experimental
+ */
 export type UnwrapEffectFailure<E> =
   E extends EffectFailure<infer Failure> ? Failure : E;
 

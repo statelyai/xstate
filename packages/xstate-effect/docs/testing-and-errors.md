@@ -185,13 +185,18 @@ For machine workflows, expected outcomes such as declined or expired can be fina
 
 ### Migrating error handlers
 
-Effect child error handlers now receive the Cause wrapper. Replace direct access such as `event.error.code` with inspection of `event.error.cause`.
+Effect child error handlers now receive `EffectFailure<E>`. Checks such as `event.error instanceof DigestMismatch` no longer match the original domain error. Replace these checks and direct property access with `Cause.findErrorOption(causeFromError(event.error))`, then inspect the returned failure.
+
+Import `causeFromError` from `@xstate/effect`. It returns an `EffectFailure`'s original Cause and wraps ordinary errors with `Cause.fail`. This also supports handlers receiving mixed error types. Its return type is `Cause.Cause<UnwrapEffectFailure<E>>`; an `unknown` input keeps the failure type `unknown`.
+
+`Cause.findErrorOption` returns `None` for a Cause containing only defects or interruption. Handle that case separately. `Cause.squash` may return a defect, so use `Cause.findErrorOption` when matching typed failures.
 
 <!-- example from examples/effect-workflows/src/failure-cause.ts -->
 
 ```ts
 import { Cause, Effect, Option } from 'effect';
 import {
+  causeFromError,
   createEffectActor,
   createEffectLogic,
   setupEffect,
@@ -207,7 +212,7 @@ const machine = setupEffect({ actors: { request } }).createMachine({
       invoke: {
         src: 'request',
         onError: ({ event }) => {
-          const failure = Cause.findErrorOption(event.error.cause);
+          const failure = Cause.findErrorOption(causeFromError(event.error));
           return {
             target: 'failed',
             context: {
