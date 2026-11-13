@@ -67,7 +67,7 @@ import {
   createSendToEffect,
   deriveDeferredStarts,
   discardSpawnedActors,
-  trackSpawnedActor,
+  createChildActorRef,
   completeSpawnAllocation,
   mergeContextPatch,
   resolveActionsWithContext
@@ -1925,7 +1925,7 @@ function microstep(
             }
 
             assertChildIdFree(actorScope, invokeDef.id);
-            const actor = actorScope.system.createActorRef(logic, {
+            const actor = createChildActorRef(actorScope, logic, {
               ...invokeDef,
               // A `src` function may return a registered key, which persists.
               src: typeof src === 'string' ? src : undefined,
@@ -1938,7 +1938,6 @@ function microstep(
             // definition only when the invoke created it.
             (actor as { _invoked?: boolean })._invoked = true;
 
-            trackSpawnedActor(actorScope, actor);
             pendingInvokes.push({ actor, input: invokeDef.input });
 
             actions.push({

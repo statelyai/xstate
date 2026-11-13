@@ -333,9 +333,11 @@ it.each(['initialization', 'registry'])(
         if (phase === 'initialization') throw new Error('child entry failed');
       }
     });
+    const good = createMachine({});
+    const failedId = phase === 'initialization' ? 'broken' : 'duplicate';
     const root = createMachine({
       id: 'root',
-      actors: { broken },
+      actors: { broken, good },
       initial: 'idle',
       entry: (_, enq) => {
         enq.spawn('broken', { id: 'broken', registryKey: 'broken' });
@@ -344,12 +346,75 @@ it.each(['initialization', 'registry'])(
         }
       },
       onError: { target: '.failed' },
-      states: { idle: {}, failed: {} }
+      states: {
+        idle: {},
+        failed: {
+          entry: (_, enq) => {
+            enq.spawn('good', { id: failedId });
+          }
+        }
+      }
     });
     const [snapshot] = initialSystemTransition({ root });
     expect(snapshot.actors.root.snapshot.value).toBe('failed');
-    expect(Object.keys(snapshot.actors)).toHaveLength(1);
+    expect(Object.keys(snapshot.actors)).toHaveLength(2);
+    expect(snapshot.actors[`root/${failedId}`].started).toBe(true);
     expect(snapshot.registry).toEqual({});
+  }
+);
+
+it.each([
+  { runtime: 'live', path: 'spawn' },
+  { runtime: 'live', path: 'invoke' },
+  { runtime: 'pure', path: 'spawn' },
+  { runtime: 'pure', path: 'invoke' }
+])(
+  'releases an unallocated explicit id after a registry conflict ($runtime, $path)',
+  ({ runtime, path }) => {
+    const leaf = createMachine({});
+    const root = createMachine({
+      id: 'root',
+      actors: { leaf },
+      context: ({ spawn }) => ({
+        existing: spawn(leaf, { id: 'existing', registryKey: 'taken' })
+      }),
+      initial: 'attempt',
+      onError: { target: '.recovered' },
+      states: {
+        attempt:
+          path === 'spawn'
+            ? {
+                entry: (_, enq) => {
+                  enq.spawn('leaf', { id: 'worker', registryKey: 'taken' });
+                }
+              }
+            : { invoke: { id: 'worker', src: 'leaf', registryKey: 'taken' } },
+        recovered: {
+          entry: (_, enq) => {
+            enq.spawn('leaf', { id: 'worker' });
+          }
+        }
+      }
+    });
+    if (runtime === 'live') {
+      const actor = createActor(root);
+      const errors = vi.fn();
+      actor.subscribe({ error: errors });
+      actor.start();
+      expect(errors).not.toHaveBeenCalled();
+      expect(actor.getSnapshot().value).toBe('recovered');
+      expect(actor.getSnapshot().children.worker).toBeDefined();
+      expect(actor.system.get('taken')).toBe(
+        actor.getSnapshot().context.existing
+      );
+      actor.stop();
+      return;
+    }
+    const [snapshot] = initialSystemTransition({ root });
+    expect(snapshot.actors.root.snapshot.value).toBe('recovered');
+    expect(snapshot.actors['root/worker'].started).toBe(true);
+    expect(snapshot.registry.taken['@actor']).toBe('root/existing');
+    expect(Object.keys(snapshot.actors)).toHaveLength(3);
   }
 );
 

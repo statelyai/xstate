@@ -1,4 +1,5 @@
 import isDevelopment from '#is-development';
+import type { InternalActorOptions } from './createActor.ts';
 import { xstateError } from './xstateError.ts';
 import { publishEmittedEvent } from './runtimeHelpers.ts';
 import { assertSendToEvent, builtInActions } from './actions.ts';
@@ -428,12 +429,22 @@ function getTransitionActionRecord(
   return undefined;
 }
 
-/** @internal Tracks new refs across every microstep of one transition. */
-export function trackSpawnedActor(
+/** @internal Creates a child and commits its allocation only on success. */
+export function createChildActorRef(
   actorScope: AnyActorScope,
-  actor: AnyActor
-): void {
-  spawnAllocations.get(actorScope)?.actors.push(actor);
+  logic: AnyActorLogic,
+  options: InternalActorOptions<AnyActorLogic>,
+  localAllocation?: SpawnAllocation
+): AnyActor {
+  const allocation = spawnAllocations.get(actorScope) ?? localAllocation;
+  try {
+    const actor = actorScope.system.createActorRef(logic, options);
+    allocation?.actors.push(actor);
+    return actor;
+  } catch (error) {
+    if (options.id !== undefined) allocation?.explicitIds.delete(options.id);
+    throw error;
+  }
 }
 
 /** @internal Discards allocations from an aborted transition. */
@@ -827,13 +838,17 @@ export function createTransitionEnqueue(
         assertChildIdFree(actorScope, id, localAllocation);
         counters = reserveChildId(actorScope, id, localAllocation);
       }
-      const actor = actorScope.system.createActorRef(logic, {
-        ...options,
-        ...(src !== undefined && { src }),
-        id,
-        parent: actorScope.self
-      });
-      trackSpawnedActor(actorScope, actor);
+      const actor = createChildActorRef(
+        actorScope,
+        logic,
+        {
+          ...options,
+          ...(src !== undefined && { src }),
+          id,
+          parent: actorScope.self
+        },
+        localAllocation
+      );
       pushSpawnedChild(actions, actor, id, counters);
       return actor;
     },
@@ -877,11 +892,10 @@ export function createTransitionEnqueue(
           eventType,
           mapper
         };
-        const listenerActor = actorScope.system.createActorRef(listenerLogic, {
+        const listenerActor = createChildActorRef(actorScope, listenerLogic, {
           input,
           parent: actorScope.self
         });
-        trackSpawnedActor(actorScope, listenerActor);
         pushBuiltInAction(
           actions,
           builtInActions['@xstate.spawn'],
@@ -900,14 +914,14 @@ export function createTransitionEnqueue(
           actor,
           mappers: normalizedMappers
         };
-        const subscriptionActor = actorScope.system.createActorRef(
+        const subscriptionActor = createChildActorRef(
+          actorScope,
           subscriptionLogic,
           {
             input,
             parent: actorScope.self
           }
         );
-        trackSpawnedActor(actorScope, subscriptionActor);
         pushBuiltInAction(
           actions,
           builtInActions['@xstate.spawn'],
