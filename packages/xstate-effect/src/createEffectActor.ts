@@ -40,6 +40,8 @@ import { EventRejectedError } from './errors.ts';
 
 const XSTATE_TIMER = 'xstate.timer';
 const XSTATE_INIT = 'xstate.init';
+const EVENT_LOOP_SLICE_MS = 10;
+const MAX_STEPS_PER_SLICE = 500;
 
 /**
  * Options for {@link createEffectActor}.
@@ -374,15 +376,22 @@ export function createEffectActor<TLogic extends AnyActorLogic>(
           snapshot,
           effects: executeEffects(effects)
         });
+        let sliceStartedAt: number | undefined;
+        let stepsSinceYield = 0;
         while (
           (snapshot as Snapshot<unknown>).status === 'active' &&
           !stopped
         ) {
+          if (Queue.sizeUnsafe(mailbox) === 0) {
+            sliceStartedAt = undefined;
+            stepsSinceYield = 0;
+          }
           delivered = undefined;
           const received = yield* Effect.promise(() =>
             durable.waitForEvent().catch(() => undefined)
           );
           if (received === undefined || stopped) break;
+          sliceStartedAt ??= performance.now();
           const item: MailboxItem<
             EventFromLogic<TLogic>,
             SnapshotFrom<TLogic>
@@ -444,6 +453,18 @@ export function createEffectActor<TLogic extends AnyActorLogic>(
                   })
                 : undefined
           });
+          stepsSinceYield++;
+          // Some hosts only advance their monotonic clock after I/O.
+          if (
+            !stopped &&
+            (snapshot as Snapshot<unknown>).status === 'active' &&
+            (stepsSinceYield >= MAX_STEPS_PER_SLICE ||
+              performance.now() - sliceStartedAt >= EVENT_LOOP_SLICE_MS)
+          ) {
+            yield* Effect.yieldNow;
+            sliceStartedAt = undefined;
+            stepsSinceYield = 0;
+          }
         }
         if (!stopped) {
           if ((snapshot as Snapshot<unknown>).status !== 'active') {
