@@ -140,6 +140,8 @@ export interface InternalActorOptions<
   TLogic extends AnyActorLogic
 > extends ActorOptions<TLogic> {
   parent?: AnyActor;
+  /** Reserve an invoke reference before its parent entry computes input. */
+  _deferInitialization?: boolean;
 }
 
 function createActorRef(
@@ -147,6 +149,11 @@ function createActorRef(
   options: InternalActorOptions<AnyActorLogic>
 ): AnyActor {
   return new Actor(logic, options);
+}
+
+/** @internal Completes an invoke reference reserved before parent entry. */
+function initializeActorRef(actor: AnyActor, input: unknown): void {
+  (actor as Actor<AnyActorLogic>)._initialize(input);
 }
 
 /**
@@ -314,7 +321,8 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
         createRuntimeSystem(this, {
           clock,
           logger,
-          createActorRef
+          createActorRef,
+          initializeActorRef
         }));
 
     if (
@@ -357,7 +365,21 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
 
     // prepare to collect initial microsteps during initialTransition
     this._collectedMicrosteps = undefined;
-    const restore = resolvedOptions._restore;
+    if (!resolvedOptions._deferInitialization) {
+      this._initialize();
+    }
+  }
+
+  /** @internal Initializes a reserved invoke reference after parent entry. */
+  public _initialize(
+    input: InputFrom<TLogic> | undefined = this.options.input
+  ) {
+    if (input !== this.options.input) {
+      this.options = { ...this.options, input };
+    }
+    const options = this.options;
+    const registryKey = this.registryKey;
+    const restore = options._restore;
     this._restored = restore !== undefined;
     try {
       if (restore) {

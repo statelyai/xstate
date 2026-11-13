@@ -147,6 +147,53 @@ it('owns child state, immediate communication and completion notifications', () 
   expect(next.messages).toEqual([]);
 });
 
+it.each(['initial', 'transition'])(
+  'uses the entry patch for invoke input and retains entry refs on %s entry',
+  (mode) => {
+    const child = createMachine({
+      schemas: { input: z.object({ consent: z.string() }) },
+      context: ({ input }) => ({ ...input, received: 0 }),
+      on: {
+        PING: ({ context }) => ({
+          context: { received: context.received + 1 }
+        })
+      }
+    });
+    const logic = {
+      root: createMachine({
+        id: 'root',
+        context: { consent: 'unset' },
+        initial: mode === 'initial' ? 'b' : 'a',
+        states: {
+          a: { on: { NEXT: { target: 'b' } } },
+          b: {
+            entry: ({ children }, enq) => {
+              enq.sendTo(children.child!, { type: 'PING' });
+              return { context: { consent: 'patched' } };
+            },
+            invoke: {
+              id: 'child',
+              src: child,
+              input: ({ context }) => ({ consent: context.consent })
+            }
+          }
+        }
+      })
+    };
+    const [initial] = initialSystemTransition(logic);
+    const snapshot =
+      mode === 'initial'
+        ? initial
+        : systemTransition(logic, freeze(initial), 'root', { type: 'NEXT' })[0];
+
+    expect(snapshot.actors['root/child'].input).toEqual({ consent: 'patched' });
+    expect(snapshot.actors['root/child'].snapshot.context).toEqual({
+      consent: 'patched',
+      received: 1
+    });
+  }
+);
+
 it('orders timers across actors and applies a child send before a later parent timer', () => {
   const child = createMachine({
     initial: 'active',

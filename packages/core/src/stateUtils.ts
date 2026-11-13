@@ -1887,80 +1887,77 @@ function microstep(
 
         // Final states are inert, so (as in SCXML) their invocations never
         // start.
-        let invoked = false;
-        for (const invokeDef of stateNodeToEnter.type === 'final'
-          ? []
-          : stateNodeToEnter.invoke) {
-          invoked = true;
-
-          let src = invokeDef.logic;
-          if (typeof src === 'function') {
-            src = src({
-              actors: currentSnapshot.machine.sources.actors,
-              context: nextState.context,
-              event,
-              self: actorScope.self
-            });
-          }
-
-          const logic =
-            typeof src === 'string'
-              ? currentSnapshot.machine.sources.actors[src]
-              : src;
-
-          if (!logic) {
-            throw new Error(
-              isDevelopment
-                ? `Actor logic '${typeof src === 'string' ? src : 'inline'}' not implemented in ${describeMachine(currentSnapshot.machine.id)}`
-                : xstateError(15, typeof src === 'string' ? src : 'inline')
-            );
-          }
-
-          const input =
-            typeof invokeDef.input === 'function'
-              ? invokeDef.input({
-                  self: actorScope.self,
-                  context: nextState.context,
-                  event,
-                  input: stateInputMap[stateNodeToEnter.id],
-                  output: getEventOutput(event)
-                })
-              : invokeDef.input;
-
-          assertChildIdFree(actorScope, invokeDef.id);
-          const actor = actorScope.system.createActorRef(logic, {
-            ...invokeDef,
-            // A `src` function may return a registered key, which persists.
-            src: typeof src === 'string' ? src : undefined,
-            input,
-            parent: actorScope.self,
-            syncSnapshot: !!invokeDef.onSnapshot
-          });
-          // Persistence restores a source-less child through its invoke
-          // definition only when the invoke created it.
-          (actor as { _invoked?: boolean })._invoked = true;
-
-          actions.push({
-            action: builtInActions['@xstate.spawn'],
-            args: [actor]
-          });
-
-          if (invokeDef.id) {
-            children = { ...children, [invokeDef.id]: actor };
-          }
-        }
-
-        if (invoked) {
-          nextState = cloneMachineSnapshot(nextState, { children });
-        }
-        let context = nextState.context;
-        let contextChangedByEntry = false;
-
+        const pendingInvokes: Array<{
+          actor: AnyActor;
+          input: (typeof stateNodeToEnter.invoke)[number]['input'];
+        }> = [];
         const stateInput = stateInputMap[stateNodeToEnter.id];
+        try {
+          for (const invokeDef of stateNodeToEnter.type === 'final'
+            ? []
+            : stateNodeToEnter.invoke) {
+            let src = invokeDef.logic;
+            if (typeof src === 'function') {
+              src = src({
+                actors: currentSnapshot.machine.sources.actors,
+                context: nextState.context,
+                event,
+                self: actorScope.self
+              });
+            }
 
-        if (stateNodeToEnter.entry) {
-          const [resultActions, nextContext, nextInternalEvents, nextChildren] =
-            getStateActionsAndContext(
+            const logic =
+              typeof src === 'string'
+                ? currentSnapshot.machine.sources.actors[src]
+                : src;
+
+            if (!logic) {
+              throw new Error(
+                isDevelopment
+                  ? `Actor logic '${typeof src === 'string' ? src : 'inline'}' not implemented in ${describeMachine(currentSnapshot.machine.id)}`
+                  : xstateError(15, typeof src === 'string' ? src : 'inline')
+              );
+            }
+
+            assertChildIdFree(actorScope, invokeDef.id);
+            const actor = actorScope.system.createActorRef(logic, {
+              ...invokeDef,
+              // A `src` function may return a registered key, which persists.
+              src: typeof src === 'string' ? src : undefined,
+              input: undefined,
+              _deferInitialization: true,
+              parent: actorScope.self,
+              syncSnapshot: !!invokeDef.onSnapshot
+            });
+            // Persistence restores a source-less child through its invoke
+            // definition only when the invoke created it.
+            (actor as { _invoked?: boolean })._invoked = true;
+
+            pendingInvokes.push({ actor, input: invokeDef.input });
+
+            actions.push({
+              action: builtInActions['@xstate.spawn'],
+              args: [actor]
+            });
+
+            if (invokeDef.id) {
+              children = { ...children, [invokeDef.id]: actor };
+            }
+          }
+
+          if (pendingInvokes.length) {
+            nextState = cloneMachineSnapshot(nextState, { children });
+          }
+          let context = nextState.context;
+          let contextChangedByEntry = false;
+
+          if (stateNodeToEnter.entry) {
+            const [
+              resultActions,
+              nextContext,
+              nextInternalEvents,
+              nextChildren
+            ] = getStateActionsAndContext(
               stateNodeToEnter.entry,
               context,
               children,
@@ -1968,23 +1965,46 @@ function microstep(
               'entry',
               stateNodeToEnter
             );
-          actions.push(...resultActions);
-          if (nextInternalEvents?.length) {
-            internalQueue.push(...nextInternalEvents);
+            actions.push(...resultActions);
+            if (nextInternalEvents?.length) {
+              internalQueue.push(...nextInternalEvents);
+            }
+            if (nextContext) {
+              context = nextContext;
+              contextChangedByEntry = true;
+            }
+            if (nextChildren) {
+              nextState = cloneMachineSnapshot(nextState, {
+                children: nextChildren
+              });
+            }
           }
-          if (nextContext) {
-            context = nextContext;
-            contextChangedByEntry = true;
-          }
-          if (nextChildren) {
-            nextState = cloneMachineSnapshot(nextState, {
-              children: nextChildren
-            });
-          }
-        }
 
-        if (contextChangedByEntry) {
-          nextState = cloneMachineSnapshot(nextState, { context });
+          if (contextChangedByEntry) {
+            nextState = cloneMachineSnapshot(nextState, { context });
+          }
+
+          // Entry can address reserved refs. Initialize them only after its
+          // context patch, before resolving the queued sends and listeners.
+          for (const { actor, input } of pendingInvokes) {
+            actorScope.system.initializeActorRef(
+              actor,
+              typeof input === 'function'
+                ? input({
+                    self: actorScope.self,
+                    context: nextState.context,
+                    event,
+                    input: stateInput,
+                    output: getEventOutput(event)
+                  })
+                : input
+            );
+          }
+        } catch (error) {
+          for (const { actor } of pendingInvokes) {
+            actor.system._unregister(actor);
+          }
+          throw error;
         }
 
         if (statesForDefaultEntry.has(stateNodeToEnter)) {
