@@ -428,19 +428,27 @@ function getTransitionActionRecord(
   return undefined;
 }
 
-/** @internal Rolls back allocations recorded by an aborted action block. */
-export function discardSpawnedActors(
+/** @internal Tracks new refs across every microstep of one transition. */
+export function trackSpawnedActor(
   actorScope: AnyActorScope,
-  actions: AnyAction[]
+  actor: AnyActor
 ): void {
-  for (const action of actions) {
-    const record = getTransitionActionRecord(action);
-    if (record?.action === builtInActions['@xstate.spawn']) {
-      const actor: AnyActor = record.args[0];
-      actorScope.system.discardActorRef(actor);
-      recordStoppedChild(actorScope, actor);
-    }
+  spawnAllocations.get(actorScope)?.actors.push(actor);
+}
+
+/** @internal Discards allocations from an aborted transition. */
+export function discardSpawnedActors(actorScope: AnyActorScope): void {
+  const actors = spawnAllocations.get(actorScope)?.actors.splice(0) ?? [];
+  for (const actor of actors) {
+    actorScope.system.discardActorRef(actor);
+    recordStoppedChild(actorScope, actor);
   }
+}
+
+/** @internal Releases tracking refs after successful macrostep calculation. */
+export function completeSpawnAllocation(actorScope: AnyActorScope): void {
+  const allocation = spawnAllocations.get(actorScope);
+  if (allocation) allocation.actors.length = 0;
 }
 
 function pushSpawnedChild(
@@ -463,6 +471,7 @@ function pushSpawnedChild(
  * microsteps of the same event.
  */
 interface SpawnAllocation {
+  actors: AnyActor[];
   counters: Map<string, number>;
   /** Explicit child ids claimed by spawns/invokes of this transition. */
   explicitIds: Set<string>;
@@ -473,6 +482,7 @@ interface SpawnAllocation {
 const spawnAllocations = new WeakMap<object, SpawnAllocation>();
 
 const createSpawnAllocation = (): SpawnAllocation => ({
+  actors: [],
   counters: new Map(),
   explicitIds: new Set(),
   stoppedIds: new Set()
@@ -823,6 +833,7 @@ export function createTransitionEnqueue(
         id,
         parent: actorScope.self
       });
+      trackSpawnedActor(actorScope, actor);
       pushSpawnedChild(actions, actor, id, counters);
       return actor;
     },
@@ -870,6 +881,7 @@ export function createTransitionEnqueue(
           input,
           parent: actorScope.self
         });
+        trackSpawnedActor(actorScope, listenerActor);
         pushBuiltInAction(
           actions,
           builtInActions['@xstate.spawn'],
@@ -895,6 +907,7 @@ export function createTransitionEnqueue(
             parent: actorScope.self
           }
         );
+        trackSpawnedActor(actorScope, subscriptionActor);
         pushBuiltInAction(
           actions,
           builtInActions['@xstate.spawn'],

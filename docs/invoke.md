@@ -76,7 +76,7 @@ Invoke input is evaluated after the invoking state's `entry` function returns an
 
 Invoke references are available in `entry` through `children`. You can send events to these references and enqueue listeners or subscriptions. The children initialize after `entry` returns, so their snapshots are not available during that entry function. Child startup remains deferred until the macrostep finishes, with listeners and subscriptions attached before the children start.
 
-If `entry` or an invoke input mapper throws, actor allocations from that entry are discarded without starting them. Retrying the state can reuse their ids and registry keys.
+If `entry` or an invoke input mapper throws, new actor allocations from the failed transition are discarded without starting them, including allocations from earlier parent or sibling entries and eventless microsteps. Retrying the state can reuse their ids and registry keys.
 
 ## Typed inline invokes
 

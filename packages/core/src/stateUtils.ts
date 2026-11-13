@@ -67,6 +67,8 @@ import {
   createSendToEffect,
   deriveDeferredStarts,
   discardSpawnedActors,
+  trackSpawnedActor,
+  completeSpawnAllocation,
   mergeContextPatch,
   resolveActionsWithContext
 } from './transitionActions.ts';
@@ -1494,7 +1496,7 @@ function microstep(
 
         return [actions, updatedContext, internalEvents, res?.children];
       } catch (error) {
-        discardSpawnedActors(actorScope, actions);
+        discardSpawnedActors(actorScope);
         throw error;
       } finally {
         closeTransitionEnqueue(enqueue);
@@ -1936,6 +1938,7 @@ function microstep(
             // definition only when the invoke created it.
             (actor as { _invoked?: boolean })._invoked = true;
 
+            trackSpawnedActor(actorScope, actor);
             pendingInvokes.push({ actor, input: invokeDef.input });
 
             actions.push({
@@ -2004,7 +2007,7 @@ function microstep(
             );
           }
         } catch (error) {
-          discardSpawnedActors(actorScope, actions);
+          discardSpawnedActors(actorScope);
           throw error;
         }
 
@@ -2594,6 +2597,7 @@ export function macrostep(
       }
     }
 
+    completeSpawnAllocation(actorScope);
     return { snapshot: nextSnapshot, microsteps };
   }
 

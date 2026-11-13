@@ -724,18 +724,24 @@ class SystemReduction {
       input: this.encode(options.input),
       snapshot: { status: 'active', output: undefined, error: undefined }
     };
+    if (options.registryKey && this.snapshot.registry[options.registryKey]) {
+      throw new Error(
+        `Registry key '${options.registryKey}' is already occupied.`
+      );
+    }
     this.snapshot.actors[address] = state;
     if (options.registryKey) {
-      if (this.snapshot.registry[options.registryKey])
-        throw new Error(
-          `Registry key '${options.registryKey}' is already occupied.`
-        );
       this.snapshot.registry[options.registryKey] = ref;
     }
-    if (!options._deferInitialization) {
-      this.initializeActorRef(ref, options.input);
+    try {
+      if (!options._deferInitialization) {
+        this.initializeActorRef(ref, options.input);
+      }
+      return this.handle(ref);
+    } catch (error) {
+      this.discardActorRef(ref);
+      throw error;
     }
-    return this.handle(ref);
   }
 
   private initializeActorRef(ref: SystemActorReference, input: unknown) {
