@@ -585,7 +585,9 @@ class SystemReduction {
       id: actor?.id ?? ref['@actor'].split('/').at(-1),
       address: ref['@actor'],
       sessionId: ref.incarnation,
-      options: { _inert: true, input: actor?.input },
+      get options() {
+        return { _inert: true, input: getState()?.input };
+      },
       get logic() {
         return getLogic();
       },
@@ -618,6 +620,10 @@ class SystemReduction {
     return {
       createActorRef: (logic: AnyActorLogic, options: any) =>
         this.allocate(logic, options),
+      initializeActorRef: (actor: AnyActor, input: unknown) =>
+        this.initializeActorRef(this.reference(actor), input),
+      discardActorRef: (actor: AnyActor) =>
+        this.discardActorRef(this.reference(actor)),
       _unregister: (actor: AnyActor) => {
         this.stopping.add(JSON.stringify(this.reference(actor)));
         for (const [key, ref] of Object.entries(this.snapshot.registry)) {
@@ -718,14 +724,30 @@ class SystemReduction {
       input: this.encode(options.input),
       snapshot: { status: 'active', output: undefined, error: undefined }
     };
+    if (options.registryKey && this.snapshot.registry[options.registryKey]) {
+      throw new Error(
+        `Registry key '${options.registryKey}' is already occupied.`
+      );
+    }
     this.snapshot.actors[address] = state;
     if (options.registryKey) {
-      if (this.snapshot.registry[options.registryKey])
-        throw new Error(
-          `Registry key '${options.registryKey}' is already occupied.`
-        );
       this.snapshot.registry[options.registryKey] = ref;
     }
+    try {
+      if (!options._deferInitialization) {
+        this.initializeActorRef(ref, options.input);
+      }
+      return this.handle(ref);
+    } catch (error) {
+      this.discardActorRef(ref);
+      throw error;
+    }
+  }
+
+  private initializeActorRef(ref: SystemActorReference, input: unknown) {
+    const state = { ...this.current(ref)!, input: this.encode(input) };
+    this.snapshot.actors[ref['@actor']] = state;
+    const logic = this.logic.get(state.src)!;
     const scope = this.scope(ref);
     const result = logic.initialTransition(this.decode(state.input), scope);
     const [snapshot, effects] = finalizeTransitionResult(
@@ -735,7 +757,36 @@ class SystemReduction {
     );
     this.store(ref, snapshot);
     this.initialEffects.set(JSON.stringify(ref), effects);
-    return this.handle(ref);
+  }
+
+  private discardActorRef(ref: SystemActorReference) {
+    const actor = this.current(ref);
+    if (!actor || actor.started) return;
+    for (const child of Object.values(this.snapshot.actors)) {
+      if (
+        child.parent?.['@actor'] === ref['@actor'] &&
+        child.parent.incarnation === ref.incarnation
+      ) {
+        this.discardActorRef({
+          '@actor': child.address,
+          incarnation: child.incarnation
+        });
+      }
+    }
+    for (const [key, registered] of Object.entries(this.snapshot.registry)) {
+      if (
+        registered['@actor'] === ref['@actor'] &&
+        registered.incarnation === ref.incarnation
+      ) {
+        delete this.snapshot.registry[key];
+      }
+    }
+    const key = JSON.stringify(ref);
+    delete this.snapshot.actors[ref['@actor']];
+    this.snapshots.delete(key);
+    this.initialEffects.delete(key);
+    this.handles.delete(key);
+    this.stopping.delete(key);
   }
 
   private store(ref: SystemActorReference, snapshot: any) {
