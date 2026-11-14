@@ -25,7 +25,7 @@ No typegen step is needed. Types come from `schemas`: declare `context`, `events
 
 ## What happened to `@xstate/immer` and `@xstate/inspect`?
 
-Both packages were removed. Instead of `@xstate/immer`, return an updated `context` patch directly from the transition function; if you want Immer drafts, call Immer's `produce` yourself inside that function. Instead of `@xstate/inspect`, use `actor.subscribe(...)` or the `inspect` option on `createActor(...)`, and use [`@statelyai/inspect`](https://github.com/statelyai/inspect) for a visual inspector. See [inspection](inspection.md) and [inspect actor systems](inspect-actor-systems.md).
+Both packages were removed. Instead of `@xstate/immer`, return an updated `context` patch directly from the transition function; if you want Immer drafts, call Immer's `produce` yourself inside that function. Instead of `@xstate/inspect`, use `actor.subscribe(...)` or the `inspect` option on `createActor(...)`, and use [`@statelyai/sdk/inspect`](migrate-inspector.md) for a visual inspector. See [inspection](inspection.md) and [inspect actor systems](inspect-actor-systems.md).
 
 ## Can I run v5 and v6 side by side?
 

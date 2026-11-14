@@ -34,7 +34,7 @@ This guide is organized by area. Skim the **Quick reference** below and read [§
 | `types: {} as { context: ..., events: ...}`             | `schemas: { context, events, ... }` (Zod / Standard Schema, or `types<T>()` for type-only)                                          |
 | `actor.send({ type: 'INC' })`                           | `actor.send(...)` keeps working; new typed `actor.trigger.INC()`                                                                    |
 | `@xstate/immer`                                         | removed - return updated `context` patches directly                                                                                 |
-| `@xstate/inspect`                                       | removed - use `inspect` option on `createActor`, `actor.subscribe`, or [`@statelyai/inspect`](https://github.com/statelyai/inspect) |
+| `@xstate/inspect`                                       | removed - use `inspect` option on `createActor`, `actor.subscribe`, or [`@statelyai/sdk/inspect`](migrate-inspector.md) |
 | `sendTo('child', ev)` with no running `child`           | dead letter with reason `'missingTarget'`; the sender stays `active` (§26)                                                          |
 | `tsTypes` (typegen)                                     | removed; declare types with `schemas` (§3)                                                                                          |
 | `machine.implementations`                               | `machine.sources`                                                                                                                   |
@@ -1204,6 +1204,8 @@ If you want Immer-style drafts, call Immer's `produce` yourself inside the inlin
 
 ### `@xstate/inspect` - removed
 
+For a visual inspector, use `createInspector` from `@statelyai/sdk/inspect`. See [Migrate to SDK inspection](migrate-inspector.md) for installation and changes from `@statelyai/inspect`.
+
 The standalone inspector package and its `inspect()` entry point are gone. Inspection now flows through:
 
 - `actor.subscribe(observer)` - the snapshot stream
@@ -1994,7 +1996,7 @@ In v5, an undeclared delay name resolved to `undefined`, and the delayed transit
 - [ ] If you used `events` as a **union**, restructure to a **map keyed by type**
 - [ ] Move implementations passed as the second argument of `createMachine(config, implementations)` (deprecated in v5) into `setup({ ... })`, the `createMachine({ ... })` config, or `machine.provide({ ... })` (§4). v6's `createMachine` takes one argument and throws when it receives a second one
 - [ ] Audit `invoke.src` references - `src` may be a logic object, a registered name, or a resolver function
-- [ ] Drop dependencies on `@xstate/immer` and `@xstate/inspect`; update inspection to `actor.subscribe`, the `inspect` option, or `@statelyai/inspect`
+- [ ] Drop dependencies on `@xstate/immer` and `@xstate/inspect`; update inspection to `actor.subscribe`, the `inspect` option, or `@statelyai/sdk/inspect`
 - [ ] Remove imports of `GuardArgs`, `GuardPredicate`, `Inspected*Event`, `PromiseActorLogic`, and `fromPromise` (use `createAsyncLogic`), and update the type arguments of any `SetupReturn<...>` annotation (§16)
 - [ ] Drain/migrate any v5 persisted snapshots - the v6 snapshot shape is not binary-compatible
 - [ ] Check that persisted `context` holds only JSON values; development builds warn on functions, symbols, `BigInt`, `Map`, `Set`, cycles, `NaN`, and `Infinity`
