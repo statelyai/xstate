@@ -269,7 +269,7 @@ Read [📽 the slides](http://slides.com/davidkpiano/finite-state-machines) ([�
 | [💚 `@xstate/vue`](https://github.com/statelyai/xstate/tree/main/packages/xstate-vue)       | Vue composition functions and utilities for using XState in Vue applications                                                 |
 | [🎷 `@xstate/svelte`](https://github.com/statelyai/xstate/tree/main/packages/xstate-svelte) | Svelte utilities for using XState in Svelte applications                                                                     |
 | [🥏 `@xstate/solid`](https://github.com/statelyai/xstate/tree/main/packages/xstate-solid)   | Solid hooks and utilities for using XState in Solid applications                                                             |
-| [🔍 `@statelyai/inspect`](https://github.com/statelyai/inspect)                             | Inspection utilities for XState                                                                                              |
+| [🔍 `@statelyai/sdk/inspect`](docs/migrate-inspector.md)                             | Inspection utilities for XState                                                                                              |
 
 ## Finite State Machines
 

@@ -26,6 +26,7 @@
     "testing",
     "model-based-testing",
     "inspect-actor-systems",
+    "migrate-inspector",
     "troubleshooting",
     "errors",
     "configuration",

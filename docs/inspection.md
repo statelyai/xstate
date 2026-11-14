@@ -75,3 +75,5 @@ event.microsteps, event.actions, event.sent; // '@xstate.transition'
 ```
 
 Microstep transition records contain the targets selected by function transitions. Inspection and `getMicrosteps()` expose resolved copies with a `definition` reference to the shared transition; the machine's shared transition definitions remain reusable.
+
+For visual inspection, use [`@statelyai/sdk/inspect`](inspect-actor-systems.md#5-use-the-visual-inspector). See [Migrate to SDK inspection](migrate-inspector.md) if you use the legacy `@statelyai/inspect` package.

@@ -103,13 +103,30 @@ Redact before sending. Events and context often carry addresses, card details an
 
 ## 5. Use the visual inspector
 
-[`@statelyai/inspect`](https://github.com/statelyai/inspect) consumes the same inspection events and draws the running system as a statechart instead of a log.
+Use `createInspector` from `@statelyai/sdk/inspect` to visualize the running actor system.
 
 ```bash
-npm install @statelyai/inspect
+npm install @statelyai/sdk
 ```
 
-Create its inspector and pass it to the same `inspect` option, in development only.
+```ts
+import { createActor } from 'xstate';
+import { createInspector } from '@statelyai/sdk/inspect';
+import { checkoutMachine } from './checkoutMachine';
+
+const inspector = createInspector();
+const actor = createActor(checkoutMachine, { inspect: inspector.inspect });
+actor.start();
+
+await inspector.ready;
+console.log(inspector.inspectorUrl);
+```
+
+Open the logged URL to view the system. The SDK connects to the hosted relay without an API key and does not open a browser by default. In Node, pass `launch: 'browser'` to open the viewer automatically. In a browser, expose the URL as a link after `inspector.ready` resolves and let the user open it.
+
+Snapshot context is omitted by default. Use `serializeSnapshot` to include selected context fields. Call `inspector.destroy()` when inspection ends; this disconnects inspection without stopping your actors. Configure inspection in development only.
+
+If you use `@statelyai/inspect`, follow [Migrate to SDK inspection](migrate-inspector.md). The SDK has a different API and transport protocol.
 
 ## What next?
 
