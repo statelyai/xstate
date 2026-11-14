@@ -7,10 +7,12 @@ import {
   createActor,
   createAsyncLogic,
   createMachine,
+  createObservableLogic,
   setup,
   types,
   type ActorRefFrom,
-  type AnyActorLogic
+  type AnyActorLogic,
+  type ObservableSnapshot
 } from '../src/index.ts';
 import { restoreActor } from '../src/persist/index.ts';
 
@@ -242,6 +244,38 @@ describe('types', () => {
             type: 'notify',
             data: 'error'
           });
+        }
+      }
+    });
+  });
+
+  it('#5880 onSnapshot types event.snapshot from the invoked source', () => {
+    const watchItems = createObservableLogic<string[], { topic: string }>({
+      run: () => ({ subscribe: () => ({ unsubscribe: () => {} }) })
+    });
+
+    setup({ actors: { watchItems } }).createMachine({
+      invoke: {
+        src: 'watchItems',
+        input: { topic: 'news' },
+        onSnapshot: ({ event }) => {
+          expectType<ObservableSnapshot<string[], { topic: string }>>(
+            event.snapshot
+          );
+          // @ts-expect-error - the snapshot is not `any`
+          const wrong: number = event.snapshot;
+          void wrong;
+        }
+      }
+    });
+
+    // A logic value as `src` still compiles and keeps an untyped snapshot
+    setup({ actors: { watchItems } }).createMachine({
+      invoke: {
+        src: watchItems,
+        input: { topic: 'news' },
+        onSnapshot: ({ event }) => {
+          void event.snapshot;
         }
       }
     });

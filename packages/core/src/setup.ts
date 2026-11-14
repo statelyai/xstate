@@ -3582,7 +3582,7 @@ type PlainSetupInvokeConfig<
             TStateSchemas,
             TContext,
             TContextShape,
-            SnapshotEvent<any>,
+            InvokeSnapshotEvent<TInvoke, TActorMap>,
             TEvent,
             TEmitted,
             TChildren,
@@ -4042,6 +4042,20 @@ type InvokeErrorEvent<
       ? ErrorActorEvent<ErrorFrom<TSrc>>
       : ErrorActorEvent
   : ErrorActorEvent;
+
+// Only a registered source name is resolved here. With a logic value as
+// `src`, the invoke union narrows to the registered branch plus the inline
+// branch (see InlineInvokeOnDone); typing the snapshot per branch would give
+// the two branches different `onSnapshot` signatures and lose contextual
+// typing of the callback, so that case keeps `SnapshotEvent<any>`.
+type InvokeSnapshotEvent<
+  TInvoke,
+  TActorMap extends Sources['actors']
+> = TInvoke extends { src: infer TSrc }
+  ? TSrc extends keyof TActorMap & string
+    ? SnapshotEvent<SnapshotFrom<TActorMap[TSrc]>>
+    : SnapshotEvent<any>
+  : SnapshotEvent<any>;
 
 type StateTransitionConfigOrTarget<
   TStateSchemas extends Record<string, SetupStateSchema>,
