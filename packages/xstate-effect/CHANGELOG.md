@@ -1,5 +1,19 @@
 # @xstate/effect
 
+## 1.0.0-beta.2
+
+### Minor Changes
+
+- 417e5f4: Callback, event observable, listener, and subscription actors now process events they send to a parent in their own transitions. `createEffectEventStreamLogic` actors do the same. Inspection reports each outgoing event on the source transition, and subscribers receive a snapshot notification for that transition.
+- 74f51ef: Export `causeFromError` and `UnwrapEffectFailure` to inspect typed actor failures while preserving the original Effect Cause. Ordinary errors are wrapped with `Cause.fail`.
+  
+  ```ts
+  import { Cause } from 'effect';
+  import { causeFromError } from '@xstate/effect';
+  
+  const failure = Cause.findErrorOption(causeFromError(event.error));
+  ```
+
 ## 1.0.0-beta.1
 
 ### Major Changes
