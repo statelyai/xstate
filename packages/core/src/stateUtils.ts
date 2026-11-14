@@ -3079,6 +3079,12 @@ export function evaluateCandidate(
   }
 
   if (candidate.to) {
+    const cachedEvaluation = selectionResults?.get(candidate);
+    if (cachedEvaluation) {
+      // A shared ancestor is visited once per parallel leaf; reuse the first
+      // evaluation so a later one can't overwrite it in `selectionResults`.
+      return cachedEvaluation.enabled;
+    }
     const evaluation = evaluateTransitionFunction(
       candidate.to,
       snapshot.context,

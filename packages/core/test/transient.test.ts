@@ -956,4 +956,29 @@ describe('transient states (eventless transitions)', () => {
     expect(actor.getSnapshot().value).toEqual('done');
     expect(n).toBe(1);
   });
+
+  it('should evaluate a shared ancestor eventless transition function once per microstep', () => {
+    let n = 0;
+    const machine = createMachine({
+      initial: 'par',
+      states: {
+        par: {
+          type: 'parallel',
+          states: {
+            a: { initial: 'a1', states: { a1: {} } },
+            b: { initial: 'b1', states: { b1: {} } }
+          },
+          always: () => {
+            n++;
+            return n === 1 ? { target: 'done' } : undefined;
+          }
+        },
+        done: {}
+      }
+    });
+
+    const actor = createActor(machine).start();
+    expect(actor.getSnapshot().value).toEqual('done');
+    expect(n).toBe(1);
+  });
 });
