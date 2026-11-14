@@ -1,0 +1,144 @@
+{
+  "source": "export const machine = createMachine({\n  id: 'payment', context: { balance: 10 }, initial: 'idle', states: {\n    idle: { on: { START: { target: 'pending' } } },\n    pending: { on: { PAY: ({ context, event }) => {\n      if (event.amount <= 0) return;\n      if (event.vip) return { target: 'routing' };\n      if (context.balance >= event.amount) return { target: 'routing' };\n      return { target: 'declined' };\n    } } },\n    routing: { always: { target: 'paid' } },\n    paid: { type: 'final' }, declined: { type: 'final' }\n  }\n});",
+  "manifest": {
+    "schemaVersion": 1,
+    "criterion": "transition-outcomes",
+    "source": {
+      "fileName": "payment.ts",
+      "hash": "e3e7d5b352fd5b2c2456f39ea93c32a74127628ade24c8cb43275b71ab650ab9",
+      "algorithm": "SHA-256"
+    },
+    "extractor": "stately-source-coverage/1",
+    "complete": true,
+    "machineCount": 1,
+    "obligations": [
+      {
+        "id": "[0,\"/states/idle/on/START\"]#static",
+        "machineIndex": 0,
+        "path": "/states/idle/on/START",
+        "eventType": "START",
+        "kind": "transition",
+        "targets": ["pending"],
+        "predicates": [[]],
+        "location": {
+          "start": 134,
+          "end": 155,
+          "line": 3,
+          "column": 26
+        }
+      },
+      {
+        "id": "[0,\"/states/pending/on/PAY\"]#242-249",
+        "machineIndex": 0,
+        "path": "/states/pending/on/PAY",
+        "eventType": "PAY",
+        "kind": "refusal",
+        "targets": [],
+        "predicates": [["event.amount <= 0"]],
+        "location": {
+          "start": 242,
+          "end": 249,
+          "line": 5,
+          "column": 30
+        }
+      },
+      {
+        "id": "[0,\"/states/pending/on/PAY\"]#278-299",
+        "machineIndex": 0,
+        "path": "/states/pending/on/PAY",
+        "eventType": "PAY",
+        "kind": "transition",
+        "targets": ["routing"],
+        "predicates": [["!(event.amount <= 0)", "event.vip"]],
+        "location": {
+          "start": 278,
+          "end": 299,
+          "line": 6,
+          "column": 29
+        }
+      },
+      {
+        "id": "[0,\"/states/pending/on/PAY\"]#351-372",
+        "machineIndex": 0,
+        "path": "/states/pending/on/PAY",
+        "eventType": "PAY",
+        "kind": "transition",
+        "targets": ["routing"],
+        "predicates": [
+          [
+            "!(event.amount <= 0)",
+            "!(event.vip)",
+            "context.balance >= event.amount"
+          ]
+        ],
+        "location": {
+          "start": 351,
+          "end": 372,
+          "line": 7,
+          "column": 51
+        }
+      },
+      {
+        "id": "[0,\"/states/pending/on/PAY\"]#387-409",
+        "machineIndex": 0,
+        "path": "/states/pending/on/PAY",
+        "eventType": "PAY",
+        "kind": "transition",
+        "targets": ["declined"],
+        "predicates": [
+          [
+            "!(event.amount <= 0)",
+            "!(event.vip)",
+            "!(context.balance >= event.amount)"
+          ]
+        ],
+        "location": {
+          "start": 387,
+          "end": 409,
+          "line": 8,
+          "column": 14
+        }
+      },
+      {
+        "id": "[0,\"/states/routing/always\"]#static",
+        "machineIndex": 0,
+        "path": "/states/routing/always",
+        "eventType": "",
+        "kind": "transition",
+        "targets": ["paid"],
+        "predicates": [[]],
+        "location": {
+          "start": 445,
+          "end": 463,
+          "line": 10,
+          "column": 24
+        }
+      }
+    ],
+    "diagnostics": []
+  },
+  "controlExport": "__xstateSourceCoverage",
+  "javascript": "\"use strict\";\nObject.defineProperty(exports, \"__esModule\", { value: true });\nexports.machine = exports.__xstateSourceCoverage = void 0;\nexports.__xstateSourceCoverage = {\n    observer: undefined,\n    faults: 0,\n    ids: new Set([\"[0,\\\"/states/idle/on/START\\\"]#static\", \"[0,\\\"/states/pending/on/PAY\\\"]#242-249\", \"[0,\\\"/states/pending/on/PAY\\\"]#278-299\", \"[0,\\\"/states/pending/on/PAY\\\"]#351-372\", \"[0,\\\"/states/pending/on/PAY\\\"]#387-409\", \"[0,\\\"/states/routing/always\\\"]#static\"]),\n    scope: undefined,\n    hit(site, value) {\n        if (this.scope !== undefined) {\n            const id = this.scope + '#' + site;\n            if (this.ids.has(id)) {\n                try {\n                    this.observer?.(id);\n                }\n                catch {\n                    this.faults++;\n                }\n            }\n        }\n        return value;\n    },\n    and(site, left, right) {\n        return left ? right() : this.hit(site, left);\n    },\n    wrap(scope, fn) {\n        const control = this;\n        return function (...args) {\n            const previous = control.scope;\n            control.scope = scope;\n            try {\n                return fn.apply(this, args);\n            }\n            finally {\n                control.scope = previous;\n            }\n        };\n    },\n    static(scope, value) {\n        const config = typeof value === 'string' ? { target: value } : value;\n        return { ...config, [Symbol.for(\"@statelyai.sourceCoverage\")]: scope + '#static' };\n    }\n};\nexports.machine = createMachine({\n    id: 'payment', context: { balance: 10 }, initial: 'idle', states: {\n        idle: { on: { START: exports.__xstateSourceCoverage.static(\"[0,\\\"/states/idle/on/START\\\"]\", { target: 'pending' }) } },\n        pending: { on: { PAY: exports.__xstateSourceCoverage.wrap(\"[0,\\\"/states/pending/on/PAY\\\"]\", ({ context, event }) => {\n                    if (event.amount <= 0)\n                        return exports.__xstateSourceCoverage.hit(\"242-249\", void 0);\n                    if (event.vip)\n                        return exports.__xstateSourceCoverage.hit(\"278-299\", { target: 'routing' });\n                    if (context.balance >= event.amount)\n                        return exports.__xstateSourceCoverage.hit(\"351-372\", { target: 'routing' });\n                    return exports.__xstateSourceCoverage.hit(\"387-409\", { target: 'declined' });\n                }) } },\n        routing: { always: exports.__xstateSourceCoverage.static(\"[0,\\\"/states/routing/always\\\"]\", { target: 'paid' }) },\n        paid: { type: 'final' }, declined: { type: 'final' }\n    }\n});\n",
+  "cases": [
+    {
+      "type": "START"
+    },
+    {
+      "type": "PAY",
+      "amount": 0
+    },
+    {
+      "type": "PAY",
+      "amount": 5,
+      "vip": true
+    },
+    {
+      "type": "PAY",
+      "amount": 5
+    },
+    {
+      "type": "PAY",
+      "amount": 20
+    }
+  ]
+}

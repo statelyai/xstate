@@ -111,3 +111,9 @@ export {
   mergeEventGenerators
 } from './schema.ts';
 export type { EventsFromSchemasOptions, SchemaConverter } from './schema.ts';
+export {
+  createSourceCoverageSession,
+  type SourceCoverageControl,
+  type SourceCoverageSessionStep,
+  type SourceCoverageSessionOptions
+} from './sourceCoverage.ts';
