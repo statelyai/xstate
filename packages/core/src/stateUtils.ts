@@ -2737,10 +2737,19 @@ export function macrostep(
     }
 
     let selectionResults: TransitionSelectionResults | undefined;
-    let enabledTransitions: AnyTransitionDefinition[] =
-      shouldSelectEventlessTransitions
-        ? selectEventlessTransitions(nextSnapshot, nextEvent, actorScope)
-        : [];
+    let enabledTransitions: AnyTransitionDefinition[] = [];
+    if (shouldSelectEventlessTransitions) {
+      // Share the selection evaluations with `microstep`, as the event
+      // transition branch does, so a taken eventless transition function is
+      // not evaluated again when its result is applied.
+      selectionResults = new Map();
+      enabledTransitions = selectEventlessTransitions(
+        nextSnapshot,
+        nextEvent,
+        actorScope,
+        selectionResults
+      );
+    }
 
     // eventless transitions should always be selected after selecting *regular* transitions
     // by assigning `undefined` to `previousState` we ensure that `shouldSelectEventlessTransitions` gets always computed to true in such a case
@@ -2985,7 +2994,8 @@ function cancelTimers(
 function selectEventlessTransitions(
   snapshot: AnyMachineSnapshot,
   event: AnyEventObject,
-  actorScope: AnyActorScope
+  actorScope: AnyActorScope,
+  selectionResults?: TransitionSelectionResults
 ) {
   snapshot.machine._microstepHooks?.begin(actorScope.self);
   const enabledTransitionSet: Set<AnyTransitionDefinition> = new Set();
@@ -3002,7 +3012,14 @@ function selectEventlessTransitions(
       }
       for (const transition of stateNode.always) {
         if (
-          evaluateCandidate(transition, event, snapshot, stateNode, actorScope)
+          evaluateCandidate(
+            transition,
+            event,
+            snapshot,
+            stateNode,
+            actorScope,
+            selectionResults
+          )
         ) {
           enabledTransitionSet.add(transition);
           break loop;
@@ -3015,7 +3032,13 @@ function selectEventlessTransitions(
     Array.from(enabledTransitionSet),
     new Set(snapshot.nodes),
     snapshot,
-    createTransitionResultResolver(snapshot, event, actorScope, false)
+    createTransitionResultResolver(
+      snapshot,
+      event,
+      actorScope,
+      false,
+      selectionResults
+    )
   );
 }
 
