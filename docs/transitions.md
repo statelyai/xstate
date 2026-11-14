@@ -22,6 +22,7 @@ idle: { on: { start: { target: 'active' } } }
 | `reenter` | Re-enter the source state when targeting it. |
 | `meta` | Per-transition metadata. |
 | `description` | Human-readable description. |
+| `to` | Transition function in an object, for example to attach a `description`. |
 
 Use `schemas.transitionMeta` to type transition metadata separately from state
 metadata. If omitted, transition metadata uses `schemas.meta`.
@@ -81,6 +82,23 @@ Only an id followed by a path fails. Any whole id is a valid target, including a
 ## Transition functions
 
 See [transition functions and graph analysis](transition-functions.md) for why functions preserve type narrowing, how to keep destinations visible and the limits of static extraction.
+
+To attach a description to a function transition, put the function under `to`.
+The function receives the same typed arguments and its result follows the same
+context and target rules as a function written directly on the event. Put
+`target`, `context`, and `reenter` in the function result, not on the wrapper;
+the runtime does not apply those static wrapper settings.
+
+```ts
+submit: {
+  description: 'Submit valid data',
+  to: ({ context }) => {
+    if (!context.valid) return;
+    return { target: 'submitting' };
+  }
+}
+```
+
 
 ```ts
 submit: ({ context, event }, enq) => {

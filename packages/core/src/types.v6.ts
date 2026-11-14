@@ -2459,7 +2459,28 @@ type InvalidTransitionTarget<
         ?
             | InvalidTargetValue<TRootConfig, TSourcePath, TTarget>
             | InvalidTargetSet<TRootConfig, TSourcePath, TTarget>
-        : never;
+            | InvalidTransitionFunctionTarget<
+                TRootConfig,
+                TSourcePath,
+                TTransition
+              >
+        : TTransition extends object
+          ? InvalidTransitionFunctionTarget<
+              TRootConfig,
+              TSourcePath,
+              TTransition
+            >
+          : never;
+
+type InvalidTransitionFunctionTarget<
+  TRootConfig,
+  TSourcePath extends StatePath,
+  TTransition
+> = TTransition extends { to: infer TTo }
+  ? TTo extends (...args: any[]) => any
+    ? InvalidTransitionTarget<TRootConfig, TSourcePath, TTo>
+    : never
+  : never;
 
 type InvalidTransitionMapTargets<
   TRootConfig,
