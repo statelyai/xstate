@@ -1,5 +1,35 @@
 # xstate
 
+## 6.0.0-beta.3
+
+### Minor Changes
+
+- 417e5f4: Callback, event observable, listener, and subscription actors now process events they send to a parent in their own transitions. `createEffectEventStreamLogic` actors do the same. Inspection reports each outgoing event on the source transition, and subscribers receive a snapshot notification for that transition.
+- 65afd99: Add eventless `always` transitions to `xstate/fsm`. Machines follow these transitions during initialization and after handled events until no eventless transition is enabled.
+  
+  ```ts
+  import { createFSM } from 'xstate/fsm';
+  
+  const machine = createFSM({
+    initial: 'checking',
+    states: {
+      checking: { always: { target: 'ready' } },
+      ready: {}
+    }
+  });
+  
+  machine.initialState.value; // 'ready'
+  ```
+  
+  Breaking beta change: `xstate/fsm` now requires object transition targets for `on` and `always`, matching the main XState API. Replace `on: { GO: 'ready' }` with `on: { GO: { target: 'ready' } }`. Keep `initial: 'idle'` unchanged. Transition functions must return an object or `undefined`.
+  
+  Run the `@xstate/codemod` `string-targets` transform to update inline FSM configurations. Review separately stored configurations and functions returning strings manually.
+
+### Patch Changes
+
+- 0eb9872: Fix delayed transitions and delayed raised events taking an enabled `always` transition before handling the delayed event. They now handle the delayed event first, then reevaluate eventless transitions, preserving v5 ordering. A delayed send also no longer reevaluates the sender's eventless transitions before delivering its event.
+- 9eb940c: Fix targetless transitions with `reenter: true` unexpectedly running entry behavior. Transitions without a target now preserve the active states without running exit or entry behavior, while still applying context updates and transition effects.
+
 ## 6.0.0-beta.2
 
 ### Major Changes
