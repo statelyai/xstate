@@ -1254,6 +1254,8 @@ Creating the machine inside the component no longer resets state, so `useMemo` a
 
 ### Vue / Svelte / Solid
 
+`@xstate/vue` requires Vue 3.2 or later. Actors created by `useActorRef`, `useActor` or `useMachine` stop when their owning effect scope is disposed. With VueUse's `createSharedComposable`, the actor stays active until the last consumer disposes. Startup still occurs when the first consumer mounts, so actors do not start during server rendering.
+
 Bindings updated to track the new `Snapshot` shape and `createActor` return type. No new hook signatures, but consuming components that referenced removed `xstate` exports (like `assign`) need to be migrated.
 
 ---

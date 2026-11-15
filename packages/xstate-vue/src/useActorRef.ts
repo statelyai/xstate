@@ -1,4 +1,4 @@
-import { onBeforeUnmount, onMounted } from 'vue';
+import { onMounted, onScopeDispose } from 'vue';
 import {
   Actor,
   ActorOptions,
@@ -15,8 +15,8 @@ import {
 
 /**
  * Creates an actor from `logic`, or uses an already-created actor (e.g. from
- * `restoreActor`), starting it on mount and stopping it on unmount. Create a
- * passed actor once per component instance.
+ * `restoreActor`), starting it on mount and stopping it when the owning effect
+ * scope is disposed. Create a passed actor once per owning scope.
  *
  * @public
  */
@@ -58,14 +58,19 @@ export function useActorRef(
     : createActor(logicOrActor, args[0]);
 
   let sub: Subscription;
+  let disposed = false;
   onMounted(() => {
+    if (disposed) {
+      return;
+    }
     if (observerOrListener) {
       sub = actorRef.subscribe(toObserver(observerOrListener));
     }
     actorRef.start();
   });
 
-  onBeforeUnmount(() => {
+  onScopeDispose(() => {
+    disposed = true;
     actorRef.stop();
     sub?.unsubscribe();
   });
