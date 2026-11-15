@@ -9,6 +9,12 @@ This package contains utilities for using [XState](https://github.com/statelyai/
 
 If you're using Vue 2.x, please see [the Vue recipe](https://xstate.js.org/docs/recipes/vue.html) instead, or use the [`xstate-vue2` package](https://github.com/ChrisShank/xstate-vue2) if you want to use the Vue Composition API.
 
+## Requirements
+
+<!-- supported Vue versions from package.json#peerDependencies.vue -->
+
+Vue 3.2 or later is required. Actors stop when their owning effect scope is disposed. See [Share actors](docs/shared-actors.md) for sharing an actor across components.
+
 ## Quick start
 
 1. Install `xstate` and `@xstate/vue`:
