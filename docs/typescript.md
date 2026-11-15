@@ -102,11 +102,38 @@ on: {
 
 Known reserved descriptors in `on` carry their actual event payloads: actor completion, error and snapshot events; execution errors; state completion; delayed events; and state or actor timeouts. Bare `xstate.error.actor` handlers receive `event.error` and `event.actorId`. Suffixed v5 descriptors such as `xstate.done.actor.fetchUser` never match, because v6 lifecycle event types carry the id in a payload field; `createMachine` throws when `on` uses one. Wildcards over a category type, such as `xstate.done.actor.*`, still match. Use `xstate.error.actor` and filter `event.actorId` explicitly when handling a particular child.
 
+## Events in callbacks
+
+<!-- machine callback events from packages/core/src/types.v6.ts and packages/core/src/setup.ts -->
+
+Entry, exit, eventless transitions, choice functions, invoke source and input
+resolvers, delay and timeout resolvers, initial input mappers, and final-state
+output mappers can receive internal runtime events. These include initialization,
+actor and state completion, actor errors, delayed transitions, timeouts,
+snapshots, execution errors, and routing. Check `event.type` before reading a
+public event's payload:
+
+```ts
+entry: ({ event }) => {
+  if (event.type === 'search') {
+    console.log(event.query); // string, when declared in schemas.events
+  }
+}
+```
+
+Wildcard transitions can also receive internal events. A transition for a
+specific event, including `invoke.onDone` or `invoke.onError`, retains its
+specific payload type. Runtime events do not become public events accepted by
+`actor.send(...)` or `actor.trigger`.
+
+Named actions and guards receive the parameters passed by their caller. They
+do not receive injected machine arguments. Pass a narrowed event or its payload
+when calling them.
+
 ## Child completion events
 
-Children declared in `schemas.children` add their `xstate.done.actor` and
-`xstate.error.actor` events to the event union seen by `entry`, `exit`, guards
-and transition functions. `event.actorId` is the declared child id, and
+Children declared in `schemas.children` type the `xstate.done.actor` and
+`xstate.error.actor` payloads seen by general callbacks. `event.actorId` is the declared child id, and
 `event.output` is that child's output type:
 
 ```ts
@@ -117,8 +144,10 @@ entry: ({ event }) => {
 }
 ```
 
-Without `schemas.children`, these events are not added. `on` handlers still
-narrow to their own event type.
+Without `schemas.children`, general callbacks receive completion events with
+`unknown` output and error payloads. Use a registered source or `createInvoke`
+to read a typed payload in `onDone` or `onError`. `on` handlers still narrow to
+their own event type.
 
 ## Async logic errors
 

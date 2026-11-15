@@ -1,3 +1,4 @@
+import { assertEvent } from '../src/assert.ts';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { createMachine, createActor, setup } from '../src/index.ts';
 import { builtInActions } from '../src/actions.ts';
@@ -600,6 +601,7 @@ describe('delayed transitions', () => {
         delays: {
           someDelay: ({ event }) => {
             spy(event);
+            assertEvent(event, 'ACTIVATE');
             return event.delay;
           }
         },

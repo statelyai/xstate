@@ -1,3 +1,4 @@
+import { assertEvent } from '../src/assert.ts';
 import { z } from 'zod';
 import { assert } from 'vitest';
 import {
@@ -236,7 +237,10 @@ describe('final states', () => {
         },
         end: {
           type: 'final',
-          output: ({ event }) => event.value * 2
+          output: ({ event }) => {
+            assertEvent(event, 'FINISH');
+            return event.value * 2;
+          }
         }
       }
     });

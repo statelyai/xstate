@@ -197,11 +197,10 @@ describe('invoke', () => {
         },
         success: {
           type: 'final',
-          entry: ({ context, event }) => ({
-            context: {
-              user: event.user
-            }
-          })
+          entry: ({ event }) => {
+            assertEvent(event, 'RESOLVE');
+            return { context: { user: event.user } };
+          }
         },
         failure: {
           entry: ({ parent }, enq) => {

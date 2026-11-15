@@ -216,12 +216,21 @@ describe('child completion events in resolver event unions', () => {
     expect(true).toBe(true);
   });
 
-  it('does not add completion events without declared children', () => {
+  it('includes unknown completion payloads without declared children', () => {
     setup({
       schemas: { events: { go: z.object({}) } }
     }).createMachine({
       entry: ({ event }) => {
+        // @ts-expect-error Internal events are possible without declared children.
         expectType<{ type: 'go' }>(event);
+        if (event.type === 'go') {
+          expectType<{ type: 'go' }>(event);
+        }
+        if (event.type === 'xstate.done.actor') {
+          expectType<unknown>(event.output);
+          // @ts-expect-error Undeclared child output is unknown.
+          expectType<string>(event.output);
+        }
       }
     });
 
