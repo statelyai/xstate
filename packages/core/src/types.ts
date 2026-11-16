@@ -1287,7 +1287,7 @@ export type ContextFactory<
       any // the machine's state schema is not in scope; `any` keeps every state id indexable
     >,
     TEvent,
-    TEmitted
+    string extends TEmitted['type'] ? AnyEventObject : TEmitted
   >;
 }) => [TContext] extends [never] ? MachineContext : TContext;
 
@@ -1645,7 +1645,7 @@ export type Mapper<
         any // the machine's state schema is not in scope; `any` keeps every state id indexable
       >,
       TEvent,
-      TEmitted
+      string extends TEmitted['type'] ? AnyEventObject : TEmitted
     >;
   } & OutputArg<TExpressionEvent>
 ) => TResult;

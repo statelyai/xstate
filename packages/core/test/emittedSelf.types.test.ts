@@ -260,6 +260,69 @@ describe('emitted events on machine self (#4836)', () => {
     });
   });
 
+  it('preserves untyped listener payloads during context initialization', () => {
+    createMachine({
+      context: ({ self }) => {
+        self.on('progress', (event) => expectType<number>(event.percent));
+        return {};
+      }
+    });
+    createMachine({
+      schemas: { context: types<{}>() },
+      context: ({ self }) => {
+        self.on('progress', (event) => expectType<number>(event.percent));
+        return {};
+      }
+    });
+    setup({}).createMachine({
+      context: ({ self }) => {
+        self.on('progress', (event) => expectType<number>(event.percent));
+        return {};
+      }
+    });
+    setup({ schemas: { context: types<{}>() } }).createMachine({
+      context: ({ self }) => {
+        self.on('progress', (event) => expectType<number>(event.percent));
+        return {};
+      }
+    });
+  });
+
+  it('preserves untyped listener payloads in output mappers', () => {
+    createMachine({
+      output: ({ self }) => {
+        self.on('progress', (event) => expectType<number>(event.percent));
+        return {};
+      }
+    });
+    setup({}).createMachine({
+      output: ({ self }) => {
+        self.on('progress', (event) => expectType<number>(event.percent));
+        return {};
+      }
+    });
+  });
+
+  it('rejects listeners during context initialization for an empty emitted schema', () => {
+    createMachine({
+      schemas: { emitted: {} },
+      context: ({ self }) => {
+        // @ts-expect-error no emitted names are declared
+        self.on('progress', () => {});
+        self.on('*', (event) => expectType<never>(event));
+        return {};
+      }
+    });
+    setup({ schemas: { emitted: {} } }).createMachine({
+      context: ({ self }) => {
+        // @ts-expect-error no emitted names are declared
+        self.on('progress', () => {});
+        self.on('*', (event) => expectType<never>(event));
+        return {};
+      }
+    });
+  });
+
   it('rejects named listeners for an empty emitted schema', () => {
     setup({ schemas: { emitted: {} } }).createMachine({
       entry: ({ self }) => {
