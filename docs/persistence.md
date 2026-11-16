@@ -57,7 +57,7 @@ The option applies to the whole tree, not to a single placement boundary. Persis
 
 Persisted children changed shape in v6: each entry carries an `address` field and either an embedded `snapshot` or a `remote: true` marker. A remote entry may also carry an opaque `incarnation` token, round-tripped verbatim: XState never stamps one, but a host that does gets stale-completion protection on the referencing side and the token on journaled `sendTo` descriptors. Snapshots persisted by v5 or by v6 alphas use other shapes and are not read on restore; discard them or convert them before restoring. See the [migration guide](xstate-v5-to-v6.md#29-names-changed-during-the-v6-prereleases).
 
-A timer persisted from a running actor carries its wall-clock start (`scheduledAt`), and restoring the snapshot schedules the remaining time toward the original deadline. A timer past due fires immediately. Snapshots produced only by pure transitions carry no timestamp, so restoring one restarts each timer with its declared delay. A [durable execution](durable-execution.md) records timer starts when scheduling effects succeed; await `executeEffects()` before persisting its checkpoint to preserve deadlines. A custom adapter clock must use the same time origin when restoring.
+For timer restoration, clock limitations and application policies, see [Persist timers](#persist-timers).
 
 For a host-driven durable loop, use `execution.restore(persistedSnapshot)` from
 `xstate/durable`, then `execution.executeEffects(effects)` to resume embedded
@@ -66,6 +66,155 @@ checkpoint and pass it to the next execution's adapter. See
 [durable checkpoint restoration](durable-execution.md).
 
 An actor's address is the `/`-joined path of actor ids from the root, such as `order/worker:0`. It is stable across persistence and restore, unlike `sessionId`, which identifies one incarnation. Generated child ids are recorded in each snapshot's `nextActorIds`, so restored actors keep numbering where they left off.
+
+## Persist timers
+
+With the default actor clock, a timer persisted from a running actor includes its start time (`scheduledAt`). `restoreActor(...).start()` schedules the remaining duration toward the original deadline, including time while the application was offline. A timer past its deadline is scheduled with a zero delay. Its event is delivered asynchronously by the clock, rather than synchronously during restoration. Timer delivery can occur later if the event loop is busy.
+
+For a 10-second timer started at t=0, saved and stopped at t=4, and restored at t=7:
+
+| Policy | Wait after restore | Completion time | How to implement |
+| --- | --- | --- | --- |
+| Preserve the original deadline, including downtime | 3 seconds | t=10 | Default clock restoration |
+| Pause while offline, resume saved remaining duration | 6 seconds | t=13 | Explicit pause/resume states and context |
+| Restart the full delay | 10 seconds | t=17 | Explicit reentry into the timed state |
+
+There is no restore-policy option. Model pause and restart behavior with states and events. Do not edit snapshot timer fields or private snapshot internals to select a policy.
+
+### Preserve the original deadline
+
+Save before calling `stop()`. Stopping cancels pending timers and produces a stopped actor, which cannot resume when restored. This example uses the default clock and round-trips through JSON. Call `resumeDeadline()` to obtain the restored actor at t=7; it reaches `done` about three seconds later.
+
+<!-- tested example: packages/core/test/fixtures/timer-persistence/deadline.ts -->
+```ts
+import { createActor, createMachine } from 'xstate';
+import { restoreActor } from 'xstate/persist';
+
+const wait = (ms: number) =>
+  new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+const machine = createMachine({
+  initial: 'waiting',
+  states: {
+    waiting: {
+      after: { 10_000: { target: 'done' } }
+    },
+    done: { type: 'final' }
+  }
+});
+
+export async function resumeDeadline() {
+  const actor = createActor(machine).start();
+  await wait(4_000);
+  const stored = JSON.stringify(actor.getPersistedSnapshot());
+  actor.stop();
+
+  await wait(3_000);
+  const restored = restoreActor(machine, JSON.parse(stored)).start();
+  return restored;
+}
+```
+
+Restoration does not rerun `entry` functions or immediately reevaluate `always` transitions. Pending timers are resumed separately. An `entry` function that computes a new deadline therefore does not select a restore policy.
+
+### Restart the full delay
+
+After restoration, send an event that targets the timed state with `reenter: true`. Reentry exits the state, cancels its restored timer, runs entry behavior and schedules a new timer. Call `restartDelay()` for the same t=4 save and t=7 restore; it reaches `done` at about t=17.
+
+<!-- tested example: packages/core/test/fixtures/timer-persistence/restart.ts -->
+```ts
+import { createActor, createMachine } from 'xstate';
+import { restoreActor } from 'xstate/persist';
+
+const wait = (ms: number) =>
+  new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+const machine = createMachine({
+  initial: 'waiting',
+  states: {
+    waiting: {
+      after: { 10_000: { target: 'done' } },
+      on: { restart: { target: 'waiting', reenter: true } }
+    },
+    done: { type: 'final' }
+  }
+});
+
+export async function restartDelay() {
+  const actor = createActor(machine).start();
+  await wait(4_000);
+  const stored = JSON.stringify(actor.getPersistedSnapshot());
+  actor.stop();
+
+  await wait(3_000);
+  const restored = restoreActor(machine, JSON.parse(stored)).start();
+  restored.send({ type: 'restart' });
+  return restored;
+}
+```
+
+Send `restart` synchronously after `start()`, before the default clock can deliver an overdue timer. An event sent later may arrive after the timer has already transitioned the actor. Reentry also restarts work invoked by that state.
+
+### Pause elapsed time while offline
+
+Before saving, send `pause`. The transition stores the remaining duration and exits the timed state, canceling its timer. Restore in `paused`, then send `resume` to enter `running` with the saved duration. Call `resumeRemaining()` to resume six seconds of remaining time at t=7; it reaches `done` at about t=13.
+
+<!-- tested example: packages/core/test/fixtures/timer-persistence/pause.ts -->
+```ts
+import { createActor, setup } from 'xstate';
+import { restoreActor } from 'xstate/persist';
+
+const wait = (ms: number) =>
+  new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+const machine = setup({
+  delays: { remaining: ({ context }) => context.remainingMs }
+}).createMachine({
+  context: { remainingMs: 10_000, deadline: 0 },
+  initial: 'running',
+  states: {
+    running: {
+      entry: ({ context }) => ({
+        context: { deadline: Date.now() + context.remainingMs }
+      }),
+      after: { remaining: { target: 'done' } },
+      on: {
+        pause: ({ context }) => ({
+          target: 'paused',
+          context: { remainingMs: Math.max(0, context.deadline - Date.now()) }
+        })
+      }
+    },
+    paused: { on: { resume: { target: 'running' } } },
+    done: { type: 'final' }
+  }
+});
+
+export async function resumeRemaining() {
+  const actor = createActor(machine).start();
+  await wait(4_000);
+  actor.send({ type: 'pause' });
+  const stored = JSON.stringify(actor.getPersistedSnapshot());
+  actor.stop();
+
+  await wait(3_000);
+  const restored = restoreActor(machine, JSON.parse(stored)).start();
+  restored.send({ type: 'resume' });
+  return restored;
+}
+```
+
+The `remaining` delay is computed when the timer is scheduled. Updating `remainingMs` later does not change an already scheduled timer. Each resume enters `running` and computes a new deadline. A remaining duration of zero schedules an asynchronous zero-delay timer.
+
+This policy requires a pause checkpoint before shutdown. A crash before that checkpoint restores the last stored state and its original timer policy. Persist the paused snapshot successfully before treating the workflow as paused. The calculation above uses `Date.now()`; clock adjustments can affect the measured elapsed duration.
+
+### Clocks and pure snapshots
+
+Ordinary actors distinguish clocks by whether they expose `now()`. With the default clock, XState compares persisted deadlines with `Date.now()`. A custom clock without `now()` must schedule delays in the same wall-clock time domain for that comparison to be meaningful.
+
+With a clock that exposes `now()`, including `SimulatedClock`, ordinary actor restoration restarts each timer's full declared delay. It does not preserve elapsed time or implement pause/resume, even when both clock instances share a time origin. Results from simulated-clock restoration therefore do not establish default wall-clock behavior. Avoid changing clock domains between saving and restoring. With the default clock, a backward wall-clock adjustment can extend the remaining time, capped at the declared delay.
+
+A snapshot produced only by pure transitions has no timer start timestamp. Restoring it starts each timer with its declared delay. A [durable execution](durable-execution.md#durable-timers) records timer starts when scheduling effects succeed. Await `executeEffects()` before persisting its checkpoint to preserve deadlines. Durable adapter clocks use `now()` for deadline restoration and must share a time origin across executions. This adapter contract differs from ordinary actor clocks.
 
 ## Compatibility
 
