@@ -7,6 +7,7 @@ import type { Spawner } from './spawn.ts';
 import type { ActorLogicValidator } from './validation.types.ts';
 import {
   AnyActorRef,
+  ContextFactory,
   AnyStateMachine,
   EventObject,
   AnyEventObject,
@@ -199,7 +200,8 @@ export function createMachine<
       TSS,
       InferOutput<TContextSchema, MachineContext>,
       | InferEvents<TEventSchemaMap>
-      | InferInternalEvents<TInternalEventSchemaMap>
+      | InferInternalEvents<TInternalEventSchemaMap>,
+      InferEvents<TEmittedSchemaMap>
     >
 ): [TSS] extends [never]
   ? AnyStateMachine
@@ -334,13 +336,23 @@ export function createMachine<
             spawn: Spawner;
             actors: TActorMap;
             input: InferOutput<TInputSchema, unknown>;
-            self: any;
+            self: Parameters<
+              ContextFactory<
+                MachineContext,
+                TActorMap,
+                InferOutput<TInputSchema, unknown>,
+                | InferEvents<TEventSchemaMap>
+                | InferInternalEvents<TInternalEventSchemaMap>,
+                InferEvents<TEmittedSchemaMap>
+              >
+            >[0]['self'];
           }) => TContext);
     } & ValidateTopLevelFinalOutputs<
       TSS,
       WidenLiterals<TContext>,
       | InferEvents<TEventSchemaMap>
-      | InferInternalEvents<TInternalEventSchemaMap>
+      | InferInternalEvents<TInternalEventSchemaMap>,
+      InferEvents<TEmittedSchemaMap>
     >
 ): [TSS] extends [never]
   ? AnyStateMachine
