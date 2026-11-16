@@ -129,6 +129,8 @@ Start Effect-backed logic with `createEffectActor` inside an Effect scope.
 
 Declared Effect actions infer context and event types from `setupEffect({ schemas })`, including schemas inherited through `extend`. See [Action argument types](docs/schemas-and-actions.md#action-argument-types) for custom arguments and safe defaults.
 
+Registered action keys also identify their transition descriptors. See [Action descriptor names](docs/schemas-and-actions.md#action-descriptor-names) when inspecting enqueued actions or handling them in a durable adapter.
+
 ## Guides
 
 | Guide | Examples |

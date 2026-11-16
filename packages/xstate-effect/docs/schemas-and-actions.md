@@ -248,6 +248,12 @@ The action function is called synchronously during the transition. The returned 
 
 </details>
 
+## Action descriptor names
+
+The action descriptors returned by `initialTransition()` and `transition()` use `kind: 'action'` and the registered action key as their `type`. For example, an action registered as `audit` and enqueued with `enq(actions.audit, args)` produces an action descriptor with `type: 'audit'`.
+
+Use the registered keys when identifying enqueued actions in transition results, inspection, or a durable adapter's `executeAction` handler. The `xstate.` and `@xstate.` prefixes are reserved for internal names.
+
 ## Provide an action
 
 Use `machine.provide({ actions })` to replace an action for a particular environment. The provided machine requires the replacement's services. In this example, an audit implementation adds the `Audit` service:
