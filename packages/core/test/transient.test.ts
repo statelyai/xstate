@@ -1,5 +1,11 @@
 import { z } from 'zod';
-import { createMachine, createActor, matchesState } from '../src/index';
+import {
+  createMachine,
+  createActor,
+  matchesState,
+  initialTransition,
+  transition
+} from '../src/index';
 
 const greetingContext = { hour: 10 };
 const greetingMachine = createMachine({
@@ -873,5 +879,106 @@ describe('transient states (eventless transitions)', () => {
       // during the pure transition before executable effects run
       [0]
     ]);
+  });
+
+  it('should call a taken eventless transition function once per microstep', () => {
+    const calls = { event: 0, always: 0 };
+    const machine = createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            GO: () => {
+              calls.event++;
+              return { target: 'checking' };
+            }
+          }
+        },
+        checking: {
+          always: () => {
+            calls.always++;
+            return { target: 'done' };
+          }
+        },
+        done: {}
+      }
+    });
+
+    const [start] = initialTransition(machine);
+    transition(machine, start, { type: 'GO' });
+    expect(calls).toEqual({ event: 1, always: 1 });
+
+    calls.event = 0;
+    calls.always = 0;
+    const actor = createActor(machine).start();
+    actor.send({ type: 'GO' });
+    expect(actor.getSnapshot().value).toEqual('done');
+    expect(calls).toEqual({ event: 1, always: 1 });
+  });
+
+  it('should execute the evaluation that selected an eventless transition', () => {
+    let n = 0;
+    const machine = createMachine({
+      initial: 'checking',
+      states: {
+        checking: {
+          always: () => {
+            n++;
+            return n === 1 ? { target: 'first' } : { target: 'second' };
+          }
+        },
+        first: {},
+        second: {}
+      }
+    });
+
+    const actor = createActor(machine).start();
+    expect(actor.getSnapshot().value).toEqual('first');
+    expect(n).toBe(1);
+  });
+
+  it('should take an eventless transition selected by the first evaluation', () => {
+    let n = 0;
+    const machine = createMachine({
+      initial: 'checking',
+      states: {
+        checking: {
+          always: () => {
+            n++;
+            return n === 1 ? { target: 'done' } : undefined;
+          }
+        },
+        done: {}
+      }
+    });
+
+    const actor = createActor(machine).start();
+    expect(actor.getSnapshot().value).toEqual('done');
+    expect(n).toBe(1);
+  });
+
+  it('should evaluate a shared ancestor eventless transition function once per microstep', () => {
+    let n = 0;
+    const machine = createMachine({
+      initial: 'par',
+      states: {
+        par: {
+          type: 'parallel',
+          states: {
+            a: { initial: 'a1', states: { a1: {} } },
+            b: { initial: 'b1', states: { b1: {} } }
+          },
+          always: () => {
+            n++;
+            return n === 1 ? { target: 'done' } : undefined;
+          }
+        },
+        done: {}
+      }
+    });
+
+    const actor = createActor(machine).start();
+    expect(actor.getSnapshot().value).toEqual('done');
+    expect(n).toBe(1);
   });
 });

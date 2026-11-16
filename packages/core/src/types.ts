@@ -110,7 +110,8 @@ export interface ParameterizedObject {
 export type UnifiedArg<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TEvent extends EventObject
+  TEvent extends EventObject,
+  TEmitted extends EventObject = AnyEventObject
 > = {
   context: TContext;
   event: TExpressionEvent;
@@ -126,7 +127,7 @@ export type UnifiedArg<
       any // the machine's state schema is not in scope; `any` keeps every state id indexable
     >,
     TEvent,
-    AnyEventObject
+    TEmitted
   >;
   system: AnyActorSystem;
 } & OutputArg<TExpressionEvent>;
@@ -149,8 +150,9 @@ export type OutputArg<TEvent extends EventObject> = [TEvent] extends [never]
 export type ActionArgs<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TEvent extends EventObject
-> = UnifiedArg<TContext, TExpressionEvent, TEvent> & {
+  TEvent extends EventObject,
+  TEmitted extends EventObject = AnyEventObject
+> = UnifiedArg<TContext, TExpressionEvent, TEvent, TEmitted> & {
   children: Record<string, AnyActor>;
 };
 
@@ -301,7 +303,8 @@ export type TransitionContextMapper<
   TActorMap extends Sources['actors'],
   TGuardMap extends Sources['guards'],
   TDelayMap extends Sources['delays'],
-  _TCtx extends MachineContext = [TContext] extends [never] ? any : TContext
+  _TCtx extends MachineContext = [TContext] extends [never] ? any : TContext,
+  TEmitted extends EventObject = EventObject
 > = (
   args: TransitionFunctionArgs<
     _TCtx,
@@ -310,7 +313,9 @@ export type TransitionContextMapper<
     TActionMap,
     TActorMap,
     TGuardMap,
-    TDelayMap
+    TDelayMap,
+    Record<string, AnyActor>,
+    TEmitted
   >
 ) => TransitionContextPatch<_TCtx>;
 
@@ -341,7 +346,9 @@ export interface TransitionConfig<
         TActionMap,
         TActorMap,
         TGuardMap,
-        TDelayMap
+        TDelayMap,
+        TContext,
+        TEmitted
       >;
   to?: TransitionConfigFunction<
     TContext,
@@ -652,7 +659,8 @@ export type TransitionConfigFunction<
     TActorMap,
     TGuardMap,
     TDelayMap,
-    TChildren
+    TChildren,
+    TEmitted
   > & { input: TInput },
   enq: EnqueueObject<
     TEvent,
@@ -708,7 +716,8 @@ type TransitionFunctionArgs<
   TChildren extends Record<string, AnyActorRef | undefined> = Record<
     string,
     AnyActor
-  >
+  >,
+  TEmitted extends EventObject = EventObject
 > = {
   context: TContext;
   event: TCurrentEvent;
@@ -723,7 +732,8 @@ type TransitionFunctionArgs<
       MetaObject,
       any // the machine's state schema is not in scope; `any` keeps every state id indexable
     >,
-    TEvent
+    TEvent,
+    TEmitted
   >;
   parent: UnknownActorRef | undefined;
   value: StateValue;
@@ -1245,15 +1255,17 @@ export type InitialContext<
   TContext extends MachineContext,
   TActorMap extends Sources['actors'],
   TInput,
-  TEvent extends EventObject
-> = TContext | ContextFactory<TContext, TActorMap, TInput, TEvent>;
+  TEvent extends EventObject,
+  TEmitted extends EventObject = AnyEventObject
+> = TContext | ContextFactory<TContext, TActorMap, TInput, TEvent, TEmitted>;
 
 /** @public */
 export type ContextFactory<
   TContext extends MachineContext,
   TActorMap extends Sources['actors'],
   TInput,
-  TEvent extends EventObject = EventObject
+  TEvent extends EventObject = EventObject,
+  TEmitted extends EventObject = AnyEventObject
 > = ({
   spawn,
   actors,
@@ -1275,7 +1287,7 @@ export type ContextFactory<
       any // the machine's state schema is not in scope; `any` keeps every state id indexable
     >,
     TEvent,
-    AnyEventObject
+    string extends TEmitted['type'] ? AnyEventObject : TEmitted
   >;
 }) => [TContext] extends [never] ? MachineContext : TContext;
 
@@ -1614,7 +1626,8 @@ export type Mapper<
   TExpressionEvent extends EventObject,
   TResult,
   TEvent extends EventObject,
-  _TCtx extends MachineContext = [TContext] extends [never] ? any : TContext
+  _TCtx extends MachineContext = [TContext] extends [never] ? any : TContext,
+  TEmitted extends EventObject = AnyEventObject
 > = (
   args: {
     context: _TCtx;
@@ -1632,7 +1645,7 @@ export type Mapper<
         any // the machine's state schema is not in scope; `any` keeps every state id indexable
       >,
       TEvent,
-      AnyEventObject
+      string extends TEmitted['type'] ? AnyEventObject : TEmitted
     >;
   } & OutputArg<TExpressionEvent>
 ) => TResult;
@@ -3592,7 +3605,8 @@ export type Action<
         MetaObject,
         any // the machine's state schema is not in scope; `any` keeps every state id indexable
       >,
-      TEvent
+      TEvent,
+      TEmittedEvent
     >;
     children: Record<string, AnyActor | undefined>;
     actions: TActionMap;

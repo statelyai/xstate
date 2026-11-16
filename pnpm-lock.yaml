@@ -3384,6 +3384,9 @@ importers:
       '@vitejs/plugin-vue':
         specifier: ^6.0.8
         version: 6.0.8(vite@6.4.3(@types/node@25.2.1)(jiti@2.7.0)(sass@1.97.3)(terser@5.49.0)(tsx@4.23.13)(yaml@2.9.0))(vue@3.5.17(typescript@7.0.2))
+      '@vueuse/shared':
+        specifier: ^15.0.0
+        version: 15.0.0(vue@3.5.17(typescript@7.0.2))
       vue:
         specifier: 3.5.17
         version: 3.5.17(typescript@7.0.2)
@@ -7511,6 +7514,12 @@ packages:
 
   '@vue/test-utils@2.4.6':
     resolution: {integrity: sha512-FMxEjOpYNYiFe0GkaHsnJPXFHxQ6m4t8vI/ElPGpMWxZKpmRvQ33OIrvRXemy6yha03RxhOlQuy+gZMC3CQSow==, tarball: https://registry.npmjs.org/@vue/test-utils/-/test-utils-2.4.6.tgz}
+
+  '@vueuse/shared@15.0.0':
+    resolution: {integrity: sha512-vbNXhGrbV53xPOMSyOzMHQRvhMgZf7oNDw2RChUetVxwTIEkInQ1joZ9JbT0G3z2n2AJNjvmCWeM9ySYrnvogA==}
+    engines: {node: '>=22'}
+    peerDependencies:
+      vue: 3.5.17
 
   abbrev@2.0.0:
     resolution: {integrity: sha512-6/mh1E2u2YgEsCHdY0Yx5oW+61gZU+1vXaoiHHrpKeuRNNgFvS+/jrwHiQhB5apAf5oB7UB7E19ol2R2LKH8hQ==, tarball: https://registry.npmjs.org/abbrev/-/abbrev-2.0.0.tgz}
@@ -14841,6 +14850,10 @@ snapshots:
     dependencies:
       js-beautify: 1.15.4
       vue-component-type-helpers: 2.2.12
+
+  '@vueuse/shared@15.0.0(vue@3.5.17(typescript@7.0.2))':
+    dependencies:
+      vue: 3.5.17(typescript@7.0.2)
 
   abbrev@2.0.0: {}
 

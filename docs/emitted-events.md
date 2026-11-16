@@ -125,6 +125,26 @@ schemas: {
 }
 ```
 
+The callback `self` argument retains the same emitted-event types in `setup(...).createMachine(...)` and `createMachine(...)`. This applies to context initialization, entry and exit actions, transitions, and output mappers. You can pass `self` as child input when the child expects an `ActorRef` with those emitted events.
+
+<!-- emitted-event typing in machine callbacks from packages/core/src/types.ts and packages/core/src/types.v6.ts -->
+
+```ts
+const machine = setup({
+  schemas: {
+    emitted: { progress: types<{ percent: number }>() }
+  }
+}).createMachine({
+  entry: ({ self }) => {
+    self.on('progress', (event) => {
+      console.log(event.percent); // number
+    });
+    // @ts-expect-error Unknown emitted-event type.
+    self.on('unknown', () => {});
+  }
+});
+```
+
 Without `schemas.emitted`, any event type is allowed and handler payloads are not checked.
 
 ## Emitted events cheatsheet

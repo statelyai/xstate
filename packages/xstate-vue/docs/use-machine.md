@@ -66,13 +66,15 @@ Options are read once, when the component sets up. Changing the values later doe
 
 ## Lifecycle
 
-The actor is created during `setup()`, started in `onMounted`, and stopped in `onBeforeUnmount`.
+<!-- lifecycle from ../src/useActorRef.ts -->
+
+The actor is created during `setup()`, started in `onMounted`, and stopped in `onScopeDispose` when its owning effect scope ends. For a composable called directly in component setup, that scope ends when the component unmounts.
 
 - The initial snapshot is readable before mount, so the first render is never empty.
 - Events sent before mount are queued in the actor's mailbox and processed once it starts.
-- On unmount the actor is stopped: invoked children stop, delayed transitions are cancelled and further events are ignored.
+- On scope disposal the actor is stopped: invoked children stop, delayed transitions are cancelled and further events are ignored.
 
-State does not survive unmount. Persist the snapshot if the actor should resume later. See [Input and restored snapshots](input-and-snapshots.md).
+State does not survive scope disposal. With a [shared composable](shared-actors.md#shared-composables), the actor stays active until the last consumer disposes. Persist the snapshot if the actor should resume after disposal. See [Input and restored snapshots](input-and-snapshots.md).
 
 > **Warning:** These composables register lifecycle hooks, so call them synchronously in `setup()` or `<script setup>`. Calling them in an event handler leaves the actor unstarted and unstopped.
 
@@ -86,7 +88,7 @@ const actorRef = useActorRef(checkoutMachine, { input: { cartId } }, (s) => {
 });
 ```
 
-The third argument is an observer or a listener function. It is subscribed on mount and unsubscribed on unmount.
+The third argument is an observer or a listener function. It is subscribed on mount and unsubscribed when the owning effect scope is disposed.
 
 Pair it with [`useSelector(...)`](selectors.md) when a component needs one value from a large actor, and with [provide/inject](shared-actors.md) when descendants need the same actor.
 

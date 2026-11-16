@@ -1,6 +1,6 @@
 {
   "name": "@xstate/effect",
-  "version": "1.0.0-beta.1",
+  "version": "1.0.0-beta.2",
   "type": "module",
   "description": "Effect integration for XState",
   "keywords": [

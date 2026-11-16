@@ -68,6 +68,10 @@ Common examples include:
 - waiting before retrying a failed request
 - debouncing search input by canceling the previous delayed event
 
+## Persistence
+
+With the default clock, saving a running actor and restoring it preserves each timer's original deadline, including downtime. Pause/resume and full-delay restart require explicit application behavior. Clocks exposing `now()`, including `SimulatedClock`, restart the declared delay on ordinary actor restoration. See [Persist timers](persistence.md#persist-timers) for the policies, clock limitations and complete examples.
+
 ## TypeScript
 
 Named delay references are checked against configured delay sources.
