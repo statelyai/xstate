@@ -113,6 +113,10 @@ Two rules apply to either choice:
 
 The same two calls work outside the browser: read a snapshot from your database instead of `localStorage`, and save it back after handling a request. A server actor usually lives for one request, so save once at the end rather than on every change. See [run backend workflows](backend-workflows.md).
 
+## Timers across shutdown
+
+Save a running actor before calling `stop()`. With the default clock, pending timers preserve their original deadlines, including downtime. An overdue timer is scheduled with zero delay after restoration. To exclude downtime, save an explicit paused state with the remaining duration. To restart a full delay, reenter the timed state after restoration. See [Persist timers](persistence.md#persist-timers) for runnable examples and custom clock limitations.
+
 ## What next?
 
 - [Persistence](persistence.md) for the full API, snapshot migration and event adaptation.
