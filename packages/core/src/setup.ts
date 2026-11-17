@@ -674,6 +674,22 @@ declare const relativeSetupStateSchemas: unique symbol;
 declare const rootSetupStateSchemas: unique symbol;
 declare const currentSetupStateSchema: unique symbol;
 declare const parentSetupStateType: unique symbol;
+declare const ancestorSetupStateContext: unique symbol;
+
+/** @experimental Type-level plumbing for context retained by sibling-relative targets. */
+export type SetupStateAncestorContextMarker<TContext> = {
+  readonly [ancestorSetupStateContext]: TContext;
+};
+
+type SetupStateAncestorContext<TStates> =
+  TStates extends SetupStateAncestorContextMarker<infer TContext>
+    ? TContext
+    : {};
+
+type SetupStateContextWithAncestors<TStates, TContext> =
+  TStates extends SetupStateAncestorContextMarker<infer TAncestorContext>
+    ? TContext & TAncestorContext & RootContextMarker<TContext>
+    : TContext;
 
 // Named, like `RootContextMarker`, so declaration emit can reference these
 // markers instead of expanding their private unique-symbol keys into exported
@@ -829,8 +845,10 @@ type SetupStateTransitionChildSchemas<TStateSchema extends SetupStateSchema> =
 type SetupStateTransitionSchemas<
   TSiblingStateSchemas extends Record<string, SetupStateSchema>,
   TStateSchema extends SetupStateSchema
-> =
-  IsParallelSetupStateParent<TSiblingStateSchemas> extends true
+> = SetupStateAncestorContextMarker<
+  SetupStateAncestorContext<TSiblingStateSchemas>
+> &
+  (IsParallelSetupStateParent<TSiblingStateSchemas> extends true
     ? StrictSetupStateSchemas<
         {},
         SetupStateTransitionChildSchemas<TStateSchema>,
@@ -855,7 +873,7 @@ type SetupStateTransitionSchemas<
               {},
               RootSetupStateSchemas<TSiblingStateSchemas>,
               SetupStateSelfSchema<TStateSchema>
-            >;
+            >);
 
 type SetupStateChildSchemas<TStateSchema extends SetupStateSchema> =
   TStateSchema['states'] extends Record<string, SetupStateSchema>
@@ -912,6 +930,11 @@ type SetupStateSchemaAtTarget<
     : never
   : never;
 
+type SetupStateContextRefinement<TState extends SetupStateSchema> =
+  TState['schemas'] extends { context: infer TSchema extends StandardSchemaV1 }
+    ? StandardSchemaV1.InferOutput<TSchema>
+    : {};
+
 type SetupStateContextAtPath<
   TStates extends Record<string, SetupStateSchema>,
   TSegments extends readonly string[],
@@ -921,14 +944,14 @@ type SetupStateContextAtPath<
   ...infer TRest extends string[]
 ]
   ? TRest extends []
-    ? TAncestorContext & StateContextShape<TStates[THead], {}>
+    ? TAncestorContext & SetupStateContextRefinement<TStates[THead]>
     : TStates[THead] extends {
           states: infer TChildren extends Record<string, SetupStateSchema>;
         }
       ? SetupStateContextAtPath<
           TChildren,
           TRest,
-          TAncestorContext & StateContextShape<TStates[THead], {}>
+          TAncestorContext & SetupStateContextRefinement<TStates[THead]>
         >
       : never
   : never;
@@ -939,14 +962,14 @@ type SetupStateContextAtId<
   TAncestorContext = {}
 > = {
   [K in keyof TStates & string]: TStates[K] extends { id: TId }
-    ? TAncestorContext & StateContextShape<TStates[K], {}>
+    ? TAncestorContext & SetupStateContextRefinement<TStates[K]>
     : TStates[K] extends {
           states: infer TChildren extends Record<string, SetupStateSchema>;
         }
       ? SetupStateContextAtId<
           TChildren,
           TId,
-          TAncestorContext & StateContextShape<TStates[K], {}>
+          TAncestorContext & SetupStateContextRefinement<TStates[K]>
         >
       : never;
 }[keyof TStates & string];
@@ -966,7 +989,11 @@ type SetupStateContextAtTarget<
         >
       : TTarget extends `#${infer TId}`
         ? SetupStateContextAtId<RootSetupStateSchemas<TStates>, TId>
-        : SetupStateContextAtPath<TStates, SplitSetupStatePath<TTarget>>);
+        : SetupStateContextAtPath<
+            TStates,
+            SplitSetupStatePath<TTarget>,
+            SetupStateAncestorContext<TStates>
+          >);
 
 type SetupStateSchemaAtId<
   TStateSchemas extends Record<string, SetupStateSchema>,
@@ -1037,16 +1064,21 @@ type ResolveStatePath<
 
 type ResolveStateSiblingsSegments<
   TStates extends Record<string, SetupStateSchema>,
-  TSegments extends readonly string[]
+  TSegments extends readonly string[],
+  TAncestorContext = {}
 > = TSegments extends [
   infer THead extends string,
   ...infer TRest extends string[]
 ]
   ? TRest extends []
-    ? TStates
+    ? TStates & SetupStateAncestorContextMarker<TAncestorContext>
     : THead extends keyof TStates
       ? TStates[THead]['states'] extends Record<string, SetupStateSchema>
-        ? ResolveStateSiblingsSegments<TStates[THead]['states'], TRest>
+        ? ResolveStateSiblingsSegments<
+            TStates[THead]['states'],
+            TRest,
+            TAncestorContext & SetupStateContextRefinement<TStates[THead]>
+          >
         : never
       : never
   : never;
@@ -1411,10 +1443,13 @@ type SetupStateNodeConfig<
   TStates,
   TStateSchema,
   SetupContext<TSchemas, StandardSchemaV1>,
-  SetupContextShape<
-    TSchemas,
-    StandardSchemaV1,
-    SetupContext<TSchemas, StandardSchemaV1>
+  SetupStateContextWithAncestors<
+    TStates,
+    SetupContextShape<
+      TSchemas,
+      StandardSchemaV1,
+      SetupContext<TSchemas, StandardSchemaV1>
+    >
   >,
   SetupEvents<TSchemas, Record<string, StandardSchemaV1>>,
   Cast<
@@ -3372,7 +3407,10 @@ type StateNodeConfigWithNestedInputBase<
     ? StatesWithInput<
         SetupStateSchemasWithParentType<
           WithRootSetupStateSchemas<
-            TStateSchema['states'],
+            TStateSchema['states'] &
+              SetupStateAncestorContextMarker<
+                ActiveStateContextShape<TStateSchema, TContextShape>
+              >,
             RootSetupStateSchemas<TSiblingStateSchemas>
           >,
           TStateSchema extends { type: infer TType extends SetupStateType }

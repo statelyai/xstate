@@ -60,3 +60,48 @@ it('requires ancestor context when targeting descendants', () => {
     }
   });
 });
+
+it('retains enclosing context for sibling-relative descendant targets', () => {
+  const s = setup({
+    schemas: {
+      context: types<{ id: string | null }>(),
+      events: { INVALID: types<{}>(), VALID: types<{}>(), LEAVE: types<{}>() }
+    },
+    states: {
+      outer: {
+        schemas: { context: types<{ id: string }>() },
+        states: { source: {}, branch: { states: { leaf: {} } } }
+      },
+      outside: { id: 'outside' }
+    }
+  });
+  s.createMachine({
+    context: { id: 'ok' },
+    initial: 'outer',
+    states: {
+      outer: {
+        initial: 'source',
+        states: {
+          source: {
+            on: {
+              // @ts-expect-error outer remains active and requires a string
+              INVALID: () => ({ target: 'branch.leaf', context: { id: null } }),
+              VALID: () => ({ target: 'branch.leaf', context: { id: 'ok' } }),
+              LEAVE: () => ({ target: '#outside', context: { id: null } })
+            }
+          },
+          branch: { initial: 'leaf', states: { leaf: {} } }
+        }
+      },
+      outside: { id: 'outside' }
+    }
+  });
+  s.createStateConfig('outer.source', {
+    on: {
+      // @ts-expect-error extracted state configs retain their enclosing refinement
+      INVALID: () => ({ target: 'branch.leaf', context: { id: null } }),
+      VALID: () => ({ target: 'branch.leaf', context: { id: 'ok' } }),
+      LEAVE: () => ({ target: '#outside', context: { id: null } })
+    }
+  });
+});
