@@ -125,3 +125,7 @@ The loader rejects unknown structural keys, string transition shorthand, missing
 JSON action lists execute in order. Later expressions observe context assigned by earlier actions. Assignments merge context shallowly; explicitly spread nested objects to preserve their other properties. Custom action implementations receive only their declared `params`, run as effects, and their return values are ignored. Use `@xstate.assign` to update context.
 
 JSON `schemas` describe data; they do not automatically validate it. Supply runtime Standard Schemas through `sources.schemas` and an actor logic validator through `sources.validator`, as with `setup({ schemas, validator })`. Restored code evaluators receive those runtime sources, including actions, guards, actors, and delays.
+
+## Rejection branches
+
+A transition can use `reject: [{ type: "email.required" }]` as its outcome. A passing `guard` consumes the event with those reasons; a failing guard allows the next branch or parent fallback. Rejection payloads support value expressions. See [rejections](rejections.md#json-definitions).

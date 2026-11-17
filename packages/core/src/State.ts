@@ -1,3 +1,4 @@
+import type { TransitionCheck, RejectionsFromConfig } from './rejections.ts';
 import { getTimerStart } from './timerClock.ts';
 import { getScheduledTimerKey, getTimerKey } from './timerKey.ts';
 import isDevelopment from '#is-development';
@@ -399,6 +400,9 @@ interface MachineSnapshotBase<
    */
   can: (event: TEvent) => boolean;
 
+  /** Checks event acceptance without executing effects. */
+  check: (event: TEvent) => TransitionCheck<RejectionsFromConfig<TStateSchema>>;
+
   getMeta: () => Record<
     StateId<TStateSchema> & string,
     TMeta | undefined // States might not have meta defined
@@ -594,6 +598,13 @@ const machineSnapshotCan = function can(
   return this.machine?._canTransition(this, event) ?? false;
 };
 
+const machineSnapshotCheck = function check(
+  this: AnyMachineSnapshot,
+  event: EventObject
+) {
+  return this.machine?._checkTransition(this, event) ?? { status: 'unhandled' };
+};
+
 const machineSnapshotToJSON = function toJSON(this: AnyMachineSnapshot) {
   const {
     nodes,
@@ -606,6 +617,7 @@ const machineSnapshotToJSON = function toJSON(this: AnyMachineSnapshot) {
     getInputs,
     toJSON,
     can,
+    check,
     hasTag,
     matches,
     ...jsonValues
@@ -684,6 +696,7 @@ export function createMachineSnapshot<
     matches: machineSnapshotMatches as never,
     hasTag: machineSnapshotHasTag,
     can: machineSnapshotCan,
+    check: machineSnapshotCheck as never,
     getMeta: machineSnapshotGetMeta,
     getInputs: machineSnapshotGetInputs,
     toJSON: machineSnapshotToJSON
@@ -725,6 +738,7 @@ export function cloneMachineSnapshot<TState extends AnyMachineSnapshot>(
       matches: machineSnapshotMatches as never,
       hasTag: machineSnapshotHasTag,
       can: machineSnapshotCan,
+      check: machineSnapshotCheck as never,
       getMeta: machineSnapshotGetMeta,
       getInputs: machineSnapshotGetInputs,
       toJSON: machineSnapshotToJSON
@@ -794,6 +808,7 @@ export function getPersistedSnapshot<
     timers,
     context,
     can,
+    check,
     hasTag,
     matches,
     getMeta,

@@ -158,7 +158,7 @@ Graph traversal requires samples for known event types with required payloads. P
 
 <!-- JSON loading and runtime validation from packages/core/src/machineFromJSON.ts -->
 
-Revive JSON definitions with `machineFromJSON(json, { schemas, validator, ...sources })` to restore runtime validation. The loader validates config keys and references. See [serialization](https://github.com/statelyai/xstate/blob/next/docs/serialization.md).
+Revive JSON definitions with `machineFromJSON(json, { schemas, validator, ...sources })` to restore runtime validation. The loader validates config keys and references. Guarded JSON branches can return `reject: [...]`; use `snapshot.check(event)` to read rejection reasons. See [rejections](https://github.com/statelyai/xstate/blob/next/docs/rejections.md). See [serialization](https://github.com/statelyai/xstate/blob/next/docs/serialization.md).
 
 For flat finite state machines, `xstate/fsm` provides a tiny pure transition
 table with context and TypeScript support:

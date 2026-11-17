@@ -269,6 +269,7 @@ function snapshotData(
     tags,
     matches,
     can,
+    check,
     hasTag,
     getMeta,
     getInputs,

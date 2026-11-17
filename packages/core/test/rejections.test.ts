@@ -1,0 +1,369 @@
+import { describe, expect, expectTypeOf, it, vi } from 'vitest';
+import {
+  createActor,
+  createMachine,
+  machineFromJSON,
+  machineToJSON,
+  setup,
+  types,
+  type RejectionFrom
+} from '../src/index.ts';
+
+describe('transition rejection', () => {
+  it('checks typed rejection reasons and consumes the event before parent fallback', () => {
+    const parent = vi.fn();
+    const machine = createMachine({
+      schemas: {
+        events: { submit: types<void>() },
+        rejections: {
+          'email.required': types<void>(),
+          'balance.insufficient': types<{
+            available: number;
+            required: number;
+          }>()
+        }
+      },
+      id: 'checkout',
+      initial: 'editing',
+      on: { submit: (_, enq) => enq(parent) },
+      states: {
+        editing: {
+          on: {
+            submit: ({ reject }) =>
+              reject([
+                { type: 'email.required' },
+                { type: 'balance.insufficient', available: 20, required: 50 }
+              ])
+          }
+        }
+      }
+    });
+    const actor = createActor(machine).start();
+    const snapshot = actor.getSnapshot();
+    expect(snapshot.check({ type: 'submit' })).toEqual({
+      status: 'rejected',
+      rejections: [
+        {
+          source: 'checkout.editing',
+          reasons: [
+            { type: 'email.required' },
+            { type: 'balance.insufficient', available: 20, required: 50 }
+          ]
+        }
+      ]
+    });
+    expect(snapshot.can({ type: 'submit' })).toBe(false);
+    actor.send({ type: 'submit' });
+    expect(actor.getSnapshot().value).toBe('editing');
+    expect(parent).not.toHaveBeenCalled();
+    const result = snapshot.check({ type: 'submit' });
+    if (result.status === 'rejected' || result.status === 'partial') {
+      for (const reason of result.rejections[0].reasons) {
+        if (reason.type === 'balance.insufficient') {
+          expectTypeOf(reason.available).toEqualTypeOf<number>();
+        }
+      }
+    }
+    expectTypeOf<RejectionFrom<typeof machine>>().toMatchTypeOf<
+      | { type: 'email.required' }
+      | { type: 'balance.insufficient'; available: number; required: number }
+    >();
+    actor.stop();
+  });
+
+  it('continues parent fallback when a handler returns undefined', () => {
+    const machine = createMachine({
+      initial: 'editing',
+      on: { submit: { target: '.submitted' } },
+      states: { editing: { on: { submit: () => undefined } }, submitted: {} }
+    });
+    const actor = createActor(machine).start();
+    expect(actor.getSnapshot().check({ type: 'submit' }).status).toBe(
+      'accepted'
+    );
+    actor.send({ type: 'submit' });
+    expect(actor.getSnapshot().value).toBe('submitted');
+    actor.stop();
+  });
+
+  it('reports partial acceptance and executes only accepting regions', () => {
+    const effect = vi.fn();
+    const machine = createMachine({
+      id: 'parallel',
+      schemas: { rejections: { blocked: types<void>() } },
+      type: 'parallel',
+      states: {
+        payment: {
+          on: { submit: ({ reject }) => reject([{ type: 'blocked' }]) }
+        },
+        activity: {
+          initial: 'idle',
+          states: {
+            idle: {
+              on: {
+                submit: (_, enq) => {
+                  enq(effect);
+                  return { target: 'recorded' };
+                }
+              }
+            },
+            recorded: {}
+          }
+        },
+        unrelated: {}
+      }
+    });
+    const actor = createActor(machine).start();
+    const snapshot = actor.getSnapshot();
+    expect(snapshot.check({ type: 'submit' })).toEqual({
+      status: 'partial',
+      rejections: [
+        { source: 'parallel.payment', reasons: [{ type: 'blocked' }] }
+      ]
+    });
+    expect(snapshot.can({ type: 'submit' })).toBe(true);
+    expect(effect).not.toHaveBeenCalled();
+    actor.send({ type: 'submit' });
+    expect(effect).toHaveBeenCalledTimes(1);
+    expect(actor.getSnapshot().matches({ activity: 'recorded' })).toBe(true);
+    actor.stop();
+  });
+
+  it('rejects invalid names, payloads, and empty arrays at compile time', () => {
+    const machine = setup({
+      schemas: { rejections: { blocked: types<{ count: number }>() } }
+    }).createMachine({
+      on: {
+        go: ({ reject }) => {
+          if (false) {
+            // @ts-expect-error Unknown rejection type
+            reject([{ type: 'unknown' }]);
+            // @ts-expect-error Missing rejection payload
+            reject([{ type: 'blocked' }]);
+            // @ts-expect-error Rejection needs at least one reason
+            reject([]);
+          }
+          return reject([{ type: 'blocked', count: 1 }]);
+        }
+      }
+    });
+    const actor = createActor(machine).start();
+    const result = actor.getSnapshot().check({ type: 'go' });
+    if (result.status === 'rejected' || result.status === 'partial') {
+      expectTypeOf(result.rejections[0].reasons[0]).toMatchTypeOf<{
+        type: 'blocked';
+        count: number;
+      }>();
+    }
+    actor.stop();
+  });
+
+  it('supports guarded JSON rejection branches, expressions, and round trips', () => {
+    const definition = {
+      '@exprLang': 'test',
+      id: 'json',
+      initial: 'editing',
+      context: { available: 20, required: 50 },
+      states: {
+        editing: {
+          on: {
+            submit: [
+              {
+                guard: { type: 'insufficientBalance' },
+                reject: [
+                  {
+                    type: 'balance.insufficient',
+                    available: { '@expr': 'context.available' },
+                    required: { '@expr': 'context.required' }
+                  }
+                ]
+              },
+              { target: 'submitted' }
+            ]
+          }
+        },
+        submitted: {}
+      }
+    } satisfies import('../src/index.ts').MachineJSON;
+    const machine = machineFromJSON(definition, {
+      guards: { insufficientBalance: () => true },
+      evaluators: {
+        test: ({ source, scope }) =>
+          Reflect.get(Object(scope.context), source.split('.')[1])
+      }
+    });
+    const actor = createActor(machine).start();
+    expect(actor.getSnapshot().check({ type: 'submit' })).toEqual({
+      status: 'rejected',
+      rejections: [
+        {
+          source: 'json.editing',
+          reasons: [
+            { type: 'balance.insufficient', available: 20, required: 50 }
+          ]
+        }
+      ]
+    });
+    actor.send({ type: 'submit' });
+    expect(actor.getSnapshot().value).toBe('editing');
+    expect(machineToJSON(machine)).toEqual(definition);
+    actor.stop();
+  });
+  it('rejects enqueueing before rejection without running the queued effect', () => {
+    const effect = vi.fn();
+    const machine = createMachine({
+      schemas: { rejections: { blocked: types<void>() } },
+      on: {
+        go: ({ reject }, enq) => {
+          enq(effect);
+          return reject([{ type: 'blocked' }]);
+        }
+      }
+    });
+    const actor = createActor(machine).start();
+    expect(() => actor.getSnapshot().check({ type: 'go' })).toThrow(
+      'cannot enqueue effects'
+    );
+    expect(effect).not.toHaveBeenCalled();
+    actor.stop();
+  });
+
+  it('keeps explicit rejection separate from unhandled and terminal events', () => {
+    const onUnhandledEvent = vi.fn();
+    const machine = createMachine({
+      schemas: { rejections: { blocked: types<void>() } },
+      initial: 'active',
+      states: {
+        active: {
+          on: {
+            go: ({ reject }) => reject([{ type: 'blocked' }]),
+            finish: { target: 'done' }
+          }
+        },
+        done: { type: 'final' }
+      }
+    });
+    const actor = createActor(machine, { onUnhandledEvent }).start();
+    const snapshot = actor.getSnapshot();
+    expect(snapshot.check({ type: 'unknown' })).toEqual({
+      status: 'unhandled'
+    });
+    actor.send({ type: 'go' });
+    expect(onUnhandledEvent).not.toHaveBeenCalled();
+    expect(snapshot.toJSON()).not.toHaveProperty('check');
+    expect(actor.getPersistedSnapshot()).not.toHaveProperty('check');
+    actor.send({ type: 'finish' });
+    expect(actor.getSnapshot().check({ type: 'go' })).toEqual({
+      status: 'unhandled'
+    });
+  });
+
+  it('continues JSON alternatives after a failed guard and blocks them after rejection', () => {
+    const makeMachine = (blocked: boolean) =>
+      machineFromJSON(
+        {
+          initial: 'idle',
+          states: {
+            idle: {
+              on: {
+                go: [
+                  { guard: { type: 'blocked' }, reject: [{ type: 'blocked' }] },
+                  { target: 'done' }
+                ]
+              }
+            },
+            done: {}
+          }
+        },
+        { guards: { blocked: () => blocked } }
+      );
+    for (const blocked of [false, true]) {
+      const actor = createActor(makeMachine(blocked)).start();
+      expect(actor.getSnapshot().check({ type: 'go' }).status).toBe(
+        blocked ? 'rejected' : 'accepted'
+      );
+      actor.send({ type: 'go' });
+      expect(actor.getSnapshot().value).toBe(blocked ? 'idle' : 'done');
+      actor.stop();
+    }
+    expect(() =>
+      machineFromJSON({
+        on: {
+          go: {
+            // @ts-expect-error Invalid runtime JSON has an empty reasons array
+            reject: []
+          }
+        }
+      })
+    ).toThrow('nonempty');
+    expect(() =>
+      machineFromJSON(
+        JSON.parse(
+          '{"on":{"go":{"reject":[{"type":"blocked"}],"target":"done"}}}'
+        )
+      )
+    ).toThrow('cannot have');
+  });
+
+  it('does not loop on a rejecting eventless handler', () => {
+    const machine = createMachine({
+      schemas: { rejections: { blocked: types<void>() } },
+      initial: 'idle',
+      states: {
+        idle: { always: ({ reject }) => reject([{ type: 'blocked' }]) }
+      }
+    });
+    const actor = createActor(machine).start();
+    expect(actor.getSnapshot().value).toBe('idle');
+    expect(actor.getSnapshot().status).toBe('active');
+    actor.stop();
+  });
+
+  it('validates rejection payloads against runtime schemas', () => {
+    const machine = machineFromJSON(
+      { on: { go: { reject: [{ type: 'blocked', count: 'wrong' }] } } },
+      {
+        schemas: {
+          rejections: {
+            blocked: {
+              '~standard': {
+                version: 1,
+                vendor: 'test',
+                validate: (value) =>
+                  typeof value === 'object' &&
+                  value &&
+                  'count' in value &&
+                  typeof value.count === 'number'
+                    ? { value }
+                    : { issues: [{ message: 'count must be a number' }] }
+              }
+            }
+          }
+        }
+      }
+    );
+    const actor = createActor(machine).start();
+    expect(() => actor.getSnapshot().check({ type: 'go' })).toThrow(
+      'count must be a number'
+    );
+    actor.stop();
+  });
+  it('revives code-authored rejection handlers with their bound reject helper', () => {
+    const original = createMachine({
+      schemas: { rejections: { blocked: types<void>() } },
+      on: { go: ({ reject }) => reject([{ type: 'blocked' }]) }
+    });
+    const json = JSON.parse(JSON.stringify(machineToJSON(original)));
+    const revived = machineFromJSON(json, {
+      evaluators: {
+        ts: ({ source, scope }) =>
+          Function(`return (${source});`)()(scope, scope.enq)
+      }
+    });
+    const actor = createActor(revived).start();
+    expect(actor.getSnapshot().check({ type: 'go' }).status).toBe('rejected');
+    actor.send({ type: 'go' });
+    expect(actor.getSnapshot().status).toBe('active');
+    actor.stop();
+  });
+});
