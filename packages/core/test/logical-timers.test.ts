@@ -10,6 +10,7 @@ import {
   SimulatedClock,
   type ActorSystemRuntime
 } from '../src/index.ts';
+import { restoreActor } from '../src/persist/index.ts';
 
 describe('logical snapshot timers', () => {
   it('declares a pending timer in the pure initial snapshot', async () => {
@@ -327,6 +328,7 @@ describe('logical snapshot timers', () => {
     expect(scheduled.timers).toEqual([
       {
         id: 'ping',
+        occurrence: 0,
         delay: 100,
         type: '@xstate.sendTo',
         event: { type: 'PING' },
@@ -480,5 +482,339 @@ describe('logical snapshot timers', () => {
       '@xstate.stop',
       '@xstate.cancel'
     ]);
+  });
+
+  describe('stale timer notifications and replacement timers (#5919)', () => {
+    function createStaleReproMachine(
+      replacementId: string,
+      fireWhileQueued: boolean
+    ) {
+      const clock = new SimulatedClock();
+      let actor: any;
+      const machine = createMachine({
+        context: { expired: [] as string[] },
+        on: {
+          START: ({ event }: any, enq: any) => {
+            enq.raise(
+              { type: 'EXPIRE', label: event.label },
+              { id: event.id, delay: 100 }
+            );
+          },
+          CANCEL: (_: any, enq: any) => enq.cancel('shared'),
+          EXPIRE: ({ context, event }: any) => ({
+            context: { expired: [...context.expired, event.label] }
+          }),
+          REPLACE: (_: any, enq: any) =>
+            enq(() => {
+              // A running action keeps the actor's mailbox busy. The real native
+              // scheduler callback queues its notification behind these two sends.
+              actor.send({ type: 'CANCEL' });
+              actor.send({
+                type: 'START',
+                id: replacementId,
+                label: 'replacement'
+              });
+              if (fireWhileQueued) clock.increment(100);
+            })
+        }
+      } as any);
+      actor = createActor(machine, { clock }).start();
+      return { actor, clock };
+    }
+
+    it('cancelling before firing permits reuse of the id', () => {
+      const { actor, clock } = createStaleReproMachine('shared', false);
+      actor.send({ type: 'START', id: 'shared', label: 'original' } as any);
+      actor.send({ type: 'REPLACE' });
+      const beforeDeadline = [...actor.getSnapshot().context.expired];
+      expect(beforeDeadline).toEqual([]);
+      clock.increment(99);
+      expect(actor.getSnapshot().context.expired).toEqual([]);
+      clock.increment(1);
+      expect(actor.getSnapshot().context.expired).toEqual(['replacement']);
+      actor.stop();
+    });
+
+    it('a queued notification cannot fire a replacement with a different id', () => {
+      const { actor, clock } = createStaleReproMachine('different', true);
+      actor.send({ type: 'START', id: 'shared', label: 'original' } as any);
+      actor.send({ type: 'REPLACE' });
+      const beforeDeadline = [...actor.getSnapshot().context.expired];
+      expect(beforeDeadline).toEqual([]);
+      clock.increment(99);
+      expect(actor.getSnapshot().context.expired).toEqual([]);
+      clock.increment(1);
+      expect(actor.getSnapshot().context.expired).toEqual(['replacement']);
+      actor.stop();
+    });
+
+    it('a queued notification must not fire a replacement with the same id prematurely', () => {
+      const { actor, clock } = createStaleReproMachine('shared', true);
+      actor.send({ type: 'START', id: 'shared', label: 'original' } as any);
+      actor.send({ type: 'REPLACE' });
+      // The old timer fired while REPLACE was being processed and was queued in mailbox.
+      // After processing REPLACE, CANCEL and START, the stale timer event is dequeued.
+      // It must be ignored, rather than firing the replacement timer at t=100.
+      const beforeDeadline = [...actor.getSnapshot().context.expired];
+      expect(beforeDeadline).toEqual([]);
+      clock.increment(99);
+      expect(actor.getSnapshot().context.expired).toEqual([]);
+      // At t=200, the replacement timer's own deadline arrives.
+      clock.increment(1);
+      expect(actor.getSnapshot().context.expired).toEqual(['replacement']);
+      actor.stop();
+    });
+
+    it('supports multiple rapid replacements under the same id', () => {
+      const fired: string[] = [];
+      const clock = new SimulatedClock();
+      const machine = createMachine({
+        on: {
+          SCHEDULE: ({ event }: any, enq: any) => {
+            enq.cancel('shared');
+            enq.raise(
+              { type: 'EXPIRE', label: event.label },
+              { id: 'shared', delay: event.delay }
+            );
+          },
+          EXPIRE: ({ event }: any) => {
+            fired.push(event.label);
+          }
+        }
+      } as any);
+      const actor = createActor(machine, { clock }).start();
+      actor.send({ type: 'SCHEDULE', label: 'first', delay: 100 } as any);
+      clock.increment(30);
+      actor.send({ type: 'SCHEDULE', label: 'second', delay: 100 } as any);
+      clock.increment(30);
+      actor.send({ type: 'SCHEDULE', label: 'third', delay: 100 } as any);
+      clock.increment(30);
+      actor.send({ type: 'SCHEDULE', label: 'fourth', delay: 100 } as any);
+
+      // Total elapsed = 90ms. None of the timers should have fired yet.
+      expect(fired).toEqual([]);
+
+      // 99ms from the fourth schedule (at t=189ms), still nothing.
+      clock.increment(99);
+      expect(fired).toEqual([]);
+
+      // At t=190ms (100ms from the fourth schedule), only fourth fires.
+      clock.increment(1);
+      expect(fired).toEqual(['fourth']);
+
+      // Advance further; no extra firings occur.
+      clock.increment(200);
+      expect(fired).toEqual(['fourth']);
+      actor.stop();
+    });
+
+    it('pure transition ignores stale occurrence and accepts matching occurrence or backward-compatible event', () => {
+      const machine = createMachine({
+        on: {
+          SCHEDULE: (_, enq) => {
+            enq.raise({ type: 'PING' }, { id: 'ping', delay: 100 });
+          }
+        }
+      });
+      const [initial] = initialTransition(machine);
+      const [scheduled] = transition(machine, initial, { type: 'SCHEDULE' });
+      expect(scheduled.timers).toHaveLength(1);
+      expect(scheduled.timers[0].occurrence).toBe(0);
+
+      // Stale occurrence does not consume the timer:
+      const [staleIgnored] = transition(machine, scheduled, {
+        type: 'xstate.timer',
+        id: 'ping',
+        occurrence: 999
+      } as any);
+      expect(staleIgnored.timers).toHaveLength(1);
+
+      // Matching occurrence consumes the timer:
+      const [matched] = transition(machine, scheduled, {
+        type: 'xstate.timer',
+        id: 'ping',
+        occurrence: 0
+      } as any);
+      expect(matched.timers).toHaveLength(0);
+
+      // Event without occurrence consumes the timer (backward compatibility):
+      const [legacyMatched] = transition(machine, scheduled, {
+        type: 'xstate.timer',
+        id: 'ping'
+      } as any);
+      expect(legacyMatched.timers).toHaveLength(0);
+    });
+
+    it('restores and fires a legacy timer from a persisted snapshot without occurrence', () => {
+      const clock = new SimulatedClock();
+      const machine = createMachine({
+        context: { count: 0 },
+        on: {
+          INC: ({ context }: any) => ({ context: { count: context.count + 1 } })
+        }
+      } as any);
+      // Simulate a legacy snapshot where occurrence is not present on timers
+      const legacySnapshot = {
+        status: 'active',
+        value: {},
+        context: { count: 0 },
+        children: {},
+        timers: [
+          {
+            id: 'legacyTimer',
+            delay: 100,
+            type: '@xstate.raise',
+            event: { type: 'INC' },
+            target: 'self'
+          }
+        ]
+      };
+      const actor = restoreActor(machine, legacySnapshot as any, {
+        clock
+      }).start();
+
+      expect((actor.getSnapshot().context as any).count).toBe(0);
+      clock.increment(99);
+      expect((actor.getSnapshot().context as any).count).toBe(0);
+      clock.increment(1);
+      expect((actor.getSnapshot().context as any).count).toBe(1);
+      actor.stop();
+    });
+
+    it('survives cancellation and empty timer queue without resetting occurrence (exact #5919 scenario)', () => {
+      const clock = new SimulatedClock();
+      let actor: any;
+      const expired: string[] = [];
+
+      const machine = createMachine({
+        context: { count: 0 },
+        on: {
+          START_A: (_: any, enq: any) => {
+            enq.raise(
+              { type: 'EXPIRE', label: 'A' },
+              { id: 'shared', delay: 100 }
+            );
+          },
+          CANCEL_AND_REPLACE: (_: any, enq: any) => {
+            enq(() => {
+              // A running action keeps the actor's mailbox busy.
+              // 3. Cancel A and ensure no active timers remain.
+              actor.send({ type: 'CANCEL_A' });
+              // 4. Schedule timer B with the same ID "shared".
+              actor.send({ type: 'START_B' });
+              // 2. Let A's notification enter the actor mailbox behind CANCEL_A and START_B.
+              clock.increment(100);
+            });
+          },
+          CANCEL_A: (_: any, enq: any) => {
+            enq.cancel('shared');
+          },
+          START_B: (_: any, enq: any) => {
+            enq.raise(
+              { type: 'EXPIRE', label: 'B' },
+              { id: 'shared', delay: 100 }
+            );
+          },
+          EXPIRE: ({ event }: any) => {
+            expired.push(event.label);
+          }
+        }
+      } as any);
+
+      actor = createActor(machine, { clock }).start();
+
+      // 1. Schedule timer A with explicit ID "shared" and occurrence 0.
+      actor.send({ type: 'START_A' });
+      expect(actor.getSnapshot().timers).toEqual([
+        expect.objectContaining({ id: 'shared', occurrence: 0 })
+      ]);
+
+      // 2. Let A's notification enter the actor mailbox.
+      // 3. Cancel A and ensure no active timers remain.
+      // 4. Schedule timer B with the same ID "shared".
+      actor.send({ type: 'CANCEL_AND_REPLACE' });
+
+      // 5. Check whether B can receive occurrence 0 again.
+      const snapshotAfterB = actor.getSnapshot();
+      expect(snapshotAfterB.timers).toHaveLength(1);
+      expect(snapshotAfterB.timers[0].id).toBe('shared');
+      // B MUST have received occurrence 1 (not 0):
+      expect(snapshotAfterB.timers[0].occurrence).toBe(1);
+
+      // 6 & 7. Deliver A's previously queued notification.
+      // A's queued notification (occurrence: 0) was dequeued behind CANCEL_A and START_B.
+      // Verify that A's notification CANNOT fire B:
+      expect(expired).toEqual([]);
+
+      // Advance clock to B's own deadline:
+      clock.increment(100);
+      expect(expired).toEqual(['B']);
+      actor.stop();
+    });
+
+    it('occurrence counter survives across snapshot persistence and restoration when no timers are active', () => {
+      const clock = new SimulatedClock();
+      const expired: string[] = [];
+
+      const machine = createMachine({
+        on: {
+          START: ({ event }: any, enq: any) => {
+            enq.raise(
+              { type: 'EXPIRE', label: event.label },
+              { id: 'shared', delay: 100 }
+            );
+          },
+          CANCEL: (_: any, enq: any) => {
+            enq.cancel('shared');
+          },
+          EXPIRE: ({ event }: any) => {
+            expired.push(event.label);
+          }
+        }
+      } as any);
+
+      const actor = createActor(machine, { clock }).start();
+
+      // 1. Schedule timer A with explicit ID "shared" (occurrence: 0)
+      actor.send({ type: 'START', label: 'A' } as any);
+      expect(actor.getSnapshot().timers[0].occurrence).toBe(0);
+
+      // 2. Cancel A and ensure 0 active timers remain
+      actor.send({ type: 'CANCEL' });
+      expect(actor.getSnapshot().timers).toHaveLength(0);
+
+      // 3. Persist snapshot when 0 timers are active
+      const persisted = actor.getPersistedSnapshot() as any;
+      expect(persisted.timers).toHaveLength(0);
+      expect(persisted.nextTimerId).toBe(1);
+      actor.stop();
+
+      // 4. Restore actor from persisted snapshot
+      const restoredActor = restoreActor(machine, persisted, { clock }).start();
+      expect(restoredActor.getSnapshot().timers).toHaveLength(0);
+
+      // 5. Schedule timer B with same ID "shared" on restored actor
+      restoredActor.send({ type: 'START', label: 'B' } as any);
+      const snapshot = restoredActor.getSnapshot();
+      expect(snapshot.timers).toHaveLength(1);
+      expect(snapshot.timers[0].id).toBe('shared');
+      // B must receive occurrence 1, NOT 0!
+      expect(snapshot.timers[0].occurrence).toBe(1);
+
+      // 6. Deliver stale notification from A (occurrence: 0) via system relay
+      (restoredActor.system as any)._relay(restoredActor, restoredActor, {
+        type: 'xstate.timer',
+        id: 'shared',
+        occurrence: 0
+      } as any);
+
+      // 7. Verify stale notification from A does not fire B
+      expect(expired).toEqual([]);
+
+      // Advance to B's own deadline
+      clock.increment(100);
+      expect(expired).toEqual(['B']);
+      restoredActor.stop();
+    });
   });
 });

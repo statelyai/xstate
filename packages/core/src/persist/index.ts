@@ -321,6 +321,7 @@ export function restoreMachineSnapshot<TMachine extends AnyStateMachine>(
   const persistedTimers: Array<{
     id?: string;
     seq?: number;
+    occurrence?: number;
     delay: number;
     type: '@xstate.raise' | '@xstate.sendTo';
     event: EventObject;
@@ -436,6 +437,18 @@ export function restoreMachineSnapshot<TMachine extends AnyStateMachine>(
       };
     }
   }
+  let restoredNextTimerId: number | undefined = nextTimerId;
+  for (const timer of timers) {
+    if (timer.occurrence !== undefined) {
+      restoredNextTimerId = Math.max(
+        restoredNextTimerId ?? 0,
+        timer.occurrence + 1
+      );
+    }
+    if (timer.seq !== undefined) {
+      restoredNextTimerId = Math.max(restoredNextTimerId ?? 0, timer.seq + 1);
+    }
+  }
   // Revive actor-ref references into a copy: the persisted snapshot is
   // caller-owned and is never mutated or frozen. Only plain objects and
   // arrays are copied; other values are kept as is.
@@ -491,7 +504,7 @@ export function restoreMachineSnapshot<TMachine extends AnyStateMachine>(
       context: reviveContext(persistedRest.context, true),
       children,
       timers,
-      _nextTimerId: nextTimerId,
+      _nextTimerId: restoredNextTimerId,
       _nextActorIds: restoredCounters,
       _nodes: nodes,
       // Derived from the resolved configuration, so a partial value such as

@@ -1,6 +1,11 @@
 import type { AnyActor, EventObject, TimerKey } from './types.ts';
 
-type TimerIdentity = { id?: string; seq?: number; event: EventObject };
+type TimerIdentity = {
+  id?: string;
+  seq?: number;
+  occurrence?: number;
+  event: EventObject;
+};
 
 /**
  * @internal The identity fields of a built-in timer event (`after`, state and
@@ -29,12 +34,21 @@ export function getBuiltInTimerIdentity(
 /** @internal The key of a logical timer, effect or cancellation. */
 export function getTimerKey(timer: TimerIdentity): TimerKey {
   if (timer.id !== undefined) {
-    return { id: timer.id };
+    return {
+      id: timer.id,
+      ...(timer.occurrence !== undefined && { occurrence: timer.occurrence })
+    };
   }
   if (timer.seq !== undefined) {
-    return { seq: timer.seq };
+    return {
+      seq: timer.seq,
+      ...(timer.occurrence !== undefined && { occurrence: timer.occurrence })
+    };
   }
-  return { event: getBuiltInTimerIdentity(timer.event) ?? timer.event };
+  return {
+    event: getBuiltInTimerIdentity(timer.event) ?? timer.event,
+    ...(timer.occurrence !== undefined && { occurrence: timer.occurrence })
+  };
 }
 
 /**
@@ -42,25 +56,49 @@ export function getTimerKey(timer: TimerIdentity): TimerKey {
  * (`{ id }`, `{ seq }` or `{ event }` fields).
  */
 export function readTimerKey(input: object): TimerKey | undefined {
-  const value = input as { id?: unknown; seq?: unknown; event?: unknown };
+  const value = input as {
+    id?: unknown;
+    seq?: unknown;
+    event?: unknown;
+    occurrence?: unknown;
+  };
+  const occurrence =
+    typeof value.occurrence === 'number' ? value.occurrence : undefined;
   if (typeof value.id === 'string') {
-    return { id: value.id };
+    return {
+      id: value.id,
+      ...(occurrence !== undefined && { occurrence })
+    };
   }
   if (typeof value.seq === 'number') {
-    return { seq: value.seq };
+    return {
+      seq: value.seq,
+      ...(occurrence !== undefined && { occurrence })
+    };
   }
   if (
     value.event &&
     typeof value.event === 'object' &&
     typeof (value.event as EventObject).type === 'string'
   ) {
-    return { event: value.event as EventObject };
+    return {
+      event: value.event as EventObject,
+      ...(occurrence !== undefined && { occurrence })
+    };
   }
   return undefined;
 }
 
 /** @internal Whether a logical timer has the given key. */
 export function matchesTimerKey(timer: TimerIdentity, key: TimerKey): boolean {
+  if (
+    'occurrence' in key &&
+    key.occurrence !== undefined &&
+    timer.occurrence !== undefined &&
+    timer.occurrence !== key.occurrence
+  ) {
+    return false;
+  }
   if ('id' in key) {
     return timer.id === key.id;
   }

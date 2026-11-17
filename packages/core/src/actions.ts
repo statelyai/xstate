@@ -32,11 +32,21 @@ export const builtInActions = {
   ['@xstate.raise']: (
     actorScope: AnyActorScope,
     event: EventObject,
-    options: { id?: string; seq?: number; delay?: number }
+    options: {
+      id?: string;
+      seq?: number;
+      delay?: number;
+      occurrence?: number;
+    }
   ) => {
     return actorScope.system.scheduleTimer(
       actorScope.self,
-      getTimerKey({ id: options.id, seq: options.seq, event }),
+      getTimerKey({
+        id: options.id,
+        seq: options.seq,
+        event,
+        occurrence: options.occurrence
+      }),
       options?.delay ?? 0
     );
   },
@@ -44,13 +54,23 @@ export const builtInActions = {
     actorScope: AnyActorScope,
     actor: AnyActor,
     event: EventObject,
-    options: { id?: string; seq?: number; delay?: number }
+    options: {
+      id?: string;
+      seq?: number;
+      delay?: number;
+      occurrence?: number;
+    }
   ) => {
     assertSendToEvent(event);
     if (options?.delay !== undefined) {
       return actorScope.system.scheduleTimer(
         actorScope.self,
-        getTimerKey({ id: options.id, seq: options.seq, event }),
+        getTimerKey({
+          id: options.id,
+          seq: options.seq,
+          event,
+          occurrence: options.occurrence
+        }),
         options?.delay ?? 0
       );
     } else {

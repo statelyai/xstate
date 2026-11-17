@@ -43,6 +43,7 @@ export type ExecutableEffectDescriptor =
       id: string | undefined;
       /** Set for a delayed raise scheduled without an `id`. */
       seq?: number;
+      occurrence?: number;
       delay: number | undefined;
     }
   | {
@@ -54,6 +55,7 @@ export type ExecutableEffectDescriptor =
       id: string | undefined;
       /** Set for a delayed send scheduled without an `id`. */
       seq?: number;
+      occurrence?: number;
       delay: number | undefined;
     }
   | {
@@ -63,6 +65,7 @@ export type ExecutableEffectDescriptor =
       /** The cancelled timer's `TimerKey` fields. */
       id?: string;
       seq?: number;
+      occurrence?: number;
       event?: EventObject;
     }
   | {
@@ -179,6 +182,9 @@ export function describeExecutableEffect(
         event: effect.event,
         id: effect.id,
         ...(effect.seq !== undefined && { seq: effect.seq }),
+        ...(effect.occurrence !== undefined && {
+          occurrence: effect.occurrence
+        }),
         delay: effect.delay
       };
     case '@xstate.sendTo':
@@ -190,6 +196,9 @@ export function describeExecutableEffect(
         event: effect.event,
         id: effect.id,
         ...(effect.seq !== undefined && { seq: effect.seq }),
+        ...(effect.occurrence !== undefined && {
+          occurrence: effect.occurrence
+        }),
         delay: effect.delay
       };
     case '@xstate.cancel':

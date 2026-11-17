@@ -317,13 +317,21 @@ function updateLogicalTimers(
   // timer sequence. Built-in timers (`after`, `timeout`) have neither; their
   // event identifies them.
   let nextTimerId = snapshot._nextTimerId ?? 0;
-  if (effect.id === undefined && !getBuiltInTimerIdentity(effect.event)) {
-    effect.seq = nextTimerId++;
+  let occurrence: number | undefined;
+  if (!getBuiltInTimerIdentity(effect.event)) {
+    occurrence = nextTimerId++;
+    effect.occurrence = occurrence;
+    if (effect.id === undefined) {
+      effect.seq = occurrence;
+    }
     const args = effect.args as unknown[];
-    args[args.length - 1] = {
-      ...(args[args.length - 1] as object),
-      seq: effect.seq
-    };
+    if (args && args.length > 0) {
+      args[args.length - 1] = {
+        ...(args[args.length - 1] as object),
+        ...(effect.seq !== undefined && { seq: effect.seq }),
+        occurrence
+      };
+    }
   }
   const target =
     effect.type === '@xstate.raise' || effect.target === actorScope.self
@@ -332,15 +340,22 @@ function updateLogicalTimers(
   const timer: LogicalTimer = {
     ...(effect.id !== undefined && { id: effect.id }),
     ...(effect.seq !== undefined && { seq: effect.seq }),
+    ...(occurrence !== undefined && { occurrence }),
     delay: effect.delay,
     type: effect.type,
     event: effect.event,
     target
   };
   // Scheduling a timer that is already pending replaces it in place.
-  const key = getTimerKey(timer);
+  const logicalKey = getTimerKey({
+    id: timer.id,
+    seq: timer.seq,
+    event: timer.event
+  });
   const timers = snapshot.timers ?? [];
-  const index = timers.findIndex((pending) => matchesTimerKey(pending, key));
+  const index = timers.findIndex((pending) =>
+    matchesTimerKey(pending, logicalKey)
+  );
 
   return {
     ...snapshot,
@@ -1062,7 +1077,12 @@ export function createTimerEffect(
   delay: number
 ): RaiseExecutableEffect | SendToExecutableEffect {
   const source = actorScope.self;
-  const options = { id: timer.id, seq: timer.seq, delay };
+  const options = {
+    id: timer.id,
+    seq: timer.seq,
+    delay,
+    occurrence: timer.occurrence
+  };
   if (timer.type === '@xstate.raise') {
     return {
       kind: 'builtin',
@@ -1071,6 +1091,7 @@ export function createTimerEffect(
       event: timer.event,
       id: timer.id,
       ...(timer.seq !== undefined && { seq: timer.seq }),
+      ...(timer.occurrence !== undefined && { occurrence: timer.occurrence }),
       delay,
       params: undefined,
       args: [actorScope, timer.event, options],
@@ -1086,6 +1107,7 @@ export function createTimerEffect(
     event: timer.event,
     id: timer.id,
     ...(timer.seq !== undefined && { seq: timer.seq }),
+    ...(timer.occurrence !== undefined && { occurrence: timer.occurrence }),
     delay,
     params: undefined,
     args: [actorScope, target, timer.event, options],

@@ -931,6 +931,7 @@ export function getPersistedSnapshot<
     timersJson.push({
       ...(timer.id !== undefined && { id: timer.id }),
       ...(timer.seq !== undefined && { seq: timer.seq }),
+      ...(timer.occurrence !== undefined && { occurrence: timer.occurrence }),
       delay: timer.delay,
       type: timer.type,
       event,

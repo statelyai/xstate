@@ -114,6 +114,7 @@
       "properties": {
         "id": { "type": "string" },
         "seq": { "type": "integer", "minimum": 0 },
+        "occurrence": { "type": "integer", "minimum": 0 },
         "delay": { "type": "number" },
         "type": { "enum": ["@xstate.raise", "@xstate.sendTo"] },
         "event": {

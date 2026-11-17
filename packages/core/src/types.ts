@@ -1803,9 +1803,9 @@ export interface StateConfig<
  * @public
  */
 export type TimerKey =
-  | { id: string }
-  | { seq: number }
-  | { event: EventObject };
+  | { id: string; occurrence?: number }
+  | { seq: number; occurrence?: number }
+  | { event: EventObject; occurrence?: number };
 
 /**
  * A deterministic delayed-delivery declaration owned by a logic snapshot.
@@ -1821,6 +1821,8 @@ export interface LogicalTimer {
    * their event identifies them.
    */
   seq?: number;
+  /** Monotonic generation number of this timer instance. */
+  occurrence?: number;
   delay: number;
   type: '@xstate.raise' | '@xstate.sendTo';
   event: EventObject;
@@ -3302,6 +3304,7 @@ export interface RaiseExecutableEffect extends BaseExecutableEffect {
   id: string | undefined;
   /** Set for a delayed raise scheduled without an `id`. */
   seq?: number;
+  occurrence?: number;
   delay: number | undefined;
   args: Parameters<(typeof builtInActions)['@xstate.raise']>;
 }
@@ -3316,6 +3319,7 @@ export interface SendToExecutableEffect extends BaseExecutableEffect {
   id: string | undefined;
   /** Set for a delayed send scheduled without an `id`. */
   seq?: number;
+  occurrence?: number;
   delay: number | undefined;
   args: Parameters<(typeof builtInActions)['@xstate.sendTo']>;
 }
@@ -3328,6 +3332,7 @@ export interface CancelExecutableEffect extends BaseExecutableEffect {
   /** The cancelled timer's {@link TimerKey} fields. */
   id?: string;
   seq?: number;
+  occurrence?: number;
   event?: EventObject;
   args: Parameters<(typeof builtInActions)['@xstate.cancel']>;
 }

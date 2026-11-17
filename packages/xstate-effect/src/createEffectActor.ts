@@ -135,8 +135,15 @@ export function createEffectActor<TLogic extends AnyActorLogic>(
           Queue.offerUnsafe(mailbox, item);
         }
       };
-      const timerKey = (source: AnyActor, timer: TimerKey) =>
-        `${source.sessionId}:${JSON.stringify(timer)}`;
+      const timerKey = (source: AnyActor, timer: TimerKey) => {
+        const identity =
+          'id' in timer
+            ? ['id', timer.id]
+            : 'seq' in timer
+              ? ['seq', timer.seq]
+              : ['event', timer.event];
+        return `${source.sessionId}:${JSON.stringify(identity)}`;
+      };
 
       const inspectors = new Set<(event: InspectionEvent) => void>();
       let rootAnnounced = false;
