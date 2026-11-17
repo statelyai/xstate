@@ -71,6 +71,9 @@ context does not already satisfy, the transition must provide a matching
 `context` patch. In the example, entering `loaded` from `idle` requires
 `user: string`; omitting the patch or supplying `user: null` is a type error.
 
+Descendant targets must satisfy every ancestor refinement as well as their own.
+This includes targets that name the descendant by a declared `#id`.
+
 Context patches merge at the top level. The transition only changes `user`;
 `requestId` keeps its current value. See [context updates](context.md#update-context).
 

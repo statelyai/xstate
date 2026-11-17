@@ -85,3 +85,71 @@ describe('transition target types', () => {
     expect(true).toBe(true);
   });
 });
+
+it('checks choice literals while accepting valid and dynamic choice targets', () => {
+  const dynamic: string = String(Math.random());
+  createMachine({
+    id: 'm',
+    initial: 'route',
+    states: {
+      route: { type: 'choice', choice: () => ({ target: 'b' }) },
+      b: {}
+    }
+  });
+  createMachine({
+    initial: 'route',
+    states: {
+      route: { type: 'choice', choice: () => ({ target: dynamic }) },
+      b: {}
+    }
+  });
+  setup({}).createMachine({
+    id: 'm',
+    initial: 'route',
+    states: {
+      route: { type: 'choice', choice: () => ({ target: 'b' }) },
+      b: {}
+    }
+  });
+  setup({}).createMachine({
+    initial: 'route',
+    states: {
+      route: { type: 'choice', choice: () => ({ target: dynamic }) },
+      b: {}
+    }
+  });
+  createMachine({
+    id: 'm',
+    initial: 'route',
+    states: {
+      route: { type: 'choice', choice: () => ({ target: '#m.b' }) },
+      b: {}
+    }
+  });
+  setup({}).createMachine({
+    id: 'm',
+    initial: 'route',
+    states: {
+      route: { type: 'choice', choice: () => ({ target: '#m.b' }) },
+      b: {}
+    }
+  });
+  if (false) {
+    // @ts-expect-error unknown choice target
+    createMachine({
+      initial: 'route',
+      states: {
+        route: { type: 'choice', choice: () => ({ target: 'bb' }) },
+        b: {}
+      }
+    });
+    // @ts-expect-error unknown choice target through setup
+    setup({}).createMachine({
+      initial: 'route',
+      states: {
+        route: { type: 'choice', choice: () => ({ target: 'bb' }) },
+        b: {}
+      }
+    });
+  }
+});

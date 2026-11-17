@@ -912,6 +912,62 @@ type SetupStateSchemaAtTarget<
     : never
   : never;
 
+type SetupStateContextAtPath<
+  TStates extends Record<string, SetupStateSchema>,
+  TSegments extends readonly string[],
+  TAncestorContext = {}
+> = TSegments extends [
+  infer THead extends keyof TStates,
+  ...infer TRest extends string[]
+]
+  ? TRest extends []
+    ? TAncestorContext & StateContextShape<TStates[THead], {}>
+    : TStates[THead] extends {
+          states: infer TChildren extends Record<string, SetupStateSchema>;
+        }
+      ? SetupStateContextAtPath<
+          TChildren,
+          TRest,
+          TAncestorContext & StateContextShape<TStates[THead], {}>
+        >
+      : never
+  : never;
+
+type SetupStateContextAtId<
+  TStates extends Record<string, SetupStateSchema>,
+  TId extends string,
+  TAncestorContext = {}
+> = {
+  [K in keyof TStates & string]: TStates[K] extends { id: TId }
+    ? TAncestorContext & StateContextShape<TStates[K], {}>
+    : TStates[K] extends {
+          states: infer TChildren extends Record<string, SetupStateSchema>;
+        }
+      ? SetupStateContextAtId<
+          TChildren,
+          TId,
+          TAncestorContext & StateContextShape<TStates[K], {}>
+        >
+      : never;
+}[keyof TStates & string];
+
+type SetupStateContextAtTarget<
+  TStates extends Record<string, SetupStateSchema>,
+  TTarget extends string,
+  TFallbackContext
+> = RootContext<TFallbackContext> &
+  (TTarget extends '.'
+    ? TFallbackContext
+    : TTarget extends `.${infer TPath}`
+      ? SetupStateContextAtPath<
+          RelativeSetupStateSchemas<TStates>,
+          SplitSetupStatePath<TPath>,
+          TFallbackContext
+        >
+      : TTarget extends `#${infer TId}`
+        ? SetupStateContextAtId<RootSetupStateSchemas<TStates>, TId>
+        : SetupStateContextAtPath<TStates, SplitSetupStatePath<TTarget>>);
+
 type SetupStateSchemaAtId<
   TStateSchemas extends Record<string, SetupStateSchema>,
   TId extends string
@@ -4405,24 +4461,15 @@ type StateTransitionResult<
         } & OutputArg<TExpressionEvent>
       > &
         ([TContextShape] extends [
-          StateContextShape<
-            SetupStateSchemaAtTarget<TStateSchemas, K>,
-            TContextShape
-          >
+          SetupStateContextAtTarget<TStateSchemas, K, TContextShape>
         ]
           ? {
               context?: StateTransitionContext<
                 TAllowContextMapper,
                 TContext,
                 TContextShape,
-                StateContextShape<
-                  SetupStateSchemaAtTarget<TStateSchemas, K>,
-                  TContextShape
-                >,
-                StateContext<
-                  SetupStateSchemaAtTarget<TStateSchemas, K>,
-                  TContext
-                >,
+                SetupStateContextAtTarget<TStateSchemas, K, TContextShape>,
+                SetupStateContextAtTarget<TStateSchemas, K, TContext>,
                 TExpressionEvent,
                 TChildren,
                 TEmitted,
@@ -4438,14 +4485,8 @@ type StateTransitionResult<
                 TAllowContextMapper,
                 TContext,
                 TContextShape,
-                StateContextShape<
-                  SetupStateSchemaAtTarget<TStateSchemas, K>,
-                  TContextShape
-                >,
-                StateContext<
-                  SetupStateSchemaAtTarget<TStateSchemas, K>,
-                  TContext
-                >,
+                SetupStateContextAtTarget<TStateSchemas, K, TContextShape>,
+                SetupStateContextAtTarget<TStateSchemas, K, TContext>,
                 TExpressionEvent,
                 TChildren,
                 TEmitted,
