@@ -1992,6 +1992,39 @@ type SetupTargetArrayInputConfig<
             }) => SetupTargetArrayInput<TStateSchemas, TTargets>);
       };
 
+type SetupTargetArrayContext<
+  TStates extends Record<string, SetupStateSchema>,
+  TTargets extends readonly string[],
+  TContext extends MachineContext
+> = Cast<
+  SetupUnionToIntersection<
+    {
+      [K in TTargets[number]]: SetupStateContextAtTarget<TStates, K, TContext>;
+    }[TTargets[number]]
+  >,
+  MachineContext
+>;
+
+type SetupTargetArrayContextConfig<
+  TTransition,
+  TStates extends Record<string, SetupStateSchema>,
+  TTargets extends readonly string[],
+  TContext extends MachineContext,
+  TTargetContext extends MachineContext = SetupTargetArrayContext<
+    TStates,
+    TTargets,
+    TContext
+  >,
+  TPatch = ContextPatch<TContext, TTargetContext, TTargetContext>,
+  TContextValue = TTransition extends {
+    context: (...args: infer TArgs) => unknown;
+  }
+    ? (...args: TArgs) => TPatch
+    : TPatch
+> = [TContext] extends [TTargetContext]
+  ? { context?: TContextValue }
+  : { context: TContextValue };
+
 /**
  * The runtime applies one transition input to every target in a target set.
  * Keep the array's input correlated to its literal targets by requiring the
@@ -2024,32 +2057,42 @@ type SetupTargetArrayInputConstraint<
                 TTargets,
                 TContext,
                 TEvent
-              >
+              > &
+                SetupTargetArrayContextConfig<
+                  TTransition,
+                  TStateSchemas,
+                  TTargets,
+                  TContext
+                >
             : never
     : unknown;
 
 type SetupTransitionValueTargetArrayInputConstraint<
   TValue,
-  TStateSchemas extends Record<string, SetupStateSchema>
+  TStateSchemas extends Record<string, SetupStateSchema>,
+  TContext extends MachineContext = MachineContext
 > = [TValue] extends [readonly unknown[]]
   ? {
       [K in keyof TValue]: TValue[K] &
         SetupTransitionValueTargetArrayInputConstraint<
           TValue[K],
-          TStateSchemas
+          TStateSchemas,
+          TContext
         >;
     }
-  : SetupTargetArrayInputConstraint<TValue, TStateSchemas>;
+  : SetupTargetArrayInputConstraint<TValue, TStateSchemas, TContext>;
 
 type SetupTransitionMapTargetArrayInputConstraint<
   TValue,
-  TStateSchemas extends Record<string, SetupStateSchema>
+  TStateSchemas extends Record<string, SetupStateSchema>,
+  TContext extends MachineContext = MachineContext
 > = [TValue] extends [Record<string, unknown>]
   ? {
       [K in keyof TValue]?: TValue[K] &
         SetupTransitionValueTargetArrayInputConstraint<
           TValue[K],
-          TStateSchemas
+          TStateSchemas,
+          TContext
         >;
     }
   : unknown;
@@ -2058,57 +2101,73 @@ type SetupTransitionPropertyTargetArrayInputConstraint<
   TConfig,
   TKey extends PropertyKey,
   TStateSchemas extends Record<string, SetupStateSchema>,
-  TIsMap extends boolean = false
+  TIsMap extends boolean = false,
+  TContext extends MachineContext = MachineContext
 > = TKey extends keyof TConfig
   ? {
       [K in TKey]?: TConfig[K] &
         (TIsMap extends true
           ? SetupTransitionMapTargetArrayInputConstraint<
               TConfig[K],
-              TStateSchemas
+              TStateSchemas,
+              TContext
             >
           : SetupTransitionValueTargetArrayInputConstraint<
               TConfig[K],
-              TStateSchemas
+              TStateSchemas,
+              TContext
             >);
     }
   : unknown;
 
 type SetupInvokeTargetArrayInputConstraint<
   TInvoke,
-  TStateSchemas extends Record<string, SetupStateSchema>
+  TStateSchemas extends Record<string, SetupStateSchema>,
+  TContext extends MachineContext = MachineContext
 > = TInvoke extends {
   readonly [createdInvokeConfig]: infer TConfig;
 }
   ? {
       readonly [createdInvokeConfig]: TConfig &
-        SetupInvokeTargetArrayInputConstraint<TConfig, TStateSchemas>;
+        SetupInvokeTargetArrayInputConstraint<TConfig, TStateSchemas, TContext>;
     }
   : [TInvoke] extends [readonly unknown[]]
     ? {
         [K in keyof TInvoke]: TInvoke[K] &
-          SetupInvokeTargetArrayInputConstraint<TInvoke[K], TStateSchemas>;
+          SetupInvokeTargetArrayInputConstraint<
+            TInvoke[K],
+            TStateSchemas,
+            TContext
+          >;
       }
     : [TInvoke] extends [Record<string, unknown>]
       ? SetupTransitionPropertyTargetArrayInputConstraint<
           TInvoke,
           'onDone',
-          TStateSchemas
+          TStateSchemas,
+          false,
+          TContext
         > &
           SetupTransitionPropertyTargetArrayInputConstraint<
             TInvoke,
             'onError',
-            TStateSchemas
+            TStateSchemas,
+            false,
+            TContext
           > &
           SetupTransitionPropertyTargetArrayInputConstraint<
             TInvoke,
             'onSnapshot',
-            TStateSchemas
+            TStateSchemas,
+            false,
+            TContext
           > &
           SetupTransitionPropertyTargetArrayInputConstraint<
             TInvoke,
             'onTimeout',
-            TStateSchemas
+            TStateSchemas,
+            false,
+            TContext
           >
       : unknown;
 
@@ -2116,50 +2175,69 @@ type SetupStateNodeTargetArrayInputConstraint<
   TConfig,
   TSiblingStateSchemas extends Record<string, SetupStateSchema>,
   TStateSchema extends SetupStateSchema,
-  TChildStateSchemas extends Record<string, SetupStateSchema>
+  TChildStateSchemas extends Record<string, SetupStateSchema>,
+  TContext extends MachineContext = MachineContext,
+  TActiveContext extends MachineContext = ActiveStateContext<
+    TStateSchema,
+    TContext,
+    TContext
+  >
 > = SetupTransitionPropertyTargetArrayInputConstraint<
   TConfig,
   'on',
   SetupStateTransitionSchemas<TSiblingStateSchemas, TStateSchema>,
-  true
+  true,
+  TActiveContext
 > &
   SetupTransitionPropertyTargetArrayInputConstraint<
     TConfig,
     'always',
-    SetupStateTransitionSchemas<TSiblingStateSchemas, TStateSchema>
+    SetupStateTransitionSchemas<TSiblingStateSchemas, TStateSchema>,
+    false,
+    TActiveContext
   > &
   SetupTransitionPropertyTargetArrayInputConstraint<
     TConfig,
     'after',
     SetupStateTransitionSchemas<TSiblingStateSchemas, TStateSchema>,
-    true
+    true,
+    TActiveContext
   > &
   SetupTransitionPropertyTargetArrayInputConstraint<
     TConfig,
     'onDone',
-    SetupStateTransitionSchemas<TSiblingStateSchemas, TStateSchema>
+    SetupStateTransitionSchemas<TSiblingStateSchemas, TStateSchema>,
+    false,
+    TActiveContext
   > &
   SetupTransitionPropertyTargetArrayInputConstraint<
     TConfig,
     'onError',
-    SetupStateTransitionSchemas<TSiblingStateSchemas, TStateSchema>
+    SetupStateTransitionSchemas<TSiblingStateSchemas, TStateSchema>,
+    false,
+    TActiveContext
   > &
   SetupTransitionPropertyTargetArrayInputConstraint<
     TConfig,
     'onTimeout',
-    SetupStateTransitionSchemas<TSiblingStateSchemas, TStateSchema>
+    SetupStateTransitionSchemas<TSiblingStateSchemas, TStateSchema>,
+    false,
+    TActiveContext
   > &
   SetupTransitionPropertyTargetArrayInputConstraint<
     TConfig,
     'choice',
-    SetupStateTransitionSchemas<TSiblingStateSchemas, TStateSchema>
+    SetupStateTransitionSchemas<TSiblingStateSchemas, TStateSchema>,
+    false,
+    TActiveContext
   > &
   (TConfig extends { invoke: infer TInvoke }
     ? {
         invoke?: TConfig['invoke'] &
           SetupInvokeTargetArrayInputConstraint<
             TInvoke,
-            SetupStateTransitionSchemas<TSiblingStateSchemas, TStateSchema>
+            SetupStateTransitionSchemas<TSiblingStateSchemas, TStateSchema>,
+            TActiveContext
           >;
       }
     : unknown) &
@@ -2171,7 +2249,11 @@ type SetupStateNodeTargetArrayInputConstraint<
           [K in keyof TChildren]?: TChildren[K] &
             SetupStateNodeTargetArrayInputConstraint<
               TChildren[K],
-              TChildStateSchemas,
+              WithRootSetupStateSchemas<
+                TChildStateSchemas &
+                  SetupStateAncestorContextMarker<TActiveContext>,
+                RootSetupStateSchemas<TSiblingStateSchemas>
+              >,
               K extends keyof TChildStateSchemas
                 ? TChildStateSchemas[K]
                 : SetupStateSchema,
@@ -2179,7 +2261,8 @@ type SetupStateNodeTargetArrayInputConstraint<
                 K extends keyof TChildStateSchemas
                   ? TChildStateSchemas[K]
                   : SetupStateSchema
-              >
+              >,
+              TActiveContext
             >;
         };
       }
@@ -2187,22 +2270,27 @@ type SetupStateNodeTargetArrayInputConstraint<
 
 type ValidateSetupTargetArrayInputs<
   TConfig,
-  TRootStateSchemas extends Record<string, SetupStateSchema>
+  TRootStateSchemas extends Record<string, SetupStateSchema>,
+  TContext extends MachineContext = MachineContext
 > = SetupStateNodeTargetArrayInputConstraint<
   TConfig,
   TRootStateSchemas,
   SetupStateSchema,
-  TRootStateSchemas
+  TRootStateSchemas,
+  TContext
 >;
 
 type ValidateSetupStateContracts<
   TConfig,
-  TStateSchemas extends Record<string, SetupStateSchema>
+  TStateSchemas extends Record<string, SetupStateSchema>,
+  TContext extends MachineContext = MachineContext
 > = ValidateStateTargets<MergeSetupConfig<TConfig, TStateSchemas>> &
   (HasExplicitSetupStateContracts<TStateSchemas> extends true
     ? ValidateSetupHistoryInputs<TConfig, TStateSchemas> &
         ValidateHistoryDefaults<MergeSetupConfig<TConfig, TStateSchemas>> &
-        NoInfer<ValidateSetupTargetArrayInputs<TConfig, TStateSchemas>>
+        NoInfer<
+          ValidateSetupTargetArrayInputs<TConfig, TStateSchemas, TContext>
+        >
     : unknown);
 
 type SetupInitialTransitionConfig<
@@ -5104,7 +5192,11 @@ export interface SetupReturn<
         TValidator
       > &
       ValidateSetupDelayReferences<TConfig, TSetupDelays> &
-      ValidateSetupStateContracts<TConfig, TStates> &
+      ValidateSetupStateContracts<
+        TConfig,
+        TStates,
+        SetupContext<TSchemas, TContextSchema>
+      > &
       NoInfer<
         ValidateCreatedInvokeChildren<
           TConfig,
@@ -5212,7 +5304,11 @@ export interface SetupReturn<
             SetupStateSelfSchema<ResolveStatePath<TStates, TPath>>
           >,
           ResolveStatePath<TStates, TPath>,
-          SetupStateChildSchemas<ResolveStatePath<TStates, TPath>>
+          SetupStateChildSchemas<ResolveStatePath<TStates, TPath>>,
+          SetupStateContextWithAncestors<
+            ResolveStateSiblingsForPath<TStates, TPath>,
+            SetupContext<TSchemas, StandardSchemaV1>
+          >
         >
       > &
       NoInfer<SetupStateTargetSetLegality<TConfig, TStates, TPath>> &

@@ -105,3 +105,143 @@ it('retains enclosing context for sibling-relative descendant targets', () => {
     }
   });
 });
+
+it('checks refinements for array targets', () => {
+  const s = setup({
+    schemas: {
+      context: types<{ id: string | null }>(),
+      events: { GO: types<{}>(), BAD: types<{}>(), VALID: types<{}>() }
+    },
+    states: {
+      idle: {},
+      active: {
+        schemas: { context: types<{ id: string }>() },
+        states: { running: {} }
+      }
+    }
+  });
+  s.createMachine({
+    context: { id: null },
+    initial: 'idle',
+    states: {
+      idle: {
+        on: {
+          // @ts-expect-error array descendant requires an id patch
+          GO: { target: ['active.running'] }
+        }
+      },
+      active: { initial: 'running', states: { running: {} } }
+    }
+  });
+  s.createMachine({
+    context: { id: null },
+    initial: 'idle',
+    states: {
+      idle: {
+        on: {
+          // @ts-expect-error array descendant rejects incompatible patches
+          BAD: { target: ['active.running'], context: { id: null } }
+        }
+      },
+      active: { initial: 'running', states: { running: {} } }
+    }
+  });
+  s.createMachine({
+    context: { id: null },
+    initial: 'idle',
+    states: {
+      idle: {
+        on: { VALID: { target: ['active.running'], context: { id: 'ok' } } }
+      },
+      active: { initial: 'running', states: { running: {} } }
+    }
+  });
+});
+
+it('combines context requirements across parallel target arrays', () => {
+  const s = setup({
+    schemas: {
+      context: types<{ id: string | null; count: number | null }>(),
+      events: { GO: types<{}>() }
+    },
+    states: {
+      idle: {},
+      active: {
+        type: 'parallel',
+        states: {
+          left: {
+            schemas: { context: types<{ id: string }>() },
+            states: { leaf: {} }
+          },
+          right: {
+            schemas: { context: types<{ count: number }>() },
+            states: { leaf: {} }
+          }
+        }
+      }
+    }
+  });
+  s.createMachine({
+    context: { id: null, count: null },
+    initial: 'idle',
+    states: {
+      idle: {
+        on: {
+          GO: {
+            target: ['active.left.leaf', 'active.right.leaf'],
+            // @ts-expect-error both regions require compatible context
+            context: { id: 'ok' }
+          }
+        }
+      },
+      active: {
+        type: 'parallel',
+        states: {
+          left: { initial: 'leaf', states: { leaf: {} } },
+          right: { initial: 'leaf', states: { leaf: {} } }
+        }
+      }
+    }
+  });
+  s.createMachine({
+    context: { id: null, count: null },
+    initial: 'idle',
+    states: {
+      idle: {
+        on: {
+          GO: {
+            target: ['active.left.leaf', 'active.right.leaf'],
+            context: () => ({ id: 'ok', count: 1 })
+          }
+        }
+      },
+      active: {
+        type: 'parallel',
+        states: {
+          left: { initial: 'leaf', states: { leaf: {} } },
+          right: { initial: 'leaf', states: { leaf: {} } }
+        }
+      }
+    }
+  });
+});
+
+it('allows array targets when root context already satisfies the refinement', () => {
+  setup({
+    schemas: { context: types<{ id: string }>(), events: { GO: types<{}>() } },
+    states: {
+      idle: {},
+      active: {
+        schemas: { context: types<{ id: string }>() },
+        states: { running: {} }
+      }
+    }
+  }).createMachine({
+    context: { id: 'ok' },
+    initial: 'idle',
+    states: {
+      idle: { on: { GO: { target: ['active.running'] } } },
+      active: { initial: 'running', states: { running: {} } }
+    }
+  });
+});

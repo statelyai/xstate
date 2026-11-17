@@ -72,7 +72,8 @@ context does not already satisfy, the transition must provide a matching
 `user: string`; omitting the patch or supplying `user: null` is a type error.
 
 Descendant targets must satisfy every ancestor refinement as well as their own.
-This includes targets that name the descendant by a declared `#id`.
+This includes targets that name the descendant by a declared `#id`. For an
+array of targets, the context patch must satisfy all targets and their ancestors.
 
 Context patches merge at the top level. The transition only changes `user`;
 `requestId` keeps its current value. See [context updates](context.md#update-context).
