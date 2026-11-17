@@ -1999,11 +1999,13 @@ type SetupTargetArrayContext<
 > = Cast<
   SetupUnionToIntersection<
     {
-      [K in TTargets[number]]: SetupStateContextAtTarget<TStates, K, TContext>;
+      [K in TTargets[number]]: {
+        context: SetupStateContextAtTarget<TStates, K, TContext>;
+      };
     }[TTargets[number]]
   >,
-  MachineContext
->;
+  { context: MachineContext }
+>['context'];
 
 type SetupTargetArrayContextConfig<
   TTransition,
@@ -3824,7 +3826,7 @@ export interface CreatedInvoke<
   readonly [createdInvokeConfig]: NoInfer<TConfig>;
 }
 
-// Outer validators only need authored targets and resolved target input.
+// Outer validators need authored targets and resolved input/context patches.
 // Retaining callback arguments here can expose private actor-ref markers in
 // consumer declarations, so keep their result data only.
 type CreatedInvokeTransitionData<TTransition> = TTransition extends (
@@ -3838,7 +3840,14 @@ type CreatedInvokeTransitionData<TTransition> = TTransition extends (
               ? TResult
               : TInput;
           }
-        : unknown)
+        : unknown) &
+        (TTransition extends { context: infer TContext }
+          ? {
+              context: TContext extends (...args: any[]) => infer TResult
+                ? TResult
+                : TContext;
+            }
+          : unknown)
     : {};
 
 type CreatedInvokeValidationConfig<TConfig> = TConfig extends unknown

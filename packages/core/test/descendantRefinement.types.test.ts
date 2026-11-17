@@ -245,3 +245,17 @@ it('allows array targets when root context already satisfies the refinement', ()
     }
   });
 });
+
+it('preserves union root context for unrefined array targets', () => {
+  setup({
+    schemas: {
+      context: types<{ kind: 'a'; a: string } | { kind: 'b'; b: number }>(),
+      events: { GO: types<{}>() }
+    },
+    states: { idle: {}, done: {} }
+  }).createMachine({
+    context: { kind: 'a', a: '' },
+    initial: 'idle',
+    states: { idle: { on: { GO: { target: ['done'] } } }, done: {} }
+  });
+});
