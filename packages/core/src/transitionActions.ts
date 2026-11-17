@@ -736,7 +736,8 @@ export function createTransitionEnqueue(
   actions: any[],
   internalEvents: EventObject[],
   actorSubscriptions = false,
-  createActors = true
+  createActors = true,
+  onRefProducingCall?: () => void
 ) {
   // Paths that never begin a transaction keep a per-enqueue scope.
   const localAllocation =
@@ -773,6 +774,7 @@ export function createTransitionEnqueue(
     spawn: (source: string | AnyActorLogic, options?: any) => {
       const { logic, src } = resolveTransitionSpawnSource(actorScope, source);
       if (!createActors) {
+        onRefProducingCall?.();
         // Speculative evaluation creates no actor and allocates no id: return
         // an inert ref with the id this spawn would get.
         const prefix = getActorIdPrefix(src ?? logic);
@@ -844,6 +846,7 @@ export function createTransitionEnqueue(
     Object.assign(props, {
       listen: (actor: any, eventType: string, mapper: any) => {
         if (!createActors) {
+          onRefProducingCall?.();
           return { id: undefined } as unknown as AnyActor;
         }
         const input: ListenerInput<any, any> = {
@@ -864,6 +867,7 @@ export function createTransitionEnqueue(
       },
       subscribeTo: (actor: any, mappers: any) => {
         if (!createActors) {
+          onRefProducingCall?.();
           return { id: undefined } as unknown as AnyActor;
         }
         const normalizedMappers: SubscriptionMappers<any, any, any> =

@@ -422,7 +422,8 @@ type InlineMachineSchemas<
   TMetaSchema,
   TTransitionMetaSchema,
   TTagSchema,
-  TChildrenSchemaMap
+  TChildrenSchemaMap,
+  TRejectionSchemaMap
 > = {
   context?: TContextSchema;
   events?: TEventSchemaMap;
@@ -436,6 +437,7 @@ type InlineMachineSchemas<
   transitionMeta?: TTransitionMetaSchema;
   tags?: TTagSchema;
   children?: TChildrenSchemaMap;
+  rejections?: TRejectionSchemaMap;
 };
 
 type MachineConfigStates<TConfig> = TConfig extends {
@@ -618,6 +620,19 @@ type SetupOrConfigSchemaMap<
 > = [SetupSchemaMap<TSchemas, TKey>] extends [never]
   ? TConfigSchemaMap
   : SetupSchemaMap<TSchemas, TKey>;
+
+type SetupRejections<
+  TSchemas,
+  TConfigSchemaMap extends Record<string, StandardSchemaV1>
+> = RejectionsFromConfig<{
+  schemas: {
+    rejections: SetupOrConfigSchemaMap<
+      TSchemas,
+      'rejections',
+      TConfigSchemaMap
+    >;
+  };
+}>;
 
 type SetupStateKeys<TStateSchemas extends Record<string, SetupStateSchema>> =
   keyof TStateSchemas & string;
@@ -2768,6 +2783,7 @@ type SetupMachineConfigBase<
   TTransitionMetaSchema extends StandardSchemaV1,
   TTagSchema extends StandardSchemaV1,
   TChildrenSchemaMap extends Record<string, StandardSchemaV1>,
+  TRejectionSchemaMap extends Record<string, StandardSchemaV1>,
   TContext extends MachineContext,
   TEvent extends EventObject,
   TChildren extends Record<string, AnyActorRef | undefined>,
@@ -2809,7 +2825,7 @@ type SetupMachineConfigBase<
     TDelayMap,
     TContextRequired,
     TSystemRegistry,
-    SetupSchemaMap<TSchemas, 'rejections'>
+    SetupOrConfigSchemaMap<TSchemas, 'rejections', TRejectionSchemaMap>
   >,
   | 'states'
   | 'initial'
@@ -2862,7 +2878,7 @@ type SetupMachineConfigBase<
     undefined,
     SetupStateTarget<UncheckedSetupStateSchemas>,
     KnownSetupStateTarget<UncheckedSetupStateSchemas>,
-    RejectionsFromConfig<{ schemas: TSchemas }>
+    SetupRejections<TSchemas, TRejectionSchemaMap>
   >;
   always?: StateTransitionConfigOrTarget<
     UncheckedSetupStateSchemas,
@@ -2882,7 +2898,7 @@ type SetupMachineConfigBase<
     SetupStateTarget<UncheckedSetupStateSchemas>,
     KnownSetupStateTarget<UncheckedSetupStateSchemas>,
     OutputArg<TEvent>['output'],
-    RejectionsFromConfig<{ schemas: TSchemas }>
+    SetupRejections<TSchemas, TRejectionSchemaMap>
   >;
   invoke?: SingleOrArray<
     SetupInvokeConfig<
@@ -2899,7 +2915,7 @@ type SetupMachineConfigBase<
       TDelayMap,
       TSystemRegistry,
       SetupInput<TSchemas, TInputSchema>,
-      RejectionsFromConfig<{ schemas: TSchemas }>
+      SetupRejections<TSchemas, TRejectionSchemaMap>
     >
   >;
   states?: StatesWithInput<
@@ -2921,7 +2937,7 @@ type SetupMachineConfigBase<
     TDelayMap,
     TSystemRegistry,
     TStateKeys,
-    RejectionsFromConfig<{ schemas: TSchemas }>
+    SetupRejections<TSchemas, TRejectionSchemaMap>
   >;
 };
 
@@ -2940,6 +2956,7 @@ type SetupMachineConfig<
   TTransitionMetaSchema extends StandardSchemaV1,
   TTagSchema extends StandardSchemaV1,
   TChildrenSchemaMap extends Record<string, StandardSchemaV1>,
+  TRejectionSchemaMap extends Record<string, StandardSchemaV1>,
   TContext extends MachineContext,
   TEvent extends EventObject,
   TChildren extends Record<string, AnyActorRef | undefined>,
@@ -2975,6 +2992,7 @@ type SetupMachineConfig<
           TTransitionMetaSchema,
           TTagSchema,
           TChildrenSchemaMap,
+          TRejectionSchemaMap,
           TContext,
           TEvent,
           TChildren,
@@ -3021,7 +3039,7 @@ type SetupMachineConfig<
           undefined,
           RootSetupStateTarget<TStateSchemas>,
           RootSetupStateTarget<TStateSchemas>,
-          RejectionsFromConfig<{ schemas: TSchemas }>
+          SetupRejections<TSchemas, TRejectionSchemaMap>
         >;
         always?: StateTransitionConfigOrTarget<
           TStateSchemas,
@@ -3041,7 +3059,7 @@ type SetupMachineConfig<
           RootSetupStateTarget<TStateSchemas>,
           RootSetupStateTarget<TStateSchemas>,
           OutputArg<TEvent>['output'],
-          RejectionsFromConfig<{ schemas: TSchemas }>
+          SetupRejections<TSchemas, TRejectionSchemaMap>
         >;
         invoke?: SingleOrArray<
           SetupInvokeConfig<
@@ -3058,7 +3076,7 @@ type SetupMachineConfig<
             TDelayMap,
             TSystemRegistry,
             SetupInput<TSchemas, TInputSchema>,
-            RejectionsFromConfig<{ schemas: TSchemas }>
+            SetupRejections<TSchemas, TRejectionSchemaMap>
           >
         >;
         states?: StatesWithInput<
@@ -3080,7 +3098,7 @@ type SetupMachineConfig<
           TDelayMap,
           TSystemRegistry,
           TStateKeys,
-          RejectionsFromConfig<{ schemas: TSchemas }>
+          SetupRejections<TSchemas, TRejectionSchemaMap>
         >;
       }
     : SetupMachineConfigBase<
@@ -3097,6 +3115,7 @@ type SetupMachineConfig<
         TTransitionMetaSchema,
         TTagSchema,
         TChildrenSchemaMap,
+        TRejectionSchemaMap,
         TContext,
         TEvent,
         TChildren,
@@ -5066,6 +5085,7 @@ export interface SetupReturn<
       string,
       StandardSchemaV1
     >,
+    const TInlineSchemas extends SetupSchemas = {},
     const TActionSchemaMap extends ActionSchemas = {},
     const TGuardSchemaMap extends GuardSchemas = {},
     _TEvent extends EventObject = EventObject,
@@ -5095,6 +5115,7 @@ export interface SetupReturn<
       TTransitionMetaSchema,
       TTagSchema,
       TChildrenSchemaMap,
+      SetupSchemaMap<TInlineSchemas, 'rejections'>,
       SetupContext<TSchemas, TContextSchema>,
       | SetupEvents<TSchemas, TEventSchemaMap, TInternalEventSchemaMap>
       | ChildCompletionEvents<
@@ -5142,6 +5163,7 @@ export interface SetupReturn<
       TTransitionMetaSchema,
       TTagSchema,
       TChildrenSchemaMap,
+      SetupSchemaMap<TInlineSchemas, 'rejections'>,
       SetupContext<TSchemas, TContextSchema>,
       | SetupEvents<TSchemas, TEventSchemaMap, TInternalEventSchemaMap>
       | ChildCompletionEvents<
@@ -5178,7 +5200,7 @@ export interface SetupReturn<
     >
   >(
     config: {
-      schemas?: {
+      schemas?: TInlineSchemas & {
         events?: TEventSchemaMap;
         internalEvents?: TInternalEventSchemaMap;
         context?: TContextSchema;
@@ -5192,23 +5214,24 @@ export interface SetupReturn<
         tags?: TTagSchema;
         children?: TChildrenSchemaMap;
       } & ([TValidator] extends [ActorLogicValidator]
-        ? ValidateSetupSchemas<
-            InlineMachineSchemas<
-              TContextSchema,
-              TEventSchemaMap,
-              TInternalEventSchemaMap,
-              TEmittedSchemaMap,
-              TActionSchemaMap,
-              TGuardSchemaMap,
-              TInputSchema,
-              TOutputSchema,
-              TMetaSchema,
-              TTransitionMetaSchema,
-              TTagSchema,
-              TChildrenSchemaMap
+          ? ValidateSetupSchemas<
+              InlineMachineSchemas<
+                TContextSchema,
+                TEventSchemaMap,
+                TInternalEventSchemaMap,
+                TEmittedSchemaMap,
+                TActionSchemaMap,
+                TGuardSchemaMap,
+                TInputSchema,
+                TOutputSchema,
+                TMetaSchema,
+                TTransitionMetaSchema,
+                TTagSchema,
+                TChildrenSchemaMap,
+                SetupSchemaMap<TInlineSchemas, 'rejections'>
+              >
             >
-          >
-        : unknown);
+          : unknown);
       actions?: TActionMap;
       actors?: TActorMap;
       guards?: TGuardMap;

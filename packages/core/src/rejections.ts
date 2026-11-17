@@ -1,5 +1,24 @@
-import type { EventObject, InferInternalEvents } from './base.types.ts';
-import type { StandardSchemaV1 } from './schema.types.ts';
+import type { EventObject, Values } from './base.types.ts';
+import type { StandardSchemaV1, TypeSchema } from './schema.types.ts';
+
+type NormalizeRejectionPayload<TSchema extends StandardSchemaV1, TInput> =
+  TSchema extends TypeSchema<any> ? TInput : Required<TInput>;
+
+type InferRejection<TType extends string, TSchema extends StandardSchemaV1> =
+  StandardSchemaV1.InferInput<TSchema> extends infer TInput
+    ? [TInput] extends [never]
+      ? never
+      : unknown extends TInput
+        ? TInput & { type: TType }
+        : [TInput] extends [void]
+          ? { type: TType }
+          : NormalizeRejectionPayload<TSchema, TInput> & { type: TType }
+    : never;
+
+type InferRejections<TSchemaMap extends Record<string, StandardSchemaV1>> =
+  Values<{
+    [K in keyof TSchemaMap & string]: InferRejection<K, TSchemaMap[K]>;
+  }>;
 
 /** @public */
 export type RejectionResult<TRejection extends EventObject> = {
@@ -19,7 +38,7 @@ export type Reject<TRejection extends EventObject> = (
 export type RejectionsFromConfig<T> = T extends {
   schemas: { rejections: infer TMap extends Record<string, StandardSchemaV1> };
 }
-  ? InferInternalEvents<TMap>
+  ? InferRejections<TMap>
   : never;
 
 /** @public */
@@ -79,14 +98,7 @@ export function reject(reasons: unknown): RejectionResult<EventObject> {
 export function isRejection(
   value: unknown
 ): value is RejectionResult<EventObject> {
-  return (
-    !!value &&
-    typeof value === 'object' &&
-    'reject' in value &&
-    Array.isArray(value.reject) &&
-    value.reject.length > 0 &&
-    value.reject.every(isReason)
-  );
+  return !!value && typeof value === 'object' && 'reject' in value;
 }
 
 export function assertRejectionResult(

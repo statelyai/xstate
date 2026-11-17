@@ -2,6 +2,7 @@
 export declare const createdInvokeConfig: unique symbol;
 
 import { SetupStateSchemas, StandardSchemaV1 } from './schema.types.ts';
+import type { RejectionsFromConfig } from './rejections.ts';
 import type {
   ActionSchemas,
   GuardSchemas,
@@ -428,7 +429,11 @@ export type Next_MachineConfig<
         ? InferOutput<TMetaSchema, MetaObject>
         : InferOutput<TTransitionMetaSchema, MetaObject>
     >,
-    InferInternalEvents<TRejectionSchemaMap>
+    DoNotInfer<
+      RejectionsFromConfig<{
+        schemas: { rejections: TRejectionSchemaMap };
+      }>
+    >
   >,
   'output' | 'schemas'
 > & {

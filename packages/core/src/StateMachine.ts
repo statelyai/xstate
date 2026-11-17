@@ -1005,7 +1005,7 @@ export class StateMachine<
       }
       if (
         transition.target !== undefined ||
-        (selection?.reusable && selection.operations.length > 0)
+        (selection?.reusable && selection.enabled)
       ) {
         accepted = true;
         continue;

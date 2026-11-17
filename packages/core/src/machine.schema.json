@@ -248,6 +248,10 @@
           "type": "object",
           "additionalProperties": { "$ref": "#/$defs/eventPayloadSchema" }
         },
+        "rejections": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/eventPayloadSchema" }
+        },
         "actions": {
           "type": "object",
           "additionalProperties": {
@@ -277,10 +281,6 @@
             "properties": {
               "input": { "$ref": "#/$defs/jsonSchema" },
               "output": { "$ref": "#/$defs/jsonSchema" },
-              "rejections": {
-                "type": "object",
-                "additionalProperties": { "$ref": "#/$defs/eventPayloadSchema" }
-              },
               "emitted": {
                 "type": "object",
                 "additionalProperties": {

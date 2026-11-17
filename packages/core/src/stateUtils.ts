@@ -2360,6 +2360,7 @@ export function getTransitionResult(
   if (transition.to) {
     const actions: AnyAction[] = [];
     const internalEvents: EventObject[] = [];
+    let attemptedRefProducingEffect = false;
     let res;
     if (
       options?.selectionResult?.reusable &&
@@ -2373,7 +2374,10 @@ export function getTransitionResult(
         actions,
         internalEvents,
         true,
-        options?.resolveActions ?? true
+        options?.resolveActions ?? true,
+        () => {
+          attemptedRefProducingEffect = true;
+        }
       );
       const speculativeSelection =
         options?.resolveActions === false
@@ -2400,7 +2404,11 @@ export function getTransitionResult(
 
     if (isRejection(res)) {
       assertRejectionResult(res, snapshot.machine.schemas?.rejections);
-      if (actions.length || internalEvents.length) {
+      if (
+        actions.length ||
+        internalEvents.length ||
+        attemptedRefProducingEffect
+      ) {
         throw new Error(
           'A rejecting transition cannot enqueue effects. Check rejection conditions before calling enq.'
         );

@@ -8,6 +8,8 @@ import {
   types,
   type RejectionFrom
 } from '../src/index.ts';
+import { z } from 'zod';
+import { standardSchemaValidator } from '../src/validation/index.ts';
 
 describe('transition rejection', () => {
   it('checks typed rejection reasons and consumes the event before parent fallback', () => {
@@ -83,6 +85,16 @@ describe('transition rejection', () => {
     );
     actor.send({ type: 'submit' });
     expect(actor.getSnapshot().value).toBe('submitted');
+    actor.stop();
+  });
+
+  it('accepts a selected targetless handler with no effects', () => {
+    const machine = createMachine({ on: { go: () => ({}) } });
+    const actor = createActor(machine).start();
+    expect(actor.getSnapshot().check({ type: 'go' })).toEqual({
+      status: 'accepted'
+    });
+    expect(actor.getSnapshot().can({ type: 'go' })).toBe(true);
     actor.stop();
   });
 
@@ -228,6 +240,41 @@ describe('transition rejection', () => {
     actor.stop();
   });
 
+  it('rejects spawning before rejection during a check', () => {
+    const machine = setup({
+      schemas: { rejections: { blocked: types<void>() } },
+      actors: {
+        worker: createMachine({})
+      }
+    }).createMachine({
+      on: {
+        go: ({ actors, reject }, enq) => {
+          enq.spawn(actors.worker);
+          return reject([{ type: 'blocked' }]);
+        }
+      }
+    });
+    const actor = createActor(machine).start();
+    expect(() => actor.getSnapshot().check({ type: 'go' })).toThrow(
+      'cannot enqueue effects'
+    );
+    actor.stop();
+  });
+
+  it('validates malformed rejection-shaped results before execution', () => {
+    const machine = createMachine({
+      schemas: { rejections: { blocked: types<void>() } },
+      context: { count: 0 },
+      on: {
+        go: (() => ({ reject: [], context: { count: 1 } })) as any
+      }
+    });
+    const actor = createActor(machine).start();
+    expect(() => actor.getSnapshot().check({ type: 'go' })).toThrow('nonempty');
+    expect(actor.getSnapshot().context.count).toBe(0);
+    actor.stop();
+  });
+
   it('keeps explicit rejection separate from unhandled and terminal events', () => {
     const onUnhandledEvent = vi.fn();
     const machine = createMachine({
@@ -346,6 +393,70 @@ describe('transition rejection', () => {
     expect(() => actor.getSnapshot().check({ type: 'go' })).toThrow(
       'count must be a number'
     );
+    actor.stop();
+  });
+
+  it('keeps wildcard rejection names literal', () => {
+    const machine = setup({
+      schemas: {
+        rejections: { 'policy.*': types<{ count: number }>() }
+      }
+    }).createMachine({
+      on: {
+        go: ({ reject }) => {
+          if (false) {
+            // @ts-expect-error Rejection schema keys are exact names
+            return reject([{ type: 'policy.limit', count: 1 }]);
+          }
+          return reject([{ type: 'policy.*', count: 1 }]);
+        }
+      }
+    });
+    const actor = createActor(machine).start();
+    expect(actor.getSnapshot().check({ type: 'go' }).status).toBe('rejected');
+    actor.stop();
+  });
+
+  it('types rejection payloads from transforming schema inputs', () => {
+    const machine = setup({
+      validator: standardSchemaValidator(),
+      schemas: {
+        rejections: {
+          blocked: z.object({ count: z.string().transform(Number) })
+        }
+      }
+    }).createMachine({
+      on: {
+        go: ({ reject }) => {
+          if (false) {
+            // @ts-expect-error Runtime validation receives the schema input
+            return reject([{ type: 'blocked', count: 1 }]);
+          }
+          return reject([{ type: 'blocked', count: '1' }]);
+        }
+      }
+    });
+    const actor = createActor(machine).start();
+    expect(actor.getSnapshot().check({ type: 'go' }).status).toBe('rejected');
+    actor.stop();
+  });
+
+  it('infers rejection schemas declared on setup-created machines', () => {
+    const machine = setup({}).createMachine({
+      schemas: { rejections: { blocked: types<{ count: number }>() } },
+      on: {
+        go: ({ reject }) => reject([{ type: 'blocked', count: 1 }])
+      }
+    });
+    expectTypeOf<RejectionFrom<typeof machine>>().toMatchTypeOf<{
+      type: 'blocked';
+      count: number;
+    }>();
+    expectTypeOf<{ type: 'blocked'; count: number }>().toMatchTypeOf<
+      RejectionFrom<typeof machine>
+    >();
+    const actor = createActor(machine).start();
+    expect(actor.getSnapshot().check({ type: 'go' }).status).toBe('rejected');
     actor.stop();
   });
   it('revives code-authored rejection handlers with their bound reject helper', () => {
