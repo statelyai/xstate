@@ -1764,6 +1764,7 @@ export interface StateConfig<
   _stateInputs?: Record<string, Record<string, unknown>>;
   /** @internal */
   _nextTimerId?: number;
+  _nextTimerOccurrence?: number;
   /**
    * Deterministic generated-child-id counters owned by this snapshot, keyed
    * by src prefix.

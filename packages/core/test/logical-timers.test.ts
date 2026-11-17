@@ -484,3 +484,15 @@ describe('logical snapshot timers', () => {
     ]);
   });
 });
+
+it('keeps anonymous timer keys stable when named timers are also scheduled', () => {
+  const machine = createMachine({
+    entry: (_, enq) => {
+      enq.raise({ type: 'FIRST' }, { id: 'named', delay: 100 });
+      enq.raise({ type: 'SECOND' }, { delay: 200 });
+    }
+  });
+  const [snapshot] = initialTransition(machine);
+  expect(snapshot.timers[1].seq).toBe(0);
+  expect(snapshot.timers.map((timer) => timer.occurrence)).toEqual([0, 1]);
+});

@@ -213,6 +213,18 @@ export function validatePersistedSnapshot(
         : xstateError(31)
     );
   }
+  if (
+    snapshot.nextTimerOccurrence !== undefined &&
+    (typeof snapshot.nextTimerOccurrence !== 'number' ||
+      !Number.isSafeInteger(snapshot.nextTimerOccurrence) ||
+      snapshot.nextTimerOccurrence < 0)
+  ) {
+    throw new InvalidSnapshotError(
+      isDevelopment
+        ? 'Persisted snapshot has an invalid timer occurrence counter.'
+        : xstateError(32)
+    );
+  }
   for (const timer of snapshot.timers ?? []) {
     if (
       !isSnapshotRecord(timer) ||

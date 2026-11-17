@@ -276,6 +276,7 @@ function snapshotData(
     // Stores such as Convex reject `_`-prefixed field names.
     _stateInputs: stateInputs,
     _nextTimerId: nextTimerId,
+    _nextTimerOccurrence: nextTimerOccurrence,
     _nextActorIds: nextActorIds,
     ...data
   } = snapshot;
@@ -284,6 +285,7 @@ function snapshotData(
       ...data,
       stateInputs,
       nextTimerId,
+      ...(nextTimerOccurrence > 0 && { nextTimerOccurrence }),
       nextActorIds,
       nodeIds: nodes.map((node: any) => node.id)
     },
@@ -551,6 +553,7 @@ class SystemReduction {
               ...data,
               _stateInputs: data.stateInputs,
               _nextTimerId: data.nextTimerId,
+              _nextTimerOccurrence: data.nextTimerOccurrence,
               _nextActorIds: data.nextActorIds,
               _nodes: data.nodeIds.map((id: string) =>
                 logic.getStateNodeById(id)

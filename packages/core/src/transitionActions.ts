@@ -322,14 +322,14 @@ function updateLogicalTimers(
   // event identifies them.
   let nextTimerId = snapshot._nextTimerId ?? 0;
   if (effect.id === undefined && !getBuiltInTimerIdentity(effect.event)) {
-    effect.seq = nextTimerId;
+    effect.seq = nextTimerId++;
     const args = effect.args as unknown[];
     args[args.length - 1] = {
       ...(args[args.length - 1] as object),
       seq: effect.seq
     };
   }
-  const occurrence = nextTimerId++;
+  const occurrence = snapshot._nextTimerOccurrence ?? 0;
   effect.occurrence = occurrence;
   const target =
     effect.type === '@xstate.raise' || effect.target === actorScope.self
@@ -355,7 +355,8 @@ function updateLogicalTimers(
       index === -1
         ? [...timers, timer]
         : timers.map((pending, i) => (i === index ? timer : pending)),
-    _nextTimerId: nextTimerId
+    _nextTimerId: nextTimerId,
+    _nextTimerOccurrence: occurrence + 1
   };
 }
 

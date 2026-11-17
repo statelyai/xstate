@@ -39,6 +39,10 @@ const malformed = [
   ],
   ['null timer', () => ({ timers: [null] })],
   [
+    'invalid timer occurrence counter',
+    () => ({ nextTimerOccurrence: 'invalid' })
+  ],
+  [
     'invalid timer event',
     () => ({
       timers: [
