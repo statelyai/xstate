@@ -104,6 +104,17 @@ it('retains enclosing context for sibling-relative descendant targets', () => {
       LEAVE: () => ({ target: '#outside', context: { id: null } })
     }
   });
+  s.createStateConfig('outer.source', {
+    on: {
+      INVALID: {
+        target: ['branch.leaf'],
+        // @ts-expect-error the enclosing refinement is retained
+        context: { id: null }
+      },
+      VALID: { target: ['branch.leaf'], context: { id: 'ok' } },
+      LEAVE: { target: ['#outside'], context: { id: null } }
+    }
+  });
 });
 
 it('checks refinements for array targets', () => {

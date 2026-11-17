@@ -4330,12 +4330,14 @@ type StateTransitionObjectConfig<
     } & RemovedTransitionKeys)
   | ({
       target: TTarget[];
+      // The inferred target set constrains this patch. Contextual typing uses
+      // root context so transitions can leave a source refinement.
       context?: StateTransitionContext<
         TAllowContextMapper,
         TContext,
         TContextShape,
-        TContextShape,
-        TContext,
+        RootContext<TContextShape>,
+        Cast<RootContext<TContext>, MachineContext>,
         TExpressionEvent,
         TChildren,
         TEmitted,
