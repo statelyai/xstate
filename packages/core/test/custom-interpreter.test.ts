@@ -1,3 +1,4 @@
+import { serializeTimerKey } from '../src/timerKey.ts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   type ActorSystemRuntime,
@@ -42,13 +43,13 @@ class CustomInterpreter<TLogic extends AnyActorLogic> {
           });
         }, delay);
         this.timers.set(
-          `${source.sessionId}|${JSON.stringify(timer)}`,
+          `${source.sessionId}|${serializeTimerKey(timer)}`,
           timeout
         );
       },
       cancelTimer: (source, timer) => {
         clearTimeout(
-          this.timers.get(`${source.sessionId}|${JSON.stringify(timer)}`)
+          this.timers.get(`${source.sessionId}|${serializeTimerKey(timer)}`)
         );
       },
       // When this example delegates child execution back to `createActor`, the
@@ -695,9 +696,12 @@ describe('custom interpreter runtime', () => {
     expect(operations.map(({ type }) => type)).toEqual(['schedule', 'cancel']);
     // A built-in timer has no id; its event identifies it.
     expect(operations[0].timer).toEqual({
+      occurrence: 0,
       event: { type: 'xstate.after', stateId: 'waiting', delay: 1000 }
     });
-    expect(operations[1].timer).toEqual(operations[0].timer);
+    expect(operations[1].timer).toEqual({
+      event: { type: 'xstate.after', stateId: 'waiting', delay: 1000 }
+    });
   });
 
   it('routes attached listener events through the custom mailbox', async () => {

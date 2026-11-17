@@ -34,6 +34,7 @@ describe('persisted logical timers', () => {
     const [timer] = getTimers(persisted);
 
     expect(timer).toEqual({
+      occurrence: 0,
       delay: 1000,
       type: '@xstate.raise',
       event: {

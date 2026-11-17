@@ -319,6 +319,7 @@ export function restoreMachineSnapshot<TMachine extends AnyStateMachine>(
 
   const timers: LogicalTimer[] = [];
   const persistedTimers: Array<{
+    occurrence?: number;
     id?: string;
     seq?: number;
     delay: number;

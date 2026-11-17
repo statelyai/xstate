@@ -1363,7 +1363,9 @@ contains its `id` (or `seq` for a delayed send without one; built-in `after` and
 wall-clock timestamps or native timeout handles. Timer runtimes implement
 `scheduleTimer(source, timer, delay)` / `cancelTimer(source, timer)` with a
 `TimerKey` (`{ id }`, `{ seq }` or a built-in timer's `{ event }`) and deliver
-`{ type: 'xstate.timer', ...timer }` to the source when due. Consuming that input
+`{ type: 'xstate.timer', ...timer }` to the source when due. Preserve the
+scheduling key's `occurrence` in that input; exclude it from logical cancellation
+lookup keys. Consuming that input
 removes the declaration and emits the real delivery effect.
 
 Final and explicitly stopped snapshots contain no pending timers; their

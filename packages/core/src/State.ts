@@ -929,6 +929,7 @@ export function getPersistedSnapshot<
       ? scheduled.dueAt - timer.delay
       : getTimerStart(timer);
     timersJson.push({
+      ...(timer.occurrence !== undefined && { occurrence: timer.occurrence }),
       ...(timer.id !== undefined && { id: timer.id }),
       ...(timer.seq !== undefined && { seq: timer.seq }),
       delay: timer.delay,

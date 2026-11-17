@@ -1798,14 +1798,17 @@ export interface StateConfig<
  *   (`type` and `stateId`, plus `delay` for `xstate.after`; `type` and
  *   `actorId` for `xstate.timeout.actor`), matched like `matches: { ... }`
  *
- * The timer firing input is `{ type: 'xstate.timer', ...key }`.
+ * Scheduling keys also carry an `occurrence` identifying that scheduling.
+ * Preserve it in `{ type: 'xstate.timer', ...key }` so cancelled firings cannot
+ * consume a replacement. Cancellation matches the logical key without it.
  *
  * @public
  */
-export type TimerKey =
+export type TimerKey = (
   | { id: string }
   | { seq: number }
-  | { event: EventObject };
+  | { event: EventObject }
+) & { occurrence?: number };
 
 /**
  * A deterministic delayed-delivery declaration owned by a logic snapshot.
@@ -1813,6 +1816,8 @@ export type TimerKey =
  * @public
  */
 export interface LogicalTimer {
+  /** Identity of this scheduling, preserved through persistence. */
+  occurrence?: number;
   /** The `id` passed to `enq.raise(...)` or `enq.sendTo(...)`, if any. */
   id?: string;
   /**
@@ -3302,6 +3307,8 @@ export interface RaiseExecutableEffect extends BaseExecutableEffect {
   id: string | undefined;
   /** Set for a delayed raise scheduled without an `id`. */
   seq?: number;
+  /** Identity of this scheduling. */
+  occurrence?: number;
   delay: number | undefined;
   args: Parameters<(typeof builtInActions)['@xstate.raise']>;
 }
@@ -3316,6 +3323,8 @@ export interface SendToExecutableEffect extends BaseExecutableEffect {
   id: string | undefined;
   /** Set for a delayed send scheduled without an `id`. */
   seq?: number;
+  /** Identity of this scheduling. */
+  occurrence?: number;
   delay: number | undefined;
   args: Parameters<(typeof builtInActions)['@xstate.sendTo']>;
 }

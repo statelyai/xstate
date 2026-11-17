@@ -31,6 +31,7 @@ describe('logical snapshot timers', () => {
     // Built-in timers have no id; their event identifies them.
     expect(schedule.id).toBeUndefined();
     expect(timer).toEqual({
+      occurrence: 0,
       delay: 100,
       type: '@xstate.raise',
       event: { type: 'xstate.after', delay: 100, stateId: 'red' },
@@ -46,7 +47,7 @@ describe('logical snapshot timers', () => {
 
     expect(scheduleTimer).toHaveBeenCalledWith(
       schedule.source,
-      { event: timer.event },
+      { event: timer.event, occurrence: timer.occurrence },
       100
     );
   });
@@ -327,6 +328,7 @@ describe('logical snapshot timers', () => {
     expect(scheduled.timers).toEqual([
       {
         id: 'ping',
+        occurrence: 0,
         delay: 100,
         type: '@xstate.sendTo',
         event: { type: 'PING' },
