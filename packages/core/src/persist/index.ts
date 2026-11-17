@@ -492,7 +492,11 @@ export function restoreMachineSnapshot<TMachine extends AnyStateMachine>(
       context: reviveContext(persistedRest.context, true),
       children,
       timers,
-      _nextTimerId: nextTimerId,
+      _nextTimerId: timers.reduce(
+        (next, timer) =>
+          Math.max(next, (timer.occurrence ?? -1) + 1, (timer.seq ?? -1) + 1),
+        nextTimerId ?? 0
+      ),
       _nextActorIds: restoredCounters,
       _nodes: nodes,
       // Derived from the resolved configuration, so a partial value such as

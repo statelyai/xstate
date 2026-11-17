@@ -2,7 +2,7 @@ import {
   runOnHost,
   createJournal
 } from '../../../examples/durable-execution/src/host.ts';
-import { createMachine, types } from '../src/index.ts';
+import { createMachine, types } from 'xstate';
 
 const machine = createMachine({
   schemas: {
@@ -65,4 +65,39 @@ it('preserves the checkpointed occurrence in the durable host example', async ()
   expect(logs.find((line) => line.includes('host: firing timer'))).toContain(
     '"occurrence":0'
   );
+});
+
+it('cancels without relying on a replacement to overwrite the host record', async () => {
+  const logs: string[] = [];
+  const cancellation = createMachine({
+    schemas: {
+      events: { CANCEL: types<{}>() },
+      internalEvents: { EXPIRE: types<{}>(), COMPLETE: types<{}>() }
+    },
+    initial: 'waiting',
+    states: {
+      waiting: {
+        entry: (_, enq) => {
+          enq.raise({ type: 'EXPIRE' }, { id: 'shared', delay: 100 });
+          enq.raise({ type: 'COMPLETE' }, { id: 'completion', delay: 200 });
+        },
+        on: {
+          CANCEL: (_, enq) => enq.cancel('shared'),
+          COMPLETE: { target: 'done' }
+        }
+      },
+      done: { type: 'final' }
+    }
+  });
+  const result = await runOnHost({
+    logic: cancellation,
+    executionId: 'cancel-only',
+    journal: createJournal(),
+    events: [{ type: 'CANCEL' }],
+    log: (line) => logs.push(line)
+  });
+  expect(result.status).toBe('done');
+  expect(logs.filter((line) => line.includes('host: firing timer'))).toEqual([
+    expect.stringContaining('"id":"completion"')
+  ]);
 });
