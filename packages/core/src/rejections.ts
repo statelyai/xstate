@@ -1,8 +1,5 @@
 import type { EventObject, Values } from './base.types.ts';
-import type { StandardSchemaV1, TypeSchema } from './schema.types.ts';
-
-type NormalizeRejectionPayload<TSchema extends StandardSchemaV1, TInput> =
-  TSchema extends TypeSchema<any> ? TInput : Required<TInput>;
+import type { StandardSchemaV1 } from './schema.types.ts';
 
 type InferRejection<TType extends string, TSchema extends StandardSchemaV1> =
   StandardSchemaV1.InferInput<TSchema> extends infer TInput
@@ -12,7 +9,7 @@ type InferRejection<TType extends string, TSchema extends StandardSchemaV1> =
         ? TInput & { type: TType }
         : [TInput] extends [void]
           ? { type: TType }
-          : NormalizeRejectionPayload<TSchema, TInput> & { type: TType }
+          : TInput & { type: TType }
     : never;
 
 type InferRejections<TSchemaMap extends Record<string, StandardSchemaV1>> =

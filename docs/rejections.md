@@ -48,7 +48,7 @@ A rejection consumes the event along the state's ancestor path. Parent handlers 
 
 The reasons array must contain at least one item. Rejecting handlers cannot enqueue effects or return context updates, targets, input, or reentry instructions. Evaluate rejection conditions before calling `enq`.
 
-Use rejection types and payloads to select and format messages in the UI. `RejectionFrom<typeof checkout>` extracts the declared rejection union. Rejection schemas can also be declared in `setup({ schemas: { rejections: ... } })`.
+Use rejection types and payloads to select and format messages in the UI. `RejectionFrom<typeof checkout>` extracts the declared rejection union. Rejection schemas can also be declared in `setup({ schemas: { rejections: ... } })`. Setup and inline rejection maps are merged, with setup entries overriding inline entries with the same name. Payload types preserve optional fields from the schema input.
 
 ## Checking an event
 

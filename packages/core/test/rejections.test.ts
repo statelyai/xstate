@@ -477,4 +477,93 @@ describe('transition rejection', () => {
     expect(actor.getSnapshot().status).toBe('active');
     actor.stop();
   });
+  it('preserves optional runtime rejection input fields', () => {
+    const schemas = {
+      blocked: z.object({
+        required: z.number(),
+        count: z.number().optional(),
+        label: z.string().default('default')
+      })
+    };
+    const machine = createMachine({
+      schemas: { rejections: schemas },
+      on: {
+        go: ({ reject }) => {
+          if (false) {
+            // @ts-expect-error The schema still requires required
+            reject([{ type: 'blocked' }]);
+            reject([
+              { type: 'blocked', required: 1, count: 2, label: 'custom' }
+            ]);
+          }
+          return reject([{ type: 'blocked', required: 1 }]);
+        }
+      }
+    });
+    const setupMachine = setup({
+      schemas: { rejections: schemas }
+    }).createMachine({
+      on: { go: ({ reject }) => reject([{ type: 'blocked', required: 1 }]) }
+    });
+    expectTypeOf<RejectionFrom<typeof machine>>().toMatchTypeOf<{
+      type: 'blocked';
+      required: number;
+      count?: number;
+      label?: string;
+    }>();
+    for (const logic of [machine, setupMachine]) {
+      const actor = createActor(logic).start();
+      const result = actor.getSnapshot().check({ type: 'go' });
+      expect(result.status).toBe('rejected');
+      if (result.status === 'rejected')
+        expect(result.rejections[0].reasons).toEqual([
+          { type: 'blocked', required: 1 }
+        ]);
+      actor.stop();
+    }
+  });
+
+  it('merges setup and inline rejection maps with setup taking precedence', () => {
+    const machine = setup({
+      schemas: { rejections: { blocked: types<{ setup: number }>() } }
+    }).createMachine({
+      schemas: {
+        rejections: {
+          quota: types<{ limit: number }>(),
+          blocked: types<{ inline: string }>()
+        }
+      },
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            go: ({ reject }) => {
+              if (false) {
+                // @ts-expect-error Setup overrides the inline blocked payload
+                reject([{ type: 'blocked', inline: 'wrong' }]);
+              }
+              return reject([
+                { type: 'blocked', setup: 1 },
+                { type: 'quota', limit: 2 }
+              ]);
+            }
+          }
+        }
+      }
+    });
+    type Expected =
+      | { type: 'blocked'; setup: number }
+      | { type: 'quota'; limit: number };
+    expectTypeOf<RejectionFrom<typeof machine>>().toMatchTypeOf<Expected>();
+    expectTypeOf<Expected>().toMatchTypeOf<RejectionFrom<typeof machine>>();
+    const actor = createActor(machine).start();
+    const result = actor.getSnapshot().check({ type: 'go' });
+    expect(result.status).toBe('rejected');
+    if (result.status === 'rejected')
+      expect(result.rejections[0].reasons).toEqual([
+        { type: 'blocked', setup: 1 },
+        { type: 'quota', limit: 2 }
+      ]);
+    actor.stop();
+  });
 });

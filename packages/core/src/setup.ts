@@ -621,18 +621,30 @@ type SetupOrConfigSchemaMap<
   ? TConfigSchemaMap
   : SetupSchemaMap<TSchemas, TKey>;
 
+type SetupRejectionSchemas<
+  TSchemas,
+  TConfigSchemaMap extends Record<string, StandardSchemaV1>
+> = [SetupSchemaMap<TSchemas, 'rejections'>] extends [never]
+  ? TConfigSchemaMap
+  : [TConfigSchemaMap] extends [never]
+    ? SetupSchemaMap<TSchemas, 'rejections'>
+    : MergeRecord<TConfigSchemaMap, SetupSchemaMap<TSchemas, 'rejections'>>;
+
 type SetupRejections<
   TSchemas,
   TConfigSchemaMap extends Record<string, StandardSchemaV1>
 > = RejectionsFromConfig<{
-  schemas: {
-    rejections: SetupOrConfigSchemaMap<
-      TSchemas,
-      'rejections',
-      TConfigSchemaMap
-    >;
-  };
+  schemas: { rejections: SetupRejectionSchemas<TSchemas, TConfigSchemaMap> };
 }>;
+
+// Callbacks see merged schemas, while the config declares only its own entries.
+type WithInlineRejectionSchemas<TConfig, TRejectionSchemaMap> = {
+  [K in keyof TConfig]: K extends 'schemas'
+    ? Omit<NonNullable<TConfig[K]>, 'rejections'> & {
+        rejections?: TRejectionSchemaMap;
+      }
+    : TConfig[K];
+};
 
 type SetupStateKeys<TStateSchemas extends Record<string, SetupStateSchema>> =
   keyof TStateSchemas & string;
@@ -2803,29 +2815,36 @@ type SetupMachineConfigBase<
   TRootActorMap extends Sources['actors'] = TActorMap,
   TRootGuardMap extends Sources['guards'] = TGuardMap
 > = Omit<
-  Next_MachineConfig<
-    SetupOrConfigSchema<TSchemas, 'context', TContextSchema>,
-    SetupOrConfigSchemaMap<TSchemas, 'events', TEventSchemaMap>,
-    SetupOrConfigSchemaMap<TSchemas, 'internalEvents', TInternalEventSchemaMap>,
-    SetupOrConfigSchemaMap<TSchemas, 'emitted', TEmittedSchemaMap>,
-    SetupOrConfigSchema<TSchemas, 'input', TInputSchema>,
-    SetupOrConfigSchema<TSchemas, 'output', TOutputSchema>,
-    SetupOrConfigSchema<TSchemas, 'meta', TMetaSchema>,
-    SetupOrConfigSchema<TSchemas, 'transitionMeta', TTransitionMetaSchema>,
-    SetupOrConfigSchema<TSchemas, 'tags', TTagSchema>,
-    SetupOrConfigSchemaMap<TSchemas, 'children', TChildrenSchemaMap>,
-    TContext,
-    TEvent,
-    TChildren,
-    TDelays,
-    TTag,
-    TActionMap,
-    TActorMap,
-    TGuardMap,
-    TDelayMap,
-    TContextRequired,
-    TSystemRegistry,
-    SetupOrConfigSchemaMap<TSchemas, 'rejections', TRejectionSchemaMap>
+  WithInlineRejectionSchemas<
+    Next_MachineConfig<
+      SetupOrConfigSchema<TSchemas, 'context', TContextSchema>,
+      SetupOrConfigSchemaMap<TSchemas, 'events', TEventSchemaMap>,
+      SetupOrConfigSchemaMap<
+        TSchemas,
+        'internalEvents',
+        TInternalEventSchemaMap
+      >,
+      SetupOrConfigSchemaMap<TSchemas, 'emitted', TEmittedSchemaMap>,
+      SetupOrConfigSchema<TSchemas, 'input', TInputSchema>,
+      SetupOrConfigSchema<TSchemas, 'output', TOutputSchema>,
+      SetupOrConfigSchema<TSchemas, 'meta', TMetaSchema>,
+      SetupOrConfigSchema<TSchemas, 'transitionMeta', TTransitionMetaSchema>,
+      SetupOrConfigSchema<TSchemas, 'tags', TTagSchema>,
+      SetupOrConfigSchemaMap<TSchemas, 'children', TChildrenSchemaMap>,
+      TContext,
+      TEvent,
+      TChildren,
+      TDelays,
+      TTag,
+      TActionMap,
+      TActorMap,
+      TGuardMap,
+      TDelayMap,
+      TContextRequired,
+      TSystemRegistry,
+      SetupRejectionSchemas<TSchemas, TRejectionSchemaMap>
+    >,
+    TRejectionSchemaMap
   >,
   | 'states'
   | 'initial'
