@@ -24,7 +24,8 @@ const Snapshot = Schema.Struct({
   children: Schema.Record(Schema.String, Schema.Never),
   timers: Schema.Array(Schema.Unknown),
   historyValue: Schema.Record(Schema.String, Schema.Unknown),
-  nextTimerId: Schema.Number
+  nextTimerId: Schema.Number,
+  nextTimerOccurrence: Schema.optionalKey(Schema.Number)
 });
 const codec = createSnapshotCodec(review, Snapshot);
 
