@@ -26,7 +26,8 @@ import type {
   AnyEventObject,
   ExecutableEffect,
   InputFrom,
-  TimerKey
+  TimerKey,
+  LogicalTimer
 } from './types.ts';
 
 /** Immutable definitions for a pure actor system. @experimental */
@@ -553,7 +554,11 @@ class SystemReduction {
               ...data,
               _stateInputs: data.stateInputs,
               _nextTimerId: data.nextTimerId,
-              _nextTimerOccurrence: data.nextTimerOccurrence,
+              _nextTimerOccurrence: (data.timers ?? []).reduce(
+                (next: number, timer: LogicalTimer) =>
+                  Math.max(next, (timer.occurrence ?? -1) + 1),
+                data.nextTimerOccurrence ?? 0
+              ),
               _nextActorIds: data.nextActorIds,
               _nodes: data.nodeIds.map((id: string) =>
                 logic.getStateNodeById(id)
