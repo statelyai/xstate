@@ -72,6 +72,16 @@ const malformed = [
         })
       ] as const
   ),
+  ...[-1, 0.5].map(
+    (seq) =>
+      [
+        `invalid timer sequence ${seq}`,
+        (good: any) => ({
+          timers: good.timers.map((timer: object) => ({ ...timer, seq }))
+        })
+      ] as const
+  ),
+  ['invalid anonymous timer counter', () => ({ nextTimerId: 0.5 })],
   ['string child', () => ({ children: { x: 'garbage' } })],
   ['null child', () => ({ children: { x: null } })],
   ['array child', () => ({ children: { x: [] } })],

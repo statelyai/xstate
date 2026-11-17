@@ -33,6 +33,10 @@ export function isSnapshotRecord(
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
+function isTimerSequence(value: unknown): value is number {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0;
+}
+
 function isActorLogic(value: unknown): value is AnyActorLogic {
   return (
     isSnapshotRecord(value) &&
@@ -213,17 +217,14 @@ export function validatePersistedSnapshot(
         : xstateError(31)
     );
   }
-  if (
-    snapshot.nextTimerOccurrence !== undefined &&
-    (typeof snapshot.nextTimerOccurrence !== 'number' ||
-      !Number.isSafeInteger(snapshot.nextTimerOccurrence) ||
-      snapshot.nextTimerOccurrence < 0)
-  ) {
-    throw new InvalidSnapshotError(
-      isDevelopment
-        ? 'Persisted snapshot has an invalid timer occurrence counter.'
-        : xstateError(32)
-    );
+  for (const key of ['nextTimerId', 'nextTimerOccurrence'] as const) {
+    if (snapshot[key] !== undefined && !isTimerSequence(snapshot[key])) {
+      throw new InvalidSnapshotError(
+        isDevelopment
+          ? `Persisted snapshot has an invalid timer counter '${key}'.`
+          : xstateError(32)
+      );
+    }
   }
   for (const timer of snapshot.timers ?? []) {
     if (
@@ -233,11 +234,8 @@ export function validatePersistedSnapshot(
       !isSnapshotRecord(timer.event) ||
       typeof timer.event.type !== 'string' ||
       (timer.id !== undefined && typeof timer.id !== 'string') ||
-      (timer.seq !== undefined && typeof timer.seq !== 'number') ||
-      (timer.occurrence !== undefined &&
-        (typeof timer.occurrence !== 'number' ||
-          !Number.isSafeInteger(timer.occurrence) ||
-          timer.occurrence < 0)) ||
+      (timer.seq !== undefined && !isTimerSequence(timer.seq)) ||
+      (timer.occurrence !== undefined && !isTimerSequence(timer.occurrence)) ||
       (timer.scheduledAt !== undefined &&
         typeof timer.scheduledAt !== 'number') ||
       !(

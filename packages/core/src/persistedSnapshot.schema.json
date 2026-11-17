@@ -49,7 +49,8 @@
     },
     "nextTimerId": {
       "description": "Private: next generated timer id.",
-      "type": "integer"
+      "type": "integer",
+      "minimum": 0
     },
     "nextTimerOccurrence": {
       "description": "Private: next timer scheduling occurrence, independent of anonymous timer keys.",
