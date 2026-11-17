@@ -222,6 +222,10 @@ export function validatePersistedSnapshot(
       typeof timer.event.type !== 'string' ||
       (timer.id !== undefined && typeof timer.id !== 'string') ||
       (timer.seq !== undefined && typeof timer.seq !== 'number') ||
+      (timer.occurrence !== undefined &&
+        (typeof timer.occurrence !== 'number' ||
+          !Number.isSafeInteger(timer.occurrence) ||
+          timer.occurrence < 0)) ||
       (timer.scheduledAt !== undefined &&
         typeof timer.scheduledAt !== 'number') ||
       !(
