@@ -848,7 +848,11 @@ class SystemReduction {
             const key = getTimerKey(value);
             const actor = this.current(ref);
             if (!actor || !isLogicalTimerPending(actor.snapshot, key)) break;
-            this.schedule(ref, value.delay, { type: 'xstate.timer', ...key });
+            this.schedule(ref, value.delay, {
+              type: 'xstate.timer',
+              ...key,
+              occurrence: value.occurrence
+            });
           } else if (isSerializedActorRef(value.target)) {
             // A ref that went through JSON targets the current incarnation
             // at its address; without one the event is a dead letter.

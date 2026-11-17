@@ -203,7 +203,7 @@ it('preserves unrelated deadlines and rejects stale occurrences after reentry', 
     type: 'REENTER'
   });
   const replacement = Object.values(reentered.timers)[0];
-  expect(replacement.event).toEqual(original.event);
+  expect(replacement.event).toEqual({ ...original.event, occurrence: 1 });
   expect(replacement.occurrence).not.toBe(original.occurrence);
   expect(replacement.dueAt).toBe(8000);
   expect(() =>

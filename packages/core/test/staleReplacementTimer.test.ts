@@ -1,3 +1,4 @@
+import { restoreActor } from '../src/persist/index.ts';
 import { test } from 'vitest';
 import {
   createActor,
@@ -14,7 +15,8 @@ import {
 function run(
   replacementId: string,
   fireWhileQueued: boolean,
-  delivery: 'raise' | 'sendTo' = 'raise'
+  delivery: 'raise' | 'sendTo' = 'raise',
+  restored = false
 ) {
   const clock = new SimulatedClock();
   let actor: AnyActor;
@@ -60,6 +62,11 @@ function run(
   actor = createActor(machine, { clock }).start();
   try {
     actor.send({ type: 'START', id: 'shared', label: 'original' });
+    if (restored) {
+      const persisted = actor.getPersistedSnapshot();
+      actor.stop();
+      actor = restoreActor(machine, persisted, { clock }).start();
+    }
     actor.send({ type: 'REPLACE' });
     const beforeDeadline = [...actor.getSnapshot().context.expired];
     clock.increment(99);
@@ -124,4 +131,12 @@ test('a stale built-in firing cannot consume a same-tick reentry timer', () => {
     ...scheduled[1]
   });
   expect(completed.value).toBe('done');
+});
+
+test('a restored native timer cannot fire a replacement raise early', () => {
+  expect(run('shared', true, 'raise', true)).toEqual([]);
+});
+
+test('a restored native timer cannot fire a replacement send early', () => {
+  expect(run('shared', true, 'sendTo', true)).toEqual([]);
 });

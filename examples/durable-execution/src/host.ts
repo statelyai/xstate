@@ -30,6 +30,15 @@ export const createJournal = (): Journal => ({
   executed: []
 });
 
+const logicalTimerKey = (timer: TimerKey) =>
+  JSON.stringify(
+    'id' in timer
+      ? { id: timer.id }
+      : 'seq' in timer
+        ? { seq: timer.seq }
+        : { event: timer.event }
+  );
+
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 export async function runOnHost<TLogic extends AnyActorLogic>(options: {
@@ -80,12 +89,12 @@ export async function runOnHost<TLogic extends AnyActorLogic>(options: {
     // A timer is identified by its source address and its timer key:
     // `{ id }`, `{ seq }`, or a built-in timer's `{ event }`.
     scheduleTimer: (source: AnyActor, timer: TimerKey, delay: number) => {
-      const key = JSON.stringify(timer);
+      const key = logicalTimerKey(timer);
       log(`  host: schedule timer ${key} (+${delay}ms)`);
       timers.set(`${source.address}#${key}`, { source, timer });
     },
     cancelTimer: (source: AnyActor, timer: TimerKey) => {
-      timers.delete(`${source.address}#${JSON.stringify(timer)}`);
+      timers.delete(`${source.address}#${logicalTimerKey(timer)}`);
     },
     // An invoked actor is the primary durable unit: its whole body is one
     // journal entry, keyed by its stable address.
@@ -161,15 +170,20 @@ export async function runOnHost<TLogic extends AnyActorLogic>(options: {
     for (const persisted of (resume.snapshot.timers ?? []) as Array<{
       id?: string;
       seq?: number;
+      occurrence?: number;
       event: { type: string };
     }>) {
-      const timer: TimerKey =
+      const logicalKey: TimerKey =
         persisted.id !== undefined
           ? { id: persisted.id }
           : persisted.seq !== undefined
             ? { seq: persisted.seq }
             : { event: persisted.event };
-      const key = JSON.stringify(timer);
+      const timer: TimerKey = {
+        ...logicalKey,
+        occurrence: persisted.occurrence
+      };
+      const key = logicalTimerKey(timer);
       log(`  host: re-arming checkpointed timer ${key}`);
       timers.set(`${rootAddress}#${key}`, {
         source: durable.getActorRef(snapshot)!,

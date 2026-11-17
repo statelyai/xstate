@@ -1007,7 +1007,11 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
                 Math.max(0, timer.scheduledAt + timer.delay - now)
               )
             : timer.delay;
-        this.system.scheduleTimer(this, getTimerKey(timer), delay);
+        this.system.scheduleTimer(
+          this,
+          { ...getTimerKey(timer), occurrence: timer.occurrence },
+          delay
+        );
       }
       this._restored = false;
     }
