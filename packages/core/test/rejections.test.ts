@@ -572,15 +572,35 @@ describe('transition rejection', () => {
   it('preserves optional rejection maps in setup extensions', () => {
     const base = types<{ old: number }>();
     const replacement = types<{ replacement: string }>();
+    const quota = types<{ limit: number }>();
     const loadSchemas = (): {
-      rejections?: { blocked: typeof replacement };
+      rejections?: { blocked: typeof replacement; quota: typeof quota };
     } => ({});
 
     const optionalOnly = setup({}).extend({ schemas: loadSchemas() });
     expectTypeOf(optionalOnly.schemas.rejections).toEqualTypeOf<
-      { blocked: typeof replacement } | undefined
+      { blocked: typeof replacement; quota: typeof quota } | undefined
     >();
     expect(optionalOnly.schemas.rejections).toBeUndefined();
+
+    const optionalMachine = optionalOnly.createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            go: ({ reject }) =>
+              reject([
+                { type: 'blocked', replacement: 'wait' },
+                { type: 'quota', limit: 2 }
+              ])
+          }
+        }
+      }
+    });
+    expectTypeOf<RejectionFrom<typeof optionalMachine>>().toMatchTypeOf<
+      | { type: 'blocked'; replacement: string }
+      | { type: 'quota'; limit: number }
+    >();
 
     const withBase = setup({
       schemas: { rejections: { blocked: base } }
@@ -589,6 +609,27 @@ describe('transition rejection', () => {
       typeof base | typeof replacement
     >();
     expect(withBase.schemas.rejections.blocked).toBe(base);
+
+    const mergedMachine = withBase.createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            go: ({ reject }) =>
+              reject([
+                { type: 'blocked', old: 1 },
+                { type: 'blocked', replacement: 'wait' },
+                { type: 'quota', limit: 2 }
+              ])
+          }
+        }
+      }
+    });
+    expectTypeOf<RejectionFrom<typeof mergedMachine>>().toMatchTypeOf<
+      | { type: 'blocked'; old: number }
+      | { type: 'blocked'; replacement: string }
+      | { type: 'quota'; limit: number }
+    >();
   });
 
   it('merges setup and inline rejection maps with setup taking precedence', () => {

@@ -580,9 +580,13 @@ type SetupSchemaMap<
     | 'children'
     | 'rejections'
 > = TKey extends keyof TSchemas
-  ? TSchemas[TKey] extends Record<string, StandardSchemaV1>
-    ? TSchemas[TKey]
-    : never
+  ? TKey extends 'rejections'
+    ? NonNullable<TSchemas[TKey]> extends Record<string, StandardSchemaV1>
+      ? NonNullable<TSchemas[TKey]>
+      : never
+    : TSchemas[TKey] extends Record<string, StandardSchemaV1>
+      ? TSchemas[TKey]
+      : never
   : never;
 
 type SetupActionSchemaMap<TSchemas> = 'actions' extends keyof TSchemas

@@ -13,9 +13,11 @@ type InferRejection<TType extends string, TSchema extends StandardSchemaV1> =
     : never;
 
 type InferRejections<TSchemaMap extends Record<string, StandardSchemaV1>> =
-  Values<{
-    [K in keyof TSchemaMap & string]: InferRejection<K, TSchemaMap[K]>;
-  }>;
+  TSchemaMap extends unknown
+    ? Values<{
+        [K in keyof TSchemaMap & string]: InferRejection<K, TSchemaMap[K]>;
+      }>
+    : never;
 
 /** @public */
 export type RejectionResult<TRejection extends EventObject> = {
