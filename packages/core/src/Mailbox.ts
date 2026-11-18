@@ -7,6 +7,9 @@ export class Mailbox<T> {
   private _active: boolean = false;
   private _current: MailboxItem<T> | null = null;
   private _last: MailboxItem<T> | null = null;
+  private _deferred: Array<() => void> | undefined;
+  private _processing = false;
+  private _flushingDeferred = false;
 
   constructor(private _process: (ev: T) => void) {}
 
@@ -18,9 +21,12 @@ export class Mailbox<T> {
   public clear(): void {
     // we can't set _current to null because we might be currently processing
     // and enqueue following clear shouldn't start processing the enqueued item immediately
-    if (this._current) {
+    if (this._current && this._processing) {
       this._current.next = null;
       this._last = this._current;
+    } else {
+      this._current = null;
+      this._last = null;
     }
   }
 
@@ -44,13 +50,40 @@ export class Mailbox<T> {
     }
   }
 
+  public defer(fn: () => void): void {
+    if (this._processing || this._flushingDeferred) {
+      (this._deferred ??= []).push(fn);
+    } else {
+      fn();
+    }
+  }
+
   private flush() {
     while (this._current) {
       // atm the given _process is responsible for implementing proper try/catch handling
       // we assume here that this won't throw in a way that can affect this mailbox
       const consumed = this._current;
-      this._process(consumed.value);
+      this._processing = true;
+      try {
+        this._process(consumed.value);
+      } finally {
+        this._processing = false;
+      }
       this._current = consumed.next;
+      if (!this._current) {
+        this._last = null;
+      }
+      if (!this._flushingDeferred && this._deferred) {
+        this._flushingDeferred = true;
+        try {
+          for (let i = 0; i < this._deferred.length; i++) {
+            this._deferred[i]();
+          }
+        } finally {
+          this._deferred = undefined;
+          this._flushingDeferred = false;
+        }
+      }
     }
     this._last = null;
   }

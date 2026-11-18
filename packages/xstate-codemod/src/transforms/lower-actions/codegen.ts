@@ -106,8 +106,6 @@ const TRANSITION_KEYS = new Set([
 export interface FileContext {
   xs: Map<string, string>;
   impls: Implementations;
-  /** Named `assign` definitions whose call sites were rewritten. */
-  assignDefs: Set<ImplDef>;
   /** Module-level action consts that must not be lowered (some use is not). */
   disabledConsts: Set<Node>;
 }
@@ -426,8 +424,7 @@ class FunctionBuilder {
   }
 
   /** Throws unless a named definition can be inlined at a call site. */
-  private inlineCheck(def: ImplDef, name: string) {
-    const expr = def.expr!;
+  private inlineCheck(def: ImplDef, name: string, expr = def.expr!) {
     const local = nonModuleReferences(expr);
     if (local.length) {
       skip(
@@ -937,14 +934,28 @@ class FunctionBuilder {
       return br.push(`enq(args.actions${ref.access}, ${br.argsObj()}${p});`);
     }
     if (def.kind === 'assign') {
-      const argsText = mentionsSpawn(def.assignArg!)
-        ? spawnArgs(br)
-        : br.argsObj();
-      const p = params ? `, ${this.dynamic(params, br, argsText)}` : '';
-      this.ctx.assignDefs.add(def);
-      return br.pushPatch({
-        expr: `args.actions${ref.access}(${argsText}${p})`
-      });
+      const arg = unwrap(def.assignArg!);
+      const safeValue = (node: Node) =>
+        !isFunctionLike(unwrap(node)) || !!inlineable(unwrap(node));
+      const safe = Node.isObjectLiteralExpression(arg)
+        ? arg
+            .getProperties()
+            .every((property) =>
+              Node.isPropertyAssignment(property)
+                ? safeValue(property.getInitializer()!)
+                : Node.isShorthandPropertyAssignment(property)
+            )
+        : (isFunctionLike(arg) && !!inlineable(arg)) ||
+          (Node.isIdentifier(arg) && isPlainObjectConst(arg));
+      if (params || def.constDecl || !safe) {
+        return skip(
+          `named assign '${name}' needs manual migration to a context patch`
+        );
+      }
+      this.inlineCheck(def, name, arg);
+      this.assign(arg, br);
+      this.inlinedDefs.add(def);
+      return;
     }
     return skip(`action '${name}' is not a plain function or assign`);
   }
