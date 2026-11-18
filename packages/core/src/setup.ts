@@ -1622,15 +1622,55 @@ type MergeSourceMaps<
   TExtension extends Record<string, unknown>
 > = Compute<TBase & TExtension>;
 
+type MergeSetupExtensionRejections<
+  TBase extends SetupSchemas,
+  TExtension extends SetupSchemas
+> = 'rejections' extends keyof TExtension
+  ? {} extends Pick<TExtension, 'rejections'>
+    ? 'rejections' extends keyof TBase
+      ? {} extends Pick<TBase, 'rejections'>
+        ? {
+            rejections?:
+              | NonNullable<TBase['rejections']>
+              | MergeRecord<
+                  NonNullable<TBase['rejections']>,
+                  NonNullable<TExtension['rejections']>
+                >;
+          }
+        : {
+            rejections:
+              | NonNullable<TBase['rejections']>
+              | MergeRecord<
+                  NonNullable<TBase['rejections']>,
+                  NonNullable<TExtension['rejections']>
+                >;
+          }
+      : { rejections?: NonNullable<TExtension['rejections']> }
+    : 'rejections' extends keyof TBase
+      ? {} extends Pick<TBase, 'rejections'>
+        ? {
+            rejections:
+              | NonNullable<TExtension['rejections']>
+              | MergeRecord<
+                  NonNullable<TBase['rejections']>,
+                  NonNullable<TExtension['rejections']>
+                >;
+          }
+        : {
+            rejections: MergeRecord<
+              NonNullable<TBase['rejections']>,
+              NonNullable<TExtension['rejections']>
+            >;
+          }
+      : { rejections: NonNullable<TExtension['rejections']> }
+  : Pick<TBase, Extract<'rejections', keyof TBase>>;
+
 type MergeSetupExtensionSchemas<
   TBase extends SetupSchemas,
   TExtension extends SetupSchemas
 > = Compute<
   Omit<TBase & TExtension, 'rejections'> &
-    Pick<
-      MergedSetupSchemas<TBase, TExtension>,
-      Extract<'rejections', keyof TBase | keyof TExtension>
-    >
+    MergeSetupExtensionRejections<TBase, TExtension>
 >;
 
 type MergeSetupStateSchemaField<

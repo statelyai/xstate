@@ -569,6 +569,28 @@ describe('transition rejection', () => {
     actor.stop();
   });
 
+  it('preserves optional rejection maps in setup extensions', () => {
+    const base = types<{ old: number }>();
+    const replacement = types<{ replacement: string }>();
+    const loadSchemas = (): {
+      rejections?: { blocked: typeof replacement };
+    } => ({});
+
+    const optionalOnly = setup({}).extend({ schemas: loadSchemas() });
+    expectTypeOf(optionalOnly.schemas.rejections).toEqualTypeOf<
+      { blocked: typeof replacement } | undefined
+    >();
+    expect(optionalOnly.schemas.rejections).toBeUndefined();
+
+    const withBase = setup({
+      schemas: { rejections: { blocked: base } }
+    }).extend({ schemas: loadSchemas() });
+    expectTypeOf(withBase.schemas.rejections.blocked).toEqualTypeOf<
+      typeof base | typeof replacement
+    >();
+    expect(withBase.schemas.rejections.blocked).toBe(base);
+  });
+
   it('merges setup and inline rejection maps with setup taking precedence', () => {
     const machine = setup({
       schemas: { rejections: { blocked: types<{ setup: number }>() } }
