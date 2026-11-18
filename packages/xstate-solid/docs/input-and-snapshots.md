@@ -7,7 +7,7 @@ description: Start Solid actors with input or a persisted snapshot.
 
 ```ts
 const [snapshot, send] = useActor(checkoutMachine, {
-  input: { cartId: props.cartId },
+  input: untrack(() => ({ cartId: props.cartId })),
   snapshot: restoredSnapshot
 });
 ```
@@ -17,17 +17,19 @@ const [snapshot, send] = useActor(checkoutMachine, {
 ## Input from props
 
 ```tsx
+import { untrack } from 'solid-js';
+
 function Checkout(props: { cartId: string }) {
   const [snapshot, send] = useActor(checkoutMachine, {
-    input: { cartId: props.cartId }
+    input: untrack(() => ({ cartId: props.cartId }))
   });
   // ...
 }
 ```
 
-Reading `props.cartId` here is a one-time read: a Solid component function runs once, so a later prop change does not restart the actor. Choose one of:
+Reading `props.cartId` here is a one-time read: a Solid component function runs once, so a later prop change does not restart the actor. `untrack(...)` marks the read as intended; without it Solid warns in development. Choose one of:
 
-- send an event, such as `send({ type: 'cart.changed', cartId: props.cartId })` from a `createEffect(...)`, and model the change in the machine
+- send an event from an effect, such as `createEffect(() => props.cartId, (cartId) => send({ type: 'cart.changed', cartId }), { defer: true })`, and model the change in the machine
 - recreate the component with a keyed boundary, such as `<Show when={props.cartId} keyed>`, so the old actor is stopped and a new one is created
 
 Machines that declare required [input](../input-output.md) make the options argument mandatory in TypeScript.
@@ -37,7 +39,7 @@ Machines that declare required [input](../input-output.md) make the options argu
 `actorRef.getPersistedSnapshot()` returns a serializable value, including persisted children. Save it as the actor changes.
 
 ```tsx
-import { onCleanup } from 'solid-js';
+import { onSettled } from 'solid-js';
 import { useActor } from '@xstate/solid';
 
 function UploadPanel() {
@@ -45,14 +47,15 @@ function UploadPanel() {
     snapshot: loadSnapshot()
   });
 
-  const subscription = actorRef.subscribe(() => {
-    localStorage.setItem(
-      'upload',
-      JSON.stringify(actorRef.getPersistedSnapshot())
-    );
+  onSettled(() => {
+    const subscription = actorRef.subscribe(() => {
+      localStorage.setItem(
+        'upload',
+        JSON.stringify(actorRef.getPersistedSnapshot())
+      );
+    });
+    return () => subscription.unsubscribe();
   });
-
-  onCleanup(() => subscription.unsubscribe());
 
   return <progress value={snapshot.context.progress} />;
 }

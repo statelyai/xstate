@@ -1,4 +1,4 @@
-import { onCleanup, onMount } from 'solid-js';
+import { onSettled } from 'solid-js';
 import type {
   ActorOptions,
   ActorRefFrom,
@@ -36,9 +36,9 @@ export function useActorRef(
       ? logicOrActor
       : createActor(logicOrActor, options);
 
-  onMount(() => {
+  onSettled(() => {
     actorRef.start();
-    onCleanup(() => actorRef.stop());
+    return () => actorRef.stop();
   });
 
   return actorRef as any;

@@ -3,7 +3,7 @@ title: Server rendering
 description: Use XState actors with SolidStart and server-rendered Solid.
 ---
 
-Solid does not run `onMount` or effects on the server. `useActorRef(...)` starts the actor in `onMount`, and `fromActorRef(...)` subscribes in an effect, so during SSR the actor is created but never started: the server renders the initial snapshot, and everything else happens after hydration.
+Solid does not run `onSettled` or effects on the server. `useActorRef(...)` starts the actor in `onSettled`, and `fromActorRef(...)` subscribes in an effect, so during SSR the actor is created but never started: the server renders the initial snapshot, and everything else happens after hydration.
 
 The initial snapshot is therefore what the server output and the first client render must agree on.
 
@@ -41,11 +41,11 @@ const persisted = JSON.parse(JSON.stringify(actor.getPersistedSnapshot()));
 actor.stop();
 ```
 
-In SolidStart, deliver it through a route loader and read it with `createAsync(...)`:
+Load it with an async memo, under a `<Loading>` boundary:
 
 ```tsx
 function Checkout() {
-  const persisted = createAsync(() => getPersistedCheckout());
+  const persisted = createMemo(() => getPersistedCheckout());
 
   return (
     <Show when={persisted()} keyed>
@@ -56,7 +56,7 @@ function Checkout() {
 
 function CheckoutView(props: { snapshot: unknown }) {
   const [snapshot, send] = useActor(checkoutMachine, {
-    snapshot: props.snapshot
+    snapshot: untrack(() => props.snapshot)
   });
   // ...
 }
@@ -68,7 +68,7 @@ The `keyed` boundary matters: the actor options are read once, so the actor must
 
 The server renders the initial or restored snapshot, and the client's first render must match it.
 
-- Do not send events while the component function runs. Send them from `onMount(...)` or from user interaction.
+- Do not send events while the component function runs. Send them from `onSettled(...)` or from user interaction.
 - Keep `Date.now()`, `Math.random()` and `window` out of the initial context. Pass them as `input`, or set them from an entry action after the actor starts.
 - Delayed transitions only run once the actor starts in the browser, so a state entered via `after` is never part of the server output.
 
@@ -76,4 +76,4 @@ The server renders the initial or restored snapshot, and the client's first rend
 
 ## Browser-only work
 
-Put browser APIs behind `onMount(...)`, or invoke them from actor logic. Actors only start on the client, so a [callback actor](../actor-logic.md) that attaches a `resize` or media-element listener never runs on the server.
+Put browser APIs behind `onSettled(...)`, or invoke them from actor logic. Actors only start on the client, so a [callback actor](../actor-logic.md) that attaches a `resize` or media-element listener never runs on the server.

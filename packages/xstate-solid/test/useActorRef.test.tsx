@@ -1,9 +1,9 @@
-/* @jsxImportSource solid-js */
+/* @jsxImportSource @solidjs/web */
 import { createActor, createMachine } from 'xstate';
 import { restoreActor } from 'xstate/persist';
 import { render, fireEvent, screen } from '@solidjs/testing-library';
 import { useActor, useActorRef } from '../src/index.ts';
-import { createEffect } from 'solid-js';
+import { flush, onSettled } from 'solid-js';
 
 describe('useActorRef', () => {
   it('uses a ready actor as is, starting it on mount and stopping it on unmount', () => {
@@ -49,18 +49,19 @@ describe('useActorRef', () => {
     const App = () => {
       const service = useActorRef(machine);
 
-      createEffect(() => {
-        service.subscribe((state) => {
+      onSettled(() => {
+        const { unsubscribe } = service.subscribe((state) => {
           if (state.matches('active')) {
             resolve();
           }
         });
+        return unsubscribe;
       });
 
       return (
         <button
           data-testid="button"
-          onclick={() => {
+          onClick={() => {
             service.send({ type: 'ACTIVATE' });
           }}
         />
@@ -71,6 +72,8 @@ describe('useActorRef', () => {
     const button = screen.getByTestId('button');
 
     fireEvent.click(button);
+
+    flush();
 
     return promise;
   });
@@ -92,18 +95,19 @@ describe('useActorRef', () => {
     const App = () => {
       const service = useActorRef(machine);
 
-      createEffect(() => {
-        service.subscribe((state) => {
+      onSettled(() => {
+        const { unsubscribe } = service.subscribe((state) => {
           if (state.matches('active')) {
             resolve();
           }
         });
+        return unsubscribe;
       });
 
       return (
         <button
           data-testid="button"
-          onclick={() => {
+          onClick={() => {
             service.send({ type: 'ACTIVATE' });
           }}
         />
@@ -114,6 +118,8 @@ describe('useActorRef', () => {
     const button = screen.getByTestId('button');
 
     fireEvent.click(button);
+
+    flush();
 
     return promise;
   });

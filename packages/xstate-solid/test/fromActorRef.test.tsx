@@ -1,4 +1,4 @@
-/* @jsxImportSource solid-js */
+/* @jsxImportSource @solidjs/web */
 import {
   Accessor,
   Component,
@@ -6,10 +6,12 @@ import {
   Switch,
   createEffect,
   createSignal,
-  on,
-  onMount
+  createStore,
+  flush,
+  untrack,
+  onSettled,
+  reconcile
 } from 'solid-js';
-import { createStore, reconcile } from 'solid-js/store';
 import { fireEvent, render, screen, waitFor } from '@solidjs/testing-library';
 import {
   ActorRef,
@@ -53,9 +55,9 @@ describe('fromActorRef', () => {
     const ChildTest: Component<{ actor: ActorRefFrom<typeof childMachine> }> = (
       props
     ) => {
-      const state = fromActorRef(props.actor);
+      const state = fromActorRef(() => props.actor);
 
-      expect(state().value).toEqual('active');
+      expect(untrack(() => state().value)).toEqual('active');
       resolve();
 
       return null;
@@ -106,9 +108,9 @@ describe('fromActorRef', () => {
     const ChildTest: Component<{ actor: ActorRefFrom<typeof childMachine> }> = (
       props
     ) => {
-      const state = fromActorRef(props.actor);
+      const state = fromActorRef(() => props.actor);
 
-      onMount(() => {
+      onSettled(() => {
         expect(state().value).toEqual('active');
         props.actor.send({ type: 'FINISH' });
       });
@@ -118,11 +120,14 @@ describe('fromActorRef', () => {
 
     const Test = () => {
       const [state] = useActor(machine);
-      createEffect(() => {
-        if (state.matches('success')) {
-          resolve();
+      createEffect(
+        () => state.matches('success'),
+        (success) => {
+          if (success) {
+            resolve();
+          }
         }
-      });
+      );
 
       return (
         <ChildTest
@@ -156,10 +161,15 @@ describe('fromActorRef', () => {
       const [actorRef] = createSignal(createActor(machine).start());
       const snapshot = fromActorRef(actorRef);
 
-      onMount(() => {
+      onSettled(() => {
         expect(snapshot().value).toBe('start');
         actorRef().send({ type: 'done' });
-        expect(snapshot().value).toBe('success');
+        // Solid 2 batches writes: the snapshot shows the new value once this
+        // flush finishes.
+        queueMicrotask(() => {
+          flush();
+          expect(snapshot().value).toBe('success');
+        });
       });
 
       return (
@@ -274,30 +284,26 @@ describe('fromActorRef', () => {
     const ChildTest = (props: {
       actor: Readonly<ActorRefFrom<typeof childMachine>>;
     }) => {
-      const snapshot = fromActorRef(props.actor);
+      const snapshot = fromActorRef(() => props.actor);
       const [count, setCount] = createSignal(0);
       const [total, setTotal] = createSignal(0);
       createEffect(
-        on(
-          () => (snapshot() as any).context.item.count,
-          () => {
-            setCount(() => count() + 1);
-          },
-          { defer: true }
-        )
+        () => (snapshot() as any).context.item.count,
+        () => {
+          setCount((c) => c + 1);
+        },
+        { defer: true }
       );
 
       createEffect(
-        on(
-          () => (snapshot() as any).context.item.total,
-          () => {
-            setTotal(() => total() + 1);
-          },
-          { defer: true }
-        )
+        () => (snapshot() as any).context.item.total,
+        () => {
+          setTotal((t) => t + 1);
+        },
+        { defer: true }
       );
 
-      onMount(() => {
+      onSettled(() => {
         props.actor.send({ type: 'COUNT' });
         props.actor.send({ type: 'FINISH' });
       });
@@ -317,6 +323,7 @@ describe('fromActorRef', () => {
     };
 
     render(() => <Test />);
+    flush();
     const countEl = screen.getByTestId('count');
     const totalEl = screen.getByTestId('total');
 
@@ -353,16 +360,16 @@ describe('fromActorRef', () => {
     const ChildTest: Component<{ actor: ActorRefFrom<typeof childMachine> }> = (
       props
     ) => {
-      const snapshot = fromActorRef(props.actor);
+      const snapshot = fromActorRef(() => props.actor);
 
-      expect(snapshot().value).toEqual('active');
+      expect(untrack(() => snapshot().value)).toEqual('active');
 
       return null;
     };
 
     const Test = () => {
       const [snapshot] = useActor(machine);
-      const { actorRef } = (snapshot as any).context;
+      const actorRef = untrack(() => (snapshot as any).context.actorRef);
 
       return <ChildTest actor={actorRef!} />;
     };
@@ -395,20 +402,20 @@ describe('fromActorRef', () => {
     const App = () => {
       const actorRef = createActor(machine).start();
       const snapshot = fromActorRef(actorRef);
-      const [toJson, setToJson] = createSignal(snapshot().toJSON());
+      const [toJson, setToJson] = createSignal(
+        untrack(() => snapshot().toJSON())
+      );
       createEffect(
-        on(
-          () => snapshot().value,
-          () => {
-            setToJson(snapshot().toJSON());
-          }
-        )
+        () => snapshot().value,
+        () => {
+          setToJson(untrack(() => snapshot().toJSON()));
+        }
       );
       return (
         <div>
           <button
             data-testid="transition-button"
-            onclick={() => actorRef.send({ type: 'TRANSITION' })}
+            onClick={() => actorRef.send({ type: 'TRANSITION' })}
           />
           <div data-testid="to-json">{(toJson() as any).value.toString()}</div>
         </div>
@@ -422,14 +429,17 @@ describe('fromActorRef', () => {
     // Green
     expect(toJsonEl.textContent).toEqual('green');
     transitionBtn.click();
+    flush();
 
     // Yellow
     expect(toJsonEl.textContent).toEqual('yellow');
     transitionBtn.click();
+    flush();
 
     // Red
     expect(toJsonEl.textContent).toEqual('red');
     transitionBtn.click();
+    flush();
 
     // Green
     expect(toJsonEl.textContent).toEqual('green');
@@ -463,15 +473,20 @@ describe('fromActorRef', () => {
     const App = () => {
       const actorRef = createActor(machine).start();
       const snapshot = fromActorRef(actorRef);
-      const [canGo, setCanGo] = createSignal(snapshot().hasTag('go'));
-      createEffect(() => {
-        setCanGo(snapshot().hasTag('go'));
-      });
+      const [canGo, setCanGo] = createSignal(
+        untrack(() => snapshot().hasTag('go'))
+      );
+      createEffect(
+        () => snapshot().hasTag('go'),
+        (go) => {
+          setCanGo(go);
+        }
+      );
       return (
         <div>
           <button
             data-testid="transition-button"
-            onclick={() => actorRef.send({ type: 'TRANSITION' })}
+            onClick={() => actorRef.send({ type: 'TRANSITION' })}
           />
           <div data-testid="can-go">{canGo().toString()}</div>
           <div data-testid="stop">{snapshot().hasTag('stop').toString()}</div>
@@ -488,16 +503,19 @@ describe('fromActorRef', () => {
     expect(canGoEl.textContent).toEqual('true');
     expect(stopEl.textContent).toEqual('false');
     transitionBtn.click();
+    flush();
 
     // Yellow
     expect(canGoEl.textContent).toEqual('true');
     expect(stopEl.textContent).toEqual('false');
     transitionBtn.click();
+    flush();
 
     // Red
     expect(canGoEl.textContent).toEqual('false');
     expect(stopEl.textContent).toEqual('true');
     transitionBtn.click();
+    flush();
 
     // Green
     expect(canGoEl.textContent).toEqual('true');
@@ -527,16 +545,19 @@ describe('fromActorRef', () => {
       const actorRef = createActor(machine).start();
       const snapshot = fromActorRef(actorRef);
       const [canToggle, setCanToggle] = createSignal(
-        snapshot().can({ type: 'TOGGLE' })
+        untrack(() => snapshot().can({ type: 'TOGGLE' }))
       );
-      createEffect(() => {
-        setCanToggle(snapshot().can({ type: 'TOGGLE' }));
-      });
+      createEffect(
+        () => snapshot().can({ type: 'TOGGLE' }),
+        (can) => {
+          setCanToggle(can);
+        }
+      );
       return (
         <div>
           <button
             data-testid="toggle-button"
-            onclick={() => actorRef.send({ type: 'TOGGLE' })}
+            onClick={() => actorRef.send({ type: 'TOGGLE' })}
           />
           <div data-testid="can-toggle">{canToggle().toString()}</div>
           <div data-testid="can-do-something">
@@ -554,6 +575,7 @@ describe('fromActorRef', () => {
     expect(canToggleEl.textContent).toEqual('true');
     expect(canDoSomethingEl.textContent).toEqual('false');
     toggleBtn.click();
+    flush();
     expect(canToggleEl.textContent).toEqual('false');
     expect(canDoSomethingEl.textContent).toEqual('true');
   });
@@ -602,12 +624,15 @@ describe('fromActorRef', () => {
     });
 
     const ChildTest = (props: { actor: ActorRefFrom<typeof childMachine> }) => {
-      const snapshot = fromActorRef(props.actor);
-      createEffect(() => {
-        expect(snapshot().value).toEqual('active');
-      });
+      const snapshot = fromActorRef(() => props.actor);
+      createEffect(
+        () => snapshot().value,
+        (value) => {
+          expect(value).toEqual('active');
+        }
+      );
 
-      onMount(() => {
+      onSettled(() => {
         props.actor.send({ type: 'FINISH' });
       });
 
@@ -616,11 +641,14 @@ describe('fromActorRef', () => {
 
     const Test = () => {
       const [state] = useActor(machine);
-      createEffect(() => {
-        if (state.matches('success')) {
-          resolve();
+      createEffect(
+        () => state.matches('success'),
+        (success) => {
+          if (success) {
+            resolve();
+          }
         }
-      });
+      );
 
       return <ChildTest actor={state.context.actorRef!} />;
     };
@@ -661,7 +689,7 @@ describe('fromActorRef', () => {
           <div data-testid="state">{snapshot().context}</div>
           <button
             data-testid="button"
-            onclick={() => setActor(createSimpleActor(100))}
+            onClick={() => setActor(createSimpleActor(100))}
           />
         </div>
       );
@@ -674,6 +702,7 @@ describe('fromActorRef', () => {
 
     expect(div.textContent).toEqual('42');
     fireEvent.click(button);
+    flush();
     expect(div.textContent).toEqual('100');
   });
 
@@ -689,7 +718,7 @@ describe('fromActorRef', () => {
           <div data-testid="state">{snapshot().context.getFullYear()}</div>
           <button
             data-testid="button"
-            onclick={() => setActor(createSimpleActor(new Date('2022-08-21')))}
+            onClick={() => setActor(createSimpleActor(new Date('2022-08-21')))}
           />
         </div>
       );
@@ -702,6 +731,7 @@ describe('fromActorRef', () => {
 
     expect(div.textContent).toEqual('2020');
     fireEvent.click(button);
+    flush();
     expect(div.textContent).toEqual('2022');
   });
 
@@ -711,11 +741,14 @@ describe('fromActorRef', () => {
       const snapshot = fromActorRef(actor);
       const [change, setChange] = createSignal(0);
 
-      createEffect(() => {
-        if (snapshot().context[0]) {
-          setChange((val) => val + 1);
+      createEffect(
+        () => snapshot().context[0],
+        (first) => {
+          if (first) {
+            setChange((val) => val + 1);
+          }
         }
-      });
+      );
 
       return (
         <div>
@@ -724,7 +757,7 @@ describe('fromActorRef', () => {
           <div data-testid="state-2">{snapshot().context[3]}</div>
           <button
             data-testid="button"
-            onclick={() => setActor(createSimpleActor(['1', '3', '5', '8']))}
+            onClick={() => setActor(createSimpleActor(['1', '3', '5', '8']))}
           />
         </div>
       );
@@ -740,6 +773,7 @@ describe('fromActorRef', () => {
     expect(changeVal.textContent).toEqual('1');
     expect(div.textContent).toEqual('2');
     fireEvent.click(button);
+    flush();
     expect(div.textContent).toEqual('3');
     expect(changeVal.textContent).toEqual('1');
     expect(div2.textContent).toEqual('8');
@@ -753,11 +787,14 @@ describe('fromActorRef', () => {
       const snapshot = fromActorRef(actor);
       const [change, setChange] = createSignal(0);
 
-      createEffect(() => {
-        if (snapshot().context[0]) {
-          setChange((val) => val + 1);
+      createEffect(
+        () => snapshot().context[0],
+        (first) => {
+          if (first) {
+            setChange((val) => val + 1);
+          }
         }
-      });
+      );
 
       return (
         <div>
@@ -766,7 +803,7 @@ describe('fromActorRef', () => {
           <div data-testid="state-2">{snapshot().context[3]}</div>
           <button
             data-testid="button"
-            onclick={() => setActor(createSimpleActor(['1', '2']))}
+            onClick={() => setActor(createSimpleActor(['1', '2']))}
           />
         </div>
       );
@@ -783,6 +820,7 @@ describe('fromActorRef', () => {
     expect(div.textContent).toEqual('3');
     expect(div2.textContent).toEqual('8');
     fireEvent.click(button);
+    flush();
     expect(div.textContent).toEqual('2');
     expect(changeVal.textContent).toEqual('1');
     expect(div2.textContent).toEqual('');
@@ -831,13 +869,13 @@ describe('fromActorRef', () => {
           </div>
           <button
             data-testid="remove-start"
-            onclick={() => send({ type: 'REMOVE_START' })}
+            onClick={() => send({ type: 'REMOVE_START' })}
           />
           <button
             data-testid="remove-end"
-            onclick={() => send({ type: 'REMOVE_END' })}
+            onClick={() => send({ type: 'REMOVE_END' })}
           />
-          <button data-testid="add" onclick={() => send({ type: 'ADD' })} />
+          <button data-testid="add" onClick={() => send({ type: 'ADD' })} />
         </div>
       );
     };
@@ -851,10 +889,13 @@ describe('fromActorRef', () => {
 
     expect(state.textContent).toEqual('1,2,3,4,5,6');
     fireEvent.click(removeStart);
+    flush();
     expect(state.textContent).toEqual('2,3,4,5,6');
     fireEvent.click(removeEnd);
+    flush();
     expect(state.textContent).toEqual('2,3,4,5');
     fireEvent.click(add);
+    flush();
     expect(state.textContent).toEqual('2,3,4,5,6');
   });
 
@@ -895,22 +936,31 @@ describe('fromActorRef', () => {
       const [changeIndex1, setChangeIndex1] = createSignal(0);
       const [changeRoot, setChangeRoot] = createSignal(0);
 
-      createEffect(() => {
-        if ((snapshot() as any).context.arr) {
-          setChangeRoot((val) => val + 1);
+      createEffect(
+        () => !!(snapshot() as any).context.arr,
+        (hasArr) => {
+          if (hasArr) {
+            setChangeRoot((val) => val + 1);
+          }
         }
-      });
-      createEffect(() => {
-        if ((snapshot() as any).context.arr[0].value) {
-          setChangeIndex0((val) => val + 1);
+      );
+      createEffect(
+        () => (snapshot() as any).context.arr[0].value,
+        (value) => {
+          if (value) {
+            setChangeIndex0((val) => val + 1);
+          }
         }
-      });
+      );
 
-      createEffect(() => {
-        if ((snapshot() as any).context.arr[1].value) {
-          setChangeIndex1((val) => val + 1);
+      createEffect(
+        () => (snapshot() as any).context.arr[1].value,
+        (value) => {
+          if (value) {
+            setChangeIndex1((val) => val + 1);
+          }
         }
-      });
+      );
 
       return (
         <div>
@@ -925,13 +975,13 @@ describe('fromActorRef', () => {
           </div>
           <button
             data-testid="index-0-btn"
-            onclick={() =>
+            onClick={() =>
               actorRef.send({ type: 'CHANGE', index: 0, value: -10 } as any)
             }
           />
           <button
             data-testid="index-1-btn"
-            onclick={() =>
+            onClick={() =>
               actorRef.send({ type: 'CHANGE', index: 1, value: 22 } as any)
             }
           />
@@ -958,6 +1008,7 @@ describe('fromActorRef', () => {
 
     // Change index 0
     fireEvent.click(changeIndex0Btn);
+    flush();
 
     expect(stateIndex0.textContent).toEqual('-10');
     expect(stateIndex1.textContent).toEqual('20');
@@ -967,6 +1018,7 @@ describe('fromActorRef', () => {
 
     // Change index 1
     fireEvent.click(changeIndex1Btn);
+    flush();
 
     expect(stateIndex0.textContent).toEqual('-10');
     expect(stateIndex1.textContent).toEqual('22');
@@ -991,17 +1043,23 @@ describe('fromActorRef', () => {
       const [actorChange, setActorChange] = createSignal(0);
       const [signalChange, setSignalChange] = createSignal(0);
 
-      createEffect(() => {
-        if (snapshot().context.get('prop1')) {
-          setActorChange((val) => val + 1);
+      createEffect(
+        () => snapshot().context,
+        (map) => {
+          if (map.get('prop1')) {
+            setActorChange((val) => val + 1);
+          }
         }
-      });
+      );
 
-      createEffect(() => {
-        if (signal().get('prop1')) {
-          setSignalChange((val) => val + 1);
+      createEffect(
+        () => signal(),
+        (map) => {
+          if (map.get('prop1')) {
+            setSignalChange((val) => val + 1);
+          }
         }
-      });
+      );
 
       return (
         <div>
@@ -1013,7 +1071,7 @@ describe('fromActorRef', () => {
           </div>
           <button
             data-testid="button"
-            onclick={() => {
+            onClick={() => {
               const newMap = new Map([
                 ['prop1', 'value'],
                 ['prop2', '10']
@@ -1039,6 +1097,7 @@ describe('fromActorRef', () => {
     expect(actorState.textContent).toEqual('5');
     expect(signalState.textContent).toEqual('5');
     fireEvent.click(button);
+    flush();
     expect(actorState.textContent).toEqual('10');
     expect(signalState.textContent).toEqual('10');
     expect(signalChangeVal.textContent).toEqual('2');
@@ -1059,17 +1118,23 @@ describe('fromActorRef', () => {
       const [actorChange, setActorChange] = createSignal(0);
       const [signalChange, setSignalChange] = createSignal(0);
 
-      createEffect(() => {
-        if (snapshot().context.value.get('prop1')) {
-          setActorChange((val) => val + 1);
+      createEffect(
+        () => snapshot().context.value,
+        (map) => {
+          if (map.get('prop1')) {
+            setActorChange((val) => val + 1);
+          }
         }
-      });
+      );
 
-      createEffect(() => {
-        if (signal.value.get('prop1')) {
-          setSignalChange((val) => val + 1);
+      createEffect(
+        () => signal.value,
+        (map) => {
+          if (map.get('prop1')) {
+            setSignalChange((val) => val + 1);
+          }
         }
-      });
+      );
 
       return (
         <div>
@@ -1081,23 +1146,23 @@ describe('fromActorRef', () => {
           </div>
           <button
             data-testid="change-button"
-            onclick={() => {
+            onClick={() => {
               const newMap = new Map([
                 ['prop1', 'value'],
                 ['prop2', '10']
               ]);
-              setSignal(reconcile({ value: newMap }));
+              setSignal(reconcile({ value: newMap }, null));
               setActor(createSimpleActor({ value: newMap }));
             }}
           />
           <button
             data-testid="button"
-            onclick={() => {
+            onClick={() => {
               const newMap = new Map([
                 ['prop1', 'value'],
                 ['prop2', '10']
               ]);
-              setSignal(reconcile({ value: newMap }));
+              setSignal(reconcile({ value: newMap }, null));
               setActor(createSimpleActor({ value: newMap }));
             }}
           />
@@ -1118,6 +1183,7 @@ describe('fromActorRef', () => {
     expect(actorState.textContent).toEqual('5');
     expect(signalState.textContent).toEqual('5');
     fireEvent.click(button);
+    flush();
     expect(actorState.textContent).toEqual('10');
     expect(signalState.textContent).toEqual('10');
     expect(signalChangeVal.textContent).toEqual('2');
@@ -1152,7 +1218,7 @@ describe('fromActorRef', () => {
       return (
         <div
           data-testid="count"
-          onclick={() => {
+          onClick={() => {
             counterService.send({ type: 'INC' });
             counterService.send({ type: 'FAKE' });
           }}
@@ -1178,6 +1244,7 @@ describe('fromActorRef', () => {
     });
 
     counterService.send({ type: 'INC' });
+    flush();
 
     countEls.forEach((countEl) => {
       expect(countEl.textContent).toBe('1');
@@ -1210,12 +1277,14 @@ describe('fromActorRef', () => {
       let calls = 0;
       const snapshot = fromActorRef(counterService);
 
-      createEffect(() => {
-        calls++;
-        snapshot().matches('idle');
-      });
+      createEffect(
+        () => snapshot().matches('idle'),
+        () => {
+          calls++;
+        }
+      );
 
-      onMount(() => {
+      onSettled(() => {
         counterService.send({ type: 'INC' });
         counterService.send({ type: 'INC' });
         counterService.send({ type: 'INC' });
@@ -1271,7 +1340,7 @@ describe('fromActorRef', () => {
         <div>
           <button
             data-testid="inc"
-            onclick={(_) => props.counterRef().send({ type: 'INC' })}
+            onClick={(_) => props.counterRef().send({ type: 'INC' })}
           />
           <div data-testid="count">{(snapshot() as any).context.count}</div>
         </div>
@@ -1284,7 +1353,7 @@ describe('fromActorRef', () => {
         <div>
           <button
             data-testid="change-service"
-            onclick={() => setService(counterService2)}
+            onClick={() => setService(counterService2)}
           />
           <Counter counterRef={service} />
         </div>
@@ -1299,8 +1368,10 @@ describe('fromActorRef', () => {
 
     expect(countEl.textContent).toBe('0');
     fireEvent.click(incButton);
+    flush();
     expect(countEl.textContent).toBe('1');
     fireEvent.click(changeServiceButton);
+    flush();
     expect(countEl.textContent).toBe('0');
   });
 
@@ -1345,7 +1416,7 @@ describe('fromActorRef', () => {
         <div>
           <button
             data-testid="inc"
-            onclick={(_) => props.counterRef().send({ type: 'INC' })}
+            onClick={(_) => props.counterRef().send({ type: 'INC' })}
           />
           <div data-testid="count">
             {(snapshot() as any).context.subCount.subCount1.subCount2.count}
@@ -1360,7 +1431,7 @@ describe('fromActorRef', () => {
         <div>
           <button
             data-testid="change-service"
-            onclick={() => setService(counterService2)}
+            onClick={() => setService(counterService2)}
           />
           <Counter counterRef={service} />
         </div>
@@ -1375,10 +1446,13 @@ describe('fromActorRef', () => {
 
     expect(countEl.textContent).toBe('0');
     fireEvent.click(incButton);
+    flush();
     expect(countEl.textContent).toBe('1');
     fireEvent.click(changeServiceButton);
+    flush();
     expect(countEl.textContent).toBe('0');
     fireEvent.click(incButton);
+    flush();
     expect(countEl.textContent).toBe('1');
   });
 
@@ -1417,21 +1491,19 @@ describe('fromActorRef', () => {
       const snapshot = fromActorRef(counterService);
       const [effectCount, setEffectCount] = createSignal(0);
       createEffect(
-        on(
-          () => (snapshot() as any).context.subCount.subCount1,
-          () => {
-            setEffectCount((prev) => prev + 1);
-          },
-          {
-            defer: true
-          }
-        )
+        () => (snapshot() as any).context.subCount.subCount1,
+        () => {
+          setEffectCount((prev) => prev + 1);
+        },
+        {
+          defer: true
+        }
       );
       return (
         <div>
           <button
             data-testid="inc"
-            onclick={(_) => counterService.send({ type: 'INC' })}
+            onClick={(_) => counterService.send({ type: 'INC' })}
           />
           <div data-testid="effect-count">{effectCount()}</div>
           <div data-testid="count">
@@ -1449,9 +1521,11 @@ describe('fromActorRef', () => {
 
     expect(countEl.textContent).toBe('0');
     fireEvent.click(incButton);
+    flush();
     expect(countEl.textContent).toBe('1');
     expect(effectCountEl.textContent).toBe('0');
     fireEvent.click(incButton);
+    flush();
     expect(countEl.textContent).toBe('2');
     expect(effectCountEl.textContent).toBe('0');
   });
@@ -1489,7 +1563,7 @@ describe('fromActorRef', () => {
           <div>
             <button
               data-testid="inc-machine1"
-              onclick={() => actorRef1.send({ type: 'INC' })}
+              onClick={() => actorRef1.send({ type: 'INC' })}
             >
               INC 1
             </button>
@@ -1500,7 +1574,7 @@ describe('fromActorRef', () => {
           <div>
             <button
               data-testid="inc-machine2"
-              onclick={() => actorRef2.send({ type: 'INC' })}
+              onClick={() => actorRef2.send({ type: 'INC' })}
             >
               INC 1
             </button>
@@ -1524,10 +1598,14 @@ describe('fromActorRef', () => {
 
     fireEvent.click(incMachine1);
 
+    flush();
+
     expect(machine1Value.textContent).toEqual('101');
     expect(machine2Value.textContent).toEqual('100');
 
     fireEvent.click(incMachine2);
+
+    flush();
 
     expect(machine1Value.textContent).toEqual('101');
     expect(machine2Value.textContent).toEqual('101');
@@ -1561,7 +1639,7 @@ describe('fromActorRef', () => {
 
     const App = () => {
       const [snapshot] = useActor(machine);
-      const childRef = (snapshot as any).context.ref;
+      const childRef = untrack(() => (snapshot as any).context.ref);
       const childSnapshot = fromActorRef(childRef);
 
       return (
@@ -1569,7 +1647,7 @@ describe('fromActorRef', () => {
           <div data-testid="child-state">{childSnapshot().value}</div>
           <button
             data-testid="child-send"
-            onclick={() => childRef.send({ type: 'NEXT' })}
+            onClick={() => childRef.send({ type: 'NEXT' })}
           />
         </div>
       );
@@ -1581,6 +1659,7 @@ describe('fromActorRef', () => {
     const elSend = screen.getByTestId('child-send');
     expect(elState.textContent).toEqual('one');
     fireEvent.click(elSend);
+    flush();
 
     expect(elState.textContent).toEqual('two');
   });
@@ -1622,6 +1701,7 @@ it.each([false, true])(
       return <div data-testid="terminal-status">{snapshot().status}</div>;
     });
     if (!initiallyErrored) actor.send({ type: 'FAIL' });
+    flush();
     expect(screen.getByTestId('terminal-status').textContent).toBe('error');
   }
 );
@@ -1643,6 +1723,7 @@ it('replaces array and object context values without changing source data', () =
   const object: any = { item: 3, left: shared, right: shared };
   object.self = object;
   actor.send({ type: 'SET', value: object });
+  flush();
   expect(Array.isArray(selected().context.value)).toBe(false);
   expect(selected().context.value.item).toBe(3);
   expect(selected().context.value.left).toBe(selected().context.value.right);
@@ -1650,9 +1731,11 @@ it('replaces array and object context values without changing source data', () =
   const array: any[] = [{ item: 4 }];
   array.push(array);
   actor.send({ type: 'SET', value: array });
+  flush();
   expect(Array.isArray(selected().context.value)).toBe(true);
   expect(selected().context.value[1]).toBe(selected().context.value);
   actor.send({ type: 'SET', value: [{ item: 5 }] });
+  flush();
   expect(array[0].item).toBe(4);
   expect(object.item).toBe(3);
   actor.stop();

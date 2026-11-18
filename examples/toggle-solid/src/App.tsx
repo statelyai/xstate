@@ -16,7 +16,7 @@ export default function App() {
       <h1>Toggle</h1>
 
       <button
-        classList={{ toggle: true, on: snapshot.matches('on') }}
+        class={{ toggle: true, on: snapshot.matches('on') }}
         onClick={() => send({ type: 'toggle' })}
       >
         {snapshot.matches('on') ? 'On' : 'Off'}

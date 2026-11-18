@@ -7,7 +7,7 @@ description: Run XState logic in a Solid component with useActor and useActorRef
 npm install xstate@alpha @xstate/solid@alpha
 ```
 
-`@xstate/solid` provides four primitives: `useActor(...)`, `useActorRef(...)`, `fromActorRef(...)` and `useMachine(...)`. They require Solid 1.6 or later.
+`@xstate/solid` provides four primitives: `useActor(...)`, `useActorRef(...)`, `fromActorRef(...)` and `useMachine(...)`. They require Solid 2.0 or later.
 
 ```tsx
 import { Show } from 'solid-js';
@@ -66,20 +66,21 @@ The second argument is the same [actor options](../create-actor.md) object accep
 
 ```ts
 const [snapshot, send] = useActor(uploadMachine, {
-  input: { fileId: props.fileId },
+  input: untrack(() => ({ fileId: props.fileId })),
   registryKey: 'upload'
 });
 ```
 
-Options are read once, when the component runs. Changing the values later does not restart the actor. Send an event instead, or recreate the component with a `<Show keyed>` or `<Key>` boundary.
+Options are read once, when the component runs. Wrap prop reads in `untrack(...)`, which tells Solid the one-time read is intended. Changing the values later does not restart the actor. Send an event instead, or recreate the component with a `<Show keyed>` or `<Key>` boundary.
 
 ## Lifecycle
 
-The actor is created when the component function runs, started in `onMount`, and stopped in `onCleanup`.
+The actor is created when the component function runs, started in `onSettled`, and stopped when the component is cleaned up.
 
 - The initial snapshot is readable before mount, so the first render is never empty.
 - Events sent before mount are queued in the actor's mailbox and processed once it starts.
 - On cleanup the actor is stopped: invoked children stop, delayed transitions are cancelled and further events are ignored.
+- Like any Solid 2 write, a transition reaches the snapshot when Solid flushes, on the next microtask. A read right after `send(...)` outside a reactive scope still sees the previous snapshot; call `flush()` from `solid-js` first when you need it immediately, as in a test.
 
 State does not survive unmount. Persist the snapshot if the actor should resume later. See [Input and restored snapshots](input-and-snapshots.md).
 
@@ -88,7 +89,9 @@ State does not survive unmount. Persist the snapshot if the actor should resume 
 `useActorRef(logic, options?)` returns only the actor, with the same lifecycle and no reactive snapshot.
 
 ```tsx
-const actorRef = useActorRef(checkoutMachine, { input: { cartId: props.cartId } });
+const actorRef = useActorRef(checkoutMachine, {
+  input: untrack(() => ({ cartId: props.cartId }))
+});
 const snapshot = fromActorRef(actorRef);
 ```
 

@@ -31,7 +31,7 @@ Read plain objects and arrays through the accessor to track changes. Class insta
 
 `useActor(...)` returns a reactive snapshot as its first tuple member.
 
-<!-- observation semantics from ../src/fromActorRef.ts and ../src/createImmutable.ts -->
+<!-- observation semantics from ../src/fromActorRef.ts -->
 When an actor fails, the accessor updates to its error snapshot. Read `snapshot().status` and `snapshot().error` to render the failure; the adapter does not throw it into an error boundary.
 
 ## Change detection
@@ -52,7 +52,6 @@ const summary = createMemo(
     step: snapshot().value,
     itemCount: snapshot().context.items.length
   }),
-  undefined,
   { equals: (a, b) => a.step === b.step && a.itemCount === b.itemCount }
 );
 ```
@@ -63,7 +62,7 @@ Read a child from `snapshot().children` and pass it to `fromActorRef(...)`.
 
 ```tsx
 function UploadProgress(props: { parentRef: ActorRefFrom<typeof uploadMachine> }) {
-  const parent = fromActorRef(props.parentRef);
+  const parent = fromActorRef(() => props.parentRef);
   const uploadRef = createMemo(() => parent().children.upload);
   const upload = fromActorRef(uploadRef);
 
