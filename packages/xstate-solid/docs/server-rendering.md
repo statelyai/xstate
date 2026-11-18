@@ -44,7 +44,7 @@ actor.stop();
 Load it with an async memo, under a `<Loading>` boundary:
 
 ```tsx
-import { createMemo, Loading, Show, untrack } from 'solid-js';
+import { createMemo, Loading, untrack } from 'solid-js';
 import { useActor } from '@xstate/solid';
 import type { PersistedSnapshotOf } from 'xstate';
 import { restoreActor } from 'xstate/persist';
@@ -54,9 +54,7 @@ function Checkout() {
 
   return (
     <Loading fallback={<p>Loading checkout…</p>}>
-      <Show when={persisted()} keyed>
-        {(snapshot) => <CheckoutView snapshot={snapshot} />}
-      </Show>
+      <CheckoutView snapshot={persisted()} />
     </Loading>
   );
 }
@@ -70,7 +68,7 @@ function CheckoutView(props: {
 }
 ```
 
-The `keyed` boundary matters: the actor is created once, so it must be created after the snapshot is available, not before.
+Until the snapshot loads, reading `props.snapshot` suspends `CheckoutView` and `<Loading>` shows its fallback; the component runs again once it arrives. Read the snapshot before creating the actor, so nothing is created on the suspended run.
 
 ## Avoid hydration mismatches
 
