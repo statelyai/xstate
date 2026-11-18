@@ -20,13 +20,21 @@ const isPlainContainer = (value: object) => {
 const prepared = new WeakMap<object, object>();
 
 /**
- * Prepares a snapshot value for the store. Solid 2 stores wrap class
- * instances, and a wrapped actor ref drops its own writes (its `subscribe`
- * stops working), so class instances are marked to be served as they are, as
- * Solid 1 stores did. Plain objects and arrays are copied: XState freezes
- * context in development, and a store serves a frozen object as one value, so
- * the copies keep reads fine-grained in every build. Copies are cached by
- * source, so an unchanged part of the next snapshot reconciles as unchanged.
+ * Prepares a snapshot value for the store, without changing what it reads.
+ *
+ * - Class instances are marked to be served as they are, as Solid 1 stores
+ *   did. Solid 2 stores wrap them, and a wrapped actor ref drops its own
+ *   writes (its `subscribe` stops working).
+ * - XState freezes context in development, and a store serves a frozen object
+ *   as one value. A frozen object or array is copied so reads stay
+ *   fine-grained, and so is any container holding a copy. In production
+ *   nothing is frozen, so values pass through as they are: Solid 2 stores
+ *   never write to the values they are given. Empty frozen records (XState
+ *   shares one for empty `children`) have nothing to track and stay as they
+ *   are.
+ *
+ * Results are cached by source, so an unchanged part of the next snapshot is
+ * neither walked nor copied again and reconciles as unchanged.
  */
 function toStoreValue(value: unknown): any {
   if (value === null || typeof value !== 'object') return value;
@@ -37,12 +45,25 @@ function toStoreValue(value: unknown): any {
     prepared.set(value, value);
     return value;
   }
-  const copy: any = Array.isArray(value) ? [] : {};
-  prepared.set(value, copy);
-  for (const key of Object.keys(value)) {
-    copy[key] = toStoreValue((value as any)[key]);
+  const keys = Object.keys(value);
+  const frozen = Object.isFrozen(value) && keys.length > 0;
+  let copy: any = frozen ? (Array.isArray(value) ? [] : {}) : undefined;
+  // Cached before the walk so circular references resolve to the result.
+  prepared.set(value, copy ?? value);
+  for (let i = 0; i < keys.length; i++) {
+    const child = (value as any)[keys[i]];
+    const next = toStoreValue(child);
+    if (!copy && next !== child) {
+      // A child was copied, so this container needs a copy that holds it.
+      copy = Array.isArray(value) ? [] : {};
+      prepared.set(value, copy);
+      for (let j = 0; j < i; j++) {
+        copy[keys[j]] = toStoreValue((value as any)[keys[j]]);
+      }
+    }
+    if (copy) copy[keys[i]] = next;
   }
-  return copy;
+  return copy ?? value;
 }
 
 /**

@@ -10,7 +10,8 @@ import {
   flush,
   untrack,
   onSettled,
-  reconcile
+  reconcile,
+  snapshot as storeSnapshot
 } from 'solid-js';
 import { fireEvent, render, screen, waitFor } from '@solidjs/testing-library';
 import {
@@ -1739,4 +1740,64 @@ it('replaces array and object context values without changing source data', () =
   expect(array[0].item).toBe(4);
   expect(object.item).toBe(3);
   actor.stop();
+});
+
+it('passes unfrozen (production) snapshots to the store without copying them', () => {
+  // XState only freezes context in development. A hand-written actor ref
+  // emits unfrozen snapshots, as a production build does.
+  let current: any = {
+    status: 'active',
+    context: { other: { value: 1 }, list: [{ id: 1, done: false }] }
+  };
+  const observers = new Set<(snapshot: any) => void>();
+  const actor: any = {
+    getSnapshot: () => current,
+    subscribe: (observer: any) => {
+      const next = typeof observer === 'function' ? observer : observer.next;
+      observers.add(next);
+      return { unsubscribe: () => observers.delete(next) };
+    }
+  };
+  const emit = (next: any) => {
+    current = next;
+    observers.forEach((observer) => observer(next));
+  };
+
+  let otherRuns = 0;
+  let doneRuns = 0;
+  let selected!: Accessor<any>;
+  render(() => {
+    selected = fromActorRef(actor);
+    createEffect(
+      () => selected().context.other.value,
+      () => {
+        otherRuns++;
+      }
+    );
+    createEffect(
+      () => selected().context.list[0].done,
+      () => {
+        doneRuns++;
+      }
+    );
+    return <div />;
+  });
+  flush();
+
+  const first = current;
+  expect(storeSnapshot(selected().context)).toBe(first.context);
+
+  emit({
+    ...first,
+    context: {
+      ...first.context,
+      list: [{ ...first.context.list[0], done: true }]
+    }
+  });
+  flush();
+
+  expect(selected().context.list[0].done).toBe(true);
+  expect(storeSnapshot(selected().context.other)).toBe(first.context.other);
+  expect(otherRuns).toBe(1);
+  expect(doneRuns).toBe(2);
 });
