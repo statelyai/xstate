@@ -32,7 +32,7 @@ const [snapshot] = initialTransition(checkoutMachine, { cartId });
 
 ## Hydrating with a persisted snapshot
 
-To resume the same state in the browser, serialize a persisted snapshot on the server and pass it as the `snapshot` option on the client.
+To resume the same state in the browser, serialize a persisted snapshot on the server. On the client, create an actor with `restoreActor(...)` and pass it to `useActor(...)`.
 
 ```ts
 // server
@@ -44,25 +44,33 @@ actor.stop();
 Load it with an async memo, under a `<Loading>` boundary:
 
 ```tsx
+import { createMemo, Loading, Show, untrack } from 'solid-js';
+import { useActor } from '@xstate/solid';
+import type { PersistedSnapshotOf } from 'xstate';
+import { restoreActor } from 'xstate/persist';
+
 function Checkout() {
   const persisted = createMemo(() => getPersistedCheckout());
 
   return (
-    <Show when={persisted()} keyed>
-      {(snapshot) => <CheckoutView snapshot={snapshot} />}
-    </Show>
+    <Loading fallback={<p>Loading checkout…</p>}>
+      <Show when={persisted()} keyed>
+        {(snapshot) => <CheckoutView snapshot={snapshot} />}
+      </Show>
+    </Loading>
   );
 }
 
-function CheckoutView(props: { snapshot: unknown }) {
-  const [snapshot, send] = useActor(checkoutMachine, {
-    snapshot: untrack(() => props.snapshot)
-  });
+function CheckoutView(props: {
+  snapshot: PersistedSnapshotOf<typeof checkoutMachine>;
+}) {
+  const actor = restoreActor(checkoutMachine, untrack(() => props.snapshot));
+  const [snapshot, send] = useActor(actor);
   // ...
 }
 ```
 
-The `keyed` boundary matters: the actor options are read once, so the actor must be created after the snapshot is available, not before.
+The `keyed` boundary matters: the actor is created once, so it must be created after the snapshot is available, not before.
 
 ## Avoid hydration mismatches
 

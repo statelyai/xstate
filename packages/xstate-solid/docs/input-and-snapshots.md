@@ -3,16 +3,18 @@ title: Input and restored snapshots
 description: Start Solid actors with input or a persisted snapshot.
 ---
 
-`input` and `snapshot` are actor options, so they are passed as the second argument to `useActor(...)`, `useMachine(...)` or `useActorRef(...)`.
+Pass `input` as an actor option for a new actor. To resume a persisted actor, create it with `restoreActor(...)` from `xstate/persist`, then pass that actor to `useActor(...)`, `useMachine(...)` or `useActorRef(...)`.
 
 ```ts
 const [snapshot, send] = useActor(checkoutMachine, {
-  input: untrack(() => ({ cartId: props.cartId })),
-  snapshot: restoredSnapshot
+  input: untrack(() => ({ cartId: props.cartId }))
 });
+
+const restored = restoreActor(checkoutMachine, persistedSnapshot);
+const [resumed] = useActor(restored);
 ```
 
-`input` creates a fresh initial state from data the actor needs when it starts. A persisted `snapshot` resumes an actor that already ran. Both are read once, when the component function runs.
+`input` creates a fresh initial state from data the actor needs when it starts. `restoreActor` resumes an actor that already ran. Both happen once, when the component function runs, so create the actor once per component instance.
 
 ## Input from props
 
@@ -41,11 +43,17 @@ Machines that declare required [input](../input-output.md) make the options argu
 ```tsx
 import { onSettled } from 'solid-js';
 import { useActor } from '@xstate/solid';
+import { createActor } from 'xstate';
+import { restoreActor } from 'xstate/persist';
 
 function UploadPanel() {
-  const [snapshot, send, actorRef] = useActor(uploadMachine, {
-    snapshot: loadSnapshot()
-  });
+  const persisted = loadSnapshot();
+  const restored = persisted ? restoreActor(uploadMachine, persisted) : undefined;
+  const actor =
+    !restored || restored.getSnapshot().status === 'error'
+      ? createActor(uploadMachine)
+      : restored;
+  const [snapshot, send, actorRef] = useActor(actor);
 
   onSettled(() => {
     const subscription = actorRef.subscribe(() => {
@@ -88,8 +96,8 @@ A restored actor starts in the persisted state. Actions that already ran are not
 
 ```ts
 useActor(logic, { input });
-useActor(logic, { snapshot: persisted });
-useActorRef(logic, { input, snapshot });
+useActor(restoreActor(logic, persisted));
+useActorRef(restoreActor(logic, persisted));
 
 actorRef.getPersistedSnapshot();
 ```

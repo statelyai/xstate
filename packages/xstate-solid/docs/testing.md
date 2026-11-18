@@ -34,6 +34,8 @@ flush();
 expect(screen.getByTestId('status').textContent).toBe('playing');
 ```
 
+`flush()` is a no-op inside `onSettled` or an effect callback, where a flush is already running. Defer the read with `queueMicrotask(...)` there.
+
 Because the snapshot is a store, a test can also count evaluations inside a memo and assert that an unrelated transition does not re-run it.
 
 ## Replace real work with fake actor logic

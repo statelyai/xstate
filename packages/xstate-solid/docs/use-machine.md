@@ -62,7 +62,7 @@ The snapshot is read directly, as in `snapshot.context.volume` or `snapshot.matc
 
 ## Options
 
-The second argument is the same [actor options](../create-actor.md) object accepted by `createActor(...)`: `input`, `snapshot`, `id`, `registryKey`, `clock`, `logger`, `inspect`. It is required when the logic requires input.
+The second argument is the same [actor options](../create-actor.md) object accepted by `createActor(...)`: `input`, `id`, `registryKey`, `clock`, `logger`, `inspect`. It is required when the logic requires input. To resume a persisted actor, pass an actor created with `restoreActor(...)` from `xstate/persist` instead of the logic; see [Input and restored snapshots](input-and-snapshots.md).
 
 ```ts
 const [snapshot, send] = useActor(uploadMachine, {
