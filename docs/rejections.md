@@ -50,6 +50,8 @@ The reasons array must contain at least one item. Rejecting handlers cannot enqu
 
 Use rejection types and payloads to select and format messages in the UI. `RejectionFrom<typeof checkout>` extracts the declared rejection union. Rejection schemas can also be declared in `setup({ schemas: { rejections: ... } })`. Setup and inline rejection maps are merged, with setup entries overriding inline entries with the same name. Payload types preserve optional fields from the schema input.
 
+With `setup().extend()`, an extension rejection schema replaces any base schema for the same name. Other base rejection schemas remain available.
+
 ## Checking an event
 
 `snapshot.check(event)` evaluates transition selection without executing queued effects or changing the snapshot. It checks the supplied event against the current snapshot; it does not predict the result of asynchronous work or guarantee acceptance by a later `send`.

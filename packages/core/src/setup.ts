@@ -1622,6 +1622,17 @@ type MergeSourceMaps<
   TExtension extends Record<string, unknown>
 > = Compute<TBase & TExtension>;
 
+type MergeSetupExtensionSchemas<
+  TBase extends SetupSchemas,
+  TExtension extends SetupSchemas
+> = Compute<
+  Omit<TBase & TExtension, 'rejections'> &
+    Pick<
+      MergedSetupSchemas<TBase, TExtension>,
+      Extract<'rejections', keyof TBase | keyof TExtension>
+    >
+>;
+
 type MergeSetupStateSchemaField<
   TBase extends SetupStateSchema,
   TExtension extends SetupStateSchema,
@@ -4827,7 +4838,7 @@ export interface SetupReturn<
     >
   ): SetupReturn<
     MergeSetupStateSchemas<TStates, TExtendStates>,
-    MergeSourceMaps<TSchemas, TExtendSchemas>,
+    MergeSetupExtensionSchemas<TSchemas, TExtendSchemas>,
     MergeSourceMaps<TSetupActionMap, TExtendActionMap>,
     MergeSourceMaps<TSetupActorMap, TExtendActorMap>,
     MergeSourceMaps<TSetupGuardMap, TExtendGuardMap>,
@@ -5644,7 +5655,7 @@ export const setup = function setupImplementation<
         mergeSetupConfigs(config, extension as AnySetupConfig) as any
       ) as unknown as SetupReturn<
         MergeSetupStateSchemas<TStates, TExtendStates>,
-        MergeSourceMaps<TSchemas, TExtendSchemas>,
+        MergeSetupExtensionSchemas<TSchemas, TExtendSchemas>,
         MergeSourceMaps<TActionMap, TExtendActionMap>,
         MergeSourceMaps<TActorMap, TExtendActorMap>,
         MergeSourceMaps<TGuardMap, TExtendGuardMap>,

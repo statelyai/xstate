@@ -523,6 +523,52 @@ describe('transition rejection', () => {
     }
   });
 
+  it('uses extension rejection schemas for matching names and keeps the other base names', () => {
+    const machine = setup({
+      schemas: {
+        rejections: {
+          blocked: z.object({ old: z.number() }),
+          quota: z.object({ limit: z.number() })
+        }
+      }
+    })
+      .extend({
+        schemas: {
+          rejections: { blocked: z.object({ replacement: z.string() }) }
+        }
+      })
+      .createMachine({
+        id: 'checkout',
+        on: {
+          go: ({ reject }) => {
+            if (false) {
+              // @ts-expect-error The extension replaces the base blocked schema
+              reject([{ type: 'blocked', old: 1 }]);
+            }
+            return reject([
+              { type: 'blocked', replacement: 'wait' },
+              { type: 'quota', limit: 2 }
+            ]);
+          }
+        }
+      });
+
+    const actor = createActor(machine).start();
+    expect(actor.getSnapshot().check({ type: 'go' })).toEqual({
+      status: 'rejected',
+      rejections: [
+        {
+          source: 'checkout',
+          reasons: [
+            { type: 'blocked', replacement: 'wait' },
+            { type: 'quota', limit: 2 }
+          ]
+        }
+      ]
+    });
+    actor.stop();
+  });
+
   it('merges setup and inline rejection maps with setup taking precedence', () => {
     const machine = setup({
       schemas: { rejections: { blocked: types<{ setup: number }>() } }
