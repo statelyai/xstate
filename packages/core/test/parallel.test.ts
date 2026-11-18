@@ -1201,7 +1201,7 @@ describe('parallel states', () => {
     expect(service.getSnapshot().value).toBe('finished');
   });
 
-  it('source parallel region should not be exited when a transition within it targets another parallel region (parallel root)', async () => {
+  it('exits and reenters both regions on a cross-region transition (parallel root)', async () => {
     const machine = createMachine({
       type: 'parallel',
       states: {
@@ -1238,10 +1238,21 @@ describe('parallel states', () => {
 
     actor.send({ type: 'TOGGLE_MODE' });
 
-    expect(flushTracked()).toEqual(['exit: Mode.Normal', 'enter: Mode.Demo']);
+    expect(flushTracked()).toEqual([
+      'exit: Mode.Normal',
+      'exit: Mode',
+      'exit: Operation.Waiting',
+      'exit: Operation',
+      'exit: __root__',
+      'enter: __root__',
+      'enter: Operation',
+      'enter: Operation.Waiting',
+      'enter: Mode',
+      'enter: Mode.Demo'
+    ]);
   });
 
-  it('source parallel region should not be exited when a transition within it targets another parallel region (nested parallel)', async () => {
+  it('exits and reenters both regions on a cross-region transition (nested parallel)', async () => {
     const machine = createMachine({
       initial: 'a',
       states: {
@@ -1285,6 +1296,14 @@ describe('parallel states', () => {
 
     expect(flushTracked()).toEqual([
       'exit: a.Mode.Normal',
+      'exit: a.Mode',
+      'exit: a.Operation.Waiting',
+      'exit: a.Operation',
+      'exit: a',
+      'enter: a',
+      'enter: a.Operation',
+      'enter: a.Operation.Waiting',
+      'enter: a.Mode',
       'enter: a.Mode.Demo'
     ]);
   });

@@ -1211,6 +1211,16 @@ function narrowParallelDomain(
   return narrowed;
 }
 
+function findLeastCommonCompoundAncestor([head, ...tail]: AnyStateNode[]):
+  | AnyStateNode
+  | undefined {
+  return getProperAncestors(head, undefined).find(
+    (ancestor) =>
+      ancestor.type === 'compound' &&
+      tail.every((stateNode) => isDescendant(stateNode, ancestor))
+  );
+}
+
 function getTransitionDomain(
   transition: AnyTransitionDefinition,
   snapshot: AnyMachineSnapshot,
@@ -1233,17 +1243,9 @@ function getTransitionDomain(
       return transition.source;
     }
 
-    const [head, ...tail] = targetStates.concat(transition.source);
-    for (const ancestor of getProperAncestors(head, undefined)) {
-      if (
-        ancestor.type === 'compound' &&
-        tail.every((stateNode) => isDescendant(stateNode, ancestor))
-      ) {
-        return ancestor;
-      }
-    }
-
-    return;
+    return findLeastCommonCompoundAncestor(
+      targetStates.concat(transition.source)
+    );
   }
 
   // A history target that restores the source itself must exit and reenter
@@ -1270,13 +1272,16 @@ function getTransitionDomain(
       : narrowParallelDomain(transition.source, targetStates);
   }
 
-  const [head, ...tail] = targetStates.concat(transition.source);
-  // Find the least common ancestor (LCA) of the source and effective targets.
+  const sourceAndTargets = targetStates.concat(transition.source);
+  const [head, ...tail] = sourceAndTargets;
   for (const ancestor of getProperAncestors(head, undefined)) {
-    if (tail.every((sn) => isDescendant(sn, ancestor))) {
-      // A cross-region transition (source in one parallel region, targets in
-      // another) only exits the region containing its targets; the source
-      // region and other sibling regions stay put unless it reenters.
+    if (tail.every((stateNode) => isDescendant(stateNode, ancestor))) {
+      if (
+        ancestor.type === 'parallel' &&
+        narrowParallelDomain(ancestor, sourceAndTargets) === ancestor
+      ) {
+        return findLeastCommonCompoundAncestor(sourceAndTargets);
+      }
       return reenter ? ancestor : narrowParallelDomain(ancestor, targetStates);
     }
   }

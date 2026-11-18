@@ -60,7 +60,11 @@ active: {
 // after `interrupt`: { playback: 'paused', volume: 'muted' }
 ```
 
-Regions that do not handle the event are untouched, and an event no region handles changes nothing. A transition from one region into another exits only the target's region; the source region stays where it is.
+Transitions confined to a single region leave the other regions active. A transition declared on a parallel parent that targets one region also preserves its siblings by default. Using `reenter: true` on a transition within one region re-enters its source and leaves the other regions active.
+
+A transition from one region to another exits and re-enters the parallel state. Untargeted regions return to their initial states. The same exit and entry behavior applies with or without `reenter: true`.
+
+Two transitions conflict if they exit any of the same states. If one transition's source is a descendant of the other's source, the descendant wins. For competing transitions from separate regions, the region declared first wins.
 
 ## Completion
 
@@ -98,7 +102,7 @@ on: {
 }
 ```
 
-Relative paths work the same way: `target: ['playback.stopped', 'volume.audible']`. Regions not named keep their current state.
+Relative paths work the same way: `target: ['playback.stopped', 'volume.audible']`. If the transition crosses between regions, any region re-entered without a target follows its initial transition.
 
 The target set must be a legal configuration: the targets must be in different regions of a common parallel ancestor. Two targets in the same region throw at machine creation, not at send time.
 
