@@ -3,6 +3,7 @@ import { z } from 'zod';
 import {
   advanceSystemTime,
   createMachine,
+  createActor,
   createStepLogic,
   createAsyncLogic,
   createCallbackLogic,
@@ -146,6 +147,276 @@ it('owns child state, immediate communication and completion notifications', () 
   expect(next.actors['root/child'].snapshot.status).toBe('done');
   expect(next.messages).toEqual([]);
 });
+
+it.each(['initial', 'transition'])(
+  'uses the entry patch for invoke input and retains entry refs on %s entry',
+  (mode) => {
+    const child = createMachine({
+      schemas: { input: z.object({ consent: z.string() }) },
+      context: ({ input }) => ({ ...input, received: 0 }),
+      on: {
+        PING: ({ context }) => ({
+          context: { received: context.received + 1 }
+        })
+      }
+    });
+    const logic = {
+      root: createMachine({
+        id: 'root',
+        context: { consent: 'unset' },
+        initial: mode === 'initial' ? 'b' : 'a',
+        states: {
+          a: { on: { NEXT: { target: 'b' } } },
+          b: {
+            entry: ({ children }, enq) => {
+              enq.sendTo(children.child!, { type: 'PING' });
+              return { context: { consent: 'patched' } };
+            },
+            invoke: {
+              id: 'child',
+              src: child,
+              input: ({ context }) => ({ consent: context.consent })
+            }
+          }
+        }
+      })
+    };
+    const [initial] = initialSystemTransition(logic);
+    const snapshot =
+      mode === 'initial'
+        ? initial
+        : systemTransition(logic, freeze(initial), 'root', { type: 'NEXT' })[0];
+
+    expect(snapshot.actors['root/child'].input).toEqual({ consent: 'patched' });
+    expect(snapshot.actors['root/child'].snapshot.context).toEqual({
+      consent: 'patched',
+      received: 1
+    });
+  }
+);
+
+it('discards an aborted invoke reservation before retrying its explicit id', () => {
+  const child = createMachine({});
+  const first = createMachine({
+    invoke: { src: child, registryKey: 'nested' }
+  });
+  const logic = {
+    root: createMachine({
+      id: 'root',
+      context: { retry: false },
+      initial: 'invoking',
+      onError: { target: '.failed' },
+      states: {
+        invoking: {
+          invoke: [
+            { id: 'first', src: first },
+            {
+              id: 'worker',
+              src: child,
+              registryKey: 'worker',
+              input: ({ context }) => {
+                if (!context.retry) {
+                  throw new Error('input failed');
+                }
+              }
+            }
+          ]
+        },
+        failed: {
+          entry: () => ({ context: { retry: true } }),
+          on: { RETRY: { target: 'invoking' } }
+        }
+      }
+    })
+  };
+  const [failed] = initialSystemTransition(logic);
+  expect(failed.actors.root.snapshot.value).toBe('failed');
+  expect(Object.keys(failed.actors)).toEqual(['root']);
+  expect(failed.registry.nested).toBeUndefined();
+  expect(failed.actors['root/worker']).toBeUndefined();
+  expect(failed.registry.worker).toBeUndefined();
+
+  const [retried] = systemTransition(logic, freeze(failed), 'root', {
+    type: 'RETRY'
+  });
+  expect(retried.actors.root.snapshot.value).toBe('invoking');
+  expect(retried.actors['root/worker'].started).toBe(true);
+  expect(retried.registry.worker).toBeDefined();
+  expect(retried.registry.nested).toBeDefined();
+});
+
+it.each([
+  { mode: 'live', eventless: false },
+  { mode: 'live', eventless: true },
+  { mode: 'pure', eventless: false },
+  { mode: 'pure', eventless: true }
+])(
+  'rolls back earlier entry allocations when a later invoke fails ($mode, eventless=$eventless)',
+  ({ mode, eventless }) => {
+    const child = createMachine({});
+    const root = createMachine({
+      id: 'root',
+      context: { retry: false },
+      initial: 'running',
+      onError: { target: '.failed' },
+      states: {
+        running: {
+          type: 'parallel',
+          entry: (_, enq) => {
+            enq.spawn(child, { id: 'parentSpawn', registryKey: 'parent' });
+          },
+          states: {
+            first: {
+              entry: (_, enq) => {
+                enq.spawn(child, {
+                  id: 'siblingSpawn',
+                  registryKey: 'sibling'
+                });
+              }
+            },
+            second: {
+              initial: eventless ? 'before' : 'invoking',
+              states: {
+                before: { always: { target: 'invoking' } },
+                invoking: {
+                  invoke: {
+                    id: 'worker',
+                    src: child,
+                    input: ({ context }) => {
+                      if (!context.retry) throw new Error('input failed');
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        failed: {
+          entry: () => ({ context: { retry: true } }),
+          on: { RETRY: { target: 'running' } }
+        }
+      }
+    });
+    if (mode === 'live') {
+      const actor = createActor(root).start();
+      expect(actor.getSnapshot().value).toBe('failed');
+      expect(actor.system.get('parent')).toBeUndefined();
+      expect(actor.system.get('sibling')).toBeUndefined();
+      actor.send({ type: 'RETRY' });
+      expect(actor.getSnapshot().matches('running')).toBe(true);
+      expect(actor.system.get('parent')).toBeDefined();
+      expect(actor.system.get('sibling')).toBeDefined();
+      actor.stop();
+      return;
+    }
+    const logic = { root };
+    const [failed] = initialSystemTransition(logic);
+    expect(failed.actors.root.snapshot.value).toBe('failed');
+    expect(Object.keys(failed.actors)).toEqual(['root']);
+    expect(failed.registry).toEqual({});
+    const [retried] = systemTransition(logic, freeze(failed), 'root', {
+      type: 'RETRY'
+    });
+    expect(retried.registry.parent).toBeDefined();
+    expect(retried.registry.sibling).toBeDefined();
+    expect(Object.values(retried.actors).every((actor) => actor.started)).toBe(
+      true
+    );
+  }
+);
+
+it.each(['initialization', 'registry'])(
+  'discards partial pure spawn reservations after an entry allocation failure (%s)',
+  (phase) => {
+    const broken = createMachine({
+      entry: () => {
+        if (phase === 'initialization') throw new Error('child entry failed');
+      }
+    });
+    const good = createMachine({});
+    const failedId = phase === 'initialization' ? 'broken' : 'duplicate';
+    const root = createMachine({
+      id: 'root',
+      actors: { broken, good },
+      initial: 'idle',
+      entry: (_, enq) => {
+        enq.spawn('broken', { id: 'broken', registryKey: 'broken' });
+        if (phase === 'registry') {
+          enq.spawn('broken', { id: 'duplicate', registryKey: 'broken' });
+        }
+      },
+      onError: { target: '.failed' },
+      states: {
+        idle: {},
+        failed: {
+          entry: (_, enq) => {
+            enq.spawn('good', { id: failedId });
+          }
+        }
+      }
+    });
+    const [snapshot] = initialSystemTransition({ root });
+    expect(snapshot.actors.root.snapshot.value).toBe('failed');
+    expect(Object.keys(snapshot.actors)).toHaveLength(2);
+    expect(snapshot.actors[`root/${failedId}`].started).toBe(true);
+    expect(snapshot.registry).toEqual({});
+  }
+);
+
+it.each([
+  { runtime: 'live', path: 'spawn' },
+  { runtime: 'live', path: 'invoke' },
+  { runtime: 'pure', path: 'spawn' },
+  { runtime: 'pure', path: 'invoke' }
+])(
+  'releases an unallocated explicit id after a registry conflict ($runtime, $path)',
+  ({ runtime, path }) => {
+    const leaf = createMachine({});
+    const root = createMachine({
+      id: 'root',
+      actors: { leaf },
+      context: ({ spawn }) => ({
+        existing: spawn(leaf, { id: 'existing', registryKey: 'taken' })
+      }),
+      initial: 'attempt',
+      onError: { target: '.recovered' },
+      states: {
+        attempt:
+          path === 'spawn'
+            ? {
+                entry: (_, enq) => {
+                  enq.spawn('leaf', { id: 'worker', registryKey: 'taken' });
+                }
+              }
+            : { invoke: { id: 'worker', src: 'leaf', registryKey: 'taken' } },
+        recovered: {
+          entry: (_, enq) => {
+            enq.spawn('leaf', { id: 'worker' });
+          }
+        }
+      }
+    });
+    if (runtime === 'live') {
+      const actor = createActor(root);
+      const errors = vi.fn();
+      actor.subscribe({ error: errors });
+      actor.start();
+      expect(errors).not.toHaveBeenCalled();
+      expect(actor.getSnapshot().value).toBe('recovered');
+      expect(actor.getSnapshot().children.worker).toBeDefined();
+      expect(actor.system.get('taken')).toBe(
+        actor.getSnapshot().context.existing
+      );
+      actor.stop();
+      return;
+    }
+    const [snapshot] = initialSystemTransition({ root });
+    expect(snapshot.actors.root.snapshot.value).toBe('recovered');
+    expect(snapshot.actors['root/worker'].started).toBe(true);
+    expect(snapshot.registry.taken['@actor']).toBe('root/existing');
+    expect(Object.keys(snapshot.actors)).toHaveLength(3);
+  }
+);
 
 it('orders timers across actors and applies a child send before a later parent timer', () => {
   const child = createMachine({
