@@ -15,55 +15,31 @@ const isPlainContainer = (value: object) => {
   return proto === Object.prototype || proto === null;
 };
 
-// Plain objects and arrays already prepared, mapped to what the store reads.
-// XState treats snapshots as immutable, so a prepared value stays valid.
-const prepared = new WeakMap<object, object>();
+// Values already walked. XState treats snapshots as immutable, so an
+// unchanged part of the next snapshot is not walked again.
+const walked = new WeakSet<object>();
 
 /**
- * Prepares a snapshot value for the store, without changing what it reads.
+ * Prepares a snapshot for the store without copying anything: the store
+ * reads the snapshot's own objects (Solid 2 stores never write to their
+ * sources, and frozen objects wrap like any other, so XState's development
+ * freeze stays fine-grained).
  *
- * - Class instances are marked to be served as they are, as Solid 1 stores
- *   did. Solid 2 stores wrap them, and a wrapped actor ref drops its own
- *   writes (its `subscribe` stops working).
- * - XState freezes context in development, and a store serves a frozen object
- *   as one value. A frozen object or array is copied so reads stay
- *   fine-grained, and so is any container holding a copy. In production
- *   nothing is frozen, so values pass through as they are: Solid 2 stores
- *   never write to the values they are given. Empty frozen records (XState
- *   shares one for empty `children`) have nothing to track and stay as they
- *   are.
- *
- * Results are cached by source, so an unchanged part of the next snapshot is
- * neither walked nor copied again and reconciles as unchanged.
+ * Class instances are marked to be served as they are, as Solid 1 stores
+ * did. Solid 2 stores wrap them, and a wrapped actor ref drops its own writes
+ * (its `subscribe` stops working).
  */
 function toStoreValue(value: unknown): any {
-  if (value === null || typeof value !== 'object') return value;
-  const done = prepared.get(value);
-  if (done) return done;
-  if (!isPlainContainer(value)) {
-    markRaw(value);
-    prepared.set(value, value);
+  if (value === null || typeof value !== 'object' || walked.has(value)) {
     return value;
   }
-  const keys = Object.keys(value);
-  const frozen = Object.isFrozen(value) && keys.length > 0;
-  let copy: any = frozen ? (Array.isArray(value) ? [] : {}) : undefined;
-  // Cached before the walk so circular references resolve to the result.
-  prepared.set(value, copy ?? value);
-  for (let i = 0; i < keys.length; i++) {
-    const child = (value as any)[keys[i]];
-    const next = toStoreValue(child);
-    if (!copy && next !== child) {
-      // A child was copied, so this container needs a copy that holds it.
-      copy = Array.isArray(value) ? [] : {};
-      prepared.set(value, copy);
-      for (let j = 0; j < i; j++) {
-        copy[keys[j]] = toStoreValue((value as any)[keys[j]]);
-      }
-    }
-    if (copy) copy[keys[i]] = next;
+  walked.add(value);
+  if (!isPlainContainer(value)) {
+    markRaw(value);
+    return value;
   }
-  return copy ?? value;
+  for (const key of Object.keys(value)) toStoreValue((value as any)[key]);
+  return value;
 }
 
 /**

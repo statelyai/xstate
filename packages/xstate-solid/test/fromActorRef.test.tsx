@@ -1742,13 +1742,26 @@ it('replaces array and object context values without changing source data', () =
   actor.stop();
 });
 
-it('passes unfrozen (production) snapshots to the store without copying them', () => {
+const deepFreeze = <T,>(value: T): T => {
+  if (value && typeof value === 'object') {
+    Object.values(value).forEach(deepFreeze);
+    Object.freeze(value);
+  }
+  return value;
+};
+
+it.each([
+  ['unfrozen (production)', false],
+  ['frozen (development)', true]
+])('passes %s snapshots to the store without copying them', (_, frozen) => {
   // XState only freezes context in development. A hand-written actor ref
-  // emits unfrozen snapshots, as a production build does.
-  let current: any = {
+  // emits either shape; both must reach the store as they are and stay
+  // fine-grained.
+  const prepare = (snapshot: any) => (frozen ? deepFreeze(snapshot) : snapshot);
+  let current: any = prepare({
     status: 'active',
     context: { other: { value: 1 }, list: [{ id: 1, done: false }] }
-  };
+  });
   const observers = new Set<(snapshot: any) => void>();
   const actor: any = {
     getSnapshot: () => current,
@@ -1759,7 +1772,7 @@ it('passes unfrozen (production) snapshots to the store without copying them', (
     }
   };
   const emit = (next: any) => {
-    current = next;
+    current = prepare(next);
     observers.forEach((observer) => observer(next));
   };
 
@@ -1786,6 +1799,7 @@ it('passes unfrozen (production) snapshots to the store without copying them', (
 
   const first = current;
   expect(storeSnapshot(selected().context)).toBe(first.context);
+  expect(Object.isFrozen(first.context.list[0])).toBe(frozen);
 
   emit({
     ...first,

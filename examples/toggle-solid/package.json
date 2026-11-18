@@ -9,10 +9,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@solidjs/web": "^2.0.0",
+    "@solidjs/web": "^2.0.1",
     "@statelyai/sdk": "^0.20.1",
     "@xstate/solid": "workspace:*",
-    "solid-js": "^2.0.0",
+    "solid-js": "^2.0.1",
     "xstate": "workspace:*"
   },
   "devDependencies": {

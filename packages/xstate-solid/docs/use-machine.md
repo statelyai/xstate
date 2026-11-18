@@ -7,7 +7,7 @@ description: Run XState logic in a Solid component with useActor and useActorRef
 npm install xstate@alpha @xstate/solid@alpha
 ```
 
-`@xstate/solid` provides four primitives: `useActor(...)`, `useActorRef(...)`, `fromActorRef(...)` and `useMachine(...)`. They require Solid 2.0 or later.
+`@xstate/solid` provides four primitives: `useActor(...)`, `useActorRef(...)`, `fromActorRef(...)` and `useMachine(...)`. They require Solid 2.0.1 or later.
 
 ```tsx
 import { Show } from 'solid-js';

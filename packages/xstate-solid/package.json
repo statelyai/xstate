@@ -42,15 +42,15 @@
     "url": "https://github.com/statelyai/xstate/issues"
   },
   "peerDependencies": {
-    "solid-js": "^2.0.0",
+    "solid-js": "^2.0.1",
     "xstate": "workspace:^"
   },
   "devDependencies": {
-    "@solidjs/compiler": "^2.0.0",
+    "@solidjs/compiler": "^2.0.1",
     "@solidjs/testing-library": "^1.0.0-rc.2",
-    "@solidjs/web": "^2.0.0",
+    "@solidjs/web": "^2.0.1",
     "jsdom": "^26.0.0",
-    "solid-js": "^2.0.0",
+    "solid-js": "^2.0.1",
     "vite": "^6.4.3",
     "xstate": "workspace:^",
     "zod": "^3.25.51"

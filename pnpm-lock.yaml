@@ -2676,8 +2676,8 @@ importers:
   examples/toggle-solid:
     dependencies:
       '@solidjs/web':
-        specifier: ^2.0.0
-        version: 2.0.0(solid-js@2.0.0)
+        specifier: ^2.0.1
+        version: 2.0.1(solid-js@2.0.1)
       '@statelyai/sdk':
         specifier: ^0.20.1
         version: 0.20.3(zod@4.4.3)
@@ -2685,15 +2685,15 @@ importers:
         specifier: workspace:*
         version: link:../../packages/xstate-solid
       solid-js:
-        specifier: ^2.0.0
-        version: 2.0.0
+        specifier: ^2.0.1
+        version: 2.0.1
       xstate:
         specifier: workspace:*
         version: link:../../packages/core
     devDependencies:
       '@solidjs/vite-plugin':
         specifier: ^3.0.1
-        version: 3.0.1(@babel/core@7.29.7)(@solidjs/web@2.0.0(solid-js@2.0.0))(solid-js@2.0.0)(vite@8.3.8(@types/node@25.2.1)(esbuild@0.28.1)(jiti@2.7.0)(sass@1.97.3)(terser@5.49.0)(tsx@4.23.13)(yaml@2.9.0))
+        version: 3.0.1(@babel/core@7.29.7)(@solidjs/web@2.0.1(solid-js@2.0.1))(solid-js@2.0.1)(vite@8.3.8(@types/node@25.2.1)(esbuild@0.28.1)(jiti@2.7.0)(sass@1.97.3)(terser@5.49.0)(tsx@4.23.13)(yaml@2.9.0))
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -3118,20 +3118,20 @@ importers:
   packages/xstate-solid:
     devDependencies:
       '@solidjs/compiler':
-        specifier: ^2.0.0
-        version: 2.0.0
+        specifier: ^2.0.1
+        version: 2.0.1
       '@solidjs/testing-library':
         specifier: ^1.0.0-rc.2
-        version: 1.0.0-rc.2(@solidjs/web@2.0.0(solid-js@2.0.0))(solid-js@2.0.0)
+        version: 1.0.0-rc.2(@solidjs/web@2.0.1(solid-js@2.0.1))(solid-js@2.0.1)
       '@solidjs/web':
-        specifier: ^2.0.0
-        version: 2.0.0(solid-js@2.0.0)
+        specifier: ^2.0.1
+        version: 2.0.1(solid-js@2.0.1)
       jsdom:
         specifier: ^26.0.0
         version: 26.1.0
       solid-js:
-        specifier: ^2.0.0
-        version: 2.0.0
+        specifier: ^2.0.1
+        version: 2.0.1
       vite:
         specifier: ^6.4.3
         version: 6.4.3(@types/node@25.2.1)(jiti@2.7.0)(lightningcss@1.33.0)(sass@1.97.3)(terser@5.49.0)(tsx@4.23.13)(yaml@2.9.0)
@@ -7034,13 +7034,29 @@ packages:
     cpu: [arm64]
     os: [darwin]
 
+  '@solidjs/compiler-darwin-arm64@2.0.1':
+    resolution: {integrity: sha512-s8zOz+VxiY0fimGPDtq3yV1nya/1ymzt6sQs6PxRo88UmcJ12UliBDx1uIU3zn3YShJRhmn9xZiNIawbzOco9w==, tarball: https://registry.npmjs.org/@solidjs/compiler-darwin-arm64/-/compiler-darwin-arm64-2.0.1.tgz}
+    cpu: [arm64]
+    os: [darwin]
+
   '@solidjs/compiler-darwin-x64@2.0.0':
     resolution: {integrity: sha512-Ndwy+pQs8v6BIfaAbQ+weu9HGBTM40HFCyu0XV2qX7U5XC+o+3fc4O6+8ZZyUzl+qvT6XU+wh2bQ6MI2lV+KBQ==, tarball: https://registry.npmjs.org/@solidjs/compiler-darwin-x64/-/compiler-darwin-x64-2.0.0.tgz}
     cpu: [x64]
     os: [darwin]
 
+  '@solidjs/compiler-darwin-x64@2.0.1':
+    resolution: {integrity: sha512-+2GaMoj6kMpBKeq7JXQtZPYdBpgCGHZxXiwhR7A/TvnU/IQDL7tBwQtOwnBd9gF+mUcy9frOn7a200kXPGS2mw==, tarball: https://registry.npmjs.org/@solidjs/compiler-darwin-x64/-/compiler-darwin-x64-2.0.1.tgz}
+    cpu: [x64]
+    os: [darwin]
+
   '@solidjs/compiler-linux-arm64-gnu@2.0.0':
     resolution: {integrity: sha512-H/R9SUmuqd4P/IuuXTlRM1LhgUWe2EjLP3iMUo+L4IO1rmOSqfMUZp9h52eQnDsOdoIZCaKsw+b0qC5WooxDlg==, tarball: https://registry.npmjs.org/@solidjs/compiler-linux-arm64-gnu/-/compiler-linux-arm64-gnu-2.0.0.tgz}
+    cpu: [arm64]
+    os: [linux]
+    libc: [glibc]
+
+  '@solidjs/compiler-linux-arm64-gnu@2.0.1':
+    resolution: {integrity: sha512-UCgV/xT/YFmn500Kam+p9N9bIZMMHjHdGMDKxdfg8goMQZ1AjYsd3Xif4M1BnugTYBLLp/RymSBhU8Ly61vbDQ==, tarball: https://registry.npmjs.org/@solidjs/compiler-linux-arm64-gnu/-/compiler-linux-arm64-gnu-2.0.1.tgz}
     cpu: [arm64]
     os: [linux]
     libc: [glibc]
@@ -7051,8 +7067,18 @@ packages:
     os: [linux]
     libc: [glibc]
 
+  '@solidjs/compiler-linux-x64-gnu@2.0.1':
+    resolution: {integrity: sha512-+ufnpdsvvjo1nvCy+AfUtCcqKkygirK6beY/jR2T7JL7aeDC1nXeIhbVP1jyNRpA2dh12n3rKSYjl+W0O879ww==, tarball: https://registry.npmjs.org/@solidjs/compiler-linux-x64-gnu/-/compiler-linux-x64-gnu-2.0.1.tgz}
+    cpu: [x64]
+    os: [linux]
+    libc: [glibc]
+
   '@solidjs/compiler-wasm32-wasi@2.0.0':
     resolution: {integrity: sha512-JnF21DJ/jx5fghYKIB6ANihHMM4aWg4JFe5pFLGDvqSeURZJdJGjwyyxOv3siEMUdkBzVGHXotTsviTcRyB5hQ==, tarball: https://registry.npmjs.org/@solidjs/compiler-wasm32-wasi/-/compiler-wasm32-wasi-2.0.0.tgz}
+    engines: {node: '>=14.0.0'}
+
+  '@solidjs/compiler-wasm32-wasi@2.0.1':
+    resolution: {integrity: sha512-FjY9OUbldtN+J40cFqa7my56PeN57RyrSHSQAV9TCVXfomRXuPh/l91oFwy8vDgV6HNUb59QHML19RfSIA1Tnw==, tarball: https://registry.npmjs.org/@solidjs/compiler-wasm32-wasi/-/compiler-wasm32-wasi-2.0.1.tgz}
     engines: {node: '>=14.0.0'}
 
   '@solidjs/compiler-win32-x64-msvc@2.0.0':
@@ -7060,11 +7086,19 @@ packages:
     cpu: [x64]
     os: [win32]
 
+  '@solidjs/compiler-win32-x64-msvc@2.0.1':
+    resolution: {integrity: sha512-YHJxc+jTod7V87ftP6i50uTs3a/xMRTWWIWvwSw/oftuWObBbB9n6hfmhDkS1kQF81YcoZK1CwvgP0raAQn+rQ==, tarball: https://registry.npmjs.org/@solidjs/compiler-win32-x64-msvc/-/compiler-win32-x64-msvc-2.0.1.tgz}
+    cpu: [x64]
+    os: [win32]
+
   '@solidjs/compiler@2.0.0':
     resolution: {integrity: sha512-Spgqz1+eojQ2pDl4yajnajIjX/kSusjTK/6mC6Fm7sAZ3YBI0yP4/epRR1hV08TU3YAH4xLBmZ6wjb1zC134Sw==, tarball: https://registry.npmjs.org/@solidjs/compiler/-/compiler-2.0.0.tgz}
 
-  '@solidjs/signals@2.0.0':
-    resolution: {integrity: sha512-jrcT6XTVvsYRpesRp0At/mSUnsWr6jiprK8C93Oat56B8n7X9BMSe58Rxl6qSZUhBN0L+sxm8GzeO7HdhBXvDw==, tarball: https://registry.npmjs.org/@solidjs/signals/-/signals-2.0.0.tgz}
+  '@solidjs/compiler@2.0.1':
+    resolution: {integrity: sha512-MqYP2+kHLKwgBqWu61KBbQnhlQYsIJFX1Y60EmaM5WrVEyGhG1XiIedUnn4Is9UVu7htXx9ta6XROq9gwKbeEA==, tarball: https://registry.npmjs.org/@solidjs/compiler/-/compiler-2.0.1.tgz}
+
+  '@solidjs/signals@2.0.1':
+    resolution: {integrity: sha512-nTdIk7UgGLwATg0wCT/wH/G62aWYjGol2AnqdrN4qVyV7snYTnYoesgJ/G7xRkO34mAr3tayt0cu1+k/dt0lmA==, tarball: https://registry.npmjs.org/@solidjs/signals/-/signals-2.0.1.tgz}
     engines: {node: '>=22.12.0'}
 
   '@solidjs/testing-library@0.8.10':
@@ -7105,11 +7139,11 @@ packages:
       '@testing-library/jest-dom':
         optional: true
 
-  '@solidjs/web@2.0.0':
-    resolution: {integrity: sha512-R0+JMCD6ukEXaID/sH5PVQe9bCIN9pRzJry+F6Sb6YvtlkAp9DEyVI7AeZYiV0cd6TSL98kpbCyLDiZnaAKGrA==, tarball: https://registry.npmjs.org/@solidjs/web/-/web-2.0.0.tgz}
+  '@solidjs/web@2.0.1':
+    resolution: {integrity: sha512-o7spK20IEMk0bA+lVeULfTQPD9Oyb/VLS9gv5BNQdHIxFWBRFNlHf1ofF0z9b2uA3pLlRtYh+5/USk3fSTdsjQ==, tarball: https://registry.npmjs.org/@solidjs/web/-/web-2.0.1.tgz}
     engines: {node: '>=22.12.0'}
     peerDependencies:
-      solid-js: ^2.0.0
+      solid-js: ^2.0.1
 
   '@speed-highlight/core@1.2.24':
     resolution: {integrity: sha512-qeW2e1l78afw8VhRPfPQ1Gjj+KU5XFQ/OFV5ti6eTa9bruO7mJyZtA4vw0ofqmA3tKCkROE9xLk3VZoeRc98nw==, tarball: https://registry.npmjs.org/@speed-highlight/core/-/core-1.2.24.tgz}
@@ -10482,8 +10516,8 @@ packages:
   solid-js@1.9.14:
     resolution: {integrity: sha512-sAEXC0Kk0S1EDg+8ysEWJDbYhA3RRoEjwuySUGlKIemeo0I5YZfOyumNjNs9Sv3y2nmhD+0rW66ag2HsMuQiGQ==, tarball: https://registry.npmjs.org/solid-js/-/solid-js-1.9.14.tgz}
 
-  solid-js@2.0.0:
-    resolution: {integrity: sha512-9zN4uH2OQeQAYbF4BmIzoaa+L5Hb8Dp6kkP6ZXobHQ1FZVICdmzREPDVDBJY7umzdAE8D6zbFfWhxGtagkyslA==, tarball: https://registry.npmjs.org/solid-js/-/solid-js-2.0.0.tgz}
+  solid-js@2.0.1:
+    resolution: {integrity: sha512-5bBwRCblIZ672y2H2aB5KIOfeP/N+acx1YoCjNCWYFc4ZI/Y7y7n/6N1kei8AgWmcJJQ1m5SV90rs3V8CPAnYQ==, tarball: https://registry.npmjs.org/solid-js/-/solid-js-2.0.1.tgz}
     engines: {node: '>=22.12.0'}
 
   solid-refresh@0.6.3:
@@ -13631,6 +13665,13 @@ snapshots:
       '@tybys/wasm-util': 0.10.3
     optional: true
 
+  '@napi-rs/wasm-runtime@1.2.6(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)':
+    dependencies:
+      '@emnapi/core': 1.11.3
+      '@emnapi/runtime': 1.11.3
+      '@tybys/wasm-util': 0.10.3
+    optional: true
+
   '@napi-rs/wasm-runtime@1.2.6(@emnapi/core@2.0.0-beta.2)(@emnapi/runtime@2.0.0-beta.2)':
     dependencies:
       '@emnapi/core': 2.0.0-beta.2
@@ -14452,13 +14493,25 @@ snapshots:
   '@solidjs/compiler-darwin-arm64@2.0.0':
     optional: true
 
+  '@solidjs/compiler-darwin-arm64@2.0.1':
+    optional: true
+
   '@solidjs/compiler-darwin-x64@2.0.0':
+    optional: true
+
+  '@solidjs/compiler-darwin-x64@2.0.1':
     optional: true
 
   '@solidjs/compiler-linux-arm64-gnu@2.0.0':
     optional: true
 
+  '@solidjs/compiler-linux-arm64-gnu@2.0.1':
+    optional: true
+
   '@solidjs/compiler-linux-x64-gnu@2.0.0':
+    optional: true
+
+  '@solidjs/compiler-linux-x64-gnu@2.0.1':
     optional: true
 
   '@solidjs/compiler-wasm32-wasi@2.0.0':
@@ -14468,7 +14521,17 @@ snapshots:
       '@napi-rs/wasm-runtime': 1.2.2(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)
     optional: true
 
+  '@solidjs/compiler-wasm32-wasi@2.0.1':
+    dependencies:
+      '@emnapi/core': 1.11.3
+      '@emnapi/runtime': 1.11.3
+      '@napi-rs/wasm-runtime': 1.2.6(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)
+    optional: true
+
   '@solidjs/compiler-win32-x64-msvc@2.0.0':
+    optional: true
+
+  '@solidjs/compiler-win32-x64-msvc@2.0.1':
     optional: true
 
   '@solidjs/compiler@2.0.0':
@@ -14480,38 +14543,47 @@ snapshots:
       '@solidjs/compiler-wasm32-wasi': 2.0.0
       '@solidjs/compiler-win32-x64-msvc': 2.0.0
 
-  '@solidjs/signals@2.0.0': {}
+  '@solidjs/compiler@2.0.1':
+    optionalDependencies:
+      '@solidjs/compiler-darwin-arm64': 2.0.1
+      '@solidjs/compiler-darwin-x64': 2.0.1
+      '@solidjs/compiler-linux-arm64-gnu': 2.0.1
+      '@solidjs/compiler-linux-x64-gnu': 2.0.1
+      '@solidjs/compiler-wasm32-wasi': 2.0.1
+      '@solidjs/compiler-win32-x64-msvc': 2.0.1
+
+  '@solidjs/signals@2.0.1': {}
 
   '@solidjs/testing-library@0.8.10(solid-js@1.9.14)':
     dependencies:
       '@testing-library/dom': 10.4.0
       solid-js: 1.9.14
 
-  '@solidjs/testing-library@1.0.0-rc.2(@solidjs/web@2.0.0(solid-js@2.0.0))(solid-js@2.0.0)':
+  '@solidjs/testing-library@1.0.0-rc.2(@solidjs/web@2.0.1(solid-js@2.0.1))(solid-js@2.0.1)':
     dependencies:
-      '@solidjs/web': 2.0.0(solid-js@2.0.0)
+      '@solidjs/web': 2.0.1(solid-js@2.0.1)
       '@testing-library/dom': 10.4.2
-      solid-js: 2.0.0
+      solid-js: 2.0.1
 
-  '@solidjs/vite-plugin@3.0.1(@babel/core@7.29.7)(@solidjs/web@2.0.0(solid-js@2.0.0))(solid-js@2.0.0)(vite@8.3.8(@types/node@25.2.1)(esbuild@0.28.1)(jiti@2.7.0)(sass@1.97.3)(terser@5.49.0)(tsx@4.23.13)(yaml@2.9.0))':
+  '@solidjs/vite-plugin@3.0.1(@babel/core@7.29.7)(@solidjs/web@2.0.1(solid-js@2.0.1))(solid-js@2.0.1)(vite@8.3.8(@types/node@25.2.1)(esbuild@0.28.1)(jiti@2.7.0)(sass@1.97.3)(terser@5.49.0)(tsx@4.23.13)(yaml@2.9.0))':
     dependencies:
       '@ampproject/remapping': 2.3.0
       '@solidjs/compiler': 2.0.0
-      '@solidjs/web': 2.0.0(solid-js@2.0.0)
+      '@solidjs/web': 2.0.1(solid-js@2.0.1)
       magic-string: 0.30.21
       merge-anything: 5.1.7
-      solid-js: 2.0.0
+      solid-js: 2.0.1
       vite: 8.3.8(@types/node@25.2.1)(esbuild@0.28.1)(jiti@2.7.0)(sass@1.97.3)(terser@5.49.0)(tsx@4.23.13)(yaml@2.9.0)
       vitefu: 1.1.1(vite@8.3.8(@types/node@25.2.1)(esbuild@0.28.1)(jiti@2.7.0)(sass@1.97.3)(terser@5.49.0)(tsx@4.23.13)(yaml@2.9.0))
     optionalDependencies:
       '@babel/core': 7.29.7(supports-color@5.5.0)
 
-  '@solidjs/web@2.0.0(solid-js@2.0.0)':
+  '@solidjs/web@2.0.1(solid-js@2.0.1)':
     dependencies:
       csstype: 3.2.3
       seroval: 1.8.1
       seroval-plugins: 1.8.0(seroval@1.8.1)
-      solid-js: 2.0.0
+      solid-js: 2.0.1
 
   '@speed-highlight/core@1.2.24': {}
 
@@ -15271,7 +15343,7 @@ snapshots:
       '@vue/shared': 3.5.29
       entities: 7.0.1
       estree-walker: 2.0.2
-      source-map-js: 1.2.1
+      source-map-js: 1.2.2
 
   '@vue/compiler-dom@3.5.17':
     dependencies:
@@ -15304,8 +15376,8 @@ snapshots:
       '@vue/shared': 3.5.29
       estree-walker: 2.0.2
       magic-string: 0.30.21
-      postcss: 8.5.25
-      source-map-js: 1.2.1
+      postcss: 8.5.33
+      source-map-js: 1.2.2
     optional: true
 
   '@vue/compiler-ssr@3.5.17':
@@ -17854,26 +17926,26 @@ snapshots:
 
   possible-typed-array-names@1.1.0: {}
 
-  postcss-import@15.1.0(postcss@8.5.25):
+  postcss-import@15.1.0(postcss@8.5.33):
     dependencies:
-      postcss: 8.5.25
+      postcss: 8.5.33
       postcss-value-parser: 4.2.0
       read-cache: 1.0.0
       resolve: 1.22.12
     optional: true
 
-  postcss-js@4.1.0(postcss@8.5.25):
+  postcss-js@4.1.0(postcss@8.5.33):
     dependencies:
       camelcase-css: 2.0.1
-      postcss: 8.5.25
+      postcss: 8.5.33
     optional: true
 
-  postcss-load-config@6.0.1(jiti@1.21.7)(postcss@8.5.25)(tsx@4.23.13)(yaml@2.9.0):
+  postcss-load-config@6.0.1(jiti@1.21.7)(postcss@8.5.33)(tsx@4.23.13)(yaml@2.9.0):
     dependencies:
       lilconfig: 3.1.3
     optionalDependencies:
       jiti: 1.21.7
-      postcss: 8.5.25
+      postcss: 8.5.33
       tsx: 4.23.13
       yaml: 2.9.0
     optional: true
@@ -17890,9 +17962,9 @@ snapshots:
 
   postcss-media-query-parser@0.2.3: {}
 
-  postcss-nested@6.2.0(postcss@8.5.25):
+  postcss-nested@6.2.0(postcss@8.5.33):
     dependencies:
-      postcss: 8.5.25
+      postcss: 8.5.33
       postcss-selector-parser: 6.1.4
     optional: true
 
@@ -18346,7 +18418,7 @@ snapshots:
     dependencies:
       chokidar: 4.0.3
       immutable: 5.1.9
-      source-map-js: 1.2.1
+      source-map-js: 1.2.2
     optionalDependencies:
       '@parcel/watcher': 2.6.0
 
@@ -18572,9 +18644,9 @@ snapshots:
       seroval: 1.5.6
       seroval-plugins: 1.5.6(seroval@1.5.6)
 
-  solid-js@2.0.0:
+  solid-js@2.0.1:
     dependencies:
-      '@solidjs/signals': 2.0.0
+      '@solidjs/signals': 2.0.1
       seroval: 1.8.1
       seroval-plugins: 1.8.0(seroval@1.8.1)
 
@@ -18818,11 +18890,11 @@ snapshots:
       normalize-path: 3.0.0
       object-hash: 3.0.0
       picocolors: 1.1.1
-      postcss: 8.5.25
-      postcss-import: 15.1.0(postcss@8.5.25)
-      postcss-js: 4.1.0(postcss@8.5.25)
-      postcss-load-config: 6.0.1(jiti@1.21.7)(postcss@8.5.25)(tsx@4.23.13)(yaml@2.9.0)
-      postcss-nested: 6.2.0(postcss@8.5.25)
+      postcss: 8.5.33
+      postcss-import: 15.1.0(postcss@8.5.33)
+      postcss-js: 4.1.0(postcss@8.5.33)
+      postcss-load-config: 6.0.1(jiti@1.21.7)(postcss@8.5.33)(tsx@4.23.13)(yaml@2.9.0)
+      postcss-nested: 6.2.0(postcss@8.5.33)
       postcss-selector-parser: 6.1.4
       resolve: 1.22.12
       sucrase: 3.35.1
