@@ -41,34 +41,28 @@ const persisted = JSON.parse(JSON.stringify(actor.getPersistedSnapshot()));
 actor.stop();
 ```
 
-Load it with an async memo, under a `<Loading>` boundary:
+Load it with an async memo and derive the actor from it, under a `<Loading>` boundary:
 
 ```tsx
-import { createMemo, Loading, untrack } from 'solid-js';
+import { createMemo, Loading } from 'solid-js';
 import { useActor } from '@xstate/solid';
-import type { PersistedSnapshotOf } from 'xstate';
 import { restoreActor } from 'xstate/persist';
 
 function Checkout() {
   const persisted = createMemo(() => getPersistedCheckout());
+  const [snapshot, send] = useActor(() =>
+    restoreActor(checkoutMachine, persisted())
+  );
 
   return (
     <Loading fallback={<p>Loading checkout…</p>}>
-      <CheckoutView snapshot={persisted()} />
+      <output>{snapshot.context.total}</output>
     </Loading>
   );
 }
-
-function CheckoutView(props: {
-  snapshot: PersistedSnapshotOf<typeof checkoutMachine>;
-}) {
-  const actor = restoreActor(checkoutMachine, untrack(() => props.snapshot));
-  const [snapshot, send] = useActor(actor);
-  // ...
-}
 ```
 
-Until the snapshot loads, reading `props.snapshot` suspends `CheckoutView` and `<Loading>` shows its fallback; the component runs again once it arrives. Read the snapshot before creating the actor, so nothing is created on the suspended run.
+Until the snapshot loads, the actor is pending and `<Loading>` shows its fallback. The actor is created once the snapshot is available and starts in the browser.
 
 ## Avoid hydration mismatches
 

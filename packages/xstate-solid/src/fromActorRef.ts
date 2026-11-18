@@ -48,6 +48,15 @@ export function fromActorRef<TActor extends AnyActorRef | undefined>(
   | SnapshotFrom<NonNullable<TActor>>
   | (undefined extends TActor ? undefined : never)
 > {
+  const [snapshot, actorMemo] = snapshotStore(actorRef);
+  const hasActor = createMemo(() => !!actorMemo());
+  return (() => (hasActor() ? snapshot : undefined)) as any;
+}
+
+/** @internal */
+export function snapshotStore(
+  actorRef: Accessor<AnyActorRef | undefined> | AnyActorRef | undefined
+) {
   const actorMemo = createMemo(() =>
     typeof actorRef === 'function' ? actorRef() : actorRef
   );
@@ -94,7 +103,5 @@ export function fromActorRef<TActor extends AnyActorRef | undefined>(
     { key: null }
   );
 
-  const hasActor = createMemo(() => !!actorMemo());
-
-  return (() => (hasActor() ? snapshot : undefined)) as any;
+  return [snapshot, actorMemo] as const;
 }

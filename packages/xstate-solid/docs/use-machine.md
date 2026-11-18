@@ -65,17 +65,31 @@ The snapshot is read directly, as in `snapshot.context.volume` or `snapshot.matc
 The second argument is the same [actor options](../create-actor.md) object accepted by `createActor(...)`: `input`, `id`, `registryKey`, `clock`, `logger`, `inspect`. It is required when the logic requires input. To resume a persisted actor, pass an actor created with `restoreActor(...)` from `xstate/persist` instead of the logic; see [Input and restored snapshots](input-and-snapshots.md).
 
 ```ts
-const [snapshot, send] = useActor(uploadMachine, {
-  input: untrack(() => ({ fileId: props.fileId })),
-  registryKey: 'upload'
-});
+const [snapshot, send] = useActor(uploadMachine, { registryKey: 'upload' });
 ```
 
-Options are read once, when the component runs. Wrap prop reads in `untrack(...)`, which tells Solid the one-time read is intended. Changing the values later does not restart the actor. Send an event instead, or recreate the component with a `<Show keyed>` or `<Key>` boundary.
+Options are read once, when the actor is created.
+
+## Deriving the actor
+
+When the actor depends on props or async data, pass a function that creates it. The hook reads it in a tracked scope, the way a memo does, and owns every actor it returns: when the function returns a new actor, the old one is stopped and the new one started, and the snapshot follows the current actor.
+
+```tsx
+function Upload(props: { fileId: string }) {
+  const [snapshot, send, actorRef] = useActor(() =>
+    createActor(uploadMachine, { input: { fileId: props.fileId } })
+  );
+  // actorRef is an accessor here: actorRef()
+}
+```
+
+A new `fileId` starts a fresh actor with fresh state. To keep the state and react to the change, create the actor without the prop and send an event instead.
+
+To follow an actor without owning it, such as one from props or context, use [`fromActorRef(...)`](selectors.md).
 
 ## Lifecycle
 
-The actor is created when the component function runs, started in `onSettled`, and stopped when the component is cleaned up.
+The actor is created when the hook runs, started once the owner settles, and stopped when the owner is cleaned up. A derived actor is also stopped when it is replaced.
 
 - The initial snapshot is readable before mount, so the first render is never empty.
 - Events sent before mount are queued in the actor's mailbox and processed once it starts.
@@ -86,12 +100,12 @@ State does not survive unmount. Persist the snapshot if the actor should resume 
 
 ## useActorRef
 
-`useActorRef(logic, options?)` returns only the actor, with the same lifecycle and no reactive snapshot.
+`useActorRef(logic, options?)` returns only the actor, with the same lifecycle and no reactive snapshot. Given a function, it returns an accessor of the current actor.
 
 ```tsx
-const actorRef = useActorRef(checkoutMachine, {
-  input: untrack(() => ({ cartId: props.cartId }))
-});
+const actorRef = useActorRef(() =>
+  createActor(checkoutMachine, { input: { cartId: props.cartId } })
+);
 const snapshot = fromActorRef(actorRef);
 ```
 
@@ -118,7 +132,9 @@ function Total(props: { actorRef: ActorRefFrom<typeof checkoutMachine> }) {
 
 ```ts
 const [snapshot, send, actorRef] = useActor(logic, options);
+const [snapshot, send, actorRef] = useActor(() => createActor(logic, options)); // actorRef is an Accessor
 const actorRef = useActorRef(logic, options);
+const actorRef = useActorRef(() => createActor(logic, options)); // Accessor
 const snapshot = fromActorRef(actorRef); // Accessor
 const [snapshot, send, actorRef] = useMachine(machine, options); // alias
 ```
