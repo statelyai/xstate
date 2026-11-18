@@ -1644,6 +1644,10 @@ function microstep(
     }
 
     const enterStates = () => {
+      const entryPlanningSnapshot =
+        historyValue === currentSnapshot.historyValue
+          ? currentSnapshot
+          : cloneMachineSnapshot(currentSnapshot, { historyValue });
       const getMachineOutput = (rootCompletionNode: AnyStateNode) => {
         const rootNode = nextState.machine.root;
 
@@ -1826,7 +1830,7 @@ function microstep(
         }
         const targetStates = getEffectiveTargetStates(
           transition,
-          currentSnapshot,
+          entryPlanningSnapshot,
           getCurrentTransitionResult
         );
         for (const s of targetStates) {

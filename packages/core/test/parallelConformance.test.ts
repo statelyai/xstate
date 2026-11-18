@@ -203,6 +203,61 @@ describe('parallel state conformance', () => {
     });
   });
 
+  it('uses history recorded by a cross-region exit for entry planning', () => {
+    const machine = createMachine({
+      id: 'm',
+      initial: 'P',
+      states: {
+        P: {
+          type: 'parallel',
+          on: { LEAVE: { target: '#outside' } },
+          states: {
+            A: {
+              id: 'A',
+              initial: 'a',
+              states: {
+                a: { on: { RESTORE_B: { target: '#bHistory' } } }
+              }
+            },
+            B: {
+              id: 'B',
+              initial: 'cold',
+              states: {
+                history: {
+                  id: 'bHistory',
+                  type: 'history',
+                  history: 'deep',
+                  target: 'cold'
+                },
+                cold: { initial: 'c', states: { c: {} } },
+                warm: { id: 'warm', initial: 'w', states: { w: {} } }
+              }
+            }
+          }
+        },
+        outside: {
+          id: 'outside',
+          on: { ENTER_WARM: { target: ['#A', '#warm'] } }
+        }
+      }
+    });
+    const actor = createActor(machine).start();
+
+    actor.send({ type: 'LEAVE' });
+    actor.send({ type: 'ENTER_WARM' });
+    expect(actor.getSnapshot().value).toEqual({
+      P: { A: 'a', B: { warm: 'w' } }
+    });
+
+    actor.send({ type: 'RESTORE_B' });
+    expect(actor.getSnapshot().value).toEqual({
+      P: { A: 'a', B: { warm: 'w' } }
+    });
+    expect(actor.getSnapshot().nodes.map((node) => node.id)).not.toContain(
+      'm.P.B.cold'
+    );
+  });
+
   // Passing guard — a `type: 'final'` region under a parallel root has no
   // outgoing transitions of its own; an event with no matching handler
   // anywhere leaves every region untouched.
