@@ -203,7 +203,7 @@ it('preserves unrelated deadlines and rejects stale occurrences after reentry', 
     type: 'REENTER'
   });
   const replacement = Object.values(reentered.timers)[0];
-  expect(replacement.event).toEqual(original.event);
+  expect(replacement.event).toEqual({ ...original.event, occurrence: 1 });
   expect(replacement.occurrence).not.toBe(original.occurrence);
   expect(replacement.dueAt).toBe(8000);
   expect(() =>
@@ -1103,3 +1103,36 @@ it('does not consult wall time, native timers or live actor instances', () => {
     timers.mockRestore();
   }
 });
+
+it.each([undefined, 0, 20])(
+  'keeps hydrated timer occurrences ahead of a counter of %s',
+  (nextTimerOccurrence) => {
+    const logic = {
+      root: createMachine({
+        id: 'root',
+        initial: 'waiting',
+        states: {
+          waiting: {
+            after: { 100: { target: 'done' } },
+            on: { REPLACE: { target: 'waiting', reenter: true } }
+          },
+          done: {}
+        }
+      })
+    };
+    const [initial] = initialSystemTransition(logic);
+    const original = Object.values(initial.timers)[0].event;
+    const restored = JSON.parse(JSON.stringify(initial));
+    restored.actors.root.snapshot.nextTimerOccurrence = nextTimerOccurrence;
+    const [replaced] = systemTransition(logic, restored, 'root', {
+      type: 'REPLACE'
+    });
+    const replacement = Object.values(replaced.timers)[0].event;
+    expect(replacement).toEqual({
+      ...original,
+      occurrence: nextTimerOccurrence || 1
+    });
+    const [completed] = advanceSystemTime(logic, replaced, { time: 100 });
+    expect(completed.actors.root.snapshot.value).toBe('done');
+  }
+);

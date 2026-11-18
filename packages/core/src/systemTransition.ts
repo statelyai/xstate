@@ -26,7 +26,8 @@ import type {
   AnyEventObject,
   ExecutableEffect,
   InputFrom,
-  TimerKey
+  TimerKey,
+  LogicalTimer
 } from './types.ts';
 
 /** Immutable definitions for a pure actor system. @experimental */
@@ -276,6 +277,7 @@ function snapshotData(
     // Stores such as Convex reject `_`-prefixed field names.
     _stateInputs: stateInputs,
     _nextTimerId: nextTimerId,
+    _nextTimerOccurrence: nextTimerOccurrence,
     _nextActorIds: nextActorIds,
     ...data
   } = snapshot;
@@ -284,6 +286,7 @@ function snapshotData(
       ...data,
       stateInputs,
       nextTimerId,
+      ...(nextTimerOccurrence > 0 && { nextTimerOccurrence }),
       nextActorIds,
       nodeIds: nodes.map((node: any) => node.id)
     },
@@ -551,6 +554,11 @@ class SystemReduction {
               ...data,
               _stateInputs: data.stateInputs,
               _nextTimerId: data.nextTimerId,
+              _nextTimerOccurrence: (data.timers ?? []).reduce(
+                (next: number, timer: LogicalTimer) =>
+                  Math.max(next, (timer.occurrence ?? -1) + 1),
+                data.nextTimerOccurrence ?? 0
+              ),
               _nextActorIds: data.nextActorIds,
               _nodes: data.nodeIds.map((id: string) =>
                 logic.getStateNodeById(id)
@@ -848,7 +856,11 @@ class SystemReduction {
             const key = getTimerKey(value);
             const actor = this.current(ref);
             if (!actor || !isLogicalTimerPending(actor.snapshot, key)) break;
-            this.schedule(ref, value.delay, { type: 'xstate.timer', ...key });
+            this.schedule(ref, value.delay, {
+              type: 'xstate.timer',
+              ...key,
+              occurrence: value.occurrence
+            });
           } else if (isSerializedActorRef(value.target)) {
             // A ref that went through JSON targets the current incarnation
             // at its address; without one the event is a dead letter.

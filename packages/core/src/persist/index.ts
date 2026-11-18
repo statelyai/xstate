@@ -319,6 +319,7 @@ export function restoreMachineSnapshot<TMachine extends AnyStateMachine>(
 
   const timers: LogicalTimer[] = [];
   const persistedTimers: Array<{
+    occurrence?: number;
     id?: string;
     seq?: number;
     delay: number;
@@ -416,6 +417,7 @@ export function restoreMachineSnapshot<TMachine extends AnyStateMachine>(
     // snapshots round-trip to the same shape.
     _nextActorId: _legacyNextActorId,
     nextTimerId,
+    nextTimerOccurrence,
     nextActorIds,
     stateInputs: _persistedStateInputs,
     ...persistedRest
@@ -491,7 +493,14 @@ export function restoreMachineSnapshot<TMachine extends AnyStateMachine>(
       context: reviveContext(persistedRest.context, true),
       children,
       timers,
-      _nextTimerId: nextTimerId,
+      _nextTimerId: timers.reduce(
+        (next, timer) => Math.max(next, (timer.seq ?? -1) + 1),
+        nextTimerId ?? 0
+      ),
+      _nextTimerOccurrence: timers.reduce(
+        (next, timer) => Math.max(next, (timer.occurrence ?? -1) + 1),
+        nextTimerOccurrence ?? 0
+      ),
       _nextActorIds: restoredCounters,
       _nodes: nodes,
       // Derived from the resolved configuration, so a partial value such as

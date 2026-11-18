@@ -368,7 +368,8 @@ export interface ActorSystemRuntime {
   emitEvent(source: AnyActor, event: EventObject): void | PromiseLike<void>;
   /**
    * Schedules a logical timer. `source.address` and `timer` identify it; when
-   * it fires, deliver `{ type: 'xstate.timer', ...timer }` to `source`.
+   * it fires, deliver `{ type: 'xstate.timer', ...timer }` to `source`. Preserve
+   * `occurrence` in that input, but exclude it from cancellation lookup keys.
    */
   scheduleTimer(
     source: AnyActor,

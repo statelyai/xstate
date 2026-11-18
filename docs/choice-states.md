@@ -107,3 +107,9 @@ states: {
   standardFlow: {}
 }
 ```
+
+## Target checking
+
+TypeScript checks literal targets returned by `choice` functions in both
+`createMachine(...)` and `setup(...).createMachine(...)`. Unknown state names
+are type errors. Targets computed as a dynamic `string` are resolved at runtime.

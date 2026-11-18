@@ -2621,7 +2621,11 @@ export function macrostep(
   if (event.type === XSTATE_TIMER) {
     const key = readTimerKey(event);
     const index = key
-      ? nextSnapshot.timers.findIndex((timer) => matchesTimerKey(timer, key))
+      ? nextSnapshot.timers.findIndex(
+          (timer) =>
+            matchesTimerKey(timer, key) &&
+            (!('occurrence' in event) || timer.occurrence === event.occurrence)
+        )
       : -1;
     if (index === -1) {
       return completeMacrostep();

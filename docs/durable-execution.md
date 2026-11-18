@@ -247,8 +247,14 @@ of:
   `xstate.after`, `{ type, stateId }` for `xstate.timeout.state` and
   `{ type, actorId }` for `xstate.timeout.actor`
 
-Built-in timers have no id. Key host records by `source.address` plus
-`JSON.stringify(timer)`. Persist an absolute deadline derived from `delay` when
+Scheduling keys also carry `occurrence`, which identifies one scheduling.
+Preserve it in the firing input. A cancelled occurrence cannot consume a later
+timer with the same logical key. Inputs without `occurrence` retain legacy
+key-only matching.
+
+Built-in timers have no id. Exclude `occurrence` when constructing the logical
+key used to replace or cancel host records. Include it in the firing identity
+used to deduplicate journal entries. Persist an absolute deadline derived from `delay` when
 accepting the operation, then let the host's scheduler wake a new process. The
 serializable firing input is `{ type: 'xstate.timer', ...timer }`. Journal that
 input before applying it. For a root timer, pass it to
@@ -257,17 +263,19 @@ replaying earlier journal entries.
 
 ```ts
 scheduleTimer: (source, timer, delay) => {
-  const key = `${source.address}:${JSON.stringify(timer)}`;
+  const { occurrence, ...logicalKey } = timer;
+  const key = `${source.address}:${JSON.stringify(logicalKey)}`;
+  const firingKey = `${key}:${occurrence}`;
   const event = { type: 'xstate.timer', ...timer };
-  if (!journal.hasTimerFiring(key)) {
-    host.schedule({ key, dueAt: host.now() + delay, event });
+  if (!journal.hasTimerFiring(firingKey)) {
+    host.schedule({ key, firingKey, dueAt: host.now() + delay, event });
   }
 }
 ```
 
 `snapshot.timers` is the public, per-actor list of pending logical timers, in
 scheduling order. Each entry contains its `id` or `seq` (built-in timers have
-neither), declared `delay`, delivery type, event and logical target. Before effects execute, pure snapshots carry no scheduling
+neither), scheduling `occurrence`, declared `delay`, delivery type, event and logical target. Before effects execute, pure snapshots carry no scheduling
 time. After `executeEffects()` successfully schedules a timer, persisted
 checkpoints carry `scheduledAt`; `restore()` schedules the remaining time toward
 that deadline. Await effect execution before saving a checkpoint. Timer starts

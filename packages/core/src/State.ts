@@ -319,6 +319,8 @@ interface MachineSnapshotBase<
   _stateInputs: Record<string, Record<string, unknown>>;
   /** @internal */
   _nextTimerId: number;
+  /** @internal Next scheduling occurrence, independent of anonymous timer keys. */
+  _nextTimerOccurrence: number;
   /** @internal */
   _nextActorIds?: Record<string, number>;
   /**
@@ -599,6 +601,7 @@ const machineSnapshotToJSON = function toJSON(this: AnyMachineSnapshot) {
     nodes,
     _stateInputs,
     _nextTimerId,
+    _nextTimerOccurrence,
     _nextActorIds,
     tags,
     machine,
@@ -680,6 +683,7 @@ export function createMachineSnapshot<
     historyValue: compactSnapshotRecord(config.historyValue),
     _stateInputs: compactSnapshotRecord(config._stateInputs),
     _nextTimerId: config._nextTimerId ?? 0,
+    _nextTimerOccurrence: config._nextTimerOccurrence ?? 0,
     _nextActorIds: config._nextActorIds,
     matches: machineSnapshotMatches as never,
     hasTag: machineSnapshotHasTag,
@@ -721,6 +725,7 @@ export function cloneMachineSnapshot<TState extends AnyMachineSnapshot>(
       historyValue: compactSnapshotRecord(configWithSnapshot.historyValue),
       _stateInputs: compactSnapshotRecord(configWithSnapshot._stateInputs),
       _nextTimerId: configWithSnapshot._nextTimerId ?? 0,
+      _nextTimerOccurrence: configWithSnapshot._nextTimerOccurrence ?? 0,
       _nextActorIds: configWithSnapshot._nextActorIds,
       matches: machineSnapshotMatches as never,
       hasTag: machineSnapshotHasTag,
@@ -787,6 +792,7 @@ export function getPersistedSnapshot<
     nodes,
     _stateInputs,
     _nextTimerId,
+    _nextTimerOccurrence,
     _nextActorIds,
     tags,
     machine,
@@ -929,6 +935,7 @@ export function getPersistedSnapshot<
       ? scheduled.dueAt - timer.delay
       : getTimerStart(timer);
     timersJson.push({
+      ...(timer.occurrence !== undefined && { occurrence: timer.occurrence }),
       ...(timer.id !== undefined && { id: timer.id }),
       ...(timer.seq !== undefined && { seq: timer.seq }),
       delay: timer.delay,
@@ -955,6 +962,9 @@ export function getPersistedSnapshot<
   }
   // Stores such as Convex reject `_`-prefixed field names.
   persisted.nextTimerId = _nextTimerId;
+  if (_nextTimerOccurrence > 0) {
+    persisted.nextTimerOccurrence = _nextTimerOccurrence;
+  }
   if (_nextActorIds && Object.keys(_nextActorIds).length > 0) {
     persisted.nextActorIds = _nextActorIds;
   }

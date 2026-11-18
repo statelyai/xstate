@@ -1,3 +1,4 @@
+import { serializeTimerKey } from '../src/timerKey.ts';
 import { describe, expect, it, vi } from 'vitest';
 import {
   createMachine,
@@ -9,7 +10,7 @@ import { createDurable } from '../src/durable/index.ts';
 
 interface JournalEntry {
   address: string;
-  event: { type: string };
+  event: { type: string; occurrence?: number };
 }
 
 interface PendingTimer {
@@ -21,7 +22,7 @@ interface PendingTimer {
 
 // A timer is identified by its source address and its timer key.
 const timerKey = (address: string, timer: TimerKey) =>
-  `${address}:${JSON.stringify(timer)}`;
+  `${address}:${serializeTimerKey(timer)}`;
 
 function createEventJournalHost(
   machine: ReturnType<typeof createMachine>,
@@ -52,7 +53,8 @@ function createEventJournalHost(
         const { type, ...journaledTimer } = journaled;
         return (
           type === event.type &&
-          timerKey(address, journaledTimer as TimerKey) === key
+          timerKey(address, journaledTimer as TimerKey) === key &&
+          journaledTimer.occurrence === timer.occurrence
         );
       });
       if (!alreadyFired) {
@@ -114,6 +116,7 @@ describe('durable event-journal timers', () => {
       key: expect.any(String),
       delay: 5000,
       event: {
+        occurrence: 0,
         type: 'xstate.timer',
         event: {
           type: 'xstate.after',

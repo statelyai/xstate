@@ -1,6 +1,7 @@
 import { expect, vi } from 'vitest';
 import {
   createActor,
+  deliverEvent,
   createAsyncLogic,
   createMachine,
   SimulatedClock
@@ -34,6 +35,7 @@ describe('persisted logical timers', () => {
     const [timer] = getTimers(persisted);
 
     expect(timer).toEqual({
+      occurrence: 0,
       delay: 1000,
       type: '@xstate.raise',
       event: {
@@ -297,3 +299,41 @@ describe('persisted logical timers', () => {
     );
   });
 });
+
+it.each([undefined, 0, 20])(
+  'keeps restored timer occurrences ahead of a counter of %s',
+  (nextTimerOccurrence) => {
+    const clock = new SimulatedClock();
+    const machine = createMachine({
+      context: { expired: 0 },
+      entry: (_, enq) =>
+        enq.raise({ type: 'EXPIRE' }, { id: 'shared', delay: 100 }),
+      on: {
+        REPLACE: (_, enq) =>
+          enq.raise({ type: 'EXPIRE' }, { id: 'shared', delay: 100 }),
+        EXPIRE: ({ context }) => ({ context: { expired: context.expired + 1 } })
+      }
+    });
+    const original = createActor(machine, { clock }).start();
+    const persisted = {
+      ...original.getPersistedSnapshot(),
+      nextTimerOccurrence
+    };
+    const occurrence = getTimers(persisted)[0].occurrence;
+    original.stop();
+    const restored = restoreActor(machine, persisted, { clock }).start();
+    restored.send({ type: 'REPLACE' });
+    expect(restored.getSnapshot().timers[0].occurrence).toBe(
+      nextTimerOccurrence || 1
+    );
+    deliverEvent(restored, restored, {
+      type: 'xstate.timer',
+      id: 'shared',
+      occurrence
+    });
+    expect(restored.getSnapshot().context.expired).toBe(0);
+    clock.increment(100);
+    expect(restored.getSnapshot().context.expired).toBe(1);
+    restored.stop();
+  }
+);

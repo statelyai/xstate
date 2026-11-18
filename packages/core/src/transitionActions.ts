@@ -263,7 +263,7 @@ function execRaiseEffect(
 ): void | PromiseLike<void> {
   return runtime.scheduleTimer!(
     this.source,
-    getTimerKey(this),
+    { ...getTimerKey(this), occurrence: this.occurrence },
     this.delay ?? 0
   );
 }
@@ -274,7 +274,11 @@ function execSendToEffect(
 ): void | PromiseLike<void> {
   assertSendToEvent(this.event);
   if (this.delay !== undefined) {
-    return runtime.scheduleTimer!(this.source, getTimerKey(this), this.delay);
+    return runtime.scheduleTimer!(
+      this.source,
+      { ...getTimerKey(this), occurrence: this.occurrence },
+      this.delay
+    );
   }
   return runtime.sendEvent!(this.source, this.target, this.event);
 }
@@ -325,11 +329,14 @@ function updateLogicalTimers(
       seq: effect.seq
     };
   }
+  const occurrence = snapshot._nextTimerOccurrence ?? 0;
+  effect.occurrence = occurrence;
   const target =
     effect.type === '@xstate.raise' || effect.target === actorScope.self
       ? 'self'
       : effect.target;
   const timer: LogicalTimer = {
+    occurrence,
     ...(effect.id !== undefined && { id: effect.id }),
     ...(effect.seq !== undefined && { seq: effect.seq }),
     delay: effect.delay,
@@ -348,7 +355,8 @@ function updateLogicalTimers(
       index === -1
         ? [...timers, timer]
         : timers.map((pending, i) => (i === index ? timer : pending)),
-    _nextTimerId: nextTimerId
+    _nextTimerId: nextTimerId,
+    _nextTimerOccurrence: occurrence + 1
   };
 }
 
@@ -1070,6 +1078,7 @@ export function createTimerEffect(
       source,
       event: timer.event,
       id: timer.id,
+      occurrence: timer.occurrence,
       ...(timer.seq !== undefined && { seq: timer.seq }),
       delay,
       params: undefined,
@@ -1085,6 +1094,7 @@ export function createTimerEffect(
     target,
     event: timer.event,
     id: timer.id,
+    occurrence: timer.occurrence,
     ...(timer.seq !== undefined && { seq: timer.seq }),
     delay,
     params: undefined,

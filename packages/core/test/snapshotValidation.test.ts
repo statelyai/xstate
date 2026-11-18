@@ -39,6 +39,10 @@ const malformed = [
   ],
   ['null timer', () => ({ timers: [null] })],
   [
+    'invalid timer occurrence counter',
+    () => ({ nextTimerOccurrence: 'invalid' })
+  ],
+  [
     'invalid timer event',
     () => ({
       timers: [
@@ -59,6 +63,25 @@ const malformed = [
       ]
     })
   ],
+  ...['invalid', -1, 0.5].map(
+    (occurrence) =>
+      [
+        `invalid timer occurrence ${occurrence}`,
+        (good: any) => ({
+          timers: good.timers.map((timer: object) => ({ ...timer, occurrence }))
+        })
+      ] as const
+  ),
+  ...[-1, 0.5].map(
+    (seq) =>
+      [
+        `invalid timer sequence ${seq}`,
+        (good: any) => ({
+          timers: good.timers.map((timer: object) => ({ ...timer, seq }))
+        })
+      ] as const
+  ),
+  ['invalid anonymous timer counter', () => ({ nextTimerId: 0.5 })],
   ['string child', () => ({ children: { x: 'garbage' } })],
   ['null child', () => ({ children: { x: null } })],
   ['array child', () => ({ children: { x: [] } })],
@@ -190,6 +213,16 @@ it('accepts local children with omitted persisted snapshots', async () => {
   const restored = restoreActor(machine, snapshot);
   restored.subscribe({ error: () => {} });
   restored.start();
+  expect(restored.getSnapshot().status).toBe('active');
+  restored.stop();
+});
+
+it('accepts legacy timers without an occurrence', async () => {
+  const { machine, good } = fixture();
+  delete good.timers[0].occurrence;
+  const result = await snapshotSchema(machine)['~standard'].validate(good);
+  expect(result.issues).toBeUndefined();
+  const restored = restoreActor(machine, good).start();
   expect(restored.getSnapshot().status).toBe('active');
   restored.stop();
 });
