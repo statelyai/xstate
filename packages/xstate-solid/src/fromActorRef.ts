@@ -15,20 +15,10 @@ const isPlainContainer = (value: object) => {
   return proto === Object.prototype || proto === null;
 };
 
-// Values already walked. XState treats snapshots as immutable, so an
-// unchanged part of the next snapshot is not walked again.
 const walked = new WeakSet<object>();
 
-/**
- * Prepares a snapshot for the store without copying anything: the store
- * reads the snapshot's own objects (Solid 2 stores never write to their
- * sources, and frozen objects wrap like any other, so XState's development
- * freeze stays fine-grained).
- *
- * Class instances are marked to be served as they are, as Solid 1 stores
- * did. Solid 2 stores wrap them, and a wrapped actor ref drops its own writes
- * (its `subscribe` stops working).
- */
+// Solid 2 stores wrap class instances, and a wrapped actor ref drops its own
+// writes, so they are marked raw.
 function toStoreValue(value: unknown): any {
   if (value === null || typeof value !== 'object' || walked.has(value)) {
     return value;
@@ -42,15 +32,12 @@ function toStoreValue(value: unknown): any {
   return value;
 }
 
-/**
- * Marks a value so no store wraps it. `solid-js` has no public `markRaw`;
- * a value that passes through a shallow store stays raw in every store.
- */
+// solid-js has no public markRaw; a shallow store marks its values raw.
 function markRaw(value: object) {
   try {
     createStore([value], { shallow: true });
   } catch {
-    // Already wrapped by a deep store elsewhere; it stays wrapped.
+    // already wrapped elsewhere
   }
 }
 
@@ -65,10 +52,6 @@ export function fromActorRef<TActor extends AnyActorRef | undefined>(
     typeof actorRef === 'function' ? actorRef() : actorRef
   );
 
-  // The latest snapshot, tagged with the actor that emitted it so a switch to
-  // another actor never shows the previous actor's snapshot. The actor emits
-  // from wherever `send` runs, which can be inside an owned scope (a
-  // component body or an effect), hence `ownedWrite`.
   const [latest, setLatest] = createSignal<{
     actor: AnyActorRef | undefined;
     snapshot: unknown;
@@ -91,16 +74,11 @@ export function fromActorRef<TActor extends AnyActorRef | undefined>(
         error: update,
         complete: noop
       });
-      // Catch up with anything emitted before the subscription.
       update();
       return unsubscribe;
     }
   );
 
-  // A deep store keeps reads fine-grained: `snapshot.context.todos[0].done`
-  // only notifies when that value changes. Each snapshot is reconciled in
-  // positionally, and `toStoreValue` keeps actor refs, the machine and other
-  // class instances as the real objects.
   const [snapshot] = createStore<any>(
     () => {
       const currentActor = actorMemo();
@@ -116,8 +94,6 @@ export function fromActorRef<TActor extends AnyActorRef | undefined>(
     { key: null }
   );
 
-  // Only defined/undefined changes reach readers: switching from one actor to
-  // another reconciles into the same store.
   const hasActor = createMemo(() => !!actorMemo());
 
   return (() => (hasActor() ? snapshot : undefined)) as any;

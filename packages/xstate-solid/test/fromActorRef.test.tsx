@@ -165,8 +165,6 @@ describe('fromActorRef', () => {
       onSettled(() => {
         expect(snapshot().value).toBe('start');
         actorRef().send({ type: 'done' });
-        // Solid 2 batches writes: the snapshot shows the new value once this
-        // flush finishes.
         queueMicrotask(() => {
           flush();
           expect(snapshot().value).toBe('success');
@@ -1754,9 +1752,6 @@ it.each([
   ['unfrozen (production)', false],
   ['frozen (development)', true]
 ])('passes %s snapshots to the store without copying them', (_, frozen) => {
-  // XState only freezes context in development. A hand-written actor ref
-  // emits either shape; both must reach the store as they are and stay
-  // fine-grained.
   const prepare = (snapshot: any) => (frozen ? deepFreeze(snapshot) : snapshot);
   let current: any = prepare({
     status: 'active',

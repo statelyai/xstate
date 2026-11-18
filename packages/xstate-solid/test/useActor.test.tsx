@@ -279,8 +279,6 @@ describe('useActor', () => {
       onSettled(() => {
         expect(current.value).toBe('start');
         send({ type: 'done' });
-        // Solid 2 batches writes: the snapshot shows the new value once this
-        // flush finishes.
         queueMicrotask(() => {
           flush();
           expect(current.value).toBe('success');
@@ -1418,8 +1416,6 @@ describe('useActor', () => {
 
     render(() => <App />);
     setIsAwesome(true);
-    // The guard reads the signal outside a reactive scope, so it sees the
-    // write after the flush.
     flush();
     const btn = screen.getByRole('button');
     fireEvent.click(btn);

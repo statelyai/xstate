@@ -49,7 +49,5 @@ export function useActor<TLogic extends AnyActorLogic>(
   ActorRefFrom<TLogic>
 ] {
   const actorRef = (useActorRef as any)(logic, options) as AnyActorRef;
-  // Read once: the snapshot is a store that stays the same object for this
-  // actor, so `snapshot.value`, `snapshot.context` and so on stay reactive.
   return [untrack(fromActorRef(actorRef)), actorRef.send, actorRef as any];
 }
