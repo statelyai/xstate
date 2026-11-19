@@ -507,6 +507,23 @@ const m = setup({ actions: { reset: assign(context) } }).createMachine({
       expect(output).toContain("actions: ['reset', 'reset']");
     });
 
+    it('reports static values captured when a named assignment is created', () => {
+      const { output, notes } = lower(`import { setup, assign } from 'xstate';
+const defaults = { count: 1 };
+const m = setup({ actions: {
+  reset: assign({ count: defaults.count })
+} }).createMachine({
+  context: { count: 9 },
+  on: { GO: { actions: 'reset' } }
+});
+defaults.count = 2;`);
+      expect(notes.join('\n')).toContain(
+        'captures a construction-time value and needs manual migration'
+      );
+      expect(output).toContain('reset: assign({ count: defaults.count })');
+      expect(output).toContain("actions: 'reset'");
+    });
+
     it.each([
       {
         actions: `enqueueActions(({ enqueue }) => {

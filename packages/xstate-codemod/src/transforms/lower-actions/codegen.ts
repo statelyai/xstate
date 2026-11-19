@@ -948,6 +948,25 @@ class FunctionBuilder {
           `named assign '${name}' needs manual migration to a context patch`
         );
       }
+      if (
+        Node.isObjectLiteralExpression(arg) &&
+        arg.getProperties().some((property) => {
+          const value = Node.isPropertyAssignment(property)
+            ? property.getInitializer()
+            : Node.isShorthandPropertyAssignment(property)
+              ? property.getNameNode()
+              : undefined;
+          return (
+            value &&
+            !isFunctionLike(unwrap(value)) &&
+            !outerValueReferences(value).next().done
+          );
+        })
+      ) {
+        return skip(
+          `named assign '${name}' captures a construction-time value and needs manual migration`
+        );
+      }
       this.inlineCheck(def, name, arg);
       const checker = arg.getProject().getTypeChecker().compilerObject;
       const sites = [...this.inlineSites, site];
