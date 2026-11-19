@@ -1,5 +1,9 @@
 import {
+  createActor,
+  createAsyncLogic,
   createMachine,
+  SimulatedClock,
+  TimeoutError,
   initialTransition,
   machineFromJSON
 } from '../src/index.ts';
@@ -80,3 +84,58 @@ it.each(['s', '.s', 'namedDelay'])(
     }
   }
 );
+
+it.each(['s', '.s', 'invalid'])(
+  'rejects an unparseable async timeout without starting work: %s',
+  (timeout) => {
+    let runs = 0;
+    const actor = createActor(
+      createAsyncLogic({
+        timeout,
+        run: () => {
+          runs++;
+          return new Promise<never>(() => {});
+        }
+      })
+    );
+    actor.subscribe({ error: () => {} });
+    actor.start();
+
+    expect(actor.getSnapshot().status).toBe('error');
+    expect(runs).toBe(0);
+    actor.stop();
+  }
+);
+
+it('keeps omitted and valid async timeouts distinct', () => {
+  for (const timeout of [undefined, '0s', '.5s']) {
+    const clock = new SimulatedClock();
+    const actor = createActor(
+      createAsyncLogic({ timeout, run: () => new Promise<never>(() => {}) }),
+      { clock }
+    );
+    actor.subscribe({ error: () => {} });
+    actor.start();
+    clock.increment(500);
+
+    const snapshot = actor.getSnapshot();
+    expect(snapshot.status).toBe(timeout === undefined ? 'active' : 'error');
+    if (timeout !== undefined) {
+      expect(snapshot.error).toBeInstanceOf(TimeoutError);
+    }
+    actor.stop();
+  }
+});
+
+it('still rejects an empty JSON delay descriptor', () => {
+  expect(() =>
+    machineFromJSON({
+      delays: { namedDelay: '' },
+      initial: 'waiting',
+      states: {
+        waiting: { after: { namedDelay: { target: 'done' } } },
+        done: {}
+      }
+    })
+  ).toThrow();
+});

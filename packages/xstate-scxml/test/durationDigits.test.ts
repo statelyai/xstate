@@ -26,3 +26,16 @@ it.each(['s', '.s', 'namedDelay'])(
     }
   }
 );
+
+it('still rejects an empty SCXML delay descriptor', () => {
+  expect(() =>
+    createMachineFromSCXMLConfig({
+      delays: { namedDelay: '' },
+      initial: 'waiting',
+      states: {
+        waiting: { after: { namedDelay: { target: 'done' } } },
+        done: {}
+      }
+    })
+  ).toThrow();
+});
