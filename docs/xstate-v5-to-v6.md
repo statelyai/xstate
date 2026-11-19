@@ -1651,7 +1651,7 @@ It runs these transforms in order. `--transform name,name` selects a subset.
 
 `string-targets` wraps string elements inside transition arrays but keeps the arrays. `lower-actions` rewrites a transition array as one function when any element has `actions` or `guard`; `report-action-shapes` reports the arrays that remain. The v6 `createMachine` types reject transition arrays in `on` and `always` (for example, `on: { X: [ … ] }`); replace each with one transition function (§15, §16).
 
-`lower-actions` converts the action creators and guard combinators it can resolve in the file. Rewrite the reported ones as inline functions by hand (§1, §2). The transforms read and write imports from `'xstate'` only.
+`lower-actions` converts the action creators and guard combinators it can resolve in the file. If inlining a named `assign` would change which variable it reads, the transform leaves the call site unchanged and reports it for manual migration. Rewrite the reported sites as inline functions by hand (§1, §2). The transforms read and write imports from `'xstate'` only.
 
 ### Exit codes and JSON output
 

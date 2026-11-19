@@ -12,4 +12,4 @@ The codemod supports named, namespace and type-only imports. It checks transform
 
 The `string-targets` transform also wraps inline `xstate/fsm` targets in `on` and `always`, including `setup(...).createFSM` and aliased `createFSM` imports. It preserves string `initial` values. Review separately stored configurations and string-returning transition functions manually.
 
-The `lower-actions` transform inlines supported named `assign` actions as context patches at their call sites. Named assignments with params, shared const definitions, or bodies that cannot be safely inlined remain unchanged and are reported for manual migration. A migration with reported manual sites exits with code 2.
+The `lower-actions` transform inlines supported named `assign` actions as context patches at their call sites. It reports assignments that require manual migration, including assignments with params, shared const definitions, or variables that would resolve to a different binding after inlining. It leaves those sites unchanged and exits with code 2.

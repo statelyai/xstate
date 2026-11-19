@@ -495,6 +495,54 @@ const m = setup({
       expect(output).toContain(`import { setup } from 'xstate';`);
     });
 
+    it('reports a named reset that would read the generated context', () => {
+      const { output, notes } = lower(`import { setup, assign } from 'xstate';
+const context = { count: 0 };
+const m = setup({ actions: { reset: assign(context) } }).createMachine({
+  context: { count: 9 },
+  on: { GO: { actions: ['reset', 'reset'] } }
+});`);
+      expect(notes.join('\n')).toContain("references outer 'context'");
+      expect(output).toContain('reset: assign(context)');
+      expect(output).toContain("actions: ['reset', 'reset']");
+    });
+
+    it.each([
+      {
+        actions: `enqueueActions(({ enqueue }) => {
+          const increment = 100;
+          enqueue('inc');
+        })`,
+        extra: ''
+      },
+      {
+        actions: `enqueueActions(({ enqueue }) => {
+          const increment = 100;
+          enqueue('batch');
+        })`,
+        extra: `batch: enqueueActions(({ enqueue }) => { enqueue('inc'); }),`
+      }
+    ])(
+      'reports a named assignment with a shadowed call-site binding',
+      ({ actions, extra }) => {
+        const { output, notes } =
+          lower(`import { setup, assign, enqueueActions } from 'xstate';
+const increment = 1;
+const m = setup({ actions: {
+  ${extra}
+  inc: assign({ count: ({ context }) => context.count + increment })
+} }).createMachine({
+  context: { count: 0 },
+  on: { GO: { actions: ${actions} } }
+});`);
+        expect(notes.join('\n')).toContain(
+          "'inc' would read a different 'increment'"
+        );
+        expect(output).toContain('inc: assign(');
+        expect(output).toContain('actions: enqueueActions(');
+      }
+    );
+
     it('leaves named assignments with params for manual migration', () => {
       const { output, notes } = lower(`import { setup, assign } from 'xstate';
 const m = setup({ actions: {

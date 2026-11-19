@@ -23,13 +23,30 @@ export const counterMachine = setup({
 
 describe('named assign migration', () => {
   it.each([
-    input,
-    input.replace("actions: 'add'", "actions: ['add', 'add']"),
-    input.replace(
-      'assign(({ context, event }) => ({ count: context.count + event.by }))',
-      'assign({ count: ({ context, event }) => context.count + event.by })'
-    )
-  ])('generates strict TypeScript for the real v6 API', (code) => {
+    { code: input, count: 3 },
+    {
+      code: input.replace("actions: 'add'", "actions: ['add', 'add']"),
+      count: 6
+    },
+    {
+      code: input
+        .replace('export const', 'const increment = 1;\nexport const')
+        .replace(
+          'assign(({ context, event }) => ({ count: context.count + event.by }))',
+          'assign({ count: ({ context, event }) => context.count + event.by + increment })'
+        ),
+      count: 4
+    },
+    {
+      code: input
+        .replace('export const', 'const reset = { count: 5 };\nexport const')
+        .replace(
+          'assign(({ context, event }) => ({ count: context.count + event.by }))',
+          'assign(reset)'
+        ),
+      count: 5
+    }
+  ])('generates strict TypeScript for the real v6 API', ({ code, count }) => {
     const project = new Project({
       skipAddingFilesFromTsConfig: true,
       compilerOptions: {
@@ -66,9 +83,7 @@ describe('named assign migration', () => {
     const actor = createActor(machine).start();
     const event = { type: 'add', by: 3 };
     actor.send(event);
-    expect(actor.getSnapshot().context).toEqual({
-      count: code.includes("['add', 'add']") ? 6 : 3
-    });
+    expect(actor.getSnapshot().context).toEqual({ count });
     actor.stop();
     expect(applyToSourceFile(source, transforms).changed).toBe(false);
   });
