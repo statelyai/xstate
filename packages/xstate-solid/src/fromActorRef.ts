@@ -3,43 +3,15 @@ import {
   createEffect,
   createMemo,
   createSignal,
-  createStore
+  createStore,
+  markRaw
 } from 'solid-js';
-import { AnyActorRef, SnapshotFrom } from 'xstate';
+import { Actor, AnyActorRef, SnapshotFrom, StateMachine } from 'xstate';
+
+markRaw(Actor);
+markRaw(StateMachine);
 
 const noop = () => {};
-
-const isPlainContainer = (value: object) => {
-  if (Array.isArray(value)) return true;
-  const proto = Object.getPrototypeOf(value);
-  return proto === Object.prototype || proto === null;
-};
-
-const walked = new WeakSet<object>();
-
-// Solid 2 stores wrap class instances, and a wrapped actor ref drops its own
-// writes, so they are marked raw.
-function toStoreValue(value: unknown): any {
-  if (value === null || typeof value !== 'object' || walked.has(value)) {
-    return value;
-  }
-  walked.add(value);
-  if (!isPlainContainer(value)) {
-    markRaw(value);
-    return value;
-  }
-  for (const key of Object.keys(value)) toStoreValue((value as any)[key]);
-  return value;
-}
-
-// solid-js has no public markRaw; a shallow store marks its values raw.
-function markRaw(value: object) {
-  try {
-    createStore([value], { shallow: true });
-  } catch {
-    // already wrapped elsewhere
-  }
-}
 
 /** @public */
 export function fromActorRef<TActor extends AnyActorRef | undefined>(
@@ -93,11 +65,9 @@ export function snapshotStore(
       const currentActor = actorMemo();
       if (!currentActor) return {};
       const current = latest();
-      return toStoreValue(
-        current.actor === currentActor
-          ? current.snapshot
-          : currentActor.getSnapshot()
-      );
+      return current.actor === currentActor
+        ? current.snapshot
+        : currentActor.getSnapshot();
     },
     {},
     { key: null }

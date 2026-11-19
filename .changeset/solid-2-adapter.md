@@ -2,10 +2,10 @@
 '@xstate/solid': major
 ---
 
-`@xstate/solid` now requires Solid 2 (`solid-js` `^2.0.1`). Stay on `@xstate/solid` 2.x for Solid 1.
+`@xstate/solid` now requires Solid 2 (`solid-js` `^2.0.3`). Stay on `@xstate/solid` 2.x for Solid 1.
 
 - `useActor`, `useActorRef`, `useMachine` and `fromActorRef` keep their signatures. The snapshot is still a deeply reactive store: a read such as `snapshot.context.todos[0].done` only re-runs when that value changes.
-- Actor refs, the machine and other class instances in a snapshot are served as the real objects, not store proxies, so `snapshot.children.child.subscribe(...)` and `fromActorRef(snapshot.context.ref)` work as before.
+- Actor refs and the machine in a snapshot are served as the real objects, not store proxies, so `snapshot.children.child.subscribe(...)` and `fromActorRef(snapshot.context.ref)` work as before. Other class instances in `context` are wrapped like any Solid store value; pass a class to `markRaw` from `solid-js` to keep its instances as they are.
 - The actor starts in `onSettled` instead of `onMount`.
 - `useActor`, `useActorRef` and `useMachine` also accept a function that returns an actor, so the actor can be derived from props or async data without reading them in the component body. The hook owns each actor the function returns: when it returns a new one, the old actor is stopped and the new one started, and the snapshot follows it. In this form `useActorRef` and the third tuple item are accessors.
 
