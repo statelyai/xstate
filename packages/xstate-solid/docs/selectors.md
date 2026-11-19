@@ -27,7 +27,7 @@ return <output>{total()}</output>;
 
 The returned accessor's value is deeply reactive. Only the paths that changed notify their readers, so `snapshot().context.progress` re-runs on progress updates and `snapshot().value` does not.
 
-Read plain objects and arrays through the accessor to track changes. Class instances and other non-plain values are not deeply reactive. You can call snapshot methods such as `matches(...)`, `hasTag(...)` and `can(...)` as usual.
+Read plain objects and arrays through the accessor to track changes. Actor refs and the machine are served as the real objects, and `Map`, `Set`, `Date` and other built-ins are stored as they are; their slots still notify when the value is replaced. Other class instances in `context` are wrapped like any Solid store value, so their getters track; pass a class to `markRaw` from `solid-js` to keep its instances as they are. You can call snapshot methods such as `matches(...)`, `hasTag(...)` and `can(...)` as usual.
 
 `useActor(...)` returns a reactive snapshot as its first tuple member.
 
