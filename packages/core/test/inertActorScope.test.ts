@@ -148,7 +148,6 @@ describe('inert actor scopes', () => {
     }
   );
 
-
   it.skipIf(!collect)(
     'keeps the snapshot alive when its materialized self is retained',
     async () => {
@@ -172,4 +171,51 @@ describe('inert actor scopes', () => {
     }
   );
 
+  it.skipIf(!collect)(
+    'keeps adoption announcements readable after the first snapshot is collected',
+    async () => {
+      const inspected: InspectionEvent[] = [];
+      const machine = createMachine({
+        context: () => ({ marker: {}, count: 0 }),
+        on: {
+          TICK: ({ context }) => ({
+            context: { marker: {}, count: context.count + 1 }
+          })
+        }
+      });
+      const run = () => {
+        let [snapshot] = initialTransition(machine);
+        const first = new WeakRef(snapshot.context.marker);
+        for (let index = 0; index < 3; index++) {
+          [snapshot] = transition(machine, snapshot, { type: 'TICK' });
+        }
+        return { first, snapshot };
+      };
+      const { first, snapshot } = run();
+      await setImmediate();
+      collect!();
+      await setImmediate();
+      collect!();
+      expect(first.deref()).toBeUndefined();
+      const durable = createDurable(
+        machine,
+        {
+          executeAction: () => {},
+          waitForEvent: () => {
+            throw new Error('host-driven loop');
+          }
+        },
+        { inspect: (event) => inspected.push(event) }
+      );
+      const [, effects] = durable.transition(snapshot, { type: 'TICK' });
+      await durable.executeEffects(effects);
+      const announcements = inspected.filter(
+        (event) => event.type === '@xstate.actor'
+      );
+      expect(announcements.length > 0).toBe(true);
+      for (const event of announcements) {
+        expect(event.actorRef.getSnapshot()).toBeDefined();
+      }
+    }
+  );
 });

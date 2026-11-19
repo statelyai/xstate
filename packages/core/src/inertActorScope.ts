@@ -85,16 +85,16 @@ type IdentityScope = {
   setSnapshot(snapshot: unknown): void;
   getScope(): AnyActorScope;
   peekScope(): AnyActorScope | undefined;
-  getRef(): SnapshotActorRef;
+  getRef(snapshot?: unknown): SnapshotActorRef;
 };
 
 type LazyInertActorState = {
   snapshot: unknown;
   materialized?: AnyActorScope;
   identityScope?: AnyActorScope;
-  sourceRef?: () => SnapshotActorRef;
+  sourceRef?: (snapshot?: unknown) => SnapshotActorRef;
   sourceChildren: Record<string, AnyActor | undefined>;
-  identityProvider?: () => SnapshotActorRef;
+  identityProvider?: (snapshot?: unknown) => SnapshotActorRef;
   parent?: AnyActor;
   parentKnown: boolean;
   owner?: ExecutionOwner;
@@ -179,14 +179,14 @@ export function setInertActorMaterializationObserver(
 /** Creates a transactional planning scope backed by an inert actor. */
 function createMaterializedInertActorScope<T extends AnyActorLogic>(
   actorLogic: T,
-  sourceRef: (() => SnapshotActorRef) | undefined,
+  sourceRef: ((snapshot?: unknown) => SnapshotActorRef) | undefined,
   sourceChildren: Record<string, AnyActor | undefined>,
   currentSnapshot: SnapshotFrom<T> | undefined,
   sourceSelf?: AnyActor,
   owner?: ExecutionOwner
 ): AnyActorScope {
   inertActorMaterializationObserver?.();
-  const snapshotRef = sourceRef?.();
+  const snapshotRef = sourceRef?.(currentSnapshot);
   const previousSelf = sourceSelf ?? snapshotRef?.actor;
   const baseSystem = previousSelf?.system;
   const system =
@@ -280,7 +280,10 @@ function createIdentityScope<T extends AnyActorLogic>(
     setSnapshot,
     getScope: getIdentityScope,
     peekScope: () => cell.scope,
-    getRef: () => {
+    getRef: (snapshot?: unknown) => {
+      if (!cell.snapshot?.deref() && snapshot !== undefined) {
+        setSnapshot(snapshot);
+      }
       if (identityRef) {
         return identityRef;
       }
