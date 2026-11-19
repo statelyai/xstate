@@ -536,21 +536,10 @@ function getWorkingSnapshotOf(actorScope: AnyActorScope):
   )._snapshot;
 }
 
-function getRegisteredActors(
-  actorScope: AnyActorScope
-): Record<string, AnyActorLogic> | undefined {
-  return (
-    actorScope.self as {
-      logic?: { sources?: { actors?: Record<string, AnyActorLogic> } };
-    }
-  ).logic?.sources?.actors;
-}
-
 function resolveTransitionSpawnSource(
-  actorScope: AnyActorScope,
+  registeredActors: Record<string, AnyActorLogic> | undefined,
   source: string | AnyActorLogic
 ): { logic: AnyActorLogic; src: string | undefined } {
-  const registeredActors = getRegisteredActors(actorScope);
   if (typeof source === 'string') {
     const logic = registeredActors?.[source];
     if (!logic) {
@@ -779,8 +768,15 @@ export function createTransitionEnqueue(
   actorScope: AnyActorScope,
   actions: any[],
   internalEvents: EventObject[],
-  actorSubscriptions = false,
-  createActors = true
+  {
+    registeredActors,
+    actorSubscriptions = false,
+    createActors = true
+  }: {
+    registeredActors?: Record<string, AnyActorLogic>;
+    actorSubscriptions?: boolean;
+    createActors?: boolean;
+  } = {}
 ) {
   // Paths that never begin a transaction keep a per-enqueue scope.
   const localAllocation =
@@ -815,7 +811,10 @@ export function createTransitionEnqueue(
       }
     },
     spawn: (source: string | AnyActorLogic, options?: any) => {
-      const { logic, src } = resolveTransitionSpawnSource(actorScope, source);
+      const { logic, src } = resolveTransitionSpawnSource(
+        registeredActors,
+        source
+      );
       if (!createActors) {
         // Speculative evaluation creates no actor and allocates no id: return
         // an inert ref with the id this spawn would get.

@@ -1452,7 +1452,10 @@ function microstep(
         actorScope,
         actions,
         internalEvents,
-        true
+        {
+          registeredActors: currentSnapshot.machine.sources.actors,
+          actorSubscriptions: true
+        }
       );
 
       const args = isLazyActorScope(actorScope)
@@ -2371,8 +2374,11 @@ export function getTransitionResult(
         actorScope,
         actions,
         internalEvents,
-        true,
-        options?.resolveActions ?? true
+        {
+          registeredActors: snapshot.machine.sources.actors,
+          actorSubscriptions: true,
+          createActors: options?.resolveActions ?? true
+        }
       );
       const speculativeSelection =
         options?.resolveActions === false
