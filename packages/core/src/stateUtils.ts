@@ -1889,9 +1889,14 @@ function microstep(
       }
 
       const completedNodes = new Set<AnyStateNode>();
-      for (const stateNodeToEnter of [...statesToEnter].sort(
-        (a, b) => a.order - b.order
-      )) {
+      const root = currentSnapshot.machine.root;
+      const defaultOnlyRoot =
+        statesForDefaultEntry.has(root) && !statesToEnter.has(root);
+      for (const stateNodeToEnter of [
+        ...statesToEnter,
+        ...(defaultOnlyRoot ? [root] : [])
+      ].sort((a, b) => a.order - b.order)) {
+        const entering = statesToEnter.has(stateNodeToEnter);
         mutStateNodeSet.add(stateNodeToEnter);
         const actions: AnyAction[] = [];
         // Read the children for each state: the entry actions of the states
@@ -1906,7 +1911,7 @@ function microstep(
         }> = [];
         const stateInput = stateInputMap[stateNodeToEnter.id];
         try {
-          for (const invokeDef of stateNodeToEnter.type === 'final'
+          for (const invokeDef of !entering || stateNodeToEnter.type === 'final'
             ? []
             : stateNodeToEnter.invoke) {
             let src = invokeDef.logic;
@@ -1964,7 +1969,7 @@ function microstep(
           let context = nextState.context;
           let contextChangedByEntry = false;
 
-          if (stateNodeToEnter.entry) {
+          if (entering && stateNodeToEnter.entry) {
             const [
               resultActions,
               nextContext,

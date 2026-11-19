@@ -95,3 +95,35 @@ it.each([false, true])(
     }
   }
 );
+
+it('reapplies root initial input before entering its reset child', () => {
+  const inputs: unknown[] = [];
+  const invokedInputs: unknown[] = [];
+  const machine = createMachine({
+    id: 'root',
+    initial: { target: 'child', input: { userId: 'u1' } },
+    states: {
+      child: {
+        invoke: {
+          src: createCallbackLogic(({ input }) => {
+            invokedInputs.push(input);
+          }),
+          input: ({ input }) => input
+        },
+        entry: ({ input }) => {
+          inputs.push(input);
+        },
+        on: { GO: { target: '#root' } }
+      }
+    }
+  });
+  const actor = createActor(machine).start();
+  try {
+    actor.send({ type: 'GO' });
+    expect(inputs).toEqual([{ userId: 'u1' }, { userId: 'u1' }]);
+    expect(invokedInputs).toEqual(inputs);
+    expect(actor.getSnapshot().value).toBe('child');
+  } finally {
+    actor.stop();
+  }
+});
