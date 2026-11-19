@@ -230,7 +230,7 @@ describe('durable checkpoint restoration', () => {
     await execution.executeEffects(effects);
     expect(scheduleTimer).toHaveBeenCalledWith(
       execution.getActorRef(snapshot),
-      { id: 'ping' },
+      { id: 'ping', occurrence: 0 },
       200
     );
     expect(scheduleTimer).toHaveBeenCalledWith(
@@ -505,7 +505,8 @@ describe('durable checkpoint restoration', () => {
     const deadlines = new Map<string, number>();
     const host = adapter({
       scheduleTimer: (source, timer, delay) => {
-        const key = `${source.address}:${JSON.stringify(timer)}`;
+        const { occurrence: _occurrence, ...logicalKey } = timer;
+        const key = `${source.address}:${JSON.stringify(logicalKey)}`;
         if (!deadlines.has(key)) deadlines.set(key, Date.now() + delay);
       }
     });

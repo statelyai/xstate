@@ -21,6 +21,7 @@ const fields = {
   timers: Schema.Array(Schema.Unknown),
   historyValue: Schema.Record(Schema.String, Schema.Unknown),
   nextTimerId: Schema.Number,
+  nextTimerOccurrence: Schema.optionalKey(Schema.Number),
   machine: Schema.Struct({
     id: Schema.Literal('counter'),
     version: Schema.String
@@ -132,6 +133,7 @@ it('preserves core metadata and rejects schemas that discard it', async () => {
     ...persisted(),
     stateInputs: { idle: { value: 1 } },
     nextActorIds: { worker: 4 },
+    nextTimerOccurrence: 7,
     extraMetadata: { retained: true }
   };
   const complete = createSnapshotCodec(
@@ -148,6 +150,7 @@ it('preserves core metadata and rejects schemas that discard it', async () => {
   );
   expect(decoded.stateInputs).toEqual(metadata.stateInputs);
   expect(decoded.nextActorIds).toEqual(metadata.nextActorIds);
+  expect(decoded.nextTimerOccurrence).toBe(7);
   expect(decoded.extraMetadata).toEqual(metadata.extraMetadata);
   expect(
     await Effect.runPromise(Effect.flip(codec.encode(metadata)))

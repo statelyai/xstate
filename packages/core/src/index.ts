@@ -123,6 +123,7 @@ export type {
   SetupStateParentTypeMarker,
   SetupStateSchemasWithParentType,
   RootSetupStateSchemasMarker,
+  SetupStateAncestorContextMarker,
   WithRootSetupStateSchemas,
   SetupConfig,
   SetupReturn,

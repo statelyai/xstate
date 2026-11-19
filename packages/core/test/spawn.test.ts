@@ -27,32 +27,42 @@ describe('spawn inside machine', () => {
 describe('spawn during speculative evaluation', () => {
   const child = createMachine({ id: 'worker' });
 
-  it('returns an inert ref when `can()` evaluates a spawning transition', () => {
-    const refs: AnyActor[] = [];
-    const machine = createMachine({
-      id: 'parent',
-      on: {
-        SPAWN: (_, enq) => {
-          refs.push(enq.spawn(child, { id: 'w' }));
-          return {};
+  it.each(['logic', 'name'] as const)(
+    'returns an inert ref when `can()` evaluates a spawn by %s',
+    (source) => {
+      const refs: AnyActor[] = [];
+      const machine = createMachine({
+        id: 'parent',
+        actors: { worker: child },
+        on: {
+          SPAWN: (_, enq) => {
+            refs.push(
+              enq.spawn(source === 'name' ? 'worker' : child, { id: 'w' })
+            );
+            return {};
+          }
         }
-      }
-    });
-    const actor = createActor(machine).start();
+      });
+      const actor = createActor(machine).start();
 
-    expect(actor.getSnapshot().can({ type: 'SPAWN' })).toBe(true);
+      expect(actor.getSnapshot().can({ type: 'SPAWN' })).toBe(true);
 
-    const [ref] = refs;
-    expect(ref!.id).toBe('w');
-    expect(ref!.sessionId).toBeUndefined();
-    // `can()` evaluates detached from the parent actor: no address.
-    expect(ref!.address).toBeUndefined();
-    expect(ref!.getSnapshot()).toBe(ref!.getSnapshot());
-    expect(ref!.getSnapshot()).toMatchObject({ status: 'active' });
-    expect(() => ref!.send({ type: 'ANY' })).not.toThrow();
-    expect(() => JSON.stringify(ref)).toThrow(/speculative transition/);
-    expect(actor.getSnapshot().children).toEqual({});
-  });
+      const [ref] = refs;
+      expect(ref!.id).toBe('w');
+      expect(ref!.sessionId).toBeUndefined();
+      // `can()` evaluates detached from the parent actor: no address.
+      expect(ref!.address).toBeUndefined();
+      expect(ref!.getSnapshot()).toBe(ref!.getSnapshot());
+      expect(ref!.getSnapshot()).toMatchObject({ status: 'active' });
+      expect(() => ref!.send({ type: 'ANY' })).not.toThrow();
+      expect(() => JSON.stringify(ref)).toThrow(/speculative transition/);
+      expect(actor.getSnapshot().children).toEqual({});
+
+      actor.send({ type: 'SPAWN' });
+      expect(actor.getSnapshot().children.w).toBe(refs[1]);
+      actor.stop();
+    }
+  );
 
   it('gives the inert ref the id and address a real spawn would get', () => {
     const refs: AnyActor[] = [];

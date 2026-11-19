@@ -44,6 +44,7 @@ import {
   TransitionContextMapper,
   TransitionContextPatch,
   TransitionConfigFunction,
+  TransitionTargetString,
   Values,
   AnyStateNode,
   SystemRegistry,
@@ -1126,7 +1127,7 @@ type StateAction<
 >;
 
 type Next_ChoiceTarget<TMeta extends MetaObject> = {
-  target: string | string[];
+  target: TransitionTargetString | TransitionTargetString[];
   description?: string;
   reenter?: boolean;
   meta?: TMeta;

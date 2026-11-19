@@ -31,6 +31,7 @@ describe('logical snapshot timers', () => {
     // Built-in timers have no id; their event identifies them.
     expect(schedule.id).toBeUndefined();
     expect(timer).toEqual({
+      occurrence: 0,
       delay: 100,
       type: '@xstate.raise',
       event: { type: 'xstate.after', delay: 100, stateId: 'red' },
@@ -46,7 +47,7 @@ describe('logical snapshot timers', () => {
 
     expect(scheduleTimer).toHaveBeenCalledWith(
       schedule.source,
-      { event: timer.event },
+      { event: timer.event, occurrence: timer.occurrence },
       100
     );
   });
@@ -327,6 +328,7 @@ describe('logical snapshot timers', () => {
     expect(scheduled.timers).toEqual([
       {
         id: 'ping',
+        occurrence: 0,
         delay: 100,
         type: '@xstate.sendTo',
         event: { type: 'PING' },
@@ -481,4 +483,16 @@ describe('logical snapshot timers', () => {
       '@xstate.cancel'
     ]);
   });
+});
+
+it('keeps anonymous timer keys stable when named timers are also scheduled', () => {
+  const machine = createMachine({
+    entry: (_, enq) => {
+      enq.raise({ type: 'FIRST' }, { id: 'named', delay: 100 });
+      enq.raise({ type: 'SECOND' }, { delay: 200 });
+    }
+  });
+  const [snapshot] = initialTransition(machine);
+  expect(snapshot.timers[1].seq).toBe(0);
+  expect(snapshot.timers.map((timer) => timer.occurrence)).toEqual([0, 1]);
 });
