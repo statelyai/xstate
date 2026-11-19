@@ -1,3 +1,4 @@
+import * as fc from 'fast-check';
 import { createAsyncLogic, createMachine, types } from 'xstate';
 import * as graph from '../../src/engine/index.ts';
 import {
@@ -5,10 +6,12 @@ import {
   ModelTestFailureError,
   propertyTest,
   replayTest,
+  serializeTestTrace,
   testPaths,
   type TestFixture,
   type TestTrace
 } from '../../src/engine/index.ts';
+import { propertyTest as fastCheckPropertyTest } from '../../src/index.ts';
 import { constant, randomAdapter } from './propertyTestAdapter.ts';
 
 const lightMachine = createMachine({
@@ -437,6 +440,74 @@ describe('testPaths() coverage report', () => {
 });
 
 describe('failure messages', () => {
+  it.each(['testPaths', 'propertyTest'] as const)(
+    '%s replays the completed prefix and the attempted event after a SUT send fails',
+    async (runner) => {
+      const cause = new Error('drag did not complete');
+      const makeSut = (attempts: unknown[]) => ({
+        create: () => {
+          attempts.length = 0;
+          return {
+            send: async (
+              _event: unknown,
+              { snapshot }: { snapshot: { value: unknown } }
+            ) => {
+              attempts.push(snapshot.value);
+              if (attempts.length === 2) {
+                throw cause;
+              }
+            }
+          };
+        }
+      });
+      const attempts: unknown[] = [];
+      const sut = makeSut(attempts);
+      const failure = await captureFailure(() =>
+        runner === 'testPaths'
+          ? testPaths(lightMachine, { sut })
+          : fastCheckPropertyTest(lightMachine, {
+              sut,
+              events: { NEXT: fc.constant({}) },
+              seed: 3,
+              numRuns: 20,
+              maxCommands: 4,
+              endOnFailure: true
+            })
+      );
+
+      expect(failure.cause).toBe(cause);
+      expect(failure.trace.steps).toMatchObject([
+        { event: { type: 'NEXT' }, snapshot: { value: 'yellow' } },
+        {
+          event: { type: 'NEXT' },
+          snapshot: { value: { red: 'walk' } },
+          sutSendFailed: true
+        }
+      ]);
+      expect(failure.trace.steps[0].sutSendFailed).toBeUndefined();
+      expect(failure.message).toContain('NEXT (SUT send failed)');
+      expect(serializeTestTrace(failure.trace)).toMatchObject({
+        timeline: [
+          { command: { event: { type: 'NEXT' } } },
+          { command: { event: { type: 'NEXT' } }, sutSendFailed: true }
+        ]
+      });
+      expect(attempts).toEqual(['yellow', { red: 'walk' }]);
+
+      const fixture = JSON.parse(
+        JSON.stringify(failure.fixture)
+      ) as TestFixture;
+      const replayAttempts: unknown[] = [];
+      const replayed = await captureFailure(() =>
+        replayTest(lightMachine, fixture, { sut: makeSut(replayAttempts) })
+      );
+
+      expect(replayed.cause).toBe(cause);
+      expect(replayed.trace.steps).toEqual(failure.trace.steps);
+      expect(replayAttempts).toEqual(attempts);
+    }
+  );
+
   it('lead with the path, then the fixture line, then the trace', async () => {
     const failure = await captureFailure(() =>
       testPaths(lightMachine, {

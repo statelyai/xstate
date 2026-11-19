@@ -197,6 +197,8 @@ export interface TestEventTimelineEntry<
   readonly transitionIds: readonly string[];
   readonly activeStateIds: readonly string[];
   readonly observation?: TestObservation;
+  /** The SUT send threw or rejected before this step could be checked. */
+  readonly sutSendFailed?: true;
   /**
    * Executed mode only: invoked or spawned actors whose asynchronous work was
    * still in flight when the step settled. Their results may land in a later
@@ -921,8 +923,8 @@ export interface TestFailureExtras {
 
 /**
  * Thrown by `propertyTest()`, `testPaths()`, and `replayTest()` when an
- * oracle fails. Carries the trace, a portable replay fixture, and the coverage
- * accumulated up to the failure.
+ * oracle or a SUT send fails. Carries the trace, a portable replay fixture,
+ * and the coverage accumulated up to the failure.
  * @experimental
  */
 export class ModelTestFailureError<
@@ -2219,21 +2221,6 @@ export class PropertyScenarioRunner<
     if (this.referenceSession) {
       await this.referenceSession.transition(event);
     }
-    if (sendToSut) {
-      const parsedCase = caseId ? parsePropertyEventCaseId(caseId) : undefined;
-      await this.sutSession?.send(event, {
-        snapshot,
-        ...(caseId === undefined ? {} : { caseId }),
-        ...(parsedCase ? { case: parsedCase } : {})
-      });
-    }
-    this.coverage.steps++;
-    if (phase === 'prefix') {
-      this.coverage.prefixSteps++;
-    } else {
-      this.coverage.generatedSteps++;
-    }
-    this.recordSnapshot(snapshot);
     const entry: TestEventTimelineEntry<TSnapshot, TEvent> = {
       kind: 'event',
       index: this.timeline.length,
@@ -2244,6 +2231,26 @@ export class PropertyScenarioRunner<
       transitionIds,
       activeStateIds: this.getActiveStateIds(snapshot)
     };
+    if (sendToSut) {
+      const parsedCase = caseId ? parsePropertyEventCaseId(caseId) : undefined;
+      try {
+        await this.sutSession?.send(event, {
+          snapshot,
+          ...(caseId === undefined ? {} : { caseId }),
+          ...(parsedCase ? { case: parsedCase } : {})
+        });
+      } catch (cause) {
+        this.timeline.push({ ...entry, sutSendFailed: true });
+        this.fail(`SUT send failed for ${event.type}`, cause, this.stableStep);
+      }
+    }
+    this.coverage.steps++;
+    if (phase === 'prefix') {
+      this.coverage.prefixSteps++;
+    } else {
+      this.coverage.generatedSteps++;
+    }
+    this.recordSnapshot(snapshot);
     this.timeline.push(entry);
     this.markPendingActors(entry);
     this.pushActorEntries(previousSnapshot, drained);
@@ -4468,7 +4475,10 @@ export function serializeTestTrace<
             command: entry.command,
             observation: entry.observation,
             ...(entry.kind === 'event'
-              ? { activeStateIds: entry.activeStateIds }
+              ? {
+                  activeStateIds: entry.activeStateIds,
+                  ...(entry.sutSendFailed ? { sutSendFailed: true } : {})
+                }
               : {})
           })
     })),
@@ -4634,8 +4644,10 @@ export function formatTestTrace<
         command.event,
         command.origin === 'frontier' ? 'prefix' : command.origin
       );
+      const eventLabel = formatEventForTrace(command.event);
+      const sendFailure = entry.sutSendFailed ? ' (SUT send failed)' : '';
       lines.push(
-        `${step}. ${origin} ${formatEventForTrace(command.event)} -> ${format(
+        `${step}. ${origin} ${eventLabel}${sendFailure} -> ${format(
           entry.snapshot
         )}`
       );

@@ -277,6 +277,8 @@ test('regression: removing an item', async () => {
 
 With `expect: 'pass'`, the replay must complete without a failure. The default, `expect: 'failure'`, expects the recorded failure to happen again, and throws `ReplayNotReproducedError` when it does not.
 
+If the SUT's `send()` throws or rejects, the trace includes the completed steps and marks the attempted event. The fixture replays the completed steps and retries that event.
+
 To save failures without writing any code, pass `failures: true`. A failing campaign writes its fixture to `.xstate-test/`, and the next campaign replays the saved fixtures before it generates anything. A fixture that no longer fails is deleted.
 
 ## Gate CI on coverage
