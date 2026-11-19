@@ -1567,6 +1567,8 @@ transition that declares it is covered.
 
 ### `ModelTestFailureError`
 
+<!-- ModelTestFailureError and failure traces from src/engine/propertyTest.ts -->
+
 | Field | Description |
 | --- | --- |
 | `summary` | The short message, such as `Property observation diverged`. `testPaths()` prefixes it with the failing path: `Path 2 (ADD → REMOVE) failed: …`. |
@@ -1590,6 +1592,10 @@ own transition. `<state>` is `formatSnapshot(snapshot)`, which defaults to
 `testPaths()`, or `replayTest()` to print something else. A step whose SUT or
 reference observation differs from the model adds `model:` and `observed:`
 lines.
+
+If the SUT's `send()` throws or rejects, the error keeps the original `cause`. The
+trace marks the attempted event with `sutSendFailed: true` and retains the
+completed steps. The fixture replays those steps and tries the failed send again.
 
 ### `TestFixture`
 
