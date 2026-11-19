@@ -47,6 +47,9 @@ Pin the following framework and tooling versions. Do not introduce older majors.
 | Svelte     | 5       |
 | Express    | 5       |
 
+Use Vite 8 only when the framework's supported integration requires it. State
+the reason in the example README.
+
 Keep the dependency list minimal. Anything beyond the framework, XState, and the build tool needs a reason in the README.
 
 ## XState v6 style

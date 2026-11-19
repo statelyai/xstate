@@ -51,7 +51,6 @@
     "@solidjs/web": "^2.0.3",
     "jsdom": "^26.0.0",
     "solid-js": "^2.0.3",
-    "vite": "^6.4.3",
     "xstate": "workspace:^",
     "zod": "^3.25.51"
   }

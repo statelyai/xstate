@@ -109,7 +109,18 @@ const actorRef = useActorRef(() =>
 const snapshot = fromActorRef(actorRef);
 ```
 
-Unlike the Vue package, there is no observer or listener argument. Call `actorRef.subscribe(...)` yourself and unsubscribe in `onCleanup(...)`, or use [`fromActorRef(...)`](selectors.md).
+Unlike the Vue package, there is no observer or listener argument. Subscribe to each actor returned by the accessor in an effect, or use [`fromActorRef(...)`](selectors.md).
+
+```tsx
+import { createEffect } from 'solid-js';
+
+createEffect(actorRef, (actor) => {
+  const subscription = actor.subscribe((snapshot) => {
+    // Handle the current actor's snapshot.
+  });
+  return () => subscription.unsubscribe();
+});
+```
 
 ## useMachine
 

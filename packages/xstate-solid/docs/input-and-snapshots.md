@@ -52,12 +52,14 @@ function UploadPanel() {
   const [snapshot, send, actorRef] = useActor(createUploadActor());
 
   onSettled(() => {
-    const subscription = actorRef.subscribe(() => {
+    const persist = () => {
       localStorage.setItem(
         'upload',
         JSON.stringify(actorRef.getPersistedSnapshot())
       );
-    });
+    };
+    const subscription = actorRef.subscribe(persist);
+    persist();
     return () => subscription.unsubscribe();
   });
 

@@ -3132,9 +3132,6 @@ importers:
       solid-js:
         specifier: ^2.0.3
         version: 2.0.3
-      vite:
-        specifier: ^6.4.3
-        version: 6.4.3(@types/node@25.2.1)(jiti@2.7.0)(lightningcss@1.33.0)(sass@1.97.3)(terser@5.49.0)(tsx@4.23.13)(yaml@2.9.0)
       xstate:
         specifier: workspace:^
         version: link:../core
