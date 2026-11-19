@@ -1,14 +1,15 @@
-/* @jsxImportSource solid-js */
+/* @jsxImportSource @solidjs/web */
 import {
   Match,
   Show,
   Switch,
   createEffect,
   createSignal,
-  mergeProps,
-  on,
+  flush,
+  merge,
   onCleanup,
-  onMount,
+  onSettled,
+  untrack,
   For
 } from 'solid-js';
 import { fireEvent, render, screen, waitFor } from '@solidjs/testing-library';
@@ -89,7 +90,7 @@ describe('useActor', () => {
     onFetch: () => Promise<any>;
     persistedState?: typeof persistedFetchState;
   }) => {
-    const mergedProps = mergeProps(
+    const mergedProps = merge(
       {
         onFetch: () => new Promise((res) => res('some data'))
       },
@@ -97,19 +98,20 @@ describe('useActor', () => {
     );
     const logic = fetchMachine.provide({
       actors: {
-        fetchData: createAsyncLogic({ run: mergedProps.onFetch }) as any
+        fetchData: createAsyncLogic({
+          run: untrack(() => mergedProps.onFetch)
+        }) as any
       }
     });
+    const persistedState = untrack(() => mergedProps.persistedState);
     const [snapshot, send] = useActor(
-      mergedProps.persistedState
-        ? restoreActor(logic, mergedProps.persistedState)
-        : createActor(logic)
+      persistedState ? restoreActor(logic, persistedState) : createActor(logic)
     );
 
     return (
       <Switch fallback={null}>
         <Match when={snapshot.matches('idle')}>
-          <button onclick={(_) => send({ type: 'FETCH' })}>Fetch</button>;
+          <button onClick={(_) => send({ type: 'FETCH' })}>Fetch</button>;
         </Match>
         <Match when={snapshot.matches('loading')}>
           <div>Loading...</div>
@@ -128,6 +130,7 @@ describe('useActor', () => {
     ));
     const button = screen.getByText('Fetch');
     fireEvent.click(button);
+    flush();
     screen.getByText('Loading...');
     await waitFor(() => screen.getByText(/Success/));
     const dataEl = screen.getByTestId('data');
@@ -195,7 +198,7 @@ describe('useActor', () => {
         input: { test: true }
       });
 
-      expect(state.context).toEqual({
+      expect(untrack(() => ({ ...state.context }))).toEqual({
         foo: 'bar',
         test: true
       });
@@ -273,10 +276,13 @@ describe('useActor', () => {
     const Spawner = () => {
       const [current, send] = useActor(machine);
 
-      onMount(() => {
+      onSettled(() => {
         expect(current.value).toBe('start');
         send({ type: 'done' });
-        expect(current.value).toBe('success');
+        queueMicrotask(() => {
+          flush();
+          expect(current.value).toBe('success');
+        });
       });
 
       return (
@@ -336,13 +342,13 @@ describe('useActor', () => {
         <div>
           <button
             data-testid="extbutton"
-            onclick={(_) => {
+            onClick={(_) => {
               setExt(true);
             }}
           />
           <button
             data-testid="button"
-            onclick={(_) => {
+            onClick={(_) => {
               send({ type: 'TOGGLE' });
             }}
           />
@@ -355,8 +361,10 @@ describe('useActor', () => {
     const button = screen.getByTestId('button');
     const extButton = screen.getByTestId('extbutton');
     fireEvent.click(extButton);
+    flush();
 
     fireEvent.click(button);
+    flush();
 
     return promise;
   });
@@ -387,14 +395,12 @@ describe('useActor', () => {
       const [stateCount, setStateCount] = createSignal(0);
       const [state, send] = useActor(machine);
       createEffect(
-        on(
-          () => (state as any).context.count,
-          () => {
-            setStateCount((c) => c + 1);
-          }
-        )
+        () => (state as any).context.count,
+        () => {
+          setStateCount((c) => c + 1);
+        }
       );
-      onMount(() => {
+      onSettled(() => {
         send({ type: 'EVENT' });
         send({ type: 'EVENT' });
         send({ type: 'EVENT' });
@@ -458,15 +464,13 @@ describe('useActor', () => {
       const [stateCount, setStateCount] = createSignal(0);
       const [state, send] = useActor(machine);
       createEffect(
-        on(
-          () => [...(state as any).context.item.counts],
-          () => {
-            setStateCount((c) => c + 1);
-          },
-          { defer: true }
-        )
+        () => [...(state as any).context.item.counts],
+        () => {
+          setStateCount((c) => c + 1);
+        },
+        { defer: true }
       );
-      onMount(() => {
+      onSettled(() => {
         send({ type: 'COUNT' });
         send({ type: 'TOTAL' });
         send({ type: 'COUNT' });
@@ -506,10 +510,9 @@ describe('useActor', () => {
     const App = () => {
       const [state, send] = useActor(machine);
 
-      onMount(() => {
+      onSettled(() => {
         expect((state as any).context.numbersList).toEqual([1, 2, 3, 4, 5]);
         send({ type: 'REPLACE_ALL' });
-        expect((state as any).context.numbersList).toEqual([4, 3, 2, 1, 0]);
       });
 
       return (
@@ -520,6 +523,7 @@ describe('useActor', () => {
     };
 
     render(() => <App />);
+    flush();
 
     const numbersListEl = screen.getByTestId('numbers-list');
 
@@ -561,19 +565,17 @@ describe('useActor', () => {
       const [state, send] = useActor(counterMachine2);
       const [effectCount, setEffectCount] = createSignal(0);
       createEffect(
-        on(
-          () => (state as any).context.subCount.subCount1,
-          () => {
-            setEffectCount((prev) => prev + 1);
-          },
-          {
-            defer: true
-          }
-        )
+        () => (state as any).context.subCount.subCount1,
+        () => {
+          setEffectCount((prev) => prev + 1);
+        },
+        {
+          defer: true
+        }
       );
       return (
         <div>
-          <button data-testid="inc" onclick={(_) => send({ type: 'INC' })} />
+          <button data-testid="inc" onClick={(_) => send({ type: 'INC' })} />
           <div data-testid="effect-count">{effectCount()}</div>
           <div data-testid="count">
             {(state as any).context.subCount.subCount1.subCount2.count}
@@ -590,9 +592,11 @@ describe('useActor', () => {
 
     expect(countEl.textContent).toBe('0');
     fireEvent.click(incButton);
+    flush();
     expect(countEl.textContent).toBe('1');
     expect(effectCountEl.textContent).toBe('0');
     fireEvent.click(incButton);
+    flush();
     expect(countEl.textContent).toBe('2');
     expect(effectCountEl.textContent).toBe('0');
   });
@@ -634,15 +638,13 @@ describe('useActor', () => {
       const [stateCount, setStateCount] = createSignal(0);
       const [state, send] = useActor(machine);
       createEffect(
-        on(
-          () => (state as any).context.item.count,
-          () => {
-            setStateCount((c) => c + 1);
-          },
-          { defer: true }
-        )
+        () => (state as any).context.item.count,
+        () => {
+          setStateCount((c) => c + 1);
+        },
+        { defer: true }
       );
-      onMount(() => {
+      onSettled(() => {
         send({ type: 'COUNT' });
         send({ type: 'TOTAL' });
         send({ type: 'COUNT' });
@@ -766,8 +768,11 @@ describe('useActor', () => {
     expect(doneList.children.length).toBe(0);
 
     fireEvent.click(firstToDoneButton);
+
+    flush();
     fireEvent.click(firstToDoneButton);
     fireEvent.click(firstToDoneButton);
+    flush();
 
     expect(currentList.children.length).toBe(0);
     expect(doneList.children.length).toBe(3);
@@ -776,8 +781,11 @@ describe('useActor', () => {
     );
 
     fireEvent.click(lastToCurrentButton);
+
+    flush();
     fireEvent.click(lastToCurrentButton);
     fireEvent.click(lastToCurrentButton);
+    flush();
 
     expect(currentList.children.length).toBe(3);
     expect(doneList.children.length).toBe(0);
@@ -835,20 +843,18 @@ describe('useActor', () => {
 
     const App = () => {
       const [state, send] = useActor(machine);
-      const [toJson, setToJson] = createSignal(state.toJSON());
+      const [toJson, setToJson] = createSignal(untrack(() => state.toJSON()));
       createEffect(
-        on(
-          () => state.value,
-          () => {
-            setToJson(state.toJSON());
-          }
-        )
+        () => state.value,
+        () => {
+          setToJson(untrack(() => state.toJSON()));
+        }
       );
       return (
         <div>
           <button
             data-testid="transition-button"
-            onclick={() => send({ type: 'TRANSITION' })}
+            onClick={() => send({ type: 'TRANSITION' })}
           />
           <div data-testid="to-json">{(toJson() as any).value.toString()}</div>
         </div>
@@ -862,14 +868,17 @@ describe('useActor', () => {
     // Green
     expect(toJsonEl.textContent).toEqual('green');
     transitionBtn.click();
+    flush();
 
     // Yellow
     expect(toJsonEl.textContent).toEqual('yellow');
     transitionBtn.click();
+    flush();
 
     // Red
     expect(toJsonEl.textContent).toEqual('red');
     transitionBtn.click();
+    flush();
 
     // Green
     expect(toJsonEl.textContent).toEqual('green');
@@ -902,15 +911,18 @@ describe('useActor', () => {
 
     const App = () => {
       const [state, send] = useActor(machine);
-      const [canGo, setCanGo] = createSignal(state.hasTag('go'));
-      createEffect(() => {
-        setCanGo(state.hasTag('go'));
-      });
+      const [canGo, setCanGo] = createSignal(untrack(() => state.hasTag('go')));
+      createEffect(
+        () => state.hasTag('go'),
+        (go) => {
+          setCanGo(go);
+        }
+      );
       return (
         <div>
           <button
             data-testid="transition-button"
-            onclick={() => send({ type: 'TRANSITION' })}
+            onClick={() => send({ type: 'TRANSITION' })}
           />
           <div data-testid="can-go">{canGo().toString()}</div>
           <div data-testid="stop">{state.hasTag('stop').toString()}</div>
@@ -927,16 +939,19 @@ describe('useActor', () => {
     expect(canGoEl.textContent).toEqual('true');
     expect(stopEl.textContent).toEqual('false');
     transitionBtn.click();
+    flush();
 
     // Yellow
     expect(canGoEl.textContent).toEqual('true');
     expect(stopEl.textContent).toEqual('false');
     transitionBtn.click();
+    flush();
 
     // Red
     expect(canGoEl.textContent).toEqual('false');
     expect(stopEl.textContent).toEqual('true');
     transitionBtn.click();
+    flush();
 
     // Green
     expect(canGoEl.textContent).toEqual('true');
@@ -965,16 +980,19 @@ describe('useActor', () => {
     const App = () => {
       const [state, send] = useActor(machine);
       const [canToggle, setCanToggle] = createSignal(
-        state.can({ type: 'TOGGLE' })
+        untrack(() => state.can({ type: 'TOGGLE' }))
       );
-      createEffect(() => {
-        setCanToggle(state.can({ type: 'TOGGLE' }));
-      });
+      createEffect(
+        () => state.can({ type: 'TOGGLE' }),
+        (can) => {
+          setCanToggle(can);
+        }
+      );
       return (
         <div>
           <button
             data-testid="toggle-button"
-            onclick={() => send({ type: 'TOGGLE' })}
+            onClick={() => send({ type: 'TOGGLE' })}
           />
           <div data-testid="can-toggle">{canToggle().toString()}</div>
           <div data-testid="can-do-something">
@@ -992,6 +1010,7 @@ describe('useActor', () => {
     expect(canToggleEl.textContent).toEqual('true');
     expect(canDoSomethingEl.textContent).toEqual('false');
     toggleBtn.click();
+    flush();
     expect(canToggleEl.textContent).toEqual('false');
     expect(canDoSomethingEl.textContent).toEqual('true');
   });
@@ -1021,12 +1040,14 @@ describe('useActor', () => {
       let calls = 0;
       const [state, send] = useActor(machine);
 
-      createEffect(() => {
-        calls++;
-        state.matches('idle');
-      });
+      createEffect(
+        () => state.matches('idle'),
+        () => {
+          calls++;
+        }
+      );
 
-      onMount(() => {
+      onSettled(() => {
         send({ type: 'INC' });
         send({ type: 'INC' });
         send({ type: 'INC' });
@@ -1205,7 +1226,7 @@ describe('useActor', () => {
       return (
         <div>
           <div data-testid="result">{String(state.value)}</div>
-          <button role="button" onclick={() => send({ type: 'EV' })} />
+          <button role="button" onClick={() => send({ type: 'EV' })} />
         </div>
       );
     };
@@ -1214,10 +1235,13 @@ describe('useActor', () => {
 
     const btn = screen.getByRole('button');
     fireEvent.click(btn);
+    flush();
 
     expect(screen.getByTestId('result').textContent).toBe('b');
 
     vi.advanceTimersByTime(310);
+
+    flush();
 
     expect(screen.getByTestId('result').textContent).toBe('c');
   });
@@ -1252,7 +1276,7 @@ describe('useActor', () => {
           <div data-testid="result">{state.value.toString()}</div>
           <button
             data-testid="ev-button"
-            onclick={() => send({ type: 'EV' })}
+            onClick={() => send({ type: 'EV' })}
           />
         </div>
       );
@@ -1260,7 +1284,9 @@ describe('useActor', () => {
 
     const Container = () => {
       const [isAwesome, setIsAwesome] = createSignal(false);
-      onMount(() => setIsAwesome(true));
+      onSettled(() => {
+        setIsAwesome(true);
+      });
       return <App isAwesome={isAwesome()} />;
     };
 
@@ -1268,6 +1294,7 @@ describe('useActor', () => {
 
     const btn = screen.getByTestId('ev-button');
     fireEvent.click(btn);
+    flush();
 
     expect(screen.getByTestId('result').textContent).toBe('b');
   });
@@ -1303,7 +1330,7 @@ describe('useActor', () => {
           <div data-testid="result">{(state as any).context.getValue()}</div>
           <button
             data-testid="change-button"
-            onclick={() => send({ type: 'CHANGE' })}
+            onClick={() => send({ type: 'CHANGE' })}
           />
         </div>
       );
@@ -1315,6 +1342,8 @@ describe('useActor', () => {
     expect(result.textContent).toBe('1');
 
     fireEvent.click(screen.getByTestId('change-button'));
+
+    flush();
 
     expect(result.textContent).toBe('2');
   });
@@ -1380,15 +1409,17 @@ describe('useActor', () => {
       return (
         <div>
           <div data-testid="result">{state.value.toString()}</div>
-          <button onclick={() => send({ type: 'EV' })} />
+          <button onClick={() => send({ type: 'EV' })} />
         </div>
       );
     };
 
     render(() => <App />);
     setIsAwesome(true);
+    flush();
     const btn = screen.getByRole('button');
     fireEvent.click(btn);
+    flush();
 
     expect(screen.getByTestId('result').textContent).toBe('b');
   });
@@ -1427,7 +1458,7 @@ describe('useActor', () => {
           <div>
             <button
               data-testid="inc-machine1"
-              onclick={() => send1({ type: 'INC' })}
+              onClick={() => send1({ type: 'INC' })}
             >
               INC 1
             </button>
@@ -1438,7 +1469,7 @@ describe('useActor', () => {
           <div>
             <button
               data-testid="inc-machine2"
-              onclick={() => send2({ type: 'INC' })}
+              onClick={() => send2({ type: 'INC' })}
             >
               INC 1
             </button>
@@ -1462,10 +1493,14 @@ describe('useActor', () => {
 
     fireEvent.click(incMachine1);
 
+    flush();
+
     expect(machine1Value.textContent).toEqual('101');
     expect(machine2Value.textContent).toEqual('100');
 
     fireEvent.click(incMachine2);
+
+    flush();
 
     expect(machine1Value.textContent).toEqual('101');
     expect(machine2Value.textContent).toEqual('101');
@@ -1504,6 +1539,7 @@ describe('useActor', () => {
 
     render(() => <Counter />);
     vi.advanceTimersByTime(200);
+    flush();
 
     return promise;
   });
@@ -1546,10 +1582,12 @@ describe('useActor', () => {
 
     const App = () => {
       const [state, send] = useActor(machine);
-      createEffect(() => {
-        count += 1;
-        state.can({ type: 'EV' });
-      });
+      createEffect(
+        () => state.can({ type: 'EV' }),
+        () => {
+          count += 1;
+        }
+      );
       return (
         <div>
           <button
@@ -1577,17 +1615,22 @@ describe('useActor', () => {
     const toggleNotButton = screen.getByTestId('toggle-not-button');
     expect(count).toEqual(1);
     toggleNotButton.click();
+    flush();
     expect(screen.queryByTestId('can-send-ev')).not.toBeTruthy();
     expect(count).toEqual(1);
     toggleNotButton.click();
+    flush();
     expect(screen.queryByTestId('can-send-ev')).not.toBeTruthy();
     expect(count).toEqual(1);
     toggleButton.click();
+    flush();
     expect(screen.queryByTestId('can-send-ev')).toBeTruthy();
     expect(count).toEqual(2);
     toggleButton.click();
+    flush();
     expect(count).toEqual(3);
     toggleNotButton.click();
+    flush();
     expect(count).toEqual(3);
   });
 
@@ -1634,7 +1677,7 @@ describe('useActor', () => {
     const ChildTest = (props: { send: any }) => {
       // This will send an event to the parent service
       // BEFORE the service is ready.
-      onMount(() => {
+      onSettled(() => {
         props.send({ type: 'FINISH' });
       });
 
@@ -1643,11 +1686,14 @@ describe('useActor', () => {
 
     const Test = () => {
       const [state, send] = useActor(machine);
-      createEffect(() => {
-        if (state.matches('success')) {
-          resolve();
+      createEffect(
+        () => state.matches('success'),
+        (success) => {
+          if (success) {
+            resolve();
+          }
         }
-      });
+      );
       return <ChildTest send={send} />;
     };
 
@@ -1686,7 +1732,9 @@ describe('useActor', () => {
     const Test = () => {
       const [snapshot] = useActor(machine);
 
-      expect(snapshot.children.test?.getSnapshot().context.value).toBe(42);
+      expect(
+        untrack(() => snapshot.children.test?.getSnapshot().context.value)
+      ).toBe(42);
 
       return null;
     };
@@ -1728,7 +1776,7 @@ describe('useActor', () => {
         return (
           <>
             <button
-              onclick={() => send({ type: 'START' })}
+              onClick={() => send({ type: 'START' })}
               data-testid="button"
             />
             {state.value}
@@ -1741,7 +1789,10 @@ describe('useActor', () => {
       const button = screen.getByTestId('button');
 
       fireEvent.click(button);
+
+      flush();
       vi.advanceTimersByTime(110);
+      flush();
 
       expect(container.textContent).toBe('idle');
     } finally {
@@ -1784,15 +1835,15 @@ describe('useActor', () => {
       return (
         <>
           <button
-            onclick={() => send({ type: 'increment' })}
+            onClick={() => send({ type: 'increment' })}
             data-testid="inc_button"
           />
           <button
-            onclick={() => send({ type: 'holdIncrement', y: 0 } as any)}
+            onClick={() => send({ type: 'holdIncrement', y: 0 } as any)}
             data-testid="hold_inc_button"
           />
           <button
-            onclick={() => send({ type: 'releasePointer' })}
+            onClick={() => send({ type: 'releasePointer' })}
             data-testid="release_button"
           />
           {JSON.stringify(snapshot.value)}
@@ -1808,16 +1859,22 @@ describe('useActor', () => {
 
     await sleep(100);
     fireEvent.click(incrementButton);
+    flush();
     await sleep(10);
     fireEvent.click(incrementButton);
+    flush();
     await sleep(10);
     fireEvent.click(holdIncrementButton);
+    flush();
     await sleep(10);
     fireEvent.click(releasePointerButton);
+    flush();
     await sleep(10);
     fireEvent.click(incrementButton);
+    flush();
     await sleep(10);
     fireEvent.click(incrementButton);
+    flush();
     await sleep(50);
 
     expect(JSON.parse(container.textContent as string)).toEqual({
@@ -1845,7 +1902,7 @@ describe('useActor', () => {
       );
 
       return (
-        <button data-testid="count" onclick={() => send({ type: 'INC' })}>
+        <button data-testid="count" onClick={() => send({ type: 'INC' })}>
           {count.context}
         </button>
       );
@@ -1857,6 +1914,8 @@ describe('useActor', () => {
     expect(button.textContent).toEqual('0');
 
     fireEvent.click(button);
+
+    flush();
 
     expect(button.textContent).toEqual('1');
   });

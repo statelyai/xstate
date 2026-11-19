@@ -2,11 +2,14 @@ import {
   Accessor,
   createEffect,
   createMemo,
-  onCleanup,
-  untrack
+  createSignal,
+  createStore,
+  markRaw
 } from 'solid-js';
-import { AnyActorRef, SnapshotFrom } from 'xstate';
-import { createImmutable } from './createImmutable.ts';
+import { Actor, AnyActorRef, SnapshotFrom, StateMachine } from 'xstate';
+
+markRaw(Actor);
+markRaw(StateMachine);
 
 const noop = () => {};
 
@@ -17,29 +20,58 @@ export function fromActorRef<TActor extends AnyActorRef | undefined>(
   | SnapshotFrom<NonNullable<TActor>>
   | (undefined extends TActor ? undefined : never)
 > {
+  const [snapshot, actorMemo] = snapshotStore(actorRef);
+  const hasActor = createMemo(() => !!actorMemo());
+  return (() => (hasActor() ? snapshot : undefined)) as any;
+}
+
+/** @internal */
+export function snapshotStore(
+  actorRef: Accessor<AnyActorRef | undefined> | AnyActorRef | undefined
+) {
   const actorMemo = createMemo(() =>
     typeof actorRef === 'function' ? actorRef() : actorRef
   );
 
-  const [snapshot, setSnapshot] = createImmutable({
-    v: actorMemo()?.getSnapshot()
-  });
+  const [latest, setLatest] = createSignal<{
+    actor: AnyActorRef | undefined;
+    snapshot: unknown;
+  }>(
+    { actor: undefined, snapshot: undefined },
+    { ownedWrite: true, equals: false }
+  );
 
-  createEffect(() => {
-    const currentActor = actorMemo();
-
-    untrack(() => {
-      if (currentActor) {
-        const { unsubscribe } = currentActor.subscribe({
-          next: (nextSnapshot) => setSnapshot({ v: nextSnapshot }),
-          error: () => setSnapshot({ v: currentActor.getSnapshot() }),
-          complete: noop
+  createEffect(
+    () => actorMemo(),
+    (currentActor) => {
+      if (!currentActor) return;
+      const update = () =>
+        setLatest({
+          actor: currentActor,
+          snapshot: currentActor.getSnapshot()
         });
-        onCleanup(unsubscribe);
-      }
-      setSnapshot({ v: currentActor?.getSnapshot() });
-    });
-  });
+      const { unsubscribe } = currentActor.subscribe({
+        next: update,
+        error: update,
+        complete: noop
+      });
+      update();
+      return unsubscribe;
+    }
+  );
 
-  return () => snapshot.v;
+  const [snapshot] = createStore<any>(
+    () => {
+      const currentActor = actorMemo();
+      if (!currentActor) return {};
+      const current = latest();
+      return current.actor === currentActor
+        ? current.snapshot
+        : currentActor.getSnapshot();
+    },
+    {},
+    { key: null }
+  );
+
+  return [snapshot, actorMemo] as const;
 }
