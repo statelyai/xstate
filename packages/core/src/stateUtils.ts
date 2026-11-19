@@ -1819,7 +1819,12 @@ function microstep(
             !isHistoryNode(targetNode) &&
             (transition.source !== targetNode ||
               transition.source !== domain ||
-              reenter)
+              reenter) &&
+            !(
+              targetNode === domain &&
+              !targetNode.parent &&
+              mutStateNodeSet.has(targetNode)
+            )
           ) {
             enteredTargets.add(targetNode);
             statesToEnter.add(targetNode);
