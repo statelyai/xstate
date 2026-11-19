@@ -1406,6 +1406,8 @@ The `invariant`, `temporal`, and `target` functions receive a
 
 ### `testPaths()` options
 
+<!-- Options from PathOptions in src/engine/testPaths.ts -->
+
 In addition to the shared options:
 
 | Option | Default | Description |
@@ -1413,6 +1415,7 @@ In addition to the shared options:
 | `pathGenerator` | `'shortest'` | `'shortest'`, `'simple'`, or a custom `PathGenerator`. |
 | `paths` | none | Runs these paths instead of generating any. |
 | `fromEvents` | none | Runs the single path built from this event sequence. |
+| `cover` | none | Plans one shortest walk that covers each named step or consecutive step sequence before executing it. |
 | `samples` | `3` | Payloads sampled from each event case and outcome generator. An integer of at least `1`. |
 | `seed` | `0` | Sampling seed. Each case samples from its own stream, so adding a case leaves the other cases' payloads unchanged. |
 | `limit` | `10_000` | Traversal steps before path generation throws. A context that grows without bound reaches it; merge states with `serializeState` or prune with `stopWhen`. |
@@ -1421,6 +1424,18 @@ In addition to the shared options:
 | `fromState` | initial state | Starts traversal from this snapshot. |
 | `allowDuplicatePaths` | `false` | Keeps paths that are prefixes of longer paths. |
 | `serializeState`, `serializeEvent` | built in | Identity functions for traversal. |
+
+`cover.requirements` maps a name to a predicate or a nonempty array of
+predicates that must match consecutive steps. Predicates receive the event,
+its case name, the current snapshot, and `snapshots` in chronological order.
+By default the window contains the previous and current snapshots. Set
+`snapshotWindow` to look further back. The current snapshot is always
+`snapshots.at(-1)`.
+
+The experimental option plans one walk of at most `maxStepsPerPath` events
+(20 by default) in pure mode. It traverses user events, including no-ops.
+`testPaths()` fails before creating the system under test if it cannot find a
+walk that covers every requirement within its search budget.
 
 `testPaths()` rejects `commands`. It resolves with `results`, one
 `{ path, passed, error }` per path, and sets `coverage.exploration.strategy`

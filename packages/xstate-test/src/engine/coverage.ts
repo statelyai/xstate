@@ -130,7 +130,12 @@ export interface TestExplorationBounds {
   /** Paths executed. Only present for `strategy: 'paths'`. */
   readonly pathCount?: number;
   /** How the paths were produced. Only present for `strategy: 'paths'`. */
-  readonly pathGenerator?: 'shortest' | 'simple' | 'events' | 'custom';
+  readonly pathGenerator?:
+    | 'shortest'
+    | 'simple'
+    | 'events'
+    | 'custom'
+    | 'cover';
   /**
    * `'pure'` when the campaign stepped the machine through `transition()`,
    * `'executed'` when it drove a real actor on a simulated clock.

@@ -1,5 +1,13 @@
-import type { ActorLogic, AnyEventObject, EventObject, Snapshot } from 'xstate';
+import {
+  initialTransition,
+  transition,
+  type ActorLogic,
+  type AnyEventObject,
+  type EventObject,
+  type Snapshot
+} from 'xstate';
 import { XSTATE_INIT } from './constants.ts';
+import { planCoverWalk, type TestCoverOptions } from './coverPaths.ts';
 import { deduplicatePaths } from './deduplicatePaths.ts';
 import {
   deriveCaseSeed,
@@ -34,12 +42,19 @@ import {
 } from 'xstate/graph';
 import type { PathGenerator, StatePath, TraversalOptions } from 'xstate/graph';
 
+export type { TestCoverOptions, TestCoverStep } from './coverPaths.ts';
+
 /**
  * How `testPaths()` produced the paths it executed.
  *
  * @experimental
  */
-type TestPathGeneratorKind = 'shortest' | 'simple' | 'events' | 'custom';
+type TestPathGeneratorKind =
+  | 'shortest'
+  | 'simple'
+  | 'events'
+  | 'custom'
+  | 'cover';
 
 /**
  * The result of executing one path.
@@ -80,6 +95,8 @@ interface PathOptions<
     | PathGenerator<TSnapshot, TEvent, TInput>;
   /** Executes a single path built from this literal event sequence. */
   readonly fromEvents?: readonly TEvent[];
+  /** Finds one walk that covers every named step pattern before running it. */
+  readonly cover?: TestCoverOptions<TSnapshot, TEvent>;
   /**
    * The most traversal steps path generation takes before it gives up and
    * throws. Defaults to `10_000`. A machine whose context grows without bound
@@ -620,6 +637,17 @@ export async function testPaths<TSource extends ActorLogic<any, any, any>>(
       '`commands` is not supported by path generation; use `propertyTest()`. Paths decide their own `advance` and `outcome` commands from the internal events the traversal took.'
     );
   }
+  if (
+    options.cover &&
+    (options.paths || options.fromEvents || options.pathGenerator)
+  ) {
+    throw new Error(
+      'Use cover on its own, without paths, fromEvents, or pathGenerator.'
+    );
+  }
+  if (options.cover && options.mode === 'executed') {
+    throw new Error('The cover prototype supports pure model traversal.');
+  }
   const samples = options.samples ?? DEFAULT_SAMPLES;
   if (!Number.isInteger(samples) || samples < 1) {
     throw new Error(
@@ -872,7 +900,36 @@ export async function testPaths<TSource extends ActorLogic<any, any, any>>(
 
   let pathGeneratorKind: TestPathGeneratorKind = 'shortest';
   let paths: readonly StatePath<TSnapshot, TEvent>[];
-  if (options.paths) {
+  if (options.cover) {
+    pathGeneratorKind = 'cover';
+    const initial =
+      options.start?.snapshot ??
+      options.fromState ??
+      initialTransition(testLogic, options.input)[0];
+    const names = new Map(
+      cases.map(({ caseId, caseName }) => [caseId, caseName])
+    );
+    const events = planCoverWalk(initial, options.cover, {
+      limit,
+      events: (snapshot) =>
+        traversalEvents(snapshot).filter(
+          (event) => !isInternalEventType(event.type)
+        ),
+      transition: (snapshot, event) =>
+        transition(testLogic, snapshot, event)[0],
+      caseName: (event) => names.get(caseIds.get(event) ?? '') ?? 'default',
+      serializeState: (snapshot) => identity(snapshot, undefined, undefined),
+      stopWhen: options.stopWhen,
+      toState: options.toState
+    });
+    const { events: _traversalEvents, ...fromEventsOptions } = traversalOptions;
+    paths = generatePaths(() =>
+      getPathsFromEvents(testLogic, events, {
+        ...fromEventsOptions,
+        fromState: initial
+      })
+    );
+  } else if (options.paths) {
     pathGeneratorKind = 'custom';
     paths = options.paths;
   } else if (options.fromEvents) {
@@ -957,6 +1014,7 @@ export async function testPaths<TSource extends ActorLogic<any, any, any>>(
     paths: _paths,
     pathGenerator: _pathGenerator,
     fromEvents: _fromEvents,
+    cover: _cover,
     limit: _limit,
     toState: _toState,
     fromState: _fromState,
@@ -993,6 +1051,14 @@ export async function testPaths<TSource extends ActorLogic<any, any, any>>(
       {
         ...(shared as object),
         adapter,
+        ...(options.cover && options.fromState && !shared.start
+          ? {
+              start: {
+                snapshot: options.fromState,
+                serializeSnapshot: defaultFormatSnapshot
+              }
+            }
+          : {}),
         ...(Object.keys(stubs).length ? { outcomes: stubs } : {}),
         events: { ...(configuredEvents ?? {}), ...extraEvents }
       } as never
