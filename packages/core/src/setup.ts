@@ -29,6 +29,7 @@ import {
   EventObject,
   AnyEventObject,
   EventDescriptor,
+  EventPayloadPattern,
   ReservedMachineEvent,
   ReservedEventFromDescriptor,
   ExtractEvent,
@@ -4255,7 +4256,7 @@ type StateTransitionConfigOrTarget<
   TOutput = OutputArg<TExpressionEvent>['output']
 > =
   | undefined
-  | StateTransitionObjectConfig<
+  | (StateTransitionObjectConfig<
       TStateSchemas,
       TContext,
       TContextShape,
@@ -4271,7 +4272,42 @@ type StateTransitionConfigOrTarget<
       true,
       TTarget,
       TKnownTarget
-    >
+    > & { to?: never })
+  | ({
+      matches?: EventPayloadPattern<TExpressionEvent>;
+      to: StateTransitionFunction<
+        TStateSchemas,
+        TContext,
+        TContextShape,
+        TExpressionEvent,
+        TEvent,
+        TEmitted,
+        TChildren,
+        TMeta,
+        TActionMap,
+        TActorMap,
+        TGuardMap,
+        TDelayMap,
+        TSystemRegistry,
+        TInput,
+        TTarget,
+        TKnownTarget,
+        TOutput
+      >;
+      target?: never;
+      context?: never;
+      reenter?: never;
+      description?: string;
+      meta?: TMeta;
+      input?:
+        | Record<string, unknown>
+        | ((
+            args: {
+              context: TContext;
+              event: TExpressionEvent;
+            } & OutputArg<TExpressionEvent>
+          ) => Record<string, unknown>);
+    } & RemovedTransitionKeys)
   | StateTransitionFunction<
       TStateSchemas,
       TContext,
