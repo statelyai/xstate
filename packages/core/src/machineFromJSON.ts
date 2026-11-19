@@ -745,8 +745,8 @@ function assertMachineJSON(
         if (
           Number.isNaN(Number(delay)) &&
           parseDelayToMilliseconds(delay) === undefined &&
-          !json.delays?.[delay] &&
-          !resolvedSources.delays[delay]
+          json.delays?.[delay] === undefined &&
+          resolvedSources.delays[delay] === undefined
         ) {
           throw new Error(`Missing delay source "${delay}"`);
         }

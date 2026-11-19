@@ -1,4 +1,8 @@
-import { createMachine, initialTransition } from '../src/index.ts';
+import {
+  createMachine,
+  initialTransition,
+  machineFromJSON
+} from '../src/index.ts';
 import { parseDurationToMilliseconds } from '../src/delay.ts';
 
 it.each(['s', '.s', ' S ', ' .S '])(
@@ -51,3 +55,28 @@ it('preserves a configured delay whose name has no digits', () => {
   expect(effects).toHaveLength(1);
   expect(effects[0]).toMatchObject({ type: '@xstate.raise', delay: 250 });
 });
+
+it.each(['s', '.s', 'namedDelay'])(
+  'loads a configured zero delay from JSON: %s',
+  (delay) => {
+    for (const inline of [false, true]) {
+      const [snapshot, effects] = initialTransition(
+        machineFromJSON(
+          {
+            ...(inline ? { delays: { [delay]: 0 } } : {}),
+            initial: 'waiting',
+            states: {
+              waiting: { after: { [delay]: { target: 'done' } } },
+              done: {}
+            }
+          },
+          inline ? {} : { delays: { [delay]: 0 } }
+        )
+      );
+
+      expect(snapshot.status).toBe('active');
+      expect(effects).toHaveLength(1);
+      expect(effects[0]).toMatchObject({ type: '@xstate.raise', delay: 0 });
+    }
+  }
+);
