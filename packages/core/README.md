@@ -148,7 +148,7 @@ context when reading snapshots.
 
 Use `s.createInvoke({ src, input, onDone })` inline in `s.createMachine(...)` for an actor used in one state. It infers the actor's input and output and the enclosing state's narrowed context without registering that actor in `setup.actors`. See [typed inline invokes](https://github.com/statelyai/xstate/blob/next/docs/invoke.md#typed-inline-invokes).
 
-Pass an async function directly as `src`, with `schemas.input`, `schemas.output`, and `schemas.error` on the same invoke. Output also infers from the async return when its schema is omitted. Existing logic values use their own schemas.
+Pass an async function directly as `src`, with `schemas.input`, `schemas.output`, and `schemas.error` on the same invoke. Output also infers from the async return when its schema is omitted. Existing logic values use their own schemas. For an actor registered in `setup.actors`, pass its name as `src` to infer `onSnapshot` and keep the source replaceable with `.provide({ actors })`.
 
 The helper requires input for actors whose input excludes `undefined`, and checks child IDs and source compatibility against `schemas.children` declared in the setup or machine.
 

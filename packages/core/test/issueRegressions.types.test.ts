@@ -254,8 +254,9 @@ describe('types', () => {
       run: () => ({ subscribe: () => ({ unsubscribe: () => {} }) })
     });
 
-    setup({ actors: { watchItems } }).createMachine({
-      invoke: {
+    const s = setup({ actors: { watchItems } });
+    s.createMachine({
+      invoke: s.createInvoke({
         src: 'watchItems',
         input: { topic: 'news' },
         onSnapshot: ({ event }) => {
@@ -266,13 +267,23 @@ describe('types', () => {
           const wrong: number = event.snapshot;
           void wrong;
         }
-      }
+      })
     });
 
     // A logic value as `src` still compiles and keeps an untyped snapshot
     setup({ actors: { watchItems } }).createMachine({
       invoke: {
         src: watchItems,
+        input: { topic: 'news' },
+        onSnapshot: ({ event }) => {
+          void event.snapshot;
+        }
+      }
+    });
+
+    setup({ actors: { watchItems } }).createMachine({
+      invoke: {
+        src: ({ actors }) => actors.watchItems,
         input: { topic: 'news' },
         onSnapshot: ({ event }) => {
           void event.snapshot;

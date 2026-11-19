@@ -3767,7 +3767,7 @@ type PlainSetupInvokeConfig<
             TStateSchemas,
             TContext,
             TContextShape,
-            InvokeSnapshotEvent<TInvoke, TActorMap>,
+            SnapshotEvent<any>,
             TEvent,
             TEmitted,
             TChildren,
@@ -4234,20 +4234,6 @@ type InvokeErrorEvent<
       ? ErrorActorEvent<ErrorFrom<TSrc>>
       : ErrorActorEvent
   : ErrorActorEvent;
-
-// Only a registered source name is resolved here. With a logic value as
-// `src`, the invoke union narrows to the registered branch plus the inline
-// branch (see InlineInvokeOnDone); typing the snapshot per branch would give
-// the two branches different `onSnapshot` signatures and lose contextual
-// typing of the callback, so that case keeps `SnapshotEvent<any>`.
-type InvokeSnapshotEvent<
-  TInvoke,
-  TActorMap extends Sources['actors']
-> = TInvoke extends { src: infer TSrc }
-  ? TSrc extends keyof TActorMap & string
-    ? SnapshotEvent<SnapshotFrom<TActorMap[TSrc]>>
-    : SnapshotEvent<any>
-  : SnapshotEvent<any>;
 
 type StateTransitionConfigOrTarget<
   TStateSchemas extends Record<string, SetupStateSchema>,
@@ -4970,6 +4956,80 @@ export interface SetupReturn<
       EventObject,
       AsyncInvokeSchemaOutput<TErrorSchema, unknown>
     >,
+    TContext,
+    TContextShape,
+    TStateSchemas,
+    TStateInput,
+    CreatedInvokeValidationConfig<TConfig>
+  >;
+
+  /** Creates an invoke from a registered actor source. */
+  createInvoke<
+    TSrc extends keyof TSetupActorMap & string,
+    TLogic extends AnyActorLogic = TSetupActorMap[TSrc],
+    TContext extends SetupContext<TSchemas, StandardSchemaV1> = SetupContext<
+      TSchemas,
+      StandardSchemaV1
+    >,
+    TContextShape = SetupContextShape<TSchemas, StandardSchemaV1, TContext>,
+    TStateSchemas extends Record<string, SetupStateSchema> = TStates,
+    TStateInput = undefined,
+    const TConfig = unknown
+  >(
+    config: TConfig &
+      Omit<
+        CreateInvokeConfig<
+          TLogic,
+          TStateSchemas,
+          TContext,
+          TContextShape,
+          SetupEvents<TSchemas, Record<string, StandardSchemaV1>>,
+          SetupEmitted<TSchemas, Record<string, StandardSchemaV1>>,
+          SetupChildren<TSchemas, Record<string, StandardSchemaV1>>,
+          SetupTransitionMeta<TSchemas, StandardSchemaV1, StandardSchemaV1>,
+          SetupActions<TSchemas, TSetupActionMap>,
+          TSetupActorMap,
+          SetupGuards<TSchemas, TSetupGuardMap>,
+          TSetupDelayMap,
+          TSystemRegistry,
+          TStateInput
+        >,
+        'src'
+      > & { src: TSrc },
+    ...check: unknown extends TConfig
+      ? []
+      : [TConfig] extends [
+            NoInfer<
+              Omit<
+                CreateInvokeConfig<
+                  TLogic,
+                  TStateSchemas,
+                  TContext,
+                  TContextShape,
+                  SetupEvents<TSchemas, Record<string, StandardSchemaV1>>,
+                  SetupEmitted<TSchemas, Record<string, StandardSchemaV1>>,
+                  SetupChildren<TSchemas, Record<string, StandardSchemaV1>>,
+                  SetupTransitionMeta<
+                    TSchemas,
+                    StandardSchemaV1,
+                    StandardSchemaV1
+                  >,
+                  SetupActions<TSchemas, TSetupActionMap>,
+                  TSetupActorMap,
+                  SetupGuards<TSchemas, TSetupGuardMap>,
+                  TSetupDelayMap,
+                  TSystemRegistry,
+                  TStateInput
+                >,
+                'src'
+              > & { src: TSrc }
+            > &
+              ValidateSystemInvoke<TConfig, TSystemRegistry, TSetupActorMap>
+          ]
+        ? []
+        : [invalidConfig: never]
+  ): CreatedInvoke<
+    TLogic,
     TContext,
     TContextShape,
     TStateSchemas,
