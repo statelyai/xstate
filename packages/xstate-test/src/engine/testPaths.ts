@@ -926,7 +926,9 @@ export async function testPaths<TSource extends ActorLogic<any, any, any>>(
     paths = generatePaths(() =>
       getPathsFromEvents(testLogic, events, {
         ...fromEventsOptions,
-        fromState: initial
+        fromState: initial,
+        // The walk can reach its target before covering every requirement.
+        stopWhen: options.stopWhen ?? (() => false)
       })
     );
   } else if (options.paths) {

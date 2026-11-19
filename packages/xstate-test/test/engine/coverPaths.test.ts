@@ -11,6 +11,7 @@ it('covers named cases and consecutive no-op steps in a single walk', async () =
   const sent: string[] = [];
   const { results, coverage } = await testPaths(model, {
     samples: 1,
+    toState: () => true,
     events: {
       PING: [
         { case: 'first', generate: constant({}) },
@@ -37,6 +38,37 @@ it('covers named cases and consecutive no-op steps in a single walk', async () =
   expect(results).toHaveLength(1);
   expect(coverage.exploration.pathGenerator).toBe('cover');
   expect(sent).toEqual(['first', 'first', 'second']);
+});
+
+it('can cover the final transition and stops offering events afterward', async () => {
+  const flow = createMachine({
+    initial: 'working',
+    states: {
+      working: { on: { FINISH: { target: 'done' } } },
+      done: { type: 'final' }
+    },
+    schemas: { events: { FINISH: types<{}>(), PING: types<{}>() } }
+  });
+  const finished = ({ snapshot }: { snapshot: { status: string } }) =>
+    snapshot.status === 'done';
+  const { results } = await testPaths(flow, {
+    cover: { requirements: { finished } }
+  });
+  expect(results[0].path.state.status).toBe('done');
+
+  const create = vi.fn(() => ({ send: () => {} }));
+  await expect(
+    testPaths(flow, {
+      events: { PING: constant({}) },
+      cover: {
+        requirements: {
+          pingAfterFinish: [finished, ({ event }) => event.type === 'PING']
+        }
+      },
+      sut: { create }
+    })
+  ).rejects.toThrow(/exhausted.*pingAfterFinish/);
+  expect(create).not.toHaveBeenCalled();
 });
 
 it('keeps the snapshot window when different paths join', async () => {

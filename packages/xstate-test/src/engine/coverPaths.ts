@@ -122,7 +122,7 @@ export function planCoverWalk<
 
   for (const candidate of queue) {
     const { snapshot, snapshots, matches, events } = candidate;
-    if (options.stopWhen?.(snapshot)) {
+    if (snapshot.status !== 'active' || options.stopWhen?.(snapshot)) {
       continue;
     }
     if (events.length === maxSteps) {
