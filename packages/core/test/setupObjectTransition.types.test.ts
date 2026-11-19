@@ -7,6 +7,8 @@ import {
   waitFor
 } from '../src/index.ts';
 
+const wrapperInputWorker = createAsyncLogic({ run: async () => 42 });
+
 it('types function transitions wrapped in an object with a description', () => {
   const machine = setup({
     schemas: {
@@ -189,4 +191,58 @@ it('checks and applies the lifecycle filter on a wrapped transition', async () =
   } finally {
     actor.stop();
   }
+});
+
+it('validates and applies wrapped transitions from createInvoke', async () => {
+  const s = setup({});
+  const machine = s.createMachine({
+    initial: 'loading',
+    states: {
+      loading: {
+        invoke: s.createInvoke({
+          src: createAsyncLogic({ run: async () => 42 }),
+          onDone: {
+            to: ({ event }) => {
+              expectTypeOf(event.output).toEqualTypeOf<number>();
+              return { target: 'ready' as const };
+            }
+          }
+        })
+      },
+      ready: {}
+    }
+  });
+  const actor = createActor(machine).start();
+  try {
+    await waitFor(actor, (snapshot) => snapshot.matches('ready'));
+    expect(actor.getSnapshot().value).toBe('ready');
+  } finally {
+    actor.stop();
+  }
+});
+
+it('uses wrapper input when a createInvoke transition omits input', () => {
+  const s = setup({
+    schemas: { context: types<{ x: number }>() },
+    states: {
+      loading: {},
+      ready: { schemas: { input: types<{ value: number }>() } }
+    }
+  });
+  s.createMachine({
+    context: { x: 1 },
+    initial: 'loading',
+    states: {
+      loading: {
+        invoke: s.createInvoke({
+          src: wrapperInputWorker,
+          onDone: {
+            input: { value: 42 },
+            to: () => ({ target: 'ready' as const })
+          }
+        })
+      },
+      ready: {}
+    }
+  });
 });
