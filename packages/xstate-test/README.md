@@ -1415,7 +1415,7 @@ In addition to the shared options:
 | `pathGenerator` | `'shortest'` | `'shortest'`, `'simple'`, or a custom `PathGenerator`. |
 | `paths` | none | Runs these paths instead of generating any. |
 | `fromEvents` | none | Runs the single path built from this event sequence. |
-| `cover` | none | Plans one shortest walk that covers each named step or consecutive step sequence before executing it. |
+| `cover` | none | Plans walks that collectively cover the named steps or consecutive step sequences before executing them. |
 | `samples` | `3` | Payloads sampled from each event case and outcome generator. An integer of at least `1`. |
 | `seed` | `0` | Sampling seed. Each case samples from its own stream, so adding a case leaves the other cases' payloads unchanged. |
 | `limit` | `10_000` | Traversal steps before path generation throws. A context that grows without bound reaches it; merge states with `serializeState` or prune with `stopWhen`. |
@@ -1432,10 +1432,16 @@ By default the window contains the previous and current snapshots. Set
 `snapshotWindow` to look further back. The current snapshot is always
 `snapshots.at(-1)`.
 
-The experimental option plans one walk of at most `maxStepsPerPath` events
-(20 by default) in pure mode. It traverses user events, including no-ops.
-`testPaths()` fails before creating the system under test if it cannot find a
-walk that covers every requirement within its search budget.
+The experimental planner prefers fewer walks, then fewer total events. Each
+walk starts a fresh SUT session and contains at most `maxStepsPerPath` events
+(20 by default). Set `cover.maxPaths` only if you have a hard session budget.
+A sequence must match within one walk, and every walk must end at `toState`
+when supplied.
+
+Planning uses user events, including no-ops, in pure mode. The `limit` budget
+applies to both finding and combining walks. If planning fails,
+`testPaths()` reports the reason and any missing requirements before creating
+SUT sessions.
 
 `testPaths()` rejects `commands`. It resolves with `results`, one
 `{ path, passed, error }` per path, and sets `coverage.exploration.strategy`

@@ -172,6 +172,16 @@ test('every simple path matches the model', async () => {
 
 Use `testPaths()` when the reachable graph is finite and you want every path through it. Use `propertyTest()` when payloads, ordering, or timing matter.
 
+### Cover named scenarios
+
+Pass `cover.requirements` to plan walks that collectively cover named steps or
+consecutive step sequences. For example, approval and cancellation might each
+end a request. The planner uses separate walks for those outcomes and opens a
+fresh SUT session for each. It prefers fewer sessions, then fewer total events.
+Set `cover.maxPaths` if your test environment has a fixed session budget. If
+planning fails, the SUT does not start. See the [coverage planning
+options](https://github.com/statelyai/xstate/tree/next/packages/xstate-test#testpaths-options).
+
 ### Generate paths without running them
 
 `xstate/graph` generates paths and does not run them. `getShortestPaths(logic, options)`, `getSimplePaths(logic, options)`, and `getPathsFromEvents(logic, events, options)` return `{ state, steps, weight }` objects. Pass any of them to `testPaths()` to run them against the implementation:

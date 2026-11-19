@@ -7,7 +7,7 @@ import {
   type Snapshot
 } from 'xstate';
 import { XSTATE_INIT } from './constants.ts';
-import { planCoverWalk, type TestCoverOptions } from './coverPaths.ts';
+import { planCoverPaths, type TestCoverOptions } from './coverPaths.ts';
 import { deduplicatePaths } from './deduplicatePaths.ts';
 import {
   deriveCaseSeed,
@@ -95,7 +95,7 @@ interface PathOptions<
     | PathGenerator<TSnapshot, TEvent, TInput>;
   /** Executes a single path built from this literal event sequence. */
   readonly fromEvents?: readonly TEvent[];
-  /** Finds one walk that covers every named step pattern before running it. */
+  /** Plans walks that cover every named step pattern before executing them. */
   readonly cover?: TestCoverOptions<TSnapshot, TEvent>;
   /**
    * The most traversal steps path generation takes before it gives up and
@@ -909,7 +909,7 @@ export async function testPaths<TSource extends ActorLogic<any, any, any>>(
     const names = new Map(
       cases.map(({ caseId, caseName }) => [caseId, caseName])
     );
-    const events = planCoverWalk(initial, options.cover, {
+    paths = planCoverPaths(initial, options.cover, {
       limit,
       events: (snapshot) =>
         traversalEvents(snapshot).filter(
@@ -922,15 +922,6 @@ export async function testPaths<TSource extends ActorLogic<any, any, any>>(
       stopWhen: options.stopWhen,
       toState: options.toState
     });
-    const { events: _traversalEvents, ...fromEventsOptions } = traversalOptions;
-    paths = generatePaths(() =>
-      getPathsFromEvents(testLogic, events, {
-        ...fromEventsOptions,
-        fromState: initial,
-        // The walk can reach its target before covering every requirement.
-        stopWhen: options.stopWhen ?? (() => false)
-      })
-    );
   } else if (options.paths) {
     pathGeneratorKind = 'custom';
     paths = options.paths;

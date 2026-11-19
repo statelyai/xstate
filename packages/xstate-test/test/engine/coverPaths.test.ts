@@ -143,3 +143,153 @@ it('executes from the same starting snapshot that the planner used', async () =>
   expect(results).toHaveLength(1);
   expect(results[0].path.state.matches('done')).toBe(true);
 });
+
+const request = createMachine({
+  initial: 'pending',
+  states: {
+    pending: {
+      on: {
+        APPROVE: { target: 'approved' },
+        CANCEL: { target: 'cancelled' },
+        REVIEW: { target: 'reviewing' }
+      }
+    },
+    reviewing: { on: { APPROVE: { target: 'approved' } } },
+    approved: { type: 'final' },
+    cancelled: { type: 'final' }
+  }
+});
+
+it('covers mutually exclusive goals with the shortest two independent walks by default', async () => {
+  const sessions: string[][] = [];
+  const create = vi.fn(() => {
+    const sent: string[] = [];
+    sessions.push(sent);
+    return {
+      send: (event: { type: string }) => {
+        sent.push(event.type);
+      }
+    };
+  });
+  const options = {
+    toState: (snapshot: { status: string }) => snapshot.status === 'done',
+    cover: {
+      requirements: {
+        approved: ({ event }: { event: { type: string } }) =>
+          event.type === 'APPROVE',
+        cancelled: ({ event }: { event: { type: string } }) =>
+          event.type === 'CANCEL'
+      }
+    },
+    sut: { create }
+  };
+
+  const { coverage, results } = await testPaths(request, options);
+  expect(results).toHaveLength(2);
+  expect(coverage.exploration.pathCount).toBe(2);
+  expect(sessions).toEqual([['APPROVE'], ['CANCEL']]);
+
+  create.mockClear();
+  await expect(
+    testPaths(request, {
+      ...options,
+      cover: { ...options.cover, maxPaths: 1 }
+    })
+  ).rejects.toThrow(/maxPaths \(1\).*cancelled/);
+  expect(create).not.toHaveBeenCalled();
+});
+
+it('minimizes total events among plans with the same session count', async () => {
+  const flow = createMachine({
+    initial: 'start',
+    states: {
+      start: {
+        on: {
+          A: { target: 'done' },
+          B: { target: 'done' },
+          AC: { target: 'done' },
+          START_LONG: { target: 'long' }
+        }
+      },
+      long: { on: { BC: { target: 'done' } } },
+      done: { type: 'final' }
+    }
+  });
+
+  const { results } = await testPaths(flow, {
+    cover: {
+      maxPaths: 2,
+      requirements: {
+        a: ({ event }) => event.type === 'A' || event.type === 'AC',
+        b: ({ event }) => event.type === 'B' || event.type === 'BC',
+        c: ({ event }) => event.type === 'AC' || event.type === 'BC'
+      }
+    }
+  });
+
+  expect(results.map(({ path }) => path.steps.at(-1)?.event.type)).toEqual([
+    'B',
+    'AC'
+  ]);
+});
+
+it('runs the exact snapshots used to plan repeated spawns', async () => {
+  const worker = createMachine({});
+  const flow = createMachine({
+    actors: { worker },
+    context: { ids: [] as string[] },
+    on: {
+      SPAWN: ({ context }, enq) => ({
+        context: { ids: [...context.ids, enq.spawn('worker').id] }
+      })
+    }
+  });
+
+  const { results } = await testPaths(flow, {
+    cover: {
+      requirements: {
+        twoWorkers: ({ snapshot }) => snapshot.context.ids.length === 2
+      }
+    }
+  });
+
+  expect(results[0].path.state.context.ids).toEqual(['worker:0', 'worker:1']);
+});
+
+it('prefers a longer single walk over two shorter walks', async () => {
+  const flow = createMachine({
+    initial: 'start',
+    states: {
+      start: {
+        on: {
+          LEFT: { target: 'done' },
+          RIGHT: { target: 'done' },
+          ROUTE: { target: 'route' }
+        }
+      },
+      route: { on: { LEFT: { target: 'left' } } },
+      left: { on: { RIGHT: { target: 'done' } } },
+      done: { type: 'final' }
+    }
+  });
+  const sent: string[] = [];
+  const create = vi.fn(() => ({
+    send: (event: { type: string }) => {
+      sent.push(event.type);
+    }
+  }));
+
+  await testPaths(flow, {
+    cover: {
+      maxPaths: 2,
+      requirements: {
+        left: ({ event }) => event.type === 'LEFT',
+        right: ({ event }) => event.type === 'RIGHT'
+      }
+    },
+    sut: { create }
+  });
+
+  expect(create).toHaveBeenCalledTimes(1);
+  expect(sent).toEqual(['ROUTE', 'LEFT', 'RIGHT']);
+});
