@@ -106,4 +106,70 @@ describe('inert actor scopes', () => {
       expect(earlier?.deref()).toBeUndefined();
     }
   );
+
+  it.skipIf(!collect).each([false, true])(
+    'releases the first snapshot with delayed identity access: %s',
+    async (readSelf) => {
+      const machine = createMachine({
+        context: () => ({ marker: {}, count: 0, identity: '' }),
+        on: {
+          TICK: ({ context }) => ({
+            context: { marker: {}, count: context.count + 1, identity: '' }
+          }),
+          SELF: ({ context, self }) => ({
+            context: { ...context, identity: self.sessionId }
+          })
+        }
+      });
+      const run = () => {
+        let [snapshot] = initialTransition(machine);
+        const first = new WeakRef(snapshot.context.marker);
+        for (let index = 0; index < 100; index++) {
+          [snapshot] = transition(machine, snapshot, { type: 'TICK' });
+        }
+        if (readSelf) {
+          [snapshot] = transition(machine, snapshot, { type: 'SELF' });
+        }
+        return { first, snapshot };
+      };
+      const { first, snapshot } = run();
+      await setImmediate();
+      collect!();
+      await setImmediate();
+      collect!();
+      expect(first.deref()).toBeUndefined();
+      expect(snapshot.context.count).toBe(100);
+      const [next] = transition(machine, snapshot, { type: 'SELF' });
+      const [last] = transition(machine, next, { type: 'SELF' });
+      expect(next.context.identity).toBe(last.context.identity);
+      if (readSelf) {
+        expect(next.context.identity).toBe(snapshot.context.identity);
+      }
+    }
+  );
+
+
+  it.skipIf(!collect)(
+    'keeps the snapshot alive when its materialized self is retained',
+    async () => {
+      const machine = createMachine({ context: () => ({ marker: {} }) });
+      const run = () => {
+        const [snapshot] = initialTransition(machine);
+        const scope = createInertActorScope(machine);
+        setInertActorScopeSnapshot(scope, snapshot, false);
+        return {
+          self: scope.self,
+          marker: new WeakRef(snapshot.context.marker)
+        };
+      };
+      const { self, marker } = run();
+      await setImmediate();
+      collect!();
+      await setImmediate();
+      collect!();
+      expect(marker.deref()).toBeDefined();
+      expect(self.getSnapshot().context.marker).toBe(marker.deref());
+    }
+  );
+
 });
