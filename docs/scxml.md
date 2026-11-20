@@ -42,7 +42,7 @@ The returned value is an XState machine and can be passed to `createActor(...)`,
 
 | Behavior | Native `createMachine(...)` | `createMachineFromSCXML(...)` |
 | --- | --- | --- |
-| Parallel transition domain | Targets can update individual regions. By default, a cross-region transition preserves the source region and exits only the target region's descendants. | Uses SCXML transition domains. A cross-region transition can exit and reenter the entire parallel subtree, resetting untargeted regions to their initial states. |
+| Parallel transition domain | Crossing between regions exits and re-enters the parallel state. A parallel parent can target one region and preserve its siblings. Explicit reentry within one region also preserves its siblings. | Crossing between regions exits and re-enters the parallel state. A parallel parent targeting a region or an external transition from a region to its own child can also exit the parallel state. |
 | Reentry | Defaults to `reenter: false`. A transition to the source or its descendants generally preserves the source. | Targeted transitions default to `type="external"`. `type="internal"` preserves a compound source when all targets are its descendants. |
 | Event descriptors | `"foo"` matches exactly. `"foo.*"` matches names such as `"foo.bar"`. | `event="foo"` matches both `foo` and `foo.bar`. |
 | Competing handlers in one state | Exact handlers precede wildcards. More specific wildcard descriptors precede shorter ones. | The first enabled matching transition in document order wins, including prefix and wildcard matches. |

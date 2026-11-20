@@ -29,6 +29,6 @@ actor.send({ type: 'START' });
 
 <!-- experimental public API from src/scxml.ts and compatibility contract from ../../docs/scxml.md -->
 
-`@xstate/scxml` is experimental. Imported machines use SCXML transition domains, event matching, and document ordering, which differ from native XState v6 machines.
+`@xstate/scxml` is experimental. Imported machines use SCXML transition domains, event matching, and document ordering. Native XState v6 has different rules for transitions targeting one region from its parallel parent and for matching event names.
 
 See the [SCXML guide](https://github.com/statelyai/xstate/blob/next/docs/scxml.md) for the compatibility contract, supported execution profile, and synchronous resource resolution.

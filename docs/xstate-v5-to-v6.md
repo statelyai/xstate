@@ -296,12 +296,10 @@ on: {
 
 ### Transitions inside parallel regions
 
-A transition whose targets stay inside one region of a parallel state exits
-and reenters that region only. In v5 the same transition, when it reentered
-its source or targeted a child state, exited the whole parallel state and
-reset every sibling region to its initial state. v6 leaves the siblings where
-they are. A transition declared on a sibling region for the same event still
-runs, because the two exit sets no longer overlap.
+When a transition re-enters its source within one region, sibling regions
+remain active. In v5 this could exit the whole parallel state and reset its
+sibling regions. A transition declared in a sibling region for the same
+event can now run if their exit sets are disjoint.
 
 ```ts
 // Parallel state `p` with regions `a` and `b`.
@@ -310,9 +308,17 @@ runs, because the two exit sets no longer overlap.
 // v6 after `t`: { a: 'a1', b: 'b2' }: only `a` was exited.
 ```
 
-Reset the sibling regions explicitly if the v5 behavior was intended: target
-the parallel state itself, or list a target in every region.
-`@xstate/scxml` keeps the SCXML exit semantics for SCXML sources.
+To reset sibling regions, target the parallel state or list a target in every
+region.
+
+Cross-region transitions use the SCXML exit domain. The parallel state exits
+and re-enters, and untargeted regions return to their initial states. Early v6
+betas preserved the source region and the other untargeted regions. With the
+full exit set, an earlier region's transition can take priority on repeated
+events. Use a compound state to model steps that must advance in sequence.
+`reenter: true` is redundant for a cross-region transition.
+
+`@xstate/scxml` uses SCXML exit semantics for imported sources.
 
 ---
 

@@ -3,7 +3,7 @@ import { createMachineFromSCXML } from '../src/index.ts';
 
 for (const mode of ['native', 'SCXML']) {
   describe(`${mode} compatibility contract`, () => {
-    it('orders cross-region exit and entry effects according to its transition domain', () => {
+    it('orders the lifecycle of the winning cross-region transition', () => {
       const trace: string[] = [];
       const machine =
         mode === 'native'
@@ -39,6 +39,7 @@ for (const mode of ['native', 'SCXML']) {
                     },
                     right: {
                       initial: 'x',
+                      on: { CROSS: { target: '#outside' } },
                       entry: (_, enq) => enq(() => trace.push('right:entry')),
                       exit: (_, enq) => enq(() => trace.push('right:exit')),
                       states: {
@@ -53,7 +54,8 @@ for (const mode of ['native', 'SCXML']) {
                       }
                     }
                   }
-                }
+                },
+                outside: { id: 'outside' }
               }
             })
           : createMachineFromSCXML(`
@@ -78,6 +80,7 @@ for (const mode of ['native', 'SCXML']) {
                     </state>
                   </state>
                   <state id="right" initial="x">
+                    <transition event="CROSS" target="outside" />
                     <onentry><log expr="'right:entry'" /></onentry>
                     <onexit><log expr="'right:exit'" /></onexit>
                     <state id="x">
@@ -89,6 +92,7 @@ for (const mode of ['native', 'SCXML']) {
                     </state>
                   </state>
                 </parallel>
+                <state id="outside" />
               </scxml>
             `);
       const actor = createActor(machine, {
@@ -108,25 +112,21 @@ for (const mode of ['native', 'SCXML']) {
       actor.send({ type: 'CROSS' });
 
       expect(actor.getSnapshot().value).toEqual({
-        active: { left: mode === 'native' ? 'b' : 'a', right: 'y' }
+        active: { left: 'a', right: 'y' }
       });
-      expect(trace).toEqual(
-        mode === 'native'
-          ? ['x:exit', 'cross', 'y:entry']
-          : [
-              'x:exit',
-              'right:exit',
-              'b:exit',
-              'left:exit',
-              'active:exit',
-              'cross',
-              'active:entry',
-              'left:entry',
-              'a:entry',
-              'right:entry',
-              'y:entry'
-            ]
-      );
+      expect(trace).toEqual([
+        'x:exit',
+        'right:exit',
+        'b:exit',
+        'left:exit',
+        'active:exit',
+        'cross',
+        'active:entry',
+        'left:entry',
+        'a:entry',
+        'right:entry',
+        'y:entry'
+      ]);
       actor.stop();
     });
 
