@@ -281,6 +281,19 @@ If the SUT's `send()` throws or rejects, the trace includes the completed steps 
 
 To save failures without writing any code, pass `failures: true`. A failing campaign writes its fixture to `.xstate-test/`, and the next campaign replays the saved fixtures before it generates anything. A fixture that no longer fails is deleted.
 
+## Follow an observed outcome
+
+A test can let the system under test choose between legal outcomes. Define
+each outcome as an ordinary model event. Configure inputs in `events` and
+return the next outcome from the SUT session’s `receive({ signal })` hook.
+The runner applies the observed event to the model before selecting another
+input. For example, `HEADS` after `FLIP` can enable `CLAIM_PRIZE`.
+
+A saved fixture expects the same output at that step. A different legal
+output stops replay with `ReplayNotReproducedError`. An illegal output fails
+the conformance check with `ModelTestFailureError`. See
+[Follow outcomes from the system under test](https://github.com/statelyai/xstate/tree/next/packages/xstate-test#follow-outcomes-from-the-system-under-test).
+
 ## Gate CI on coverage
 
 `assertTestCoverage()` throws when a dimension's covered ratio is below a threshold. The error message contains the full report.

@@ -126,6 +126,9 @@ function toSuiteFixture<
     // Carried through so the fixture replays under the same conditions the
     // campaign recorded it under.
     ...(trace.swarm ? { swarm: trace.swarm } : {}),
+    ...(trace.receiveInputTypes
+      ? { receiveInputTypes: trace.receiveInputTypes }
+      : {}),
     ...(trace.mode ? { mode: trace.mode } : {}),
     ...(trace.outcomes ? { outcomes: trace.outcomes } : {})
   };
@@ -354,6 +357,8 @@ export function formatTestSuiteFixtureTitle(
         return `@advance(${command.milliseconds})`;
       case 'checkpoint':
         return '@checkpoint';
+      case 'receive':
+        return '@receive';
       case 'outcome':
         return `@outcome(${command.src})`;
       default:

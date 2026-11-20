@@ -602,6 +602,44 @@ is listed in the step's `pendingActors`, and
 `coverage.exploration.pendingActorSteps` counts such steps: its result may
 land in a later step.
 
+### Follow outcomes from the system under test
+
+Use `sut.create().receive({ signal })` with `propertyTest()` when an
+observation needs to advance the model. For example, model `FLIP` entering
+`flipping`. Define ordinary transitions for `HEADS` and `TAILS` out of that
+state. Only the `HEADS` branch handles `CLAIM_PRIZE`.
+
+```ts
+await propertyTest(coinMachine, {
+  events: {
+    FLIP: { generate: fc.constant({}), when: ({ snapshot, event }) => snapshot.can(event) },
+    CLAIM_PRIZE: { generate: fc.constant({}), when: ({ snapshot, event }) => snapshot.can(event) }
+  },
+  sut: {
+    create: () => ({
+      send: (event) => driver.send(event),
+      receive: ({ signal }) => driver.nextOutput(signal)
+    })
+  }
+});
+```
+
+With `receive()`, the explicit `events` entries are the generated inputs.
+The runner applies a ready output before the next input. When the model has
+output transitions and no configured input transition, it waits up to one
+second for an output. In a mixed state, the runner can send the next input
+while the receive is pending. The SUT session should deliver outputs in order
+and honor the signal so pending reads can be cancelled. Keep `read()` for
+snapshot comparison. The runner defers comparison while it awaits a model
+output.
+
+For live runs, any output the current model allows can advance it. Replays
+check the recorded output before proceeding. A different legal output raises
+`ReplayNotReproducedError` with both events. An output the model disallows
+raises `ModelTestFailureError`. Control the SUT's outcome or schedule in the
+adapter when you need to reproduce an exact path. Observable outputs count
+toward model transition coverage.
+
 ### Test delayed transitions
 
 In executed mode, time moves only through `advance` commands. With
@@ -1501,6 +1539,7 @@ options to fast-check:
 | `read()` | Reads the observable state for comparison. |
 | `states` | Per-state assertions, `(snapshot, session) => void`. Replaces the top-level `states`. |
 | `settle()` | Waits for quiescence before each comparison. |
+| `receive({ signal })` | Returns the next SUT output as a model event for `propertyTest()` and `replayTest()`. |
 | `advance(ms)` | Advances the SUT's clock and returns the events that fired. |
 | `checkpoint(label?)` | Handles a `checkpoint` command. |
 | `stop()` | Handles a `stop` command. |
@@ -1621,7 +1660,9 @@ Errors in commands and outcomes are recorded as
 A `TestCommand` is `{ type: 'event', event, phase, origin, caseId? }`,
 `{ type: 'advance', milliseconds, deliveredEvents }`,
 `{ type: 'checkpoint', label? }`, `{ type: 'outcome', src, outcome }`, or
-`{ type: 'stop' }`. Events delivered by a SUT clock appear twice: in the
+`{ type: 'stop' }`. Received output events have `origin: 'receive'`. A
+failed receive is recorded as a `receive` command. Events delivered by a SUT
+clock appear twice: in the
 `advance` command's `deliveredEvents`, and as the following `event` entries
 with `origin: 'clock'`. `replayTest()` rejects a fixture in which the two
 disagree.
@@ -1673,6 +1714,12 @@ Each run:
    `outcome(src, outcome)`).
 3. `runner.finish()`.
 4. `await runner.dispose()`, always.
+
+To support `receive()`, call `runner.start('live')`. Call
+`runner.receiveBeforeInput()` before checking a generated input and before
+finishing the run. If runtime commands can release a pending output, pass
+`false` to receive only ready outputs before processing those commands.
+Use the default at the end of the sequence to wait for a required response.
 
 `run()` resolves with `{ runs, exploration, error?, replay? }`.
 `exploration` has `configuredRuns`, `maximumSequenceLength`, and optionally

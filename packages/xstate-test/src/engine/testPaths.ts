@@ -436,7 +436,7 @@ function createPathAdapter<
           >;
         let pathError: unknown;
         try {
-          await runner.start();
+          await runner.start('paths');
           for (let index = 0; index < steps.length; index++) {
             const step = steps[index];
             const event = step.event;
