@@ -29,6 +29,7 @@ import {
   EventObject,
   AnyEventObject,
   EventDescriptor,
+  EventPayloadPattern,
   ReservedMachineEvent,
   ReservedEventFromDescriptor,
   ExtractEvent,
@@ -1857,7 +1858,8 @@ type SetupStateInputConfig<
   TInputArgs extends { context: TContext; event: TEvent } = {
     context: TContext;
     event: TEvent;
-  }
+  },
+  TAllowOmittedInput extends boolean = false
 > =
   HasStateInputSchema<TStateSchema> extends true
     ? undefined extends StateInput<TStateSchema>
@@ -1866,11 +1868,17 @@ type SetupStateInputConfig<
             | StateInput<TStateSchema>
             | ((args: TInputArgs) => StateInput<TStateSchema>);
         }
-      : {
-          input:
-            | StateInput<TStateSchema>
-            | ((args: TInputArgs) => StateInput<TStateSchema>);
-        }
+      : TAllowOmittedInput extends true
+        ? {
+            input?:
+              | StateInput<TStateSchema>
+              | ((args: TInputArgs) => StateInput<TStateSchema>);
+          }
+        : {
+            input:
+              | StateInput<TStateSchema>
+              | ((args: TInputArgs) => StateInput<TStateSchema>);
+          }
     : {
         input?:
           | Record<string, unknown>
@@ -3829,26 +3837,35 @@ export interface CreatedInvoke<
 // Outer validators need authored targets and resolved input/context patches.
 // Retaining callback arguments here can expose private actor-ref markers in
 // consumer declarations, so keep their result data only.
-type CreatedInvokeTransitionData<TTransition> = TTransition extends (
-  ...args: any[]
-) => infer TResult
-  ? CreatedInvokeTransitionData<TResult>
-  : TTransition extends { target: infer TTarget }
-    ? { target: TTarget } & (TTransition extends { input: infer TInput }
-        ? {
-            input: TInput extends (...args: any[]) => infer TResult
-              ? TResult
-              : TInput;
-          }
-        : unknown) &
-        (TTransition extends { context: infer TContext }
-          ? {
-              context: TContext extends (...args: any[]) => infer TResult
-                ? TResult
-                : TContext;
-            }
-          : unknown)
-    : {};
+type CreatedInvokeTransitionData<
+  TTransition,
+  TFallbackTransition = TTransition
+> = TTransition extends (...args: any[]) => infer TResult
+  ? CreatedInvokeTransitionData<TResult, TFallbackTransition>
+  : TTransition extends { to: infer TTo }
+    ? CreatedInvokeTransitionData<TTo, TTransition>
+    : TTransition extends { target: infer TTarget }
+      ? { target: TTarget } & (TTransition extends { input: unknown }
+          ? CreatedInvokeTransitionInput<TTransition>
+          : CreatedInvokeTransitionInput<TFallbackTransition>) &
+          (TTransition extends { context: infer TContext }
+            ? {
+                context: TContext extends (...args: any[]) => infer TResult
+                  ? TResult
+                  : TContext;
+              }
+            : unknown)
+      : {};
+
+type CreatedInvokeTransitionInput<TTransition> = TTransition extends {
+  input: infer TInput;
+}
+  ? {
+      input: TInput extends (...args: any[]) => infer TResult
+        ? TResult
+        : TInput;
+    }
+  : unknown;
 
 type CreatedInvokeValidationConfig<TConfig> = TConfig extends unknown
   ? {
@@ -4255,7 +4272,7 @@ type StateTransitionConfigOrTarget<
   TOutput = OutputArg<TExpressionEvent>['output']
 > =
   | undefined
-  | StateTransitionObjectConfig<
+  | (StateTransitionObjectConfig<
       TStateSchemas,
       TContext,
       TContextShape,
@@ -4271,7 +4288,43 @@ type StateTransitionConfigOrTarget<
       true,
       TTarget,
       TKnownTarget
-    >
+    > & { to?: never })
+  | ({
+      matches?: EventPayloadPattern<TExpressionEvent>;
+      to: StateTransitionFunction<
+        TStateSchemas,
+        TContext,
+        TContextShape,
+        TExpressionEvent,
+        TEvent,
+        TEmitted,
+        TChildren,
+        TMeta,
+        TActionMap,
+        TActorMap,
+        TGuardMap,
+        TDelayMap,
+        TSystemRegistry,
+        TInput,
+        TTarget,
+        TKnownTarget,
+        TOutput,
+        true
+      >;
+      target?: never;
+      context?: never;
+      reenter?: never;
+      description?: string;
+      meta?: TMeta;
+      input?:
+        | Record<string, unknown>
+        | ((
+            args: {
+              context: TContext;
+              event: TExpressionEvent;
+            } & OutputArg<TExpressionEvent>
+          ) => Record<string, unknown>);
+    } & RemovedTransitionKeys)
   | StateTransitionFunction<
       TStateSchemas,
       TContext,
@@ -4491,7 +4544,8 @@ type StateTransitionFunction<
   TInput = undefined,
   TTarget extends string = SetupStateTarget<TStateSchemas>,
   TKnownTarget extends string = KnownSetupStateTarget<TStateSchemas>,
-  TOutput = OutputArg<TExpressionEvent>['output']
+  TOutput = OutputArg<TExpressionEvent>['output'],
+  TAllowOmittedInput extends boolean = false
 > = (
   args: {
     context: TContext;
@@ -4543,7 +4597,8 @@ type StateTransitionFunction<
   TSystemRegistry,
   false,
   TTarget,
-  TKnownTarget
+  TKnownTarget,
+  TAllowOmittedInput
 > | void;
 
 type StateTransitionResult<
@@ -4561,7 +4616,8 @@ type StateTransitionResult<
   TSystemRegistry extends SystemRegistry,
   TAllowContextMapper extends boolean,
   TTarget extends string = SetupStateTarget<TStateSchemas>,
-  TKnownTarget extends string = KnownSetupStateTarget<TStateSchemas>
+  TKnownTarget extends string = KnownSetupStateTarget<TStateSchemas>,
+  TAllowOmittedInput extends boolean = false
 > =
   | {
       target?: never;
@@ -4595,7 +4651,8 @@ type StateTransitionResult<
         {
           context: TContext;
           event: TExpressionEvent;
-        } & OutputArg<TExpressionEvent>
+        } & OutputArg<TExpressionEvent>,
+        TAllowOmittedInput
       > &
         ([TContextShape] extends [
           SetupStateContextAtTarget<TStateSchemas, K, TContextShape>
