@@ -1,3 +1,4 @@
+import { assertEvent } from '../src/assert.ts';
 /**
  * Type-level regression tests for open GitHub issues that are fixed (or made
  * moot) in v6. Each test reproduces the reported pattern with v6 APIs.
@@ -59,7 +60,10 @@ describe('types', () => {
           resolving: {
             invoke: {
               src: 'resolver',
-              input: ({ event }) => event.input,
+              input: ({ event }) => {
+                assertEvent(event, 'trigger');
+                return event.input;
+              },
               onDone: ({ event }) => {
                 expectType<Output>(event.output);
                 return { target: 'valid' };

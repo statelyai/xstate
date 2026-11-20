@@ -1,3 +1,4 @@
+import { assertEvent } from '../src/assert.ts';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { EMPTY, interval, of } from 'rxjs';
 import { map } from 'rxjs/operators';
@@ -925,6 +926,7 @@ describe('communicating with spawned actors', () => {
         // }
         active: {
           entry: ({ event }, enq) => {
+            assertEvent(event, 'ACTIVATE');
             enq.sendTo(event.origin, { type: 'EXISTING.DONE' });
           }
         }

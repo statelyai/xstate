@@ -78,6 +78,7 @@ import {
   type AsyncLogicFunction
 } from './actors/promise.ts';
 import {
+  MachineCallbackEvent,
   ActionSchemas,
   DelayMapFromNames,
   DelaySourceMap,
@@ -2996,7 +2997,7 @@ type SetupMachineConfigBase<
           stateNode
         }: {
           context: TContext;
-          event: TEvent;
+          event: MachineCallbackEvent<TEvent>;
           stateNode: AnyStateNode;
         }) => number);
   };
@@ -3027,7 +3028,7 @@ type SetupMachineConfigBase<
     UncheckedSetupStateSchemas,
     TContext,
     SetupContextShape<TSchemas, TContextSchema, TContext>,
-    TEvent,
+    MachineCallbackEvent<TEvent>,
     TEvent,
     TEmitted,
     TChildren,
@@ -3153,7 +3154,7 @@ type SetupMachineConfig<
           | RootInitialTransitionWithInput<
               TStateSchemas,
               TContext,
-              TEvent,
+              MachineCallbackEvent<TEvent>,
               TTransitionMeta
             >
           | undefined;
@@ -3178,7 +3179,7 @@ type SetupMachineConfig<
           TStateSchemas,
           TContext,
           SetupContextShape<TSchemas, TContextSchema, TContext>,
-          TEvent,
+          MachineCallbackEvent<TEvent>,
           TEvent,
           TEmitted,
           TChildren,
@@ -3362,7 +3363,7 @@ type StateNodeConfigWithNestedInputBase<
           | InitialTransitionWithInput<
               TStateSchema['states'],
               ActiveStateContext<TStateSchema, TContext, TContextShape>,
-              TEvent,
+              MachineCallbackEvent<TEvent>,
               TTransitionMeta
             >
       :
@@ -3394,7 +3395,7 @@ type StateNodeConfigWithNestedInputBase<
       SetupStateTransitionSchemas<TSiblingStateSchemas, TStateSchema>,
       ActiveStateContext<TStateSchema, TContext, TContextShape>,
       ActiveStateContextShape<TStateSchema, TContextShape>,
-      TEvent,
+      MachineCallbackEvent<TEvent>,
       TEvent,
       TEmitted,
       TChildren,
@@ -3612,7 +3613,10 @@ type StateTransitions<
     TStateSchemas,
     TContext,
     TContextShape,
-    ExtractEvent<TEvent, K>,
+    ExtractEvent<
+      MachineCallbackEvent<TEvent>,
+      K & EventDescriptor<MachineCallbackEvent<TEvent>>
+    >,
     TEvent,
     TEmitted,
     TChildren,
@@ -3782,7 +3786,7 @@ type PlainSetupInvokeConfig<
             TStateSchemas,
             TContext,
             TContextShape,
-            TEvent,
+            ActorTimeoutEvent,
             TEvent,
             TEmitted,
             TChildren,

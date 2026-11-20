@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import {
+  assertEvent,
   createActor,
   createMachine,
   setup,
@@ -218,6 +219,7 @@ describe('setup() source typing', () => {
       delays: {
         backoff: ({ context, event }) => {
           expectType<{ count: number }>(context);
+          assertEvent(event, ['INC', 'RESET']);
           expectType<{ type: 'INC'; by: number } | { type: 'RESET' }>(event);
           return context.count * 100;
         },
@@ -278,6 +280,7 @@ describe('setup() source typing', () => {
       },
       delays: {
         seesBothEvents: ({ event }) => {
+          assertEvent(event, ['A', 'B']);
           expectType<{ type: 'A'; a: number } | { type: 'B'; b: string }>(
             event
           );

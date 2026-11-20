@@ -1,3 +1,4 @@
+import { assertEvent } from '../src/assert.ts';
 import { EMPTY, interval, of, throwError } from 'rxjs';
 import { take } from 'rxjs/operators';
 import {
@@ -1150,7 +1151,10 @@ describe('callback logic (createCallbackLogic)', () => {
         b: {
           invoke: {
             src: cb,
-            input: ({ event }) => event.data
+            input: ({ event }) => {
+              assertEvent(event, 'EV');
+              return event.data;
+            }
           }
         }
       }
@@ -1378,7 +1382,10 @@ describe('machine logic', () => {
                 value: input.deep.prop
               })
             }),
-            input: ({ event }) => event.data
+            input: ({ event }) => {
+              assertEvent(event, 'NEXT');
+              return event.data;
+            }
           }
         }
       }
