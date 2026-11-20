@@ -2,6 +2,42 @@ import { createActor, createMachine, setup } from '../src';
 import { machineFromJSON } from '../src/machineFromJSON.ts';
 
 describe('route', () => {
+  it('routes to a state marked with route: true', () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {},
+        b: { id: 'b', route: true }
+      }
+    });
+
+    const actor = createActor(machine).start();
+    actor.send({ type: 'xstate.route', to: '#b' });
+
+    expect(actor.getSnapshot().value).toEqual('b');
+  });
+
+  it('processes a route raised inside a transition', () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            GO: (_, enq) => {
+              enq.raise({ type: 'xstate.route', to: '#b' });
+            }
+          }
+        },
+        b: { id: 'b', route: {} }
+      }
+    });
+
+    const actor = createActor(machine).start();
+    actor.send({ type: 'GO' });
+
+    expect(actor.getSnapshot().value).toEqual('b');
+  });
+
   it('should transition directly to a route if route is an empty transition config', () => {
     const machine = createMachine({
       id: 'test',

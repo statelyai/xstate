@@ -17,7 +17,8 @@ import {
   ToChildren,
   MetaObject,
   StateSchema,
-  RoutableStateId
+  RoutableStateId,
+  RouteEvent
 } from './types.ts';
 import type { Cast, DoNotInfer, Compute } from './typeUtils.ts';
 import {
@@ -213,10 +214,7 @@ export function createMachine<
         )
       | ([RoutableStateId<TSS>] extends [never]
           ? never
-          : {
-              type: 'xstate.route';
-              to: RoutableStateId<TSS>;
-            }),
+          : RouteEvent<`${RoutableStateId<TSS>}`>),
       Cast<
         MergeChildren<InferChildren<TChildrenSchemaMap>, TActor> &
           InferredInvokeChildren<TSS, ConfigActors<TSS, TActorMap>>,
@@ -364,10 +362,7 @@ export function createMachine<
         )
       | ([RoutableStateId<TSS>] extends [never]
           ? never
-          : {
-              type: 'xstate.route';
-              to: RoutableStateId<TSS>;
-            }),
+          : RouteEvent<`${RoutableStateId<TSS>}`>),
       Cast<
         MergeChildren<InferChildren<TChildrenSchemaMap>, TActor> &
           InferredInvokeChildren<TSS, ConfigActors<TSS, TActorMap>>,
