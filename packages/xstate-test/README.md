@@ -1461,9 +1461,16 @@ By default the window contains the previous and current snapshots. Set
 
 The experimental planner prefers fewer walks, then fewer total events. Each
 walk starts a fresh SUT session and contains at most `maxStepsPerPath` events
-(20 by default). Set `cover.maxPaths` only if you have a hard session budget.
+(20 by default). Set `cover.maxPaths` to cap fresh SUT sessions. Stored fixture
+replays count toward the cap when enabled. If the stored fixtures and planned
+walks would exceed the cap, the run fails before creating a session.
 A sequence must match within one walk, and every walk must end at `toState`
 when supplied.
+
+When `cover` starts from `fromState`, a failure fixture records the model's
+persisted snapshot. Supply `restoreSnapshot` to `replayTest()` to restore that
+snapshot. For a machine, use `restoreActor(machine, snapshot).getSnapshot()`
+with `restoreActor` from `xstate/persist`.
 
 Planning uses user events, including no-ops, in pure mode. The `limit` budget
 applies to both finding and combining walks. If planning fails,

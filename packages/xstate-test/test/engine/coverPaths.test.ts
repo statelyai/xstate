@@ -1,6 +1,11 @@
 import { constant } from 'fast-check';
-import { createMachine, types } from 'xstate';
-import { testPaths } from '../../src/index.ts';
+import { createActor, createMachine, types, type Snapshot } from 'xstate';
+import { restoreActor } from 'xstate/persist';
+import {
+  ModelTestFailureError,
+  replayTest,
+  testPaths
+} from '../../src/index.ts';
 
 const model = createMachine({
   schemas: { events: { PING: types<{}>() } },
@@ -292,4 +297,79 @@ it('prefers a longer single walk over two shorter walks', async () => {
 
   expect(create).toHaveBeenCalledTimes(1);
   expect(sent).toEqual(['ROUTE', 'LEFT', 'RIGHT']);
+});
+
+it('preserves history in a fixture planned from a snapshot', async () => {
+  const flow = createMachine({
+    initial: 'inside',
+    states: {
+      inside: {
+        initial: 'first',
+        states: {
+          first: { on: { NEXT: { target: 'second' } } },
+          second: {},
+          history: { type: 'history', target: 'first' }
+        },
+        on: { LEAVE: { target: 'outside' } }
+      },
+      outside: { on: { RETURN: { target: 'inside.history' } } }
+    }
+  });
+  const actor = createActor(flow).start();
+  actor.send({ type: 'NEXT' });
+  actor.send({ type: 'LEAVE' });
+  const fromState = actor.getSnapshot();
+  actor.stop();
+
+  const states = {
+    'inside.second': () => {
+      throw new Error('Remembered second state');
+    }
+  };
+  const failure = await testPaths(flow, {
+    fromState,
+    cover: {
+      requirements: { returned: ({ event }) => event.type === 'RETURN' }
+    },
+    states
+  }).catch((error: unknown) => error);
+
+  expect(failure).toBeInstanceOf(ModelTestFailureError);
+  if (!(failure instanceof ModelTestFailureError) || !failure.fixture) {
+    throw new Error('Expected a replay fixture');
+  }
+  const fixture = JSON.parse(JSON.stringify(failure.fixture));
+  await expect(
+    replayTest(flow, fixture, {
+      restoreSnapshot: (snapshot) =>
+        restoreActor(flow, snapshot as Snapshot<unknown>).getSnapshot(),
+      states
+    })
+  ).rejects.toThrow('Remembered second state');
+});
+
+it('counts stored replays toward a hard session budget before creating the SUT', async () => {
+  const create = vi.fn(() => ({ send: () => {} }));
+  await expect(
+    testPaths(request, {
+      cover: {
+        maxPaths: 1,
+        requirements: { approval: ({ event }) => event.type === 'APPROVE' }
+      },
+      sut: { create },
+      failures: {
+        load: () => [
+          {
+            fixture: {
+              formatVersion: 2,
+              start: { type: 'input', input: undefined },
+              timeline: []
+            }
+          }
+        ],
+        onFailure: () => {}
+      }
+    })
+  ).rejects.toThrow(/maxPaths \(1\).*1 stored fixture.*1 planned walk/);
+  expect(create).not.toHaveBeenCalled();
 });

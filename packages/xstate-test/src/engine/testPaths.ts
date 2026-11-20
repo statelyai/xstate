@@ -27,6 +27,7 @@ import {
   type TestAdapterRequest,
   type TestAdapterResult,
   type TestActorOutcome,
+  type TestFailureStore,
   type TestMode,
   type TestOptions,
   type PropertyGeneratorKind,
@@ -1038,17 +1039,25 @@ export async function testPaths<TSource extends ActorLogic<any, any, any>>(
   const runSource =
     mode === 'pure' && outcomeSources.length ? testLogic : source;
 
+  const maxPaths = options.cover?.maxPaths;
+  const failures =
+    shared.failures && maxPaths !== undefined
+      ? limitReplaySessions(shared.failures, maxPaths, paths.length)
+      : shared.failures;
+
   try {
     const { coverage } = await propertyTest(
       runSource as never,
       {
-        ...(shared as object),
+        ...shared,
+        failures,
         adapter,
         ...(options.cover && options.fromState && !shared.start
           ? {
               start: {
                 snapshot: options.fromState,
-                serializeSnapshot: defaultFormatSnapshot
+                serializeSnapshot: (snapshot: TSnapshot) =>
+                  testLogic.getPersistedSnapshot(snapshot)
               }
             }
           : {}),
@@ -1082,6 +1091,31 @@ export async function testPaths<TSource extends ActorLogic<any, any, any>>(
     }
     throw error;
   }
+}
+
+function limitReplaySessions(
+  store: TestFailureStore,
+  maxPaths: number,
+  pathCount: number
+): TestFailureStore {
+  const planned = store.replay === 'only' ? 0 : pathCount;
+  return {
+    key: store.key,
+    replay: store.replay,
+    async load(key) {
+      const stored = await store.load(key);
+      if (stored.length + planned > maxPaths) {
+        const fixtures = stored.length === 1 ? 'fixture' : 'fixtures';
+        const walks = planned === 1 ? 'walk' : 'walks';
+        throw new Error(
+          `cover.maxPaths (${maxPaths}) cannot accommodate ${stored.length} stored ${fixtures} and ${planned} planned ${walks}.`
+        );
+      }
+      return stored;
+    },
+    onFailure: store.onFailure.bind(store),
+    remove: store.remove?.bind(store)
+  };
 }
 
 /** Whether `logic` is a state machine (duck-typed, as `xstate/graph` does). */
