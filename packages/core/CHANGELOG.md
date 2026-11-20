@@ -1,5 +1,49 @@
 # xstate
 
+## 6.0.0-beta.4
+
+### Patch Changes
+
+- cfc1520: Ignore queued timer notifications from cancelled schedulings when a replacement reuses the same ID. Replacements wait for their own deadlines in native and Effect actors, including restored native timers. Preserve anonymous timer keys when named or built-in timers are also scheduled.
+  
+  Custom timer hosts must preserve the scheduling key's `occurrence` in the firing event. Exclude `occurrence` from logical replacement and cancellation lookup keys.
+  
+  Effect snapshot schemas must preserve the optional `nextTimerOccurrence` metadata.
+- cfc1520: Check ancestor context refinements when a transition targets a descendant, including declared `#id` targets, target arrays, and sibling-relative targets inside a refined parent. Require a compatible context patch when the source does not satisfy those refinements.
+  
+  Preserve literal targets returned by choice functions so unknown static targets are TypeScript errors in `createMachine` and `setup().createMachine`. Computed `string` targets remain supported.
+- c72a899: Fixed eventless (`always`) transition functions being called twice per microstep. The evaluation that selects the transition is now the one that is executed, as for event transitions, so a transition function that returns different results on repeated calls no longer follows a result other than the one it was selected with. This does not cover transition functions that call `enq.spawn`, `enq.listen`, or `enq.subscribeTo`: those are still evaluated again when applied, since the selection-time evaluation aborts before it can produce a result.
+- bcd4510: Document timer persistence with tested examples for preserving deadlines, pausing while offline, and restarting delays. Clarify overdue timer delivery and custom clock limitations.
+- f54b3e2: Fix `snapshot.can()` throwing when a transition calls `enq.spawn()` with a registered actor name.
+- 3f5a26e: Preserve declared emitted-event names and payloads on machine callback `self` arguments, including context initialization and typed child input.
+  
+  ```ts
+  const machine = setup({
+    schemas: {
+      emitted: { progress: types<{ percent: number }>() }
+    }
+  }).createMachine({
+    entry: ({ self }) => {
+      self.on('progress', (event) => {
+        console.log(event.percent); // number
+      });
+      // @ts-expect-error Unknown emitted-event type.
+      self.on('unknown', () => {});
+    }
+  });
+  ```
+- 8231fb3: Evaluate invoke input after applying the context patch returned by the invoking state's entry function. Invoke references remain available during entry for sends, listeners, and subscriptions. Failed entry or invoke input evaluation releases new actor ids and registry keys so the state can be retried.
+  
+  ```ts
+  loading: {
+    entry: () => ({ context: { consent: 'granted' } }),
+    invoke: {
+      src: loadUser,
+      input: ({ context }) => ({ consent: context.consent }) // 'granted'
+    }
+  }
+  ```
+
 ## 6.0.0-beta.3
 
 ### Minor Changes
