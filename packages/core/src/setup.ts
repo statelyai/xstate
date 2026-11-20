@@ -35,6 +35,7 @@ import {
   MachineContext,
   ProvidedActor,
   RoutableStateId,
+  RouteEvent,
   StateSchema,
   StateValue,
   StateValueFromStateSchema,
@@ -5237,10 +5238,7 @@ export interface SetupReturn<
             RoutableStateId<SetupMachineStateSchema<TConfig, TStates>>
           ] extends [never]
             ? never
-            : {
-                type: 'xstate.route';
-                to: RoutableStateId<SetupMachineStateSchema<TConfig, TStates>>;
-              }),
+            : RouteEvent<`${RoutableStateId<SetupMachineStateSchema<TConfig, TStates>>}`>),
         Cast<
           MergeChildren<SetupChildren<TSchemas, TChildrenSchemaMap>, TActor> &
             InferredInvokeChildren<

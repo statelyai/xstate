@@ -3166,7 +3166,17 @@ export type StateIdReference<TSchema extends StateSchema> =
     ? `#${string}`
     : `#${Exclude<StateId<TSchema>, ''> & string}`;
 
-/** @public */
+/** @public An event that navigates to a state with an explicit ID and a route. */
+export type RouteEvent<TTarget extends string = `#${string}`> = {
+  type: 'xstate.route';
+  to: TTarget & `#${string}`;
+};
+
+/**
+ * @public
+ * Use a template literal around this type in inferred machine return types so
+ * declaration emit writes the ID union without repeating the state schema.
+ */
 export type RoutableStateId<TSchema extends StateSchema> =
   | (TSchema extends { route: any; id: string } ? `#${TSchema['id']}` : never)
   | (TSchema['states'] extends Record<string, any>
@@ -3527,7 +3537,16 @@ export type EnqueueObject<
    * timer by its {@link TimerKey} (e.g. an `after` timer by its event).
    */
   cancel: (timer: string | TimerKey) => void;
-  raise: (ev: TEvent, options?: { id?: string; delay?: number }) => void;
+  raise: (
+    ev:
+      | TEvent
+      | (EventObject extends TEvent
+          ? RouteEvent
+          : 'xstate.route' extends TEvent['type']
+            ? never
+            : RouteEvent),
+    options?: { id?: string; delay?: number }
+  ) => void;
   /**
    * Spawns a child actor from a registered source key or logic. Without an
    * explicit `id`, the child gets a deterministic src-keyed id (`worker:0`,
