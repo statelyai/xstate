@@ -387,11 +387,21 @@ class FastCheckAdapter implements TestAdapter<FastCheckGeneratorKind> {
       const runner = request.createRunner();
       const scenario = async () => {
         try {
-          await runner.start();
-          await fc.asyncModelRun(
-            () => ({ model: runner, real: undefined }),
-            generated
-          );
+          await runner.start('live');
+          if (runner.hasSutReceiver()) {
+            for (const command of generated) {
+              await runner.receiveBeforeInput();
+              if (command.check(runner)) {
+                await command.run(runner, undefined);
+              }
+            }
+            await runner.receiveBeforeInput();
+          } else {
+            await fc.asyncModelRun(
+              () => ({ model: runner, real: undefined }),
+              generated
+            );
+          }
           runner.finish();
         } finally {
           await runner.dispose();

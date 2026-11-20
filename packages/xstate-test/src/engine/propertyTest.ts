@@ -7,7 +7,7 @@ import type {
 } from 'xstate';
 import { restoreActor } from 'xstate/persist';
 import { XSTATE_INIT, XSTATE_STOP } from './constants.ts';
-import { createActor } from 'xstate';
+import { createActor, isMachineSnapshot } from 'xstate';
 import { SimulatedClock } from 'xstate';
 import type { InspectionEvent } from 'xstate';
 import {
@@ -51,7 +51,8 @@ import {
   setActiveOutcomeRegistry
 } from './outcomes.ts';
 import { formatTestStatistics } from './report.ts';
-import { createSeededRng, fnv1a } from './utils.ts';
+import { implicitInputTypes, SutReceiver } from './receive.ts';
+import { createSeededRng, fnv1a, getAllOwnEvents } from './utils.ts';
 import type { StatePath } from 'xstate/graph';
 
 export type {
@@ -121,7 +122,7 @@ export type TestCommand<TEvent extends EventObject = EventObject> =
       readonly type: 'event';
       readonly event: TEvent;
       readonly phase: 'prefix' | 'generated';
-      readonly origin: 'frontier' | 'generator' | 'clock';
+      readonly origin: 'frontier' | 'generator' | 'clock' | 'receive';
       readonly caseId?: string;
     }
   | {
@@ -136,6 +137,7 @@ export type TestCommand<TEvent extends EventObject = EventObject> =
       readonly src: string;
       readonly outcome: TestActorOutcome;
     }
+  | { readonly type: 'receive'; readonly reason?: 'limit' }
   | { readonly type: 'stop' };
 
 /**
@@ -277,6 +279,8 @@ export interface TestFixture {
    * ones that never resolved. A replay stubs every one of them.
    */
   readonly stubs?: readonly string[];
+  /** Input types used to distinguish output-only states during live runs. */
+  readonly receiveInputTypes?: readonly string[];
 }
 
 interface LegacyPortablePropertyReplayFixture {
@@ -473,6 +477,10 @@ export interface TestSutSession<
    * option when present.
    */
   readonly states?: TestStateAssertions<TSnapshot, TEvent>;
+  /** Waits for the next SUT output that should advance the model. */
+  readonly receive?: (context: {
+    readonly signal: AbortSignal;
+  }) => TEvent | Promise<TEvent>;
   /** Waits for the system under test to become quiescent before each comparison. */
   readonly settle?: () => void | Promise<void>;
   /**
@@ -830,6 +838,8 @@ export interface TestTrace<
   readonly mode?: TestMode;
   /** Actor outcomes observed during an executed-mode run, in resolution order. */
   readonly outcomes?: readonly TestOutcomeRecord[];
+  /** Input event types used when the live run received SUT outputs. */
+  readonly receiveInputTypes?: readonly string[];
 }
 
 /**
@@ -1495,6 +1505,9 @@ export class PropertyScenarioRunner<
   private finished = false;
   private sutSession: TestSutSession<TSnapshot, TEvent> | undefined;
   private referenceSession: TestReferenceSession<TEvent> | undefined;
+  private receiver?: SutReceiver<TEvent>;
+  private receiveInputs: ReadonlySet<string> = new Set();
+  private derivedInputs: ReadonlySet<string> = new Set();
   private lastObservation: TestObservation | undefined;
   private readonly inconclusiveTemporalIds: string[] = [];
   private generatedCommandCount = 0;
@@ -1624,7 +1637,16 @@ export class PropertyScenarioRunner<
     }));
   }
 
-  public async start(): Promise<void> {
+  /** Supplies the event directions for automatic receive and fixture replay. */
+  public setReceiveInputs(
+    inputTypes: readonly string[],
+    derivedInputs: ReadonlySet<string> = new Set()
+  ): void {
+    this.receiveInputs = new Set(inputTypes);
+    this.derivedInputs = derivedInputs;
+  }
+
+  public async start(receive?: 'live' | 'replay' | 'paths'): Promise<void> {
     resetPropertyTransitionPairs(this.coverage);
     const [initial, effects, selected] = this.startingSnapshot
       ? [this.startingSnapshot, [], []]
@@ -1680,6 +1702,21 @@ export class PropertyScenarioRunner<
     if (this.sut) {
       this.sutSession = await this.sut.create(context);
     }
+    const session = this.sutSession;
+    if (receive === 'paths' && session?.receive) {
+      throw new Error(
+        'SUT receive is supported by propertyTest() and replayTest()'
+      );
+    }
+    if (receive && session?.receive) {
+      if (!isMachineSnapshot(this.snapshot)) {
+        throw new Error('SUT receive requires an XState machine model');
+      }
+      this.receiver = new SutReceiver(session.receive.bind(session));
+      this.receiver.listen();
+    } else if (receive === 'replay') {
+      throw new Error('This replay fixture requires a SUT receive hook');
+    }
     await this.checkStable(
       undefined,
       initialSnapshot,
@@ -1687,11 +1724,123 @@ export class PropertyScenarioRunner<
       initialEffects
     );
     for (const event of this.prefixEvents) {
-      await this.executeEvent(event, 'prefix', 'frontier', true);
+      if (this.receiver && !this.receiveInputs.has(event.type)) {
+        await this.receiveOutput(true, { event }, 'prefix');
+      } else {
+        await this.executeEvent(event, 'prefix', 'frontier', true);
+      }
     }
     if (this.frontierId) {
       incrementCoverage(this.coverage.frontiers, this.frontierId);
     }
+  }
+
+  public hasSutReceiver(): boolean {
+    return this.receiver !== undefined;
+  }
+
+  private expectsSutOutput(): boolean {
+    const snapshot = this.snapshot;
+    if (
+      !this.receiver ||
+      snapshot.status !== 'active' ||
+      !isMachineSnapshot(snapshot)
+    ) {
+      return false;
+    }
+    const types = getAllOwnEvents(snapshot)
+      .map((event) => event.type)
+      .filter((type) => !type.startsWith('xstate.'));
+    return (
+      types.length > 0 &&
+      !types.some(
+        (type) =>
+          this.receiveInputs.has(type) ||
+          (type.endsWith('*') &&
+            [...this.receiveInputs].some((input) =>
+              input.startsWith(type.slice(0, -1))
+            ))
+      )
+    );
+  }
+
+  /** Apply ready SUT outputs before the next input. Wait only in output-only states. */
+  public async receiveBeforeInput(): Promise<void> {
+    if (!this.receiver) return;
+    for (let count = 0; count < 100; count++) {
+      if (!(await this.receiveOutput(this.expectsSutOutput()))) return;
+    }
+    if (this.expectsSutOutput() || (await this.receiver.isReady())) {
+      this.failReceive(
+        new Error('SUT produced 100 outputs without an input'),
+        'limit'
+      );
+    }
+  }
+
+  private failReceive(cause: unknown, reason?: 'limit'): never {
+    this.timeline.push({
+      kind: 'command',
+      index: this.timeline.length,
+      command: { type: 'receive', ...(reason ? { reason } : {}) },
+      previousSnapshot: this.snapshot,
+      snapshot: this.snapshot,
+      effects: [],
+      transitionIds: []
+    });
+    this.fail('SUT receive failed', cause, this.stableStep);
+  }
+
+  private async receiveOutput(
+    wait: boolean,
+    expected?: { readonly event: TEvent; readonly input?: true },
+    phase: 'prefix' | 'generated' = 'generated'
+  ): Promise<boolean> {
+    const receiver = this.receiver;
+    if (!receiver)
+      throw new Error('This replay fixture requires a SUT receive hook');
+    receiver.listen();
+    const result = await receiver.take(wait);
+    if (!result) return false;
+    if (result.type === 'error') this.failReceive(result.cause);
+
+    const { event } = result;
+    if (!event || typeof event !== 'object' || typeof event.type !== 'string') {
+      this.failReceive(
+        new Error('SUT receive must return an event object with a string type')
+      );
+    }
+    // Check conformance before checking whether this replay followed its recorded branch.
+    if (!isMachineSnapshot(this.snapshot) || !this.snapshot.can(event)) {
+      this.timeline.push({
+        kind: 'event',
+        index: this.timeline.length,
+        command: { type: 'event', event, phase, origin: 'receive' },
+        previousSnapshot: this.snapshot,
+        snapshot: this.snapshot,
+        effects: [],
+        transitionIds: [],
+        activeStateIds: this.getActiveStateIds(this.snapshot)
+      });
+      this.fail(
+        `Unexpected SUT output ${formatEventForTrace(event)}`,
+        undefined,
+        this.stableStep
+      );
+    }
+    if (
+      expected &&
+      (expected.input || !defaultEquivalent(expected.event, event))
+    ) {
+      throw new ReplayNotReproducedError(this.stableStep, {
+        expected: expected.event,
+        observed: event,
+        ...(expected.input ? { beforeInput: true } : {})
+      });
+    }
+    receiver.listen();
+    await this.executeEvent(event, phase, 'receive', false);
+    return true;
   }
 
   public canRun(event: TEvent, caseId: string): boolean {
@@ -1703,6 +1852,7 @@ export class PropertyScenarioRunner<
     generated: unknown,
     caseId: string
   ): boolean {
+    if (this.receiver && this.derivedInputs.has(type)) return false;
     return this.canRunResolved(
       this.resolveGeneratedEvent(type, generated, caseId),
       caseId
@@ -1788,6 +1938,13 @@ export class PropertyScenarioRunner<
   public async replay(command: TestCommand<TEvent>): Promise<void> {
     this.assertStarted();
     if (command.type === 'event') {
+      if (command.origin === 'receive') {
+        await this.receiveOutput(true, { event: command.event }, command.phase);
+        return;
+      }
+      if (this.receiver) {
+        await this.receiveOutput(false, { event: command.event, input: true });
+      }
       await this.executeEvent(
         command.event,
         command.phase,
@@ -1818,6 +1975,14 @@ export class PropertyScenarioRunner<
         );
       }
       await this.outcome(command.src, command.outcome);
+    } else if (command.type === 'receive') {
+      if (command.reason === 'limit') {
+        this.failReceive(
+          new Error('SUT produced 100 outputs without an input'),
+          'limit'
+        );
+      }
+      await this.receiveOutput(true);
     } else if (command.type === 'checkpoint') {
       await this.checkpoint(command.label);
     } else {
@@ -2091,6 +2256,7 @@ export class PropertyScenarioRunner<
 
   public async dispose(): Promise<void> {
     const errors: unknown[] = [];
+    this.receiver?.stop();
     if (this.execution) {
       // The trace is built after disposal, so the observed outcomes outlive
       // the engine.
@@ -2170,6 +2336,7 @@ export class PropertyScenarioRunner<
       finalSnapshot: this.snapshot,
       finalObservation: this.lastObservation,
       swarm: this.swarmCaseIds,
+      ...(this.receiver ? { receiveInputTypes: [...this.receiveInputs] } : {}),
       ...(this.execution || this.executionOutcomes
         ? {
             mode: 'executed' as const,
@@ -2183,7 +2350,7 @@ export class PropertyScenarioRunner<
   private async executeEvent(
     event: TEvent,
     phase: 'prefix' | 'generated',
-    origin: 'frontier' | 'generator' | 'clock',
+    origin: 'frontier' | 'generator' | 'clock' | 'receive',
     sendToSut: boolean,
     compare = true,
     caseId?: string
@@ -2488,13 +2655,18 @@ export class PropertyScenarioRunner<
     // effects; there is nothing to compare.
     const comparableSut =
       this.sut?.projectModel && this.sutSession?.read ? this.sut : undefined;
-    if (!this.reference && !comparableSut) {
-      await this.sutSession?.settle?.();
+    await this.sutSession?.settle?.();
+    if (
+      (!this.reference && !comparableSut) ||
+      (this.receiver &&
+        (this.expectsSutOutput() || (await this.receiver.isReady())))
+    ) {
       return undefined;
     }
-    await this.sutSession?.settle?.();
     const referenceRaw = await this.referenceSession?.read();
     const sutRaw = await this.sutSession?.read?.();
+    // The app can publish an output while an asynchronous read is in flight.
+    if (this.receiver && (await this.receiver.isReady())) return undefined;
     const model = this.reference
       ? this.reference.projectModel(this.snapshot)
       : comparableSut!.projectModel!(this.snapshot);
@@ -2715,6 +2887,7 @@ export class PropertyScenarioRunner<
         })),
       failedAt,
       temporalFailure,
+      ...(this.receiver ? { receiveInputTypes: [...this.receiveInputs] } : {}),
       ...(this.swarmCaseIds ? { swarm: this.swarmCaseIds } : {}),
       ...(this.execution
         ? {
@@ -3471,6 +3644,13 @@ export async function propertyTest<
       SnapshotFromSource<TSource>,
       EventFromSource<TSource>
     >((options.events ?? {}) as Readonly<Record<string, unknown>>);
+  const derivedInputs =
+    (options as { [implicitInputTypes]?: ReadonlySet<string> })[
+      implicitInputTypes
+    ] ?? new Set<string>();
+  const receiveInputs = [...new Set(events.map((entry) => entry.type))].filter(
+    (type) => !derivedInputs.has(type)
+  );
   const commands: PropertyGeneratedCommand[] = [];
   for (const type of ['advance', 'checkpoint', 'stop'] as const) {
     const configured = options.commands?.[type];
@@ -3734,18 +3914,22 @@ export async function propertyTest<
             EventFromSource<TSource>
           > => entry.kind === 'event'
         )
-        .map((entry) => entry.command.event);
-      if (!prefixEvents.length) {
+        .map((entry) => entry.command);
+      if (
+        !prefixEvents.length ||
+        prefixEvents.some((entry) => entry.origin === 'receive')
+      ) {
         continue;
       }
-      const key = JSON.stringify(prefixEvents);
+      const prefixInputs = prefixEvents.map((entry) => entry.event);
+      const key = JSON.stringify(prefixInputs);
       if (targetCandidates.some((candidate) => candidate.key === key)) {
         continue;
       }
       targetCandidates.push({
         value: observation.value,
         key,
-        events: prefixEvents,
+        events: prefixInputs,
         state:
           prefix.length > 0
             ? prefix[prefix.length - 1].snapshot
@@ -3827,6 +4011,7 @@ export async function propertyTest<
         if (options.target) {
           runner.setTargetFunction(options.target);
         }
+        runner.setReceiveInputs(receiveInputs, derivedInputs);
         runner.setFormatSnapshot(options.formatSnapshot);
         if (failureSeen) {
           runner.markShrinkRun();
@@ -3946,8 +4131,10 @@ export async function propertyTest<
         } as never);
       } catch (error) {
         if (error instanceof ReplayNotReproducedError) {
-          // The failure is fixed, or the model changed: forget it.
-          await failureStore.remove?.(stored, failureKey!);
+          // A different legal output leaves the original failure untested.
+          if (!error.output) {
+            await failureStore.remove?.(stored, failureKey!);
+          }
           continue;
         }
         if (error instanceof ModelTestFailureError) {
@@ -4234,9 +4421,8 @@ function normalizeFixtureTimeline(
 }
 
 /**
- * Thrown by `replayTest()` when a fixture recorded from a failing run
- * replays without reproducing that failure — the regression is fixed, or the
- * machine no longer behaves the way the fixture recorded.
+ * Thrown by `replayTest()` when the recorded failure does not recur or when
+ * the SUT takes a different legal output branch.
  * @experimental
  */
 export class ReplayNotReproducedError extends Error {
@@ -4244,10 +4430,18 @@ export class ReplayNotReproducedError extends Error {
 
   public constructor(
     /** The step the fixture recorded the failure at. */
-    public readonly step: number
+    public readonly step: number,
+    /** Present when the SUT took a different legal output branch. */
+    public readonly output?: {
+      readonly expected: EventObject;
+      readonly observed: EventObject;
+      readonly beforeInput?: true;
+    }
   ) {
     super(
-      `Property replay did not reproduce the recorded failure at step ${step}`
+      output
+        ? `Property replay diverged at step ${step}: expected ${output.beforeInput ? 'input ' : 'output '}${formatEventForTrace(output.expected)}, observed legal output ${formatEventForTrace(output.observed)}`
+        : `Property replay did not reproduce the recorded failure at step ${step}`
     );
   }
 }
@@ -4401,6 +4595,26 @@ export async function replayTest<TSource extends ActorLogic<any, any, any>>(
       : undefined
   );
   runner.setFormatSnapshot(options.formatSnapshot);
+  const timeline = normalizeFixtureTimeline(fixture);
+  const receivedInputs =
+    fixture.formatVersion === 2 ? fixture.receiveInputTypes : undefined;
+  const hasReceivedOutputs =
+    receivedInputs !== undefined ||
+    timeline.some(
+      ({ command }) =>
+        command.type === 'receive' ||
+        (command.type === 'event' && command.origin === 'receive')
+    );
+  if (hasReceivedOutputs) {
+    runner.setReceiveInputs(
+      receivedInputs ??
+        timeline.flatMap(({ command }) =>
+          command.type === 'event' && command.origin !== 'receive'
+            ? [command.event.type]
+            : []
+        )
+    );
+  }
   const failedAt = fixture.failedAt;
   try {
     // `start()` creates the reference/SUT/test-model sessions one after the
@@ -4408,9 +4622,9 @@ export async function replayTest<TSource extends ActorLogic<any, any, any>>(
     // throws would otherwise leak the sessions created before it. `dispose()`
     // only touches the sessions that exist, so it is safe after a partial
     // start.
-    await runner.start();
+    await runner.start(hasReceivedOutputs ? 'replay' : undefined);
     assertReplayFixtureClockEvents(fixture);
-    for (const entry of normalizeFixtureTimeline(fixture)) {
+    for (const entry of timeline) {
       const command = fromPortableValue(entry.command) as TestCommand<
         EventFromSource<TSource>
       >;
@@ -4666,6 +4880,11 @@ export function formatTestTrace<
             `${step}. outcome ${command.src} ${stringifyForTrace(
               command.outcome
             )} -> ${format(entry.snapshot)}`
+          );
+          break;
+        case 'receive':
+          lines.push(
+            `${step}. SUT receive failed -> ${format(entry.snapshot)}`
           );
           break;
         case 'checkpoint':

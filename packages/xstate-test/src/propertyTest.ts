@@ -1,3 +1,4 @@
+import { implicitInputTypes } from './engine/receive.ts';
 /**
  * `xstate/graph`'s property-testing entry points with the fast-check adapter
  * already applied.
@@ -229,6 +230,7 @@ function resolveOptions(source: unknown, options: object): object {
       ? { maxRuns: adapterOptions.numRuns }
       : {}),
     events: derived ? { ...derived, ...events } : (events ?? {}),
+    ...(derived ? { [implicitInputTypes]: new Set(Object.keys(derived)) } : {}),
     adapter: adapter ?? fastCheckAdapter(adapterOptions),
     ...(failureStore ? { failures: failureStore } : {})
   };
