@@ -1468,9 +1468,21 @@ A sequence must match within one walk, and every walk must end at `toState`
 when supplied.
 
 When `cover` starts from `fromState`, a failure fixture records the model's
-persisted snapshot. Supply `restoreSnapshot` to `replayTest()` to restore that
-snapshot. For a machine, use `restoreActor(machine, snapshot).getSnapshot()`
-with `restoreActor` from `xstate/persist`.
+persisted snapshot. Save `error.fixture` yourself for snapshot-starting runs.
+To replay a fixture generated from the same machine, restore the persisted
+snapshot through `restoreSnapshot`:
+
+```ts
+import type { Snapshot } from 'xstate';
+import { restoreActor } from 'xstate/persist';
+import { replayTest } from '@xstate/test/paths';
+
+await replayTest(machine, fixture, {
+  restoreSnapshot: (snapshot) =>
+    restoreActor(machine, snapshot as Snapshot<unknown>).getSnapshot(),
+  sut
+});
+```
 
 Planning uses user events, including no-ops, in pure mode. The `limit` budget
 applies to both finding and combining walks. If planning fails,
