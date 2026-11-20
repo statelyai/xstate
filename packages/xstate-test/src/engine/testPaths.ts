@@ -1,5 +1,13 @@
-import type { ActorLogic, AnyEventObject, EventObject, Snapshot } from 'xstate';
+import {
+  initialTransition,
+  transition,
+  type ActorLogic,
+  type AnyEventObject,
+  type EventObject,
+  type Snapshot
+} from 'xstate';
 import { XSTATE_INIT } from './constants.ts';
+import { planCoverPaths, type TestCoverOptions } from './coverPaths.ts';
 import { deduplicatePaths } from './deduplicatePaths.ts';
 import {
   deriveCaseSeed,
@@ -19,6 +27,7 @@ import {
   type TestAdapterRequest,
   type TestAdapterResult,
   type TestActorOutcome,
+  type TestFailureStore,
   type TestMode,
   type TestOptions,
   type PropertyGeneratorKind,
@@ -34,12 +43,19 @@ import {
 } from 'xstate/graph';
 import type { PathGenerator, StatePath, TraversalOptions } from 'xstate/graph';
 
+export type { TestCoverOptions, TestCoverStep } from './coverPaths.ts';
+
 /**
  * How `testPaths()` produced the paths it executed.
  *
  * @experimental
  */
-type TestPathGeneratorKind = 'shortest' | 'simple' | 'events' | 'custom';
+type TestPathGeneratorKind =
+  | 'shortest'
+  | 'simple'
+  | 'events'
+  | 'custom'
+  | 'cover';
 
 /**
  * The result of executing one path.
@@ -80,6 +96,8 @@ interface PathOptions<
     | PathGenerator<TSnapshot, TEvent, TInput>;
   /** Executes a single path built from this literal event sequence. */
   readonly fromEvents?: readonly TEvent[];
+  /** Plans walks that cover every named step pattern before executing them. */
+  readonly cover?: TestCoverOptions<TSnapshot, TEvent>;
   /**
    * The most traversal steps path generation takes before it gives up and
    * throws. Defaults to `10_000`. A machine whose context grows without bound
@@ -620,6 +638,17 @@ export async function testPaths<TSource extends ActorLogic<any, any, any>>(
       '`commands` is not supported by path generation; use `propertyTest()`. Paths decide their own `advance` and `outcome` commands from the internal events the traversal took.'
     );
   }
+  if (
+    options.cover &&
+    (options.paths || options.fromEvents || options.pathGenerator)
+  ) {
+    throw new Error(
+      'Use cover on its own, without paths, fromEvents, or pathGenerator.'
+    );
+  }
+  if (options.cover && options.mode === 'executed') {
+    throw new Error('The cover prototype supports pure model traversal.');
+  }
   const samples = options.samples ?? DEFAULT_SAMPLES;
   if (!Number.isInteger(samples) || samples < 1) {
     throw new Error(
@@ -872,7 +901,29 @@ export async function testPaths<TSource extends ActorLogic<any, any, any>>(
 
   let pathGeneratorKind: TestPathGeneratorKind = 'shortest';
   let paths: readonly StatePath<TSnapshot, TEvent>[];
-  if (options.paths) {
+  if (options.cover) {
+    pathGeneratorKind = 'cover';
+    const initial =
+      options.start?.snapshot ??
+      options.fromState ??
+      initialTransition(testLogic, options.input)[0];
+    const names = new Map(
+      cases.map(({ caseId, caseName }) => [caseId, caseName])
+    );
+    paths = planCoverPaths(initial, options.cover, {
+      limit,
+      events: (snapshot) =>
+        traversalEvents(snapshot).filter(
+          (event) => !isInternalEventType(event.type)
+        ),
+      transition: (snapshot, event) =>
+        transition(testLogic, snapshot, event)[0],
+      caseName: (event) => names.get(caseIds.get(event) ?? '') ?? 'default',
+      serializeState: (snapshot) => identity(snapshot, undefined, undefined),
+      stopWhen: options.stopWhen,
+      toState: options.toState
+    });
+  } else if (options.paths) {
     pathGeneratorKind = 'custom';
     paths = options.paths;
   } else if (options.fromEvents) {
@@ -957,6 +1008,7 @@ export async function testPaths<TSource extends ActorLogic<any, any, any>>(
     paths: _paths,
     pathGenerator: _pathGenerator,
     fromEvents: _fromEvents,
+    cover: _cover,
     limit: _limit,
     toState: _toState,
     fromState: _fromState,
@@ -987,12 +1039,28 @@ export async function testPaths<TSource extends ActorLogic<any, any, any>>(
   const runSource =
     mode === 'pure' && outcomeSources.length ? testLogic : source;
 
+  const maxPaths = options.cover?.maxPaths;
+  const failures =
+    shared.failures && maxPaths !== undefined
+      ? limitReplaySessions(shared.failures, maxPaths, paths.length)
+      : shared.failures;
+
   try {
     const { coverage } = await propertyTest(
       runSource as never,
       {
-        ...(shared as object),
+        ...shared,
+        failures,
         adapter,
+        ...(options.cover && options.fromState && !shared.start
+          ? {
+              start: {
+                snapshot: options.fromState,
+                serializeSnapshot: (snapshot: TSnapshot) =>
+                  testLogic.getPersistedSnapshot(snapshot)
+              }
+            }
+          : {}),
         ...(Object.keys(stubs).length ? { outcomes: stubs } : {}),
         events: { ...(configuredEvents ?? {}), ...extraEvents }
       } as never
@@ -1023,6 +1091,31 @@ export async function testPaths<TSource extends ActorLogic<any, any, any>>(
     }
     throw error;
   }
+}
+
+function limitReplaySessions(
+  store: TestFailureStore,
+  maxPaths: number,
+  pathCount: number
+): TestFailureStore {
+  const planned = store.replay === 'only' ? 0 : pathCount;
+  return {
+    key: store.key,
+    replay: store.replay,
+    async load(key) {
+      const stored = await store.load(key);
+      if (stored.length + planned > maxPaths) {
+        const fixtures = stored.length === 1 ? 'fixture' : 'fixtures';
+        const walks = planned === 1 ? 'walk' : 'walks';
+        throw new Error(
+          `cover.maxPaths (${maxPaths}) cannot accommodate ${stored.length} stored ${fixtures} and ${planned} planned ${walks}.`
+        );
+      }
+      return stored;
+    },
+    onFailure: store.onFailure.bind(store),
+    remove: store.remove?.bind(store)
+  };
 }
 
 /** Whether `logic` is a state machine (duck-typed, as `xstate/graph` does). */

@@ -20,6 +20,7 @@ same `ModelTestFailureError`.
 complete worked example.
 
 - [Installation](#installation)
+- [Run tests without fast-check](#run-tests-without-fast-check)
 - [Quick start](#quick-start)
 - [Concepts](#concepts)
 - [How-to guides](#how-to-guides)
@@ -33,14 +34,40 @@ complete worked example.
 pnpm add -D @xstate/test@beta fast-check xstate@beta
 ```
 
-`xstate` and `fast-check` are required peer dependencies. The other peer
-dependencies are optional:
+Install `xstate` and `fast-check` to use the root `@xstate/test` import.
+The [`@xstate/test/paths` entry point](#run-tests-without-fast-check) requires
+only `xstate`. Install the optional peers needed by the integrations you use:
 
 | Package | Needed for |
 | --- | --- |
 | `zod` (v3.25+ or v4) | Deriving event generators from Zod event schemas. |
 | `effect` (v4) | Deriving event generators from Effect Schemas, through `@xstate/test/effect-schema`. |
 | `@playwright/test` or `playwright` (1.40+) | `@xstate/test/playwright`. |
+
+## Run tests without fast-check
+
+<!-- Deterministic exports from src/paths.ts and package.json. -->
+
+Install `@xstate/test@beta` and `xstate@beta`, then import from
+`@xstate/test/paths`. Use `testPaths()` with shortest, simple, or cover
+planning, an explicit event sequence, or paths computed with `xstate/graph`.
+Use `replayTest()` to run a saved fixture.
+
+```ts
+import { testPaths } from '@xstate/test/paths';
+
+await testPaths(cartMachine, {
+  pathGenerator: 'shortest',
+  events: { ADD: () => ({ sku: 'apple' }) },
+  sut: cartSut
+});
+```
+
+Supply payload cases as functions from a seeded random number source, or as
+objects with a `sample(rng)` method. Both forms can also be used in a named
+event case. Provide payloads explicitly when the machine needs them. Use
+`assertTestCoverage()` and `formatTestCoverage()` to check or display
+coverage, and `serializeTestTrace()` to attach a trace to a failure report.
 
 ## Quick start
 
@@ -1444,6 +1471,8 @@ The `invariant`, `temporal`, and `target` functions receive a
 
 ### `testPaths()` options
 
+<!-- Options from PathOptions in src/engine/testPaths.ts -->
+
 In addition to the shared options:
 
 | Option | Default | Description |
@@ -1451,6 +1480,7 @@ In addition to the shared options:
 | `pathGenerator` | `'shortest'` | `'shortest'`, `'simple'`, or a custom `PathGenerator`. |
 | `paths` | none | Runs these paths instead of generating any. |
 | `fromEvents` | none | Runs the single path built from this event sequence. |
+| `cover` | none | Plans walks that collectively cover the named steps or consecutive step sequences before executing them. |
 | `samples` | `3` | Payloads sampled from each event case and outcome generator. An integer of at least `1`. |
 | `seed` | `0` | Sampling seed. Each case samples from its own stream, so adding a case leaves the other cases' payloads unchanged. |
 | `limit` | `10_000` | Traversal steps before path generation throws. A context that grows without bound reaches it; merge states with `serializeState` or prune with `stopWhen`. |
@@ -1459,6 +1489,43 @@ In addition to the shared options:
 | `fromState` | initial state | Starts traversal from this snapshot. |
 | `allowDuplicatePaths` | `false` | Keeps paths that are prefixes of longer paths. |
 | `serializeState`, `serializeEvent` | built in | Identity functions for traversal. |
+
+`cover.requirements` maps a name to a predicate or a nonempty array of
+predicates that must match consecutive steps. Predicates receive the event,
+its case name, the current snapshot, and `snapshots` in chronological order.
+By default the window contains the previous and current snapshots. Set
+`snapshotWindow` to look further back. The current snapshot is always
+`snapshots.at(-1)`.
+
+The experimental planner prefers fewer walks, then fewer total events. Each
+walk starts a fresh SUT session and contains at most `maxStepsPerPath` events
+(20 by default). Set `cover.maxPaths` to cap fresh SUT sessions. Stored fixture
+replays count toward the cap when enabled. If the stored fixtures and planned
+walks would exceed the cap, the run fails before creating a session.
+A sequence must match within one walk, and every walk must end at `toState`
+when supplied.
+
+When `cover` starts from `fromState`, a failure fixture records the model's
+persisted snapshot. Save `error.fixture` yourself for snapshot-starting runs.
+To replay a fixture generated from the same machine, restore the persisted
+snapshot through `restoreSnapshot`:
+
+```ts
+import type { Snapshot } from 'xstate';
+import { restoreActor } from 'xstate/persist';
+import { replayTest } from '@xstate/test/paths';
+
+await replayTest(machine, fixture, {
+  restoreSnapshot: (snapshot) =>
+    restoreActor(machine, snapshot as Snapshot<unknown>).getSnapshot(),
+  sut
+});
+```
+
+Planning uses user events, including no-ops, in pure mode. The `limit` budget
+applies to both finding and combining walks. If planning fails,
+`testPaths()` reports the reason and any missing requirements before creating
+SUT sessions.
 
 `testPaths()` rejects `commands`. It resolves with `results`, one
 `{ path, passed, error }` per path, and sets `coverage.exploration.strategy`

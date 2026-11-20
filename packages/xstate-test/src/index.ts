@@ -44,6 +44,8 @@ export {
   type TestActorOutcome,
   type TestAdapter,
   type TestCommand,
+  type TestCoverOptions,
+  type TestCoverStep,
   type TestCoverage,
   type TestCoverageDimension,
   type TestCoverageJSON,
