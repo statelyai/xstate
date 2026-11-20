@@ -1715,6 +1715,12 @@ Each run:
 3. `runner.finish()`.
 4. `await runner.dispose()`, always.
 
+To support `receive()`, call `runner.start('live')`. Call
+`runner.receiveBeforeInput()` before checking a generated input and before
+finishing the run. If runtime commands can release a pending output, pass
+`false` to receive only ready outputs before processing those commands.
+Use the default at the end of the sequence to wait for a required response.
+
 `run()` resolves with `{ runs, exploration, error?, replay? }`.
 `exploration` has `configuredRuns`, `maximumSequenceLength`, and optionally
 `engine`, `seed`, `path`, `truncated`, and `truncationReasons`.

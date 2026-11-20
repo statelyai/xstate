@@ -1,5 +1,6 @@
 import { constant } from 'fast-check';
 import { createMachine, types } from 'xstate';
+import { getPathsFromEvents } from 'xstate/graph';
 import { z } from 'zod';
 import {
   ModelTestFailureError,
@@ -331,4 +332,155 @@ it('aborts a timed-out receive and records a retryable receive step', async () =
     })
   });
   expect(receiveSignal?.aborted).toBe(true);
+});
+
+it.each(['HEADS', 'BANANA'] as const)(
+  'checks %s when it is ready after the last recorded input',
+  async (output) => {
+    const fixture: TestFixture = {
+      formatVersion: 2,
+      start: { type: 'input', input: undefined },
+      receiveInputTypes: ['FLIP'],
+      timeline: [
+        {
+          kind: 'event',
+          command: {
+            type: 'event',
+            event: { type: 'FLIP' },
+            phase: 'generated',
+            origin: 'generator'
+          }
+        }
+      ]
+    };
+    await expect(
+      replayTest(coin, fixture, {
+        expect: 'pass',
+        sut: coinSut(output, [])
+      })
+    ).rejects.toMatchObject({
+      name:
+        output === 'HEADS'
+          ? 'ReplayNotReproducedError'
+          : 'ModelTestFailureError',
+      message: expect.stringContaining(output)
+    });
+  }
+);
+
+it('abandons a frontier overtaken by a legal output', async () => {
+  const sent: string[] = [];
+  await propertyTest(job, {
+    events: { START: constant({}), CANCEL: constant({}) },
+    frontiers: getPathsFromEvents(job, [{ type: 'START' }, { type: 'CANCEL' }]),
+    numRuns: 1,
+    sut: jobSut('START', sent)
+  });
+  expect(sent).toEqual(['START']);
+});
+
+it('runs generated clock commands before waiting for outputs they release', async () => {
+  const sut = {
+    create() {
+      let started = false;
+      let publish: (() => void) | undefined;
+      return {
+        send: () => {
+          started = true;
+        },
+        advance: () => {
+          if (started) {
+            started = false;
+            publish?.();
+          }
+          return [];
+        },
+        receive: () =>
+          new Promise<{ type: 'HEADS' }>((resolve) => {
+            publish = () => resolve({ type: 'HEADS' });
+          })
+      };
+    }
+  };
+  const { coverage } = await propertyTest(coin, {
+    seed: 3,
+    numRuns: 1,
+    maxCommands: 30,
+    events: {
+      FLIP: {
+        generate: constant({}),
+        when: ({ snapshot }) => snapshot.matches('ready')
+      },
+      CLAIM_PRIZE: { generate: constant({}), when: () => false }
+    },
+    commands: { advance: constant(1_000) },
+    sut
+  });
+  expect(coverage.eventTypes.covered).toContain('HEADS');
+
+  const fixture: TestFixture = {
+    formatVersion: 2,
+    start: { type: 'input', input: undefined },
+    receiveInputTypes: ['FLIP', 'CLAIM_PRIZE'],
+    timeline: [
+      {
+        kind: 'event',
+        command: {
+          type: 'event',
+          event: { type: 'FLIP' },
+          phase: 'generated',
+          origin: 'generator'
+        }
+      },
+      {
+        kind: 'command',
+        command: { type: 'advance', milliseconds: 1000, deliveredEvents: [] }
+      },
+      {
+        kind: 'event',
+        command: {
+          type: 'event',
+          event: { type: 'HEADS' },
+          phase: 'generated',
+          origin: 'receive'
+        }
+      }
+    ]
+  };
+  const trace = await replayTest(coin, fixture, { sut, expect: 'pass' });
+  expect(trace.finalSnapshot.value).toBe('heads');
+});
+
+it('does not reproduce an output limit after the SUT removes the excess output', async () => {
+  const flow = createMachine({ on: { STOP: () => ({}), TICK: () => ({}) } });
+  const fixture: TestFixture = {
+    formatVersion: 2,
+    start: { type: 'input', input: undefined },
+    receiveInputTypes: ['STOP'],
+    timeline: [
+      ...Array.from({ length: 100 }, () => ({
+        kind: 'event' as const,
+        command: {
+          type: 'event' as const,
+          event: { type: 'TICK' },
+          phase: 'generated' as const,
+          origin: 'receive' as const
+        }
+      })),
+      { kind: 'command', command: { type: 'receive', reason: 'limit' } }
+    ]
+  };
+  const sut = (count: number) => ({
+    create: () => ({
+      send: () => {},
+      receive: () =>
+        count-- > 0 ? { type: 'TICK' } : new Promise<never>(() => {})
+    })
+  });
+  await expect(replayTest(flow, fixture, { sut: sut(101) })).rejects.toThrow(
+    '100 outputs'
+  );
+  await expect(
+    replayTest(flow, fixture, { sut: sut(100) })
+  ).rejects.toBeInstanceOf(ReplayNotReproducedError);
 });

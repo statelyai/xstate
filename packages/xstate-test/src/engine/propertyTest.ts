@@ -137,7 +137,12 @@ export type TestCommand<TEvent extends EventObject = EventObject> =
       readonly src: string;
       readonly outcome: TestActorOutcome;
     }
-  | { readonly type: 'receive'; readonly reason?: 'limit' }
+  | { readonly type: 'receive' }
+  | {
+      readonly type: 'receive';
+      readonly reason: 'limit';
+      readonly wait?: false;
+    }
   | { readonly type: 'stop' };
 
 /**
@@ -1727,6 +1732,12 @@ export class PropertyScenarioRunner<
       if (this.receiver && !this.receiveInputs.has(event.type)) {
         await this.receiveOutput(true, { event }, 'prefix');
       } else {
+        if (
+          this.receiver &&
+          (await this.receiveOutput(false, undefined, 'prefix'))
+        ) {
+          return;
+        }
         await this.executeEvent(event, 'prefix', 'frontier', true);
       }
     }
@@ -1764,25 +1775,46 @@ export class PropertyScenarioRunner<
     );
   }
 
-  /** Apply ready SUT outputs before the next input. Wait only in output-only states. */
-  public async receiveBeforeInput(): Promise<void> {
+  /** Applies ready outputs and optionally waits in output-only states. */
+  public async receiveBeforeInput(waitForOutput = true): Promise<void> {
     if (!this.receiver) return;
     for (let count = 0; count < 100; count++) {
-      if (!(await this.receiveOutput(this.expectsSutOutput()))) return;
+      if (!(await this.receiveOutput(waitForOutput && this.expectsSutOutput())))
+        return;
     }
-    if (this.expectsSutOutput() || (await this.receiver.isReady())) {
-      this.failReceive(
-        new Error('SUT produced 100 outputs without an input'),
-        'limit'
-      );
+    await this.checkReceiveLimit(waitForOutput);
+  }
+
+  /** Checks for unrecorded outputs at the end of an exact replay. */
+  public async checkReplayOutputs(): Promise<void> {
+    if (this.receiver) {
+      await this.receiveOutput(false, { atEnd: true });
     }
   }
 
-  private failReceive(cause: unknown, reason?: 'limit'): never {
+  private async checkReceiveLimit(waitForOutput: boolean): Promise<void> {
+    if (
+      (waitForOutput && this.expectsSutOutput()) ||
+      (await this.receiver?.isReady())
+    ) {
+      this.failReceive(new Error('SUT produced 100 outputs without an input'), {
+        type: 'receive',
+        reason: 'limit',
+        ...(waitForOutput ? {} : { wait: false })
+      });
+    }
+  }
+
+  private failReceive(
+    cause: unknown,
+    command: Extract<TestCommand<TEvent>, { type: 'receive' }> = {
+      type: 'receive'
+    }
+  ): never {
     this.timeline.push({
       kind: 'command',
       index: this.timeline.length,
-      command: { type: 'receive', ...(reason ? { reason } : {}) },
+      command,
       previousSnapshot: this.snapshot,
       snapshot: this.snapshot,
       effects: [],
@@ -1793,7 +1825,9 @@ export class PropertyScenarioRunner<
 
   private async receiveOutput(
     wait: boolean,
-    expected?: { readonly event: TEvent; readonly input?: true },
+    expected?:
+      | { readonly event: TEvent; readonly input?: true }
+      | { readonly atEnd: true },
     phase: 'prefix' | 'generated' = 'generated'
   ): Promise<boolean> {
     const receiver = this.receiver;
@@ -1828,15 +1862,19 @@ export class PropertyScenarioRunner<
         this.stableStep
       );
     }
-    if (
-      expected &&
-      (expected.input || !defaultEquivalent(expected.event, event))
-    ) {
-      throw new ReplayNotReproducedError(this.stableStep, {
-        expected: expected.event,
-        observed: event,
-        ...(expected.input ? { beforeInput: true } : {})
-      });
+    if (expected) {
+      if ('atEnd' in expected) {
+        throw new ReplayNotReproducedError(this.stableStep, {
+          observed: event
+        });
+      }
+      if (expected.input || !defaultEquivalent(expected.event, event)) {
+        throw new ReplayNotReproducedError(this.stableStep, {
+          expected: expected.event,
+          observed: event,
+          ...(expected.input ? { beforeInput: true } : {})
+        });
+      }
     }
     receiver.listen();
     await this.executeEvent(event, phase, 'receive', false);
@@ -1852,7 +1890,12 @@ export class PropertyScenarioRunner<
     generated: unknown,
     caseId: string
   ): boolean {
-    if (this.receiver && this.derivedInputs.has(type)) return false;
+    if (
+      this.receiver &&
+      (this.derivedInputs.has(type) || this.expectsSutOutput())
+    ) {
+      return false;
+    }
     return this.canRunResolved(
       this.resolveGeneratedEvent(type, generated, caseId),
       caseId
@@ -1942,7 +1985,7 @@ export class PropertyScenarioRunner<
         await this.receiveOutput(true, { event: command.event }, command.phase);
         return;
       }
-      if (this.receiver) {
+      if (this.receiver && command.origin !== 'clock') {
         await this.receiveOutput(false, { event: command.event, input: true });
       }
       await this.executeEvent(
@@ -1957,6 +2000,9 @@ export class PropertyScenarioRunner<
       if (this.execution) {
         await this.advanceExecuted(command.milliseconds);
         return;
+      }
+      if (this.receiver) {
+        await this.sutSession?.advance?.(command.milliseconds);
       }
       this.coverage.clockAdvances++;
       this.timeline.push({
@@ -1976,13 +2022,11 @@ export class PropertyScenarioRunner<
       }
       await this.outcome(command.src, command.outcome);
     } else if (command.type === 'receive') {
-      if (command.reason === 'limit') {
-        this.failReceive(
-          new Error('SUT produced 100 outputs without an input'),
-          'limit'
-        );
+      if ('reason' in command) {
+        await this.checkReceiveLimit(command.wait !== false);
+      } else {
+        await this.receiveOutput(true);
       }
-      await this.receiveOutput(true);
     } else if (command.type === 'checkpoint') {
       await this.checkpoint(command.label);
     } else {
@@ -4433,14 +4477,17 @@ export class ReplayNotReproducedError extends Error {
     public readonly step: number,
     /** Present when the SUT took a different legal output branch. */
     public readonly output?: {
-      readonly expected: EventObject;
+      readonly expected?: EventObject;
       readonly observed: EventObject;
       readonly beforeInput?: true;
     }
   ) {
+    const expected = output?.expected
+      ? `${output.beforeInput ? 'input' : 'output'} ${formatEventForTrace(output.expected)}`
+      : 'end of fixture';
     super(
       output
-        ? `Property replay diverged at step ${step}: expected ${output.beforeInput ? 'input ' : 'output '}${formatEventForTrace(output.expected)}, observed legal output ${formatEventForTrace(output.observed)}`
+        ? `Property replay diverged at step ${step}: expected ${expected}, observed legal output ${formatEventForTrace(output.observed)}`
         : `Property replay did not reproduce the recorded failure at step ${step}`
     );
   }
@@ -4635,6 +4682,7 @@ export async function replayTest<TSource extends ActorLogic<any, any, any>>(
         break;
       }
     }
+    await runner.checkReplayOutputs();
     runner.finish();
     if (options.expect === 'pass') {
       return runner.getTrace();
