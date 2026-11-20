@@ -182,6 +182,12 @@ Set `cover.maxPaths` if your test environment has a fixed session budget. If
 planning fails, the SUT does not start. See the [coverage planning
 options](https://github.com/statelyai/xstate/tree/next/packages/xstate-test#testpaths-options).
 
+For deterministic tests without fast-check, import `testPaths()` and
+`replayTest()` from `@xstate/test/paths`. The same entry point accepts
+precomputed paths. Supply event payloads as functions such as
+`ADD: () => ({ sku: 'apple' })`. See
+[Run tests without fast-check](https://github.com/statelyai/xstate/tree/next/packages/xstate-test#run-tests-without-fast-check).
+
 ### Generate paths without running them
 
 `xstate/graph` generates paths and does not run them. `getShortestPaths(logic, options)`, `getSimplePaths(logic, options)`, and `getPathsFromEvents(logic, events, options)` return `{ state, steps, weight }` objects. Pass any of them to `testPaths()` to run them against the implementation:

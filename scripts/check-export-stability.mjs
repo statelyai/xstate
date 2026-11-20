@@ -29,6 +29,7 @@ const entries = [
   .concat(
     [
       'index.ts',
+      'paths.ts',
       'schema.ts',
       'vitest.ts',
       'playwright.ts',

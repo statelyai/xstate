@@ -20,6 +20,7 @@ same `ModelTestFailureError`.
 complete worked example.
 
 - [Installation](#installation)
+- [Run tests without fast-check](#run-tests-without-fast-check)
 - [Quick start](#quick-start)
 - [Concepts](#concepts)
 - [How-to guides](#how-to-guides)
@@ -33,14 +34,40 @@ complete worked example.
 pnpm add -D @xstate/test@beta fast-check xstate@beta
 ```
 
-`xstate` and `fast-check` are required peer dependencies. The other peer
-dependencies are optional:
+Install `xstate` and `fast-check` to use the root `@xstate/test` import.
+The [`@xstate/test/paths` entry point](#run-tests-without-fast-check) requires
+only `xstate`. Install the optional peers needed by the integrations you use:
 
 | Package | Needed for |
 | --- | --- |
 | `zod` (v3.25+ or v4) | Deriving event generators from Zod event schemas. |
 | `effect` (v4) | Deriving event generators from Effect Schemas, through `@xstate/test/effect-schema`. |
 | `@playwright/test` or `playwright` (1.40+) | `@xstate/test/playwright`. |
+
+## Run tests without fast-check
+
+<!-- Deterministic exports from src/paths.ts and package.json. -->
+
+Install `@xstate/test@beta` and `xstate@beta`, then import from
+`@xstate/test/paths`. Use `testPaths()` with shortest, simple, or cover
+planning, an explicit event sequence, or paths computed with `xstate/graph`.
+Use `replayTest()` to run a saved fixture.
+
+```ts
+import { testPaths } from '@xstate/test/paths';
+
+await testPaths(cartMachine, {
+  pathGenerator: 'shortest',
+  events: { ADD: () => ({ sku: 'apple' }) },
+  sut: cartSut
+});
+```
+
+Supply payload cases as functions from a seeded random number source, or as
+objects with a `sample(rng)` method. Both forms can also be used in a named
+event case. Provide payloads explicitly when the machine needs them. Use
+`assertTestCoverage()` and `formatTestCoverage()` to check or display
+coverage, and `serializeTestTrace()` to attach a trace to a failure report.
 
 ## Quick start
 
