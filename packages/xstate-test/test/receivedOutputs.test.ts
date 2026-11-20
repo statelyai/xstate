@@ -1,5 +1,5 @@
 import { constant } from 'fast-check';
-import { createMachine, types } from 'xstate';
+import { createMachine, types, type EventFromLogic } from 'xstate';
 import { getPathsFromEvents } from 'xstate/graph';
 import { z } from 'zod';
 import {
@@ -370,9 +370,13 @@ it.each(['HEADS', 'BANANA'] as const)(
 
 it('abandons a frontier overtaken by a legal output', async () => {
   const sent: string[] = [];
+  const prefix: EventFromLogic<typeof job>[] = [
+    { type: 'START' },
+    { type: 'CANCEL' }
+  ];
   await propertyTest(job, {
     events: { START: constant({}), CANCEL: constant({}) },
-    frontiers: getPathsFromEvents(job, [{ type: 'START' }, { type: 'CANCEL' }]),
+    frontiers: getPathsFromEvents(job, prefix),
     numRuns: 1,
     sut: jobSut('START', sent)
   });
