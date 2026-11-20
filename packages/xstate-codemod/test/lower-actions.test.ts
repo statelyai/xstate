@@ -477,37 +477,97 @@ const m = createMachine({ on: { GO: { target: '.a' } } }, impls);`;
       expect(notes.join('\n')).toContain('not an object literal');
     });
 
-    it('rewrites named assign actions to patch functions and their call sites', () => {
+    it('inlines named assignments and threads context through their call sites', () => {
       const { output } = lower(`import { setup, assign } from 'xstate';
 const m = setup({
-  actions: {
-    inc: assign({ n: ({ context }) => context.n + 1, label: 'x' }),
-    set: assign(({ event }, params) => ({ n: params.n ?? event.n })),
-    mixed: assign({ n: (_, params) => params.n })
-  }
+  actions: { inc: assign({ n: ({ context }) => context.n + 1, label: 'x' }) }
 }).createMachine({
   context: { n: 0 },
-  on: { GO: { actions: ['inc', { type: 'set', params: { n: 2 } }] } }
+  on: { GO: { actions: ['inc', 'inc'] } }
 });`);
+      expect(output).not.toContain('inc:');
+      expect(output).not.toContain('args.actions.inc');
       expect(output).toContain(
-        `inc: ({ context }) => ({ n: context.n + 1, label: 'x' }),`
+        `patch = { ...patch, n: context.n + 1, label: 'x' };`
       );
-      expect(output).toContain(
-        `set: ({ event }, params) => ({ n: params.n ?? event.n }),`
-      );
-      expect(output).toContain(
-        `mixed: (args, params) => ({ n: ((_, params) => params.n)(args, params) })`
-      );
-      expect(output).toContain(`GO: (args) => {
-    let context = args.context;
-    let patch = {};
-    patch = { ...patch, ...args.actions.inc(args) };
-    context = { ...args.context, ...patch };
-    patch = { ...patch, ...args.actions.set({ ...args, context }, { n: 2 }) };
-    context = { ...args.context, ...patch };
-    return { context: patch };
-  }`);
+      expect(output).toContain('context = { ...args.context, ...patch };');
+      expect(output).toContain('return { context: patch };');
       expect(output).toContain(`import { setup } from 'xstate';`);
+    });
+
+    it('reports a named reset that would read the generated context', () => {
+      const { output, notes } = lower(`import { setup, assign } from 'xstate';
+const context = { count: 0 };
+const m = setup({ actions: { reset: assign(context) } }).createMachine({
+  context: { count: 9 },
+  on: { GO: { actions: ['reset', 'reset'] } }
+});`);
+      expect(notes.join('\n')).toContain("references outer 'context'");
+      expect(output).toContain('reset: assign(context)');
+      expect(output).toContain("actions: ['reset', 'reset']");
+    });
+
+    it('reports static values captured when a named assignment is created', () => {
+      const { output, notes } = lower(`import { setup, assign } from 'xstate';
+const defaults = { count: 1 };
+const m = setup({ actions: {
+  reset: assign({ count: defaults.count })
+} }).createMachine({
+  context: { count: 9 },
+  on: { GO: { actions: 'reset' } }
+});
+defaults.count = 2;`);
+      expect(notes.join('\n')).toContain(
+        'captures a construction-time value and needs manual migration'
+      );
+      expect(output).toContain('reset: assign({ count: defaults.count })');
+      expect(output).toContain("actions: 'reset'");
+    });
+
+    it.each([
+      {
+        actions: `enqueueActions(({ enqueue }) => {
+          const increment = 100;
+          enqueue('inc');
+        })`,
+        extra: ''
+      },
+      {
+        actions: `enqueueActions(({ enqueue }) => {
+          const increment = 100;
+          enqueue('batch');
+        })`,
+        extra: `batch: enqueueActions(({ enqueue }) => { enqueue('inc'); }),`
+      }
+    ])(
+      'reports a named assignment with a shadowed call-site binding',
+      ({ actions, extra }) => {
+        const { output, notes } =
+          lower(`import { setup, assign, enqueueActions } from 'xstate';
+const increment = 1;
+const m = setup({ actions: {
+  ${extra}
+  inc: assign({ count: ({ context }) => context.count + increment })
+} }).createMachine({
+  context: { count: 0 },
+  on: { GO: { actions: ${actions} } }
+});`);
+        expect(notes.join('\n')).toContain(
+          "'inc' would read a different 'increment'"
+        );
+        expect(output).toContain('inc: assign(');
+        expect(output).toContain('actions: enqueueActions(');
+      }
+    );
+
+    it('leaves named assignments with params for manual migration', () => {
+      const { output, notes } = lower(`import { setup, assign } from 'xstate';
+const m = setup({ actions: {
+  set: assign(({ event }, params) => ({ n: params.n ?? event.n }))
+} }).createMachine({ on: { GO: { actions: { type: 'set', params: { n: 2 } } } } });`);
+      expect(output).toContain('set: assign(');
+      expect(output).toContain("actions: { type: 'set', params: { n: 2 } }");
+      expect(notes.join('\n')).toContain('needs manual migration');
     });
 
     it('resolves shorthand implementations declared in the file', () => {
@@ -916,19 +976,21 @@ const m = setup({ actions: { reset: assign(initial) } }).createMachine({
   on: { GO: { actions: assign(initial) }, R: { actions: 'reset' } }
 });`);
       expect(output).toContain('return { context: initial };');
-      expect(output).toContain('reset: () => initial');
-      expect(output).toContain('return { context: args.actions.reset(args) };');
+      expect(output).not.toContain('reset:');
+      expect(output).not.toContain('args.actions.reset');
     });
 
-    it('treats a named action bound to a const assign like a named assign', () => {
+    it('leaves shared const assignments for manual migration', () => {
       const { output } = lower(`import { setup, assign } from 'xstate';
 const init = assign(({ event }) => ({ n: event.n }));
 const m = setup({ actions: { init, again: init as any } }).createMachine({
   on: { GO: { actions: 'init' } }
 });`);
-      expect(output).toContain('const init = ({ event }) => ({ n: event.n });');
-      expect(output).toContain('return { context: args.actions.init(args) };');
-      expect(output).toContain("import { setup } from 'xstate';");
+      expect(output).toContain(
+        'const init = assign(({ event }) => ({ n: event.n }));'
+      );
+      expect(output).toContain("GO: { actions: 'init' }");
+      expect(output).toContain("import { setup, assign } from 'xstate';");
     });
   });
 
@@ -1000,7 +1062,8 @@ const m = setup({ actions: { inc: assign({ n: 1 }), other: assign({ n: 2 }) } })
 export const custom = m.provide({ actions: { inc: assign({ n: 5 }) } });`);
       expect(output).toContain('inc: assign({ n: 1 })');
       expect(output).toContain("GO: { actions: 'inc' }");
-      expect(output).toContain('other: () => ({ n: 2 })');
+      expect(output).not.toContain('other:');
+      expect(output).toContain('return { context: { n: 2 } };');
       expect(notes.join('\n')).toContain("'inc' is overridden through provide");
     });
   });

@@ -24,7 +24,7 @@ This guide is organized by area. Skim the **Quick reference** below and read [§
 | `stopChild(idOrRef)`                                    | `enq.stop(ref)`                                                                                                                     |
 | `enqueueActions(({ enqueue }) => {...})`                | regular inline `(args, enq) => { ... }` function                                                                                    |
 | `and([...])`, `or([...])`, `not(...)`                   | plain JS `&&`, `\|\|`, `!` inside the guard/inline fn                                                                               |
-| `stateIn('foo')`, `stateIn('#id')`                      | `self.getSnapshot().matches('foo')`, `self.getSnapshot().matches('#id')`                                                            |
+| `stateIn('foo')`, `stateIn('#id')`                      | `matchesState('foo', value)`; for an id, use the state's full path in `value`                                                            |
 | `interpret(machine)`, `Interpreter`                     | `createActor(machine)` (already in v5; legacy alias gone)                                                                           |
 | `fromPromise(async ({ input }) => ...)`                 | `createAsyncLogic({ run: async ({ input }, enq) => ... })`                                                                          |
 | `fromCallback(cb)`                                      | `createCallbackLogic(cb)` (same signature, renamed)                                                                                 |
@@ -336,16 +336,19 @@ on: {
 
 ```ts
 // v6
+import { matchesState } from 'xstate';
 on: {
-  EV: ({ context, self }) => {
-    if (context.isAdmin && !self.getSnapshot().matches('blocked')) {
+  EV: ({ context, value }) => {
+    if (context.isAdmin && !matchesState('blocked', value)) {
       return { target: 'next' };
     }
   };
 }
 ```
 
-`matches(...)` accepts a state-path string (e.g. `'parent.child'`), a nested state-value object, or a state id prefixed with `#` (e.g. `'#blocked'`), which is true while the state node with that id is active.
+`matchesState(pattern, value)` checks the transition's current state value. `pattern` accepts a state path such as `'parent.child'` or a nested state-value object. It does not resolve `#id`: replace an id with the state's full path or state-value pattern. For example, a state with `id: 'blocked'` nested under `security` is checked with `matchesState({ security: 'blocked' }, value)`.
+
+Use `value` when migrating v5 `stateIn`, including checks on raised events and eventless transitions. `self.getSnapshot()` reads the snapshot committed before the current event, so `self.getSnapshot().matches(...)` can miss earlier transitions within that event. See [checking other states](guards.md#checking-other-states).
 
 Named `guards` on `setup` or `createMachine` are available as typed functions
 in transition (and `choice`) function args:
@@ -1638,7 +1641,7 @@ It runs these transforms in order. `--transform name,name` selects a subset.
 | `rename-imports`      | Renames `interpret` to `createActor`, `Interpreter` to `Actor`, and `fromCallback`, `fromObservable`, and `fromEventObservable` to their `create*Logic` names, and the executable action types to their executable effect names, including usages. Import aliases are kept.                                                                  |
 | `string-targets`      | Wraps bare string transition values under `on`, `after`, `onDone`, `onError`, and `always` in `{ target: '...' }` inside `createMachine`, `createStateConfig`, and `createFSM` configs.                                                                                                   |
 | `types-to-schemas`    | Converts `types: {} as { ... }` and the per-key form `types: { context: {} as C, events: {} as E }` to `schemas` with `types<T>()` entries. Events become a map when they are written as a union of object literals with a string-literal `type`, inline or through type aliases declared in the same file. Other event types become `events: types<E>()`, which loads but does not type-check as a v6 event map, so the entry is reported as a manual site to rewrite as a map by hand. A `types` value in any other shape, such as a variable, is reported as a manual site. |
-| `lower-actions`       | Rewrites transition objects that have `actions` or `guard`, and transition arrays, as one transition function `(args, enq) => { ... }`; non-function `entry` and `exit` values as one function; and the action creators and guard combinators inside them (`assign`, `enqueueActions`, `raise`, `sendTo`, `sendParent`, `forwardTo`, `emit`, `log`, `cancel`, `stopChild`, `spawnChild`, `and`, `or`, `not`, `stateIn`) as `enq` calls, context patches and boolean expressions, following named implementations and module-level constants defined in the same file. Named actions and guards keep their v5 signatures; the generated code calls them as `enq(args.actions.name, args, params)` and `args.guards.name(args, params)`. A named `assign` action becomes a function that returns a context patch. Moves an object-literal second `createMachine` argument into the config, and rewrites `fromPromise(fn)` as `createAsyncLogic({ run: fn })` when `fn` does not read `system` or `emit`. Removes the `'xstate'` imports it leaves unused. A transition, `entry`, or `exit` value that contains anything it cannot rewrite, such as an `enqueueActions` callback that passes `enqueue` as a value or returns early, a guard or action defined in another file, or a named `assign` that `provide()` overrides, is left unchanged and reported by the transforms below. |
+| `lower-actions`       | Rewrites transition objects that have `actions` or `guard`, and transition arrays, as one transition function `(args, enq) => { ... }`; non-function `entry` and `exit` values as one function; and the action creators and guard combinators inside them (`assign`, `enqueueActions`, `raise`, `sendTo`, `sendParent`, `forwardTo`, `emit`, `log`, `cancel`, `stopChild`, `spawnChild`, `and`, `or`, `not`, `stateIn`) as `enq` calls, context patches and boolean expressions, following named implementations and module-level constants defined in the same file. Named actions and guards keep their v5 signatures; the generated code calls them as `enq(args.actions.name, args, params)` and `args.guards.name(args, params)`. A supported named `assign` is inlined as a context patch at each call site, and its unused definition is removed. Unsupported named assignments remain unchanged and require manual migration. Moves an object-literal second `createMachine` argument into the config, and rewrites `fromPromise(fn)` as `createAsyncLogic({ run: fn })` when `fn` does not read `system` or `emit`. Removes the `'xstate'` imports it leaves unused. A transition, `entry`, or `exit` value that contains anything it cannot rewrite, such as an `enqueueActions` callback that passes `enqueue` as a value or returns early, a guard or action defined in another file, or a named `assign` that `provide()` overrides, is left unchanged and reported by the transforms below. |
 | `report-removed-apis` | Reports, without rewriting, uses of `assign`, `raise`, `sendTo`, `sendParent`, `forwardTo`, `emit`, `log`, `cancel`, `spawnChild`, `stop`, `stopChild`, `enqueueActions`, `and`, `or`, `not`, `stateIn`, `fromPromise`, `fromTransition`, `toObserver`, `pathToStateValue`, and `SpecialTargets`, with a suggested replacement. |
 | `report-id-path-targets` | Reports, without rewriting, `#a.b` targets and `matches('#a.b')` or `stateIn('#a.b')` arguments that are not whole state ids of the machine config that contains them. References outside a `createMachine` or `createStateConfig` config are always reported. v6 resolves `#` targets by exact id only. |
 | `suffixed-lifecycle-events` | Rewrites `on` keys that use suffixed v5 lifecycle event types to the category type with `matches`: `'xstate.done.actor.job': { target: 'done' }` becomes `'xstate.done.actor': { matches: { actorId: 'job' }, target: 'done' }`, and the same for `xstate.error.actor.<id>`, `xstate.snapshot.<id>` and `xstate.done.state.<id>` (with `stateId`). A function transition moves under `to`. Reports `xstate.after.<delay>.<id>` keys, keys whose category type is already handled in the same `on`, transitions that are not object or function literals, and suffixed type strings elsewhere in the file, such as `event.type === 'xstate.done.actor.job'`. See [Internal lifecycle events](#internal-lifecycle-events). |
@@ -1648,7 +1651,7 @@ It runs these transforms in order. `--transform name,name` selects a subset.
 
 `string-targets` wraps string elements inside transition arrays but keeps the arrays. `lower-actions` rewrites a transition array as one function when any element has `actions` or `guard`; `report-action-shapes` reports the arrays that remain. The v6 `createMachine` types reject transition arrays in `on` and `always` (for example, `on: { X: [ … ] }`); replace each with one transition function (§15, §16).
 
-`lower-actions` converts the action creators and guard combinators it can resolve in the file. Rewrite the reported ones as inline functions by hand (§1, §2). The transforms read and write imports from `'xstate'` only.
+`lower-actions` converts the action creators and guard combinators it can resolve in the file. If inlining a named `assign` would change which variable it reads, the transform leaves the call site unchanged and reports it for manual migration. Rewrite the reported sites as inline functions by hand (§1, §2). The transforms read and write imports from `'xstate'` only.
 
 ### Exit codes and JSON output
 
@@ -1993,7 +1996,7 @@ In v5, an undeclared delay name resolved to `undefined`, and the delayed transit
 - [ ] Replace every `raise`, `sendTo`, `sendParent`, `forwardTo`, `emit`, `log`, `cancel`, `spawnChild`, `stopChild` with the corresponding `enq.*` call
 - [ ] Replace `enqueueActions(...)` with a regular inline `(args, enq) => { ... }` function
 - [ ] Replace `and`/`or`/`not` guard combinators with plain JS inside the guard or inline transition function
-- [ ] Replace `stateIn(...)` with `self.getSnapshot().matches(...)`
+- [ ] Replace `stateIn(pattern)` with `matchesState(pattern, value)` using the transition arguments. Convert `#id` patterns to state paths.
 - [ ] Replace `interpret(machine)` with `createActor(machine)`; remove `Interpreter` type imports
 - [ ] Replace `fromPromise(...)` with `createAsyncLogic({ run: ... })`
 - [ ] Replace `types: {} as { ... }` with `schemas: { ... }` (Zod / Standard Schema)

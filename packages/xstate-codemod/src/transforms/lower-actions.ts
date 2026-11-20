@@ -252,7 +252,6 @@ function planMachines(
   const notes: string[] = [];
   const xs = getXstateImports(sourceFile);
   const edits: Edit[] = [];
-  const assignDefs = new Set<ImplDef>();
   const constRefs = new Map<Node, Set<Node>>();
 
   const inlined = new Map<Node, string>();
@@ -306,7 +305,6 @@ function planMachines(
       continue;
     }
     const impls = collectImplementations(config, xs);
-    const rewrites = new Map<ImplDef, string>();
     for (const [name, def] of impls.actions) {
       if (def.kind !== 'assign') continue;
       if (provided.some((text) => mentions(text, name))) {
@@ -318,11 +316,8 @@ function planMachines(
         );
         continue;
       }
-      const text = lowerAssignDefinition(def);
-      if (text === undefined) def.kind = 'other';
-      else rewrites.set(def, text);
     }
-    const ctx: FileContext = { xs, impls, assignDefs, disabledConsts };
+    const ctx: FileContext = { xs, impls, disabledConsts };
 
     /** Literal behind an in-file const reference, when safe to edit in place. */
     const resolve = (value: Node): Node | undefined => {
@@ -465,17 +460,6 @@ function planMachines(
     };
 
     visitState(config);
-
-    for (const [def, text] of rewrites) {
-      if (def.constDecl && Node.isVariableDeclaration(def.constDecl)) {
-        const init = def.constDecl.getInitializer()!;
-        edits.push({ start: init.getStart(), end: init.getEnd(), text });
-        continue;
-      }
-      if (!Node.isPropertyAssignment(def.property)) continue;
-      const init = def.property.getInitializer()!;
-      edits.push({ start: init.getStart(), end: init.getEnd(), text });
-    }
   }
 
   let retry = false;
@@ -507,7 +491,6 @@ function planMachines(
             {
               xs,
               impls: { actions: new Map(), guards: new Map() },
-              assignDefs,
               disabledConsts
             },
             call
@@ -572,6 +555,15 @@ function hasOtherReferences(
     edits.some((e) => node.getStart() >= e.start && node.getEnd() <= e.end);
   return (
     sourceFile.forEachDescendant((node) => {
+      const parent = node.getParent();
+      if (
+        ((Node.isPropertyAssignment(parent) ||
+          Node.isPropertySignature(parent)) &&
+          parent.getNameNode() === node) ||
+        Node.isLiteralTypeNode(parent)
+      ) {
+        return undefined;
+      }
       const matches =
         ((Node.isStringLiteral(node) ||
           Node.isNoSubstitutionTemplateLiteral(node)) &&

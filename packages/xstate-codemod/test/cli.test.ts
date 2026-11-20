@@ -133,6 +133,29 @@ export const m = createMachine({
     expect(stdout).toContain('Manual migration needed');
   });
 
+  it('exits 2 for a named assignment that cannot be safely inlined', () => {
+    const path = join(dir, 'named-assign.ts');
+    writeFileSync(
+      path,
+      `import { assign, setup } from 'xstate';
+const m = setup({ actions: {
+  add: assign(({ context }, params) => ({ count: context.count + params.by }))
+} }).createMachine({ context: { count: 0 }, on: {
+  ADD: { actions: { type: 'add', params: { by: 1 } } }
+} });`
+    );
+    const { code, stdout } = runCli(['migrate', path, '--json']);
+    expect(code).toBe(2);
+    expect(JSON.parse(stdout).manualSites).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          api: 'assign',
+          transform: 'report-removed-apis'
+        })
+      ])
+    );
+  });
+
   it('exits 0 for a clean file', () => {
     const { code, stdout } = runCli([
       'migrate',
