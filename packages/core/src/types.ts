@@ -3540,9 +3540,11 @@ export type EnqueueObject<
   raise: (
     ev:
       | TEvent
-      | (Extract<TEvent, { type: 'xstate.route' }> extends never
+      | (EventObject extends TEvent
           ? RouteEvent
-          : never),
+          : 'xstate.route' extends TEvent['type']
+            ? never
+            : RouteEvent),
     options?: { id?: string; delay?: number }
   ) => void;
   /**

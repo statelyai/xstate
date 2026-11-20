@@ -1,4 +1,4 @@
-import { createActor, createMachine, setup } from '../src';
+import { createActor, createMachine, setup, type EnqueueObject } from '../src';
 import { machineFromJSON } from '../src/machineFromJSON.ts';
 
 describe('route', () => {
@@ -36,6 +36,18 @@ describe('route', () => {
     actor.send({ type: 'GO' });
 
     expect(actor.getSnapshot().value).toEqual('b');
+  });
+
+  it('preserves payloads when a declared event includes the route discriminator', () => {
+    type DeclaredEvent = {
+      type: 'NEXT' | 'xstate.route';
+      to: '#b';
+      token: string;
+    };
+
+    expectTypeOf<EnqueueObject<DeclaredEvent, never>['raise']>()
+      .parameter(0)
+      .toEqualTypeOf<DeclaredEvent>();
   });
 
   it('should transition directly to a route if route is an empty transition config', () => {
