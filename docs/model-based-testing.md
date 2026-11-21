@@ -7,6 +7,9 @@ A machine describes what a feature should do. Model-based testing uses that mach
 
 This page tests a hand-written shopping cart against a cart machine. For every option, see the [`@xstate/test` README](https://github.com/statelyai/xstate/tree/next/packages/xstate-test#readme).
 
+For a specification written with TypeScript functions, see
+[standalone models](https://github.com/statelyai/xstate/tree/next/packages/xstate-test#standalone-models).
+
 ## Install
 
 ```bash

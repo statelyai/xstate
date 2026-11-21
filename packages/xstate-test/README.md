@@ -21,6 +21,7 @@ complete worked example.
 
 - [Installation](#installation)
 - [Run tests without fast-check](#run-tests-without-fast-check)
+- [Standalone models](#standalone-models)
 - [Quick start](#quick-start)
 - [Concepts](#concepts)
 - [How-to guides](#how-to-guides)
@@ -68,6 +69,40 @@ objects with a `sample(rng)` method. Both forms can also be used in a named
 event case. Provide payloads explicitly when the machine needs them. Use
 `assertTestCoverage()` and `formatTestCoverage()` to check or display
 coverage, and `serializeTestTrace()` to attach a trace to a failure report.
+
+## Standalone models
+
+<!-- Standalone model methods and driver from src/model.ts; OpenCode example from test/openCodeModel.ts. -->
+
+Use the experimental `createTestModel()` API for a pure specification written
+with TypeScript functions. Import it from `@xstate/test/paths` or
+`@xstate/test`.
+
+| Model member | Purpose |
+| --- | --- |
+| `initial()` | Returns the initial model state. |
+| `choices(state)` | Returns the exact enabled events, including payloads. Return an empty array when no events are enabled. |
+| `step(state, event)` | Returns the next model state without mutating the current state. |
+| `observe(state)` | Returns the expected observable behavior. |
+| `check(state)` | Optionally throws to report an invariant violation. |
+
+`model.test()` checks the model on one shortest path to each reachable state.
+Traversal enumerates the supplied choices without sampling their payloads.
+Different events that lead to the same state may share a single witness path.
+Use deterministic, JSON-serializable states and events. Pass `limit` to set
+the traversal budget for a bounded model.
+
+Pass `sut` to compare the model with an implementation. It creates a fresh
+driver for each path. The driver exposes `send(event)` and `read()`, and can
+provide `settle()` and `dispose()`. The runner compares `read()` with
+`observe(state)` at the initial state and after each event.
+
+The [two-script OpenCode model](./test/openCodeModel.ts) enumerates actions for
+each eligible script ID. Its [test](./test/model.test.ts) checks the model with
+and without a driver, then records a duplicate background completion notice as
+a JSON fixture. Pass that fixture to `model.replay(fixture, { sut })` to replay
+the recorded event sequence. Use `expect: 'pass'` to check the fixed driver
+against the same fixture.
 
 ## Quick start
 
@@ -1393,6 +1428,9 @@ adapter without shrinking.
 ## Reference
 
 ### Exports
+
+`createTestModel(model)` runs and replays [standalone models](#standalone-models).
+It is also available from `@xstate/test/paths`.
 
 The fast-check-backed entry points and helpers:
 
