@@ -146,6 +146,59 @@ describe('compact FSM eventless transitions', () => {
     expect(machine.initialState.context.count).toBe(0);
   });
 
+  it.each([
+    ['an empty transition', {}],
+    ['a self-target', { target: 'idle' as const }],
+    ['an empty context patch', { context: {} }],
+    ['a patch with current values', { context: { count: 0 } }]
+  ])(
+    'settles initialization when always is %s that changes nothing',
+    (_, always) => {
+      const machine = createFSM<{ count: number }>({
+        initial: 'idle',
+        context: { count: 0 },
+        states: { idle: { always } }
+      });
+      expect(machine.initialState.value).toBe('idle');
+      expect(machine.initialState.context).toEqual({ count: 0 });
+    }
+  );
+
+  it.each([
+    ['an empty transition', () => ({})],
+    [
+      'the current context',
+      ({ context }: { context: { count: number } }) => ({ context })
+    ]
+  ])(
+    'settles initialization when an always callback returns %s',
+    (_, callback) => {
+      const always = vi.fn(callback);
+      const machine = createFSM<{ count: number }>({
+        initial: 'idle',
+        context: { count: 0 },
+        states: { idle: { always } }
+      });
+      expect(machine.initialState.value).toBe('idle');
+      expect(machine.initialState.context).toEqual({ count: 0 });
+      expect(always).toHaveBeenCalledTimes(1);
+    }
+  );
+
+  it('settles an event-triggered chain when always changes nothing', () => {
+    const always = vi.fn(() => ({ target: 'active' as const }));
+    const machine = createFSM({
+      initial: 'idle',
+      states: {
+        idle: { on: { GO: { target: 'active' } } },
+        active: { always }
+      }
+    });
+    const [next] = machine.transition(machine.initialState, { type: 'GO' });
+    expect(next.value).toBe('active');
+    expect(always).toHaveBeenCalledTimes(1);
+  });
+
   it('exposes only settled actor snapshots', () => {
     const machine = createFSM({
       initial: 'idle',

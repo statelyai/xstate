@@ -486,7 +486,7 @@ export function createFSM<
   ): TSnapshot => {
     for (;;) {
       const next = step(snapshot, getState(snapshot.value)?.always, event);
-      if (!next) {
+      if (!next || next === snapshot) {
         return snapshot;
       }
       snapshot = next;
