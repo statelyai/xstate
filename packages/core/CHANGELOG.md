@@ -1,5 +1,16 @@
 # xstate
 
+## 6.0.0-beta.5
+
+### Patch Changes
+
+- a3354a9: Accept `route: true` in machine configs and let transition functions call `enq.raise({ type: 'xstate.route', to: '#id' })`.
+  
+  Keep inferred declarations compact when a machine defines multiple routes.
+- 3893cf0: Release the first snapshot in pure-transition lineages when only a later snapshot remains in use, while preserving lazy actor identity.
+- 337d346: Reject seconds duration strings without a number, such as `s` and `.s`, instead of treating them as zero milliseconds. Async actors reject unparseable timeouts without starting work. Configured delays with those names still work, including zero-valued delays loaded from JSON or SCXML configuration.
+- ef35593: Reject `waitFor` with a predicate's thrown value and release its timer, actor subscription, and abort listener instead of leaving the wait pending.
+
 ## 6.0.0-beta.4
 
 ### Patch Changes
