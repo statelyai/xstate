@@ -64,3 +64,65 @@ const { snapshot, send } = useMachine(toggleMachine);
   </button>
 </template>
 ```
+
+## Bind form inputs to context
+
+Treat the snapshot from `useMachine` as read-only. Binding `v-model` directly to a nested context field bypasses the actor, so a computed guard result can stay stale until the actor publishes another snapshot.
+
+Bind the input to a writable Vue `computed` property. Its setter sends an event. The transition returns updated context for the guard to read. This example uses Zod for its schemas (`npm i zod`).
+
+```vue
+<script setup lang="ts">
+import { useMachine } from '@xstate/vue';
+import { computed } from 'vue';
+import { setup } from 'xstate';
+import { z } from 'zod';
+
+const formMachine = setup({
+  schemas: {
+    context: z.object({ formData: z.object({ name: z.string() }) }),
+    events: {
+      'name.changed': z.object({ value: z.string() }),
+      'form.submitted': z.object({})
+    }
+  }
+}).createMachine({
+  context: { formData: { name: '' } },
+  initial: 'editing',
+  states: {
+    editing: {
+      on: {
+        'name.changed': ({ context, event }) => ({
+          context: {
+            formData: { ...context.formData, name: event.value }
+          }
+        }),
+        'form.submitted': ({ context }) => {
+          if (!context.formData.name.trim()) return;
+          return { target: 'submitted' };
+        }
+      }
+    },
+    submitted: { type: 'final' }
+  }
+});
+
+const { snapshot, send } = useMachine(formMachine);
+const name = computed({
+  get: () => snapshot.value.context.formData.name,
+  set: (value) => send({ type: 'name.changed', value })
+});
+const canSubmit = computed(() => snapshot.value.can({ type: 'form.submitted' }));
+</script>
+
+<template>
+  <form @submit.prevent="send({ type: 'form.submitted' })">
+    <label>
+      Name
+      <input v-model="name" :readonly="snapshot.matches('submitted')" />
+    </label>
+    <button type="submit" :disabled="!canSubmit">Submit</button>
+    <p v-if="snapshot.matches('submitted')">Submitted</p>
+  </form>
+</template>
+```
