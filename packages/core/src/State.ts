@@ -876,6 +876,9 @@ export function getPersistedSnapshot<
             incarnation: isRemoteActorRef(child) ? child.sessionId : undefined
           }),
       ...(invoked ? {} : { src: child.src }),
+      ...(embed && !invoked && child._invoked === true
+        ? { invoked: true }
+        : {}),
       registryKey: child.registryKey,
       syncSnapshot: child._syncSnapshot
     };

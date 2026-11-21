@@ -820,3 +820,23 @@ Actor "{parentId}" has no active invoked child with id "{childId}".
 Values: the child ID and the parent actor ID.
 
 `actor.simulate.childDone(...)` requires a running invocation on the parent. Check that the actor is started and the invocation is active.
+
+## E78
+
+```text
+Cannot simulate completion while child actor "{childId}" is processing an event.
+```
+
+Value: the child ID.
+
+Call `actor.simulate.childDone(...)` after the child finishes starting or processing the current event.
+
+## E79
+
+```text
+Simulated completion did not finish child actor "{childId}".
+```
+
+Value: the child ID.
+
+The child logic did not produce a terminal result. Check whether a custom validator rejects the completion event.

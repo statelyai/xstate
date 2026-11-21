@@ -1924,6 +1924,8 @@ export type PersistedActorRef = {
   address?: string;
   /** The registered source key the child is restored from. */
   src: string;
+  /** Whether an embedded child was created by an invocation. */
+  invoked?: true;
   registryKey?: string;
   syncSnapshot?: boolean;
 } & (

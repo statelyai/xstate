@@ -102,7 +102,9 @@ actor.simulate.childDone({ id: 'save', output: 'receipt-1' });
 expect(actor.getSnapshot().matches('saved')).toBe(true);
 ```
 
-`childDone()` requires a running invocation with that ID. It runs the child's cleanup, publishes a `done` snapshot with the supplied output, and delivers completion to the parent. The child cannot complete again if its original work finishes later. TypeScript checks the ID and output when the child is known to the machine's types.
+`childDone()` requires a running local invocation with that ID. Call it between the child's events. If the child has a validator, XState checks the terminal result before it runs cleanup. It then publishes a `done` snapshot with the supplied output and delivers completion to the parent. The child cannot complete again if its original work finishes later. TypeScript checks the ID and output when the child is known to the machine's types.
+
+For restored registered children, a persisted snapshot must carry the `invoked: true` marker to support simulated completion. XState writes this marker for embedded registered invocations.
 
 ## Control time
 

@@ -73,6 +73,10 @@ import { toObserver } from './utils.ts';
 import { assertValid } from './validation.ts';
 import { protectSelectionRelay } from './transitionSelection.ts';
 import {
+  systemLogicMetadata,
+  type SimulationLogicMetadata
+} from './systemLogicMetadata.ts';
+import {
   finalizeTransitionResult,
   isBuiltInExecutableEffect
 } from './transitionActions.ts';
@@ -84,8 +88,10 @@ import {
 interface ActorMailboxEvent<TEvent> {
   event: TEvent;
   sourceRef: AnyActor | undefined;
-  simulatedCompletion?: { output: unknown };
+  simulatedCompletion?: SimulatedCompletion;
 }
+
+type SimulatedCompletion = { output: unknown; failure?: { error: unknown } };
 
 type KnownSimulatedChildren<TChildren> = {
   [K in keyof TChildren as K extends string
@@ -1113,32 +1119,12 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
     let nextState: ActorLogicTransitionResult<SnapshotFrom<TLogic>> | undefined;
     let caughtError;
     try {
-      let result = this.logic.transition(
-        previousSnapshot,
-        event,
-        this._actorScope
-      );
-      // Stop logic releases resources and stops descendants. Publish its result
-      // as done so the normal termination effect notifies observers and parent.
-      if (
-        simulatedCompletion &&
-        result[0].status !== 'error' &&
-        result[0].status !== 'done'
-      ) {
-        result = [
-          {
-            ...result[0],
-            status: 'done',
-            output: simulatedCompletion.output,
-            error: undefined
-          },
-          result[1]
-        ];
-      }
       nextState = finalizeTransitionResult(
         this._actorScope,
         previousSnapshot,
-        result
+        simulatedCompletion
+          ? this._prepareSimulatedCompletion(event, simulatedCompletion.output)
+          : this.logic.transition(previousSnapshot, event, this._actorScope)
       );
     } catch (err) {
       // we wrap it in a box so we can rethrow it later even if falsy value gets caught here
@@ -1149,6 +1135,10 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
       this._collectedMicrosteps = undefined;
       this._collectedActions = undefined;
       this._collectedSent = undefined;
+      if (simulatedCompletion) {
+        simulatedCompletion.failure = { error: caughtError.err };
+        return;
+      }
       if (!this._recoverOrError(caughtError.err)) {
         this._inspectTransition(this._snapshot, event);
       }
@@ -1200,14 +1190,13 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
       )
         ? snapshot.children[id]
         : undefined;
-    const childSnapshot =
-      child instanceof Actor ? child.getSnapshot() : undefined;
     if (
       !this._isRunning() ||
       !(child instanceof Actor) ||
       child._parent !== this ||
+      (child as { _invoked?: boolean })._invoked !== true ||
       !child._isRunning() ||
-      childSnapshot?.status !== 'active'
+      child.getSnapshot().status !== 'active'
     ) {
       throw new Error(
         isDevelopment
@@ -1215,19 +1204,76 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
           : xstateError(77, id, this.id)
       );
     }
-    if (child.logic.validator) {
-      assertValid(child.logic.validator, {
-        kind: 'result',
-        logic: child.logic,
-        snapshot: { ...childSnapshot, status: 'done', output },
-        effects: []
-      });
+    if (!child._mailboxStarted || child._inTransition) {
+      throw new Error(
+        isDevelopment
+          ? `Cannot simulate completion while child actor "${id}" is processing an event.`
+          : xstateError(78, id)
+      );
     }
+    const completion: SimulatedCompletion = { output };
     child._enqueue({
       event: { type: XSTATE_STOP },
       sourceRef: undefined,
-      simulatedCompletion: { output }
+      simulatedCompletion: completion
     });
+    if (completion.failure) {
+      throw completion.failure.error;
+    }
+  }
+
+  private _prepareSimulatedCompletion(
+    stopEvent: EventFromLogic<TLogic>,
+    output: unknown
+  ): ActorLogicTransitionResult<SnapshotFrom<TLogic>> {
+    const [stopped, cleanup] = this.logic.transition(
+      this._snapshot,
+      stopEvent,
+      this._actorScope
+    );
+    if (stopped.status === 'done' || stopped.status === 'error') {
+      return [stopped, cleanup];
+    }
+    const completionEvent = (this.logic as SimulationLogicMetadata)[
+      systemLogicMetadata
+    ]?.simulationCompletionEvent?.(output);
+    if (completionEvent) {
+      // Async logic computes the same output and effect record as a real
+      // resolution. Its cleanup comes first because the real work is pending.
+      this._lastSourceRef = this;
+      try {
+        const [completed, effects] = this.logic.transition(
+          this._snapshot,
+          completionEvent,
+          this._actorScope
+        );
+        if (completed.status !== 'done') {
+          throw new Error(
+            isDevelopment
+              ? `Simulated completion did not finish child actor "${this.id}".`
+              : xstateError(79, this.id)
+          );
+        }
+        return [completed, [...cleanup, ...effects]];
+      } finally {
+        this._lastSourceRef = undefined;
+      }
+    }
+    const completed = {
+      ...stopped,
+      status: 'done' as const,
+      output,
+      error: undefined
+    };
+    if (this.logic.validator) {
+      assertValid(this.logic.validator, {
+        kind: 'result',
+        logic: this.logic,
+        snapshot: completed,
+        effects: cleanup
+      });
+    }
+    return [completed, cleanup];
   }
 
   private _warnedUnhandledTypes?: Set<string>;
