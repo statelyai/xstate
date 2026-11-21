@@ -51,7 +51,7 @@ export function useActor<TLogic extends AnyActorLogic>(
 
   const [actorRef, setActorRef] = useIdleActorRef(
     logic,
-    ...([options] as [ActorOptions<TLogic>])
+    ...([options] as [ActorOptions<TLogic> & RequiredActorOptionsFor<TLogic>])
   );
 
   const getSnapshot = useCallback(() => {
@@ -86,7 +86,8 @@ export function useActor<TLogic extends AnyActorLogic>(
   useActorLifecycle(actorRef, setActorRef, () =>
     createActor(
       actorRef.logic,
-      readyActor ? actorRef.options : (options as ActorOptions<TLogic>)
+      (readyActor ? actorRef.options : options) as ActorOptions<TLogic> &
+        RequiredActorOptionsFor<TLogic>
     )
   );
 

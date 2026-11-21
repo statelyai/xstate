@@ -9,6 +9,7 @@ import {
 import {
   ActorRefFrom,
   ActorOptions,
+  RequiredActorOptionsFor,
   AnyActorLogic,
   AnyActorRef,
   AnyMachineSnapshot,
@@ -5297,7 +5298,16 @@ describe('input', () => {
     createActor(machine);
     // @ts-expect-error input is required
     createActor(machine, {});
-    createActor(machine, { input: { count: 1 } });
+    // @ts-expect-error required input cannot be undefined
+    createActor(machine, { input: undefined });
+    const create = (input: { count: number } | undefined) => {
+      // @ts-expect-error input must be narrowed before creating the actor
+      createActor(machine, { input });
+      if (input) {
+        createActor(machine, { input });
+      }
+    };
+    create({ count: 1 });
   });
 
   it('should require input declared by a setup input schema', () => {
@@ -5322,6 +5332,7 @@ describe('input', () => {
     });
 
     createActor(machine);
+    createActor(machine, { input: undefined });
   });
 
   it('should not require input when restoring a snapshot', () => {
@@ -6816,7 +6827,10 @@ it('Actor<T> should be assignable to ActorRefFrom<T>', () => {
 
   class ActorThing<T extends AnyActorLogic> {
     actorRef: ActorRefFrom<T>;
-    constructor(actorLogic: T, options: ActorOptions<T>) {
+    constructor(
+      actorLogic: T,
+      options: ActorOptions<T> & RequiredActorOptionsFor<T>
+    ) {
       const actor = createActor(actorLogic, options);
 
       actor satisfies ActorRefFrom<typeof actorLogic>;
@@ -6910,6 +6924,8 @@ it('createSystem().createActor requires input for required-input machines', () =
     app.createActor(machine);
     // @ts-expect-error input is required
     app.createActor(machine, {});
+    // @ts-expect-error required input cannot be undefined
+    app.createActor(machine, { input: undefined });
     app.createActor(machine, { input: { id: 'a' } });
 
     const persisted = app
