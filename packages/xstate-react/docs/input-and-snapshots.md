@@ -3,7 +3,7 @@ title: Input and restored snapshots
 description: Start React actors with input or persisted state.
 ---
 
-`input` gives an actor the data it needs to compute its initial state. `snapshot` restores an actor to a state it already reached. Both are [actor options](../create-actor.md#actor-options), passed as the second argument to the hook.
+`input` gives an actor the data it needs to compute its initial state. Pass it in the [actor options](../create-actor.md#actor-options) as the second argument to the hook.
 
 ```tsx
 const [snapshot, send] = useActor(uploadMachine, {
@@ -19,7 +19,13 @@ The same options work on `useActorRef` and on a provider.
 </CheckoutContext.Provider>
 ```
 
-When the logic requires input, the options argument is required and TypeScript reports a missing `input`. See [input and output](../input-output.md).
+When the logic requires input, TypeScript requires an `input` value. If the input may be missing, check it before rendering the component that creates the actor. See [input and output](../input-output.md).
+
+```tsx
+function CheckoutRoute({ orderId }: { orderId: string | undefined }) {
+  return orderId === undefined ? null : <Checkout orderId={orderId} />;
+}
+```
 
 ## Input is read once
 
@@ -45,37 +51,38 @@ const [snapshot] = useActor(searchMachine, {
 
 ## Restoring a persisted snapshot
 
-Pass a snapshot from [`actor.getPersistedSnapshot()`](../persistence.md) to resume where the user left off. The actor starts in that state rather than its initial state; entry actions are not re-run, and invoked children are restored.
+Pass a snapshot from [`actor.getPersistedSnapshot()`](../persistence.md) to `restoreActor()`. Create the restored actor once and pass it to the hook. The actor resumes from the persisted state without rerunning entry actions. Invoked children are restored.
 
 ```tsx
 import { useActor } from '@xstate/react';
-import type { Snapshot } from 'xstate';
+import { useState } from 'react';
+import { createActor, type PersistedSnapshotFrom } from 'xstate';
+import { restoreActor } from 'xstate/persist';
 
 function Checkout({
   orderId,
   persisted
 }: {
   orderId: string;
-  persisted?: Snapshot<unknown>;
+  persisted?: PersistedSnapshotFrom<typeof checkoutMachine>;
 }) {
-  const [snapshot, send] = useActor(
-    checkoutMachine,
-    persisted ? { snapshot: persisted } : { input: { orderId } }
+  const [actor] = useState(() =>
+    persisted
+      ? restoreActor(checkoutMachine, persisted)
+      : createActor(checkoutMachine, { input: { orderId } })
   );
+  const [snapshot, send] = useActor(actor);
 
   return <Step value={snapshot.value} onNext={() => send({ type: 'next' })} />;
 }
 ```
 
-When the logic requires input, a snapshot that may be missing (an optional prop, or a `localStorage` read that finds nothing) needs a branch that passes `input` instead. Logic without required input accepts `snapshot: undefined`, which is the same as passing nothing.
+If the persisted snapshot is missing, create a new actor with the required input.
 
 Save as the actor changes by subscribing to the actor reference. `getPersistedSnapshot()` is a method on the actor, not on the snapshot the subscriber receives.
 
 ```tsx
-const actorRef = useActorRef(
-  checkoutMachine,
-  persisted ? { snapshot: persisted } : { input: { orderId } }
-);
+const actorRef = useActorRef(actor);
 
 useEffect(() => {
   const sub = actorRef.subscribe(() => {
@@ -91,25 +98,13 @@ useEffect(() => {
 
 > **Warning:** Stored snapshots are untrusted input. Validate and version them before restoring. A malformed snapshot starts an actor in an unusable state rather than throwing. See [persist and restore actors](../persist-and-restore-actors.md).
 
-`input` and `snapshot` can be passed together, but the restored snapshot already carries the context that input produced. Pass `input` alongside `snapshot` only for logic that reads `input` after restoring.
-
-## TypeScript
-
-`input` is typed from the logic's input schema, and the options argument becomes required when the logic requires input. Restored snapshots are typed as `Snapshot<unknown>` because they come from outside the type system.
-
-```tsx
-import type { Snapshot } from 'xstate';
-
-const persisted = JSON.parse(stored) as Snapshot<unknown>;
-useActor(checkoutMachine, { snapshot: persisted });
-```
-
 ## Input and snapshots cheatsheet
 
 ```tsx
 useActor(logic, { input: { userId } });
-useActor(logic, { snapshot: persisted });
-useActorRef(logic, { input, snapshot });
+const [actor] = useState(() => restoreActor(logic, persisted));
+useActor(actor);
+useActorRef(actor);
 
 <Ctx.Provider options={{ input: { orderId } }} />;
 
