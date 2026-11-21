@@ -802,9 +802,7 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
           break;
         case 'error': {
           const err = (this._snapshot as Snapshot<unknown>).error;
-          if (!observer.error) {
-            reportUnhandledError(err);
-          } else {
+          if (observer.error) {
             if (!observer.passive) {
               this._errorObserved = true;
             }
@@ -1128,8 +1126,9 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
   private _warnedUnhandledTypes?: Set<string>;
 
   private _reportUnhandledEvent(event: EventFromLogic<TLogic>): void {
-    safeCall(() => this.options.onUnhandledEvent?.(event, this._snapshot));
-    if (isDevelopment) {
+    if (this.options.onUnhandledEvent) {
+      safeCall(() => this.options.onUnhandledEvent?.(event, this._snapshot));
+    } else if (isDevelopment) {
       const to =
         event.type === 'xstate.route'
           ? ` to ${JSON.stringify((event as { to?: unknown }).to)}`
