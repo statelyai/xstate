@@ -2137,6 +2137,7 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
    * Reserved lifecycle and timer events delivered by actors, and actor stop
    * events, are not reported. Other unhandled sends are reported even when
    * their event type starts with `xstate.`.
+   * Supplying this callback replaces the default development warning.
    *
    * @param event The unhandled event.
    * @param snapshot The actor's (unchanged) snapshot.

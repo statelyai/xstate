@@ -108,6 +108,7 @@ describe('unhandled events', () => {
       { type: 'UNKNOWN' },
       snapshot
     );
+    expect(warn).not.toHaveBeenCalled();
     expect(actor.getSnapshot()).toBe(snapshot);
   });
 
@@ -137,9 +138,7 @@ describe('unhandled events', () => {
       expect(actor.getSnapshot()).toBe(snapshot);
       expect(onRejectedEvent).not.toHaveBeenCalled();
       expect(onUnhandledEvent).toHaveBeenCalledExactlyOnceWith(event, snapshot);
-      expect(warn).toHaveBeenCalledExactlyOnceWith(
-        `Actor ${actor.id} received event "${type}" in state {} with no matching transition`
-      );
+      expect(warn).not.toHaveBeenCalled();
       actor.stop();
     }
   );
@@ -192,9 +191,7 @@ describe('unhandled events', () => {
         event,
         receiver.getSnapshot()
       );
-      expect(warn).toHaveBeenCalledExactlyOnceWith(
-        `Actor ${receiver.id} received event "${type}" in state {} with no matching transition`
-      );
+      expect(warn).not.toHaveBeenCalled();
       sender.stop();
       receiver.stop();
     }
@@ -295,12 +292,21 @@ describe('unhandled events', () => {
       'shipping',
       '#payment'
     ]);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it('warns separately for distinct unhandled route destinations', () => {
+    const actor = createActor(createMachine({ id: 'checkout' })).start();
+    actor.send({ type: 'xstate.route', to: 'shipping' } as any);
+    actor.send({ type: 'xstate.route', to: 'shipping' } as any);
+    actor.send({ type: 'xstate.route', to: '#payment' } as any);
+
     expect(warn.mock.calls).toEqual([
       [
-        `Actor ${actor.id} received event "xstate.route" to "shipping" in state "cart" with no matching transition`
+        `Actor ${actor.id} received event "xstate.route" to "shipping" in state {} with no matching transition`
       ],
       [
-        `Actor ${actor.id} received event "xstate.route" to "#payment" in state "cart" with no matching transition`
+        `Actor ${actor.id} received event "xstate.route" to "#payment" in state {} with no matching transition`
       ]
     ]);
   });

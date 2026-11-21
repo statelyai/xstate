@@ -142,7 +142,7 @@ describe('error precedence', () => {
     expect(reported).toHaveBeenCalledExactlyOnceWith(boom);
   });
 
-  it('(e) subscribing after the actor errored delivers the same error immediately', () => {
+  it('(e) a late error observer receives the error and suppresses a pending report', async () => {
     const actor = createActor(
       createMachine({
         on: {
@@ -154,10 +154,13 @@ describe('error precedence', () => {
     ).start();
     actor.send({ type: 'FAIL' });
 
+    actor.subscribe({ next: () => {} });
     const error = vi.fn();
     actor.subscribe({ error });
 
     expect(error).toHaveBeenCalledExactlyOnceWith(boom);
+    await sleep(0);
+    expect(reported).not.toHaveBeenCalled();
   });
 
   it('(f) a throwing subscribe observer or on() listener does not kill the actor', () => {
@@ -320,6 +323,12 @@ describe('error precedence', () => {
 
     expect(actor.getSnapshot().status).toBe('error');
     expect(error).toHaveBeenCalledExactlyOnceWith(boom);
+    expect(reported).toHaveBeenCalledExactlyOnceWith(boom);
+
+    actor.subscribe({ next: () => {} });
+    actor.subscribe({ next: () => {}, passive: true });
+    await sleep(0);
+
     expect(reported).toHaveBeenCalledExactlyOnceWith(boom);
   });
 });
