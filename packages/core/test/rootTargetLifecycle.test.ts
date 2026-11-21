@@ -129,17 +129,20 @@ it('reapplies root initial input before entering its reset child', () => {
 });
 
 it('runs root initial content only when the transition selects it', () => {
+  const record = (_label: string) => {};
   const machine = createMachine({
     id: 'root',
     context: { starts: 0 },
     initial: {
       target: 'child',
       to: ({ context }: { context: { starts: number } }) => ({
+        target: '.child',
         context: { starts: context.starts + 1 }
       })
     },
     states: {
       child: {
+        entry: (_, enq) => enq(record, 'entry child'),
         on: { RESET: { target: '#root' }, RESTORE: { target: '#history' } }
       },
       other: {},
@@ -152,7 +155,9 @@ it('runs root initial content only when the transition selects it', () => {
   expect(restored.value).toBe('other');
   expect(restored.context.starts).toBe(1);
 
-  const [reset] = transition(machine, initial, { type: 'RESET' });
+  const [reset, effects] = transition(machine, initial, { type: 'RESET' });
   expect(reset.value).toBe('child');
   expect(reset.context.starts).toBe(2);
+  expect(reset.nodes).toContain(machine.states.child);
+  expect(effects.map((effect) => effect.args[0])).toEqual(['entry child']);
 });
