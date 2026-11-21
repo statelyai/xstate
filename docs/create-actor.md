@@ -37,6 +37,7 @@ const actor = createActor(machine, { input: { userId: 'u_1' } });
 | --- | --- | --- |
 | `id` | `string` | Custom identifier for this actor. |
 | `input` | input of the logic | [Input](input-output.md) passed to the logic when it starts. |
+| `simulate` | `boolean` | Set to `true` to enable [simulated child completion](testing.md#simulate-child-completion). |
 | `inspect` | function or observer | Receives [inspection](inspection.md) events for the whole system. Ignored on child actors. |
 | `onRejectedEvent` | `(rejection) => void` | Dead-letter hook for events rejected at the delivery boundary. Registers a `system.onRejectedEvent` listener; see [dead letters](systems.md#dead-letters). Ignored on child actors. |
 | `onUnhandledEvent` | `(event, snapshot) => void` | Called when this state machine actor receives an event that no transition handles. Internal lifecycle and actor stop events are not reported. Unhandled public sends are reported even with `xstate.*` names. Applies to this actor only, including a child actor; children do not inherit it. See [unhandled events](transitions.md#unhandled-events). |

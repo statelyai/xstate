@@ -76,6 +76,34 @@ test('confirms an order once the card is charged', async () => {
 
 Test the failure path the same way, with fake logic that throws instead of resolving. Always pass a `timeout` to `waitFor(...)`. Without one it waits forever, so a broken machine hangs the test suite instead of failing the test.
 
+## Simulate child completion
+
+Use `{ simulate: true }` to control when an invoked child finishes in a test. Invocations start normally, so provide a fake for any child that performs external work.
+
+```ts
+import { createActor, createAsyncLogic, setup } from 'xstate';
+
+const checkout = setup({
+  actors: {
+    save: createAsyncLogic({ run: () => new Promise<string>(() => {}) })
+  }
+}).createMachine({
+  initial: 'saving',
+  states: {
+    saving: {
+      invoke: { id: 'save', src: 'save', onDone: { target: 'saved' } }
+    },
+    saved: {}
+  }
+});
+
+const actor = createActor(checkout, { simulate: true }).start();
+actor.simulate.childDone({ id: 'save', output: 'receipt-1' });
+expect(actor.getSnapshot().matches('saved')).toBe(true);
+```
+
+`childDone()` requires a running invocation with that ID. It runs the child's cleanup, publishes a `done` snapshot with the supplied output, and delivers completion to the parent. The child cannot complete again if its original work finishes later. TypeScript checks the ID and output when the child is known to the machine's types.
+
 ## Control time
 
 Delays and timeouts do not need real time. Pass a `SimulatedClock` and move it forward yourself.

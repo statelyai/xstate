@@ -4,6 +4,7 @@ import { diagnoseActorOptions } from './devDiagnostics.ts';
 import { publishEmittedEvent } from './runtimeHelpers.ts';
 import type { ActionRecord, SentRecord } from './inspection.ts';
 import { Mailbox } from './Mailbox.ts';
+import { isMachineSnapshot } from './State.ts';
 import { XSTATE_SPAWN, XSTATE_STOP, XSTATE_TIMER } from './constants.ts';
 import {
   createDoneActorEvent,
@@ -40,11 +41,13 @@ import type {
   ActorScope,
   ActorTrigger,
   AnyActor,
+  AnyActorRef,
   AnyActorLogic,
   EmittedFrom,
   EventFromLogic,
   SendableEventFromLogic,
   InputFrom,
+  OutputFrom,
   PersistedSnapshotOf,
   Snapshot,
   SnapshotFrom,
@@ -67,6 +70,8 @@ import {
   Subscription
 } from './types.ts';
 import { toObserver } from './utils.ts';
+import { assertValid } from './validation.ts';
+import { protectSelectionRelay } from './transitionSelection.ts';
 import {
   finalizeTransitionResult,
   isBuiltInExecutableEffect
@@ -79,6 +84,33 @@ import {
 interface ActorMailboxEvent<TEvent> {
   event: TEvent;
   sourceRef: AnyActor | undefined;
+  simulatedCompletion?: { output: unknown };
+}
+
+type KnownSimulatedChildren<TChildren> = {
+  [K in keyof TChildren as K extends string
+    ? string extends K
+      ? never
+      : K
+    : never]-?: {
+    id: K;
+    output: OutputFrom<NonNullable<TChildren[K]>>;
+  };
+};
+
+type SimulatedChildResult<TLogic extends AnyActorLogic> =
+  SnapshotFrom<TLogic> extends {
+    children: infer TChildren extends Record<string, AnyActorRef | undefined>;
+  }
+    ? [keyof KnownSimulatedChildren<TChildren>] extends [never]
+      ? { id: string; output: unknown }
+      : KnownSimulatedChildren<TChildren>[keyof KnownSimulatedChildren<TChildren>]
+    : never;
+
+/** The lifecycle controls enabled by `createActor(logic, { simulate: true })`. @public */
+export interface ActorSimulation<TLogic extends AnyActorLogic> {
+  /** Completes a running invoked child with the supplied output. */
+  childDone(result: SimulatedChildResult<TLogic>): void;
 }
 
 const emptyInspectionRecords = Object.freeze([]) as unknown as never[];
@@ -272,6 +304,9 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
   /** The system to which this actor belongs. */
   public system: AnyActorSystem;
 
+  /** Lifecycle controls available when the actor was created with `simulate: true`. */
+  public readonly simulate?: ActorSimulation<TLogic>;
+
   private _trigger?: ActorTrigger<SendableEventFromLogic<TLogic>>;
 
   public get trigger(): ActorTrigger<SendableEventFromLogic<TLogic>> {
@@ -364,6 +399,11 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
     this.options = resolvedOptions as ActorOptions<TLogic> &
       typeof defaultOptions;
     this.src = resolvedOptions.src ?? logic;
+    if (resolvedOptions.simulate === true) {
+      this.simulate = {
+        childDone: ({ id, output }) => this._simulateChildDone(id, output)
+      };
+    }
     this.ref = this;
     this._actorScope = this as unknown as typeof this._actorScope;
 
@@ -1065,17 +1105,40 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
 
   private _processEvent({
     event,
-    sourceRef
+    sourceRef,
+    simulatedCompletion
   }: ActorMailboxEvent<EventFromLogic<TLogic>>) {
     this._lastSourceRef = sourceRef;
     const previousSnapshot = this._snapshot;
     let nextState: ActorLogicTransitionResult<SnapshotFrom<TLogic>> | undefined;
     let caughtError;
     try {
+      let result = this.logic.transition(
+        previousSnapshot,
+        event,
+        this._actorScope
+      );
+      // Stop logic releases resources and stops descendants. Publish its result
+      // as done so the normal termination effect notifies observers and parent.
+      if (
+        simulatedCompletion &&
+        result[0].status !== 'error' &&
+        result[0].status !== 'done'
+      ) {
+        result = [
+          {
+            ...result[0],
+            status: 'done',
+            output: simulatedCompletion.output,
+            error: undefined
+          },
+          result[1]
+        ];
+      }
       nextState = finalizeTransitionResult(
         this._actorScope,
-        this._snapshot,
-        this.logic.transition(this._snapshot, event, this._actorScope)
+        previousSnapshot,
+        result
       );
     } catch (err) {
       // we wrap it in a box so we can rethrow it later even if falsy value gets caught here
@@ -1119,10 +1182,52 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
       return;
     }
 
-    if (event.type === XSTATE_STOP) {
+    if (event.type === XSTATE_STOP && !simulatedCompletion) {
       this._stopProcedure();
       this._complete();
     }
+  }
+
+  private _simulateChildDone(id: string, output: unknown): void {
+    if (protectSelectionRelay(this)) {
+      return;
+    }
+    const snapshot: unknown = this.getSnapshot();
+    const child =
+      isMachineSnapshot(snapshot) &&
+      snapshot.nodes.some((node) =>
+        node.invoke.some((invoke) => invoke.id === id)
+      )
+        ? snapshot.children[id]
+        : undefined;
+    const childSnapshot =
+      child instanceof Actor ? child.getSnapshot() : undefined;
+    if (
+      !this._isRunning() ||
+      !(child instanceof Actor) ||
+      child._parent !== this ||
+      !child._isRunning() ||
+      childSnapshot?.status !== 'active'
+    ) {
+      throw new Error(
+        isDevelopment
+          ? `Actor "${this.id}" has no active invoked child with id "${id}".`
+          : xstateError(77, id, this.id)
+      );
+    }
+    if (child.logic.validator) {
+      assertValid(child.logic.validator, {
+        kind: 'result',
+        logic: child.logic,
+        snapshot: { ...childSnapshot, status: 'done', output },
+        effects: []
+      });
+    }
+    child._enqueue({
+      event: { type: XSTATE_STOP },
+      sourceRef: undefined,
+      simulatedCompletion: { output }
+    });
   }
 
   private _warnedUnhandledTypes?: Set<string>;
@@ -1358,7 +1463,10 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
       this.system.deadLetter(sourceRef, this as AnyActor, event, 'stopped');
       return;
     }
+    this._enqueue({ event, sourceRef });
+  }
 
+  private _enqueue(item: ActorMailboxEvent<EventFromLogic<TLogic>>) {
     let mailbox = this.mailbox;
     if (!mailbox) {
       this._boundProcess ??= this._process.bind(this);
@@ -1367,7 +1475,7 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
         mailbox.start();
       }
     }
-    mailbox.enqueue({ event, sourceRef });
+    mailbox.enqueue(item);
   }
 
   /**
@@ -1523,6 +1631,15 @@ type CreateActorOptionsArgs<TLogic extends AnyActorLogic> = [
  * @param options - Actor options
  * @public
  */
+export function createActor<TLogic extends AnyActorLogic>(
+  logic: TLogic,
+  options: ActorOptions<TLogic> &
+    RequiredActorOptionsFor<TLogic> & { simulate: true }
+): Actor<TLogic> & { readonly simulate: ActorSimulation<TLogic> };
+export function createActor<TLogic extends AnyActorLogic>(
+  logic: TLogic,
+  ...options: CreateActorOptionsArgs<TLogic>
+): Actor<TLogic>;
 export function createActor<TLogic extends AnyActorLogic>(
   logic: TLogic,
   ...[options]: CreateActorOptionsArgs<TLogic>

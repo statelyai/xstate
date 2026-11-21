@@ -2028,6 +2028,9 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
   /** The input data to pass to the actor. */
   input?: InputFrom<TLogic>;
 
+  /** Enables simulated completion of invoked children. Invocations start normally. */
+  simulate?: boolean;
+
   /** The source actor logic. */
   src?: string | AnyActorLogic;
 
