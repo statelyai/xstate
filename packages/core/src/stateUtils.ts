@@ -1739,20 +1739,18 @@ function microstep(
             const historyDefaultTransition =
               resolveHistoryDefaultTransition(stateNode);
             const historyParent = stateNode.parent!;
-            statesForDefaultEntry.add(historyParent);
-            const defaults = historyDefaultsByParent.get(historyParent) ?? [];
-            defaults.push(historyDefaultTransition);
-            historyDefaultsByParent.set(historyParent, defaults);
+            if (historyDefaultTransition === historyParent.initial) {
+              statesForDefaultEntry.add(historyParent);
+            } else {
+              const defaults = historyDefaultsByParent.get(historyParent) ?? [];
+              defaults.push(historyDefaultTransition);
+              historyDefaultsByParent.set(historyParent, defaults);
+            }
             const { targets } = getCurrentTransitionResult(
               historyDefaultTransition
             );
             for (const s of targets ?? []) {
               statesToEnter.add(s);
-
-              if (historyDefaultTransition === stateNode.parent?.initial) {
-                statesForDefaultEntry.add(stateNode.parent);
-              }
-
               addDescendantStatesToEnter(s);
             }
 
@@ -1819,7 +1817,12 @@ function microstep(
             !isHistoryNode(targetNode) &&
             (transition.source !== targetNode ||
               transition.source !== domain ||
-              reenter)
+              reenter) &&
+            !(
+              targetNode === domain &&
+              !targetNode.parent &&
+              mutStateNodeSet.has(targetNode)
+            )
           ) {
             enteredTargets.add(targetNode);
             statesToEnter.add(targetNode);
@@ -1884,9 +1887,16 @@ function microstep(
       }
 
       const completedNodes = new Set<AnyStateNode>();
-      for (const stateNodeToEnter of [...statesToEnter].sort(
-        (a, b) => a.order - b.order
-      )) {
+      const root = currentSnapshot.machine.root;
+      const defaultOnlyRoot =
+        (statesForDefaultEntry.has(root) ||
+          historyDefaultsByParent.has(root)) &&
+        !statesToEnter.has(root);
+      for (const stateNodeToEnter of [
+        ...statesToEnter,
+        ...(defaultOnlyRoot ? [root] : [])
+      ].sort((a, b) => a.order - b.order)) {
+        const entering = statesToEnter.has(stateNodeToEnter);
         mutStateNodeSet.add(stateNodeToEnter);
         const actions: AnyAction[] = [];
         // Read the children for each state: the entry actions of the states
@@ -1901,7 +1911,7 @@ function microstep(
         }> = [];
         const stateInput = stateInputMap[stateNodeToEnter.id];
         try {
-          for (const invokeDef of stateNodeToEnter.type === 'final'
+          for (const invokeDef of !entering || stateNodeToEnter.type === 'final'
             ? []
             : stateNodeToEnter.invoke) {
             let src = invokeDef.logic;
@@ -1959,7 +1969,7 @@ function microstep(
           let context = nextState.context;
           let contextChangedByEntry = false;
 
-          if (stateNodeToEnter.entry) {
+          if (entering && stateNodeToEnter.entry) {
             const [
               resultActions,
               nextContext,
@@ -2013,11 +2023,11 @@ function microstep(
           throw error;
         }
 
-        if (statesForDefaultEntry.has(stateNodeToEnter)) {
-          const defaultTransitions = [
-            stateNodeToEnter.initial,
-            ...(historyDefaultsByParent.get(stateNodeToEnter) ?? [])
-          ].filter(Boolean);
+        const historyDefaults = historyDefaultsByParent.get(stateNodeToEnter);
+        const defaultTransitions = statesForDefaultEntry.has(stateNodeToEnter)
+          ? [stateNodeToEnter.initial, ...(historyDefaults ?? [])]
+          : historyDefaults;
+        if (defaultTransitions) {
           for (const defaultTransition of defaultTransitions) {
             const {
               actions: initialActions,

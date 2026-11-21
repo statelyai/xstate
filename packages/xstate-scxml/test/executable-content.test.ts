@@ -70,8 +70,9 @@ it('runs history-target content before entry and keeps history-default content a
         <onexit><log expr="'off:exit'" /></onexit>
         <transition event="RESTORE" target="history"><log expr="'restore'" /></transition>
       </state>
-      <state id="active" initial="a">
+      <state id="active">
         <onentry><log expr="'active:entry'" /></onentry>
+        <initial><transition target="b"><log expr="'initial'" /></transition></initial>
         <transition event="LEAVE" target="off" />
         <history id="history" type="deep"><transition target="a"><log expr="'default'" /></transition></history>
         <state id="a"><onentry><log expr="'a:entry'" /></onentry><transition event="NEXT" target="b" /></state>
