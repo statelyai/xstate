@@ -3810,9 +3810,10 @@ export interface CreatedInvoke<
   TContextShape,
   TStateSchemas extends Record<string, SetupStateSchema>,
   TStateInput,
-  TConfig = unknown
+  TConfig = unknown,
+  TSrc = NoInfer<TLogic>
 > {
-  src: NoInfer<TLogic>;
+  src: TSrc;
   readonly [createdInvoke]: {
     context: TContext;
     contextShape: TContextShape;
@@ -4966,7 +4967,6 @@ export interface SetupReturn<
   /** Creates an invoke from a registered actor source. */
   createInvoke<
     TSrc extends keyof TSetupActorMap & string,
-    TLogic extends AnyActorLogic = TSetupActorMap[TSrc],
     TContext extends SetupContext<TSchemas, StandardSchemaV1> = SetupContext<
       TSchemas,
       StandardSchemaV1
@@ -4979,7 +4979,7 @@ export interface SetupReturn<
     config: TConfig &
       Omit<
         CreateInvokeConfig<
-          TLogic,
+          TSetupActorMap[TSrc],
           TStateSchemas,
           TContext,
           TContextShape,
@@ -5002,7 +5002,7 @@ export interface SetupReturn<
             NoInfer<
               Omit<
                 CreateInvokeConfig<
-                  TLogic,
+                  TSetupActorMap[TSrc],
                   TStateSchemas,
                   TContext,
                   TContextShape,
@@ -5029,12 +5029,13 @@ export interface SetupReturn<
         ? []
         : [invalidConfig: never]
   ): CreatedInvoke<
-    TLogic,
+    TSetupActorMap[TSrc],
     TContext,
     TContextShape,
     TStateSchemas,
     TStateInput,
-    CreatedInvokeValidationConfig<TConfig>
+    CreatedInvokeValidationConfig<TConfig>,
+    TSrc
   >;
 
   /** Creates an invoke from actor logic with its existing source types. */
