@@ -316,39 +316,38 @@ type ExtendValidatorConfig<TExtension> = [TExtension] extends [
   ? { validator?: never }
   : { validator: TExtension };
 
-// An extension may add sources freely, but a source that reuses a base name
-// replaces it at runtime, so it must satisfy the base contract, the same rule
-// `machine.provide(...)` applies.
-type ExtendOverrideContracts<
+// A source that reuses a base name replaces it at runtime, so it must
+// satisfy the base contract, the same rule `machine.provide(...)` applies.
+type SourceOverrideContracts<
   TBaseActionMap,
   TBaseActorMap,
   TBaseGuardMap,
-  TExtendActionMap,
-  TExtendActorMap,
-  TExtendGuardMap
+  TOverrideActionMap,
+  TOverrideActorMap,
+  TOverrideGuardMap
 > = {
   actions?: {
-    [K in keyof NoInfer<TExtendActionMap> &
+    [K in keyof NoInfer<TOverrideActionMap> &
       keyof TBaseActionMap]?: ProvidedActionContracts<TBaseActionMap>[K];
   };
   guards?: {
-    [K in keyof NoInfer<TExtendGuardMap> &
+    [K in keyof NoInfer<TOverrideGuardMap> &
       keyof TBaseGuardMap]?: TBaseGuardMap[K];
   };
-  // Mapped over the extension's own keys, like `provide()`'s actor check, so
+  // Mapped over the override's own keys, like `provide()`'s actor check, so
   // an incompatible actor becomes `never` under its own name and the error is
   // reported there.
   actors?: {
-    [K in keyof NoInfer<TExtendActorMap>]: K extends keyof TBaseActorMap
+    [K in keyof NoInfer<TOverrideActorMap>]: K extends keyof TBaseActorMap
       ? TBaseActorMap[K] extends AnyActorLogic
-        ? NoInfer<TExtendActorMap>[K] extends AnyActorLogic
+        ? NoInfer<TOverrideActorMap>[K] extends AnyActorLogic
           ? CompatibleProvidedActorSource<
               TBaseActorMap[K],
-              NoInfer<TExtendActorMap>[K]
+              NoInfer<TOverrideActorMap>[K]
             >
           : never
         : never
-      : NoInfer<TExtendActorMap>[K];
+      : NoInfer<TOverrideActorMap>[K];
   };
 };
 
@@ -386,7 +385,7 @@ type SetupExtensionConfig<
       NoInfer<MergedSetupSchemas<TBaseSchemas, TExtendSchemas>>
     >;
 } & ExtendValidatorConfig<TExtendValidator> &
-  ExtendOverrideContracts<
+  SourceOverrideContracts<
     TBaseActionMap,
     TBaseActorMap,
     TBaseGuardMap,
@@ -5198,6 +5197,14 @@ export interface SetupReturn<
       delays?: TDelayMap;
       states?: Record<TStateKeys, unknown>;
     } & TConfig &
+      SourceOverrideContracts<
+        TSetupActionMap,
+        TSetupActorMap,
+        TSetupGuardMap,
+        TActionMap,
+        TActorMap,
+        TGuardMap
+      > &
       RuntimeValidationConstraint<
         NoInfer<MachineConfigSchemas<TConfig>>,
         NoInfer<MachineConfigStates<TConfig>>,
