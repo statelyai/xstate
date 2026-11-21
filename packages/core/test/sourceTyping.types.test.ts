@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import {
   createActor,
+  createAsyncLogic,
   createMachine,
   setup,
   type ActorRefFrom,
@@ -10,6 +11,64 @@ import {
 function expectType<T>(_v: T) {}
 
 describe('setup() source typing', () => {
+  it('requires machine-level source overrides to satisfy setup contracts', () => {
+    const load = createAsyncLogic({
+      schemas: { input: z.string(), output: z.number() },
+      run: async ({ input }) => input.length
+    });
+    const otherLoad = createAsyncLogic({
+      schemas: { input: z.number(), output: z.string() },
+      run: async ({ input }) => String(input)
+    });
+    const base = setup({
+      actions: { record: (id: string) => ({ context: { id } }) },
+      actors: { load },
+      guards: { enabled: (id: string) => id.length > 0 }
+    });
+
+    base.createMachine({
+      actions: {
+        record: (id: string) => ({ context: { id } }),
+        reset: () => {}
+      },
+      actors: { load, otherLoad },
+      guards: { enabled: (id: string) => id === 'ready' },
+      on: {
+        RESET: ({ actions }, enq) => {
+          enq(actions.reset);
+          expectType<{ context: { id: string } }>(actions.record('ready'));
+        }
+      }
+    });
+
+    if (false) {
+      base.createMachine({
+        actions: {
+          // @ts-expect-error the replacement must accept the declared argument
+          record: (id: number) => ({ context: { id: String(id) } })
+        }
+      });
+      base.createMachine({
+        actions: {
+          // @ts-expect-error the replacement must return a compatible result
+          record: () => {}
+        }
+      });
+      base.createMachine({
+        actors: {
+          // @ts-expect-error the replacement must keep the actor's input and output contract
+          load: otherLoad
+        }
+      });
+      base.createMachine({
+        guards: {
+          // @ts-expect-error the replacement must accept the declared argument
+          enabled: (id: number) => id > 0
+        }
+      });
+    }
+  });
+
   it('rejects unknown action and guard names in transition functions', () => {
     setup({
       actions: { record: (_id: string) => {} },
