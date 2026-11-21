@@ -1,5 +1,6 @@
 import type { ActorLogic, EventObject } from 'xstate';
-import { getShortestPaths } from 'xstate/graph';
+import type { StatePath } from 'xstate/graph';
+import { XSTATE_INIT } from './engine/constants.ts';
 import {
   replayTest,
   type TestFixture,
@@ -85,21 +86,61 @@ export function createTestModel<
 
   const serializeState = (current: Snapshot) => simpleStringify(current);
 
+  function planPaths(limit: number) {
+    if (!Number.isInteger(limit) || limit < 1) {
+      throw new Error(
+        'Standalone model traversal limit must be a positive integer.'
+      );
+    }
+
+    const start: StatePath<Snapshot, TEvent> = {
+      state: initial(),
+      steps: [],
+      weight: 0
+    };
+    const paths = [start];
+    const prefixes = [start];
+    const seen = new Set([serializeState(start.state)]);
+
+    // Breadth-first discovery keeps one shortest prefix per state. Every
+    // outgoing choice gets a run, including loops and shared destinations.
+    for (const prefix of prefixes) {
+      for (const event of model.choices(prefix.state.context)) {
+        if (paths.length >= limit) {
+          throw new Error(
+            `Standalone model traversal limit exceeded (${limit} paths).`
+          );
+        }
+        if (event.type === XSTATE_INIT) {
+          throw new Error(
+            `"${XSTATE_INIT}" is reserved for test initialization.`
+          );
+        }
+        const state = snapshot(model.step(prefix.state.context, event));
+        const path = {
+          state,
+          steps: [...prefix.steps, { state, event }],
+          weight: prefix.weight + 1
+        };
+        paths.push(path);
+        const key = serializeState(state);
+        if (!seen.has(key)) {
+          seen.add(key);
+          prefixes.push(path);
+        }
+      }
+    }
+    return paths;
+  }
+
   return {
-    /** Runs one shortest path to each reachable state. */
+    /** Exercises each exact choice from one shortest prefix to its source state. */
     async test({
       sut,
       limit = 10_000
     }: { sut?: SutFactory; limit?: number } = {}) {
-      const paths = getShortestPaths(logic, {
-        events: (current) => model.choices(current.context),
-        serializeState,
-        limit
-      });
-
       return testPaths(logic, {
-        paths,
-        allowDuplicatePaths: true,
+        paths: planPaths(limit),
         serializeState,
         invariant,
         ...(sut ? { sut: adaptSut(sut) } : {})

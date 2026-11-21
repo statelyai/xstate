@@ -86,11 +86,13 @@ with TypeScript functions. Import it from `@xstate/test/paths` or
 | `observe(state)` | Returns the expected observable behavior. |
 | `check(state)` | Optionally throws to report an invariant violation. |
 
-`model.test()` checks the model on one shortest path to each reachable state.
-Traversal enumerates the supplied choices without sampling their payloads.
-Different events that lead to the same state may share a single witness path.
-Use deterministic, JSON-serializable states and events. Pass `limit` to set
-the traversal budget for a bounded model.
+`model.test()` runs each exact choice from every reachable state. It takes
+one shortest path to the choice's source state, then sends the choice's event.
+Choices with the same destination each get a run, including events that leave
+the state unchanged. Use deterministic, JSON-serializable states and events.
+If later behavior depends on how a state was reached, include that history
+in the model state. Pass `limit` to cap the number of planned paths, including
+the initial state check.
 
 Pass `sut` to compare the model with an implementation. It creates a fresh
 driver for each path. The driver exposes `send(event)` and `read()`, and can
@@ -98,11 +100,13 @@ provide `settle()` and `dispose()`. The runner compares `read()` with
 `observe(state)` at the initial state and after each event.
 
 The [two-script OpenCode model](./test/openCodeModel.ts) enumerates actions for
-each eligible script ID. Its [test](./test/model.test.ts) checks the model with
-and without a driver, then records a duplicate background completion notice as
-a JSON fixture. Pass that fixture to `model.replay(fixture, { sut })` to replay
-the recorded event sequence. Use `expect: 'pass'` to check the fixed driver
-against the same fixture.
+each eligible script ID. It lists Ctrl+B and the 10-second timeout as
+separate choices that both move a script to the background. Its
+[test](./test/model.test.ts) checks that either handoff can fail independently
+and records a duplicate background completion notice as a JSON fixture.
+Pass that fixture to `model.replay(fixture, { sut })` to replay the recorded
+event sequence. Use `expect: 'pass'` to check the fixed driver against the
+same fixture.
 
 ## Quick start
 

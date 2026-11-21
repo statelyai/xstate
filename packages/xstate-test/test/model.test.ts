@@ -8,13 +8,13 @@ import { createCodeModeDriver } from './openCodeDriver.ts';
 import { createCodeModeModel } from './openCodeModel.ts';
 
 describe('standalone test models', () => {
-  it('explores every exact choice without a payload sampling budget', async () => {
+  it('executes exact choices with shared destinations and self-loops', async () => {
     const ids = [0, 9, 20, 70, 99];
     const model = createTestModel({
       initial: () => -1,
       choices: (state) =>
-        state === -1 ? ids.map((id) => ({ type: 'select', id })) : [],
-      step: (_state, event) => event.id,
+        (state === -1 ? ids : [100]).map((id) => ({ type: 'select', id })),
+      step: () => 0,
       observe: (state) => state
     });
 
@@ -24,15 +24,15 @@ describe('standalone test models', () => {
         let selected = -1;
         return {
           send: (event) => {
-            selected = event.id;
-            reached.push(selected);
+            selected = 0;
+            reached.push(event.id);
           },
           read: () => selected
         };
       }
     });
 
-    expect(reached).toEqual(ids);
+    expect(reached).toEqual([...ids, ids[0], 100]);
   });
 
   it('checks the two-script model with and without a healthy driver', async () => {
@@ -49,6 +49,44 @@ describe('standalone test models', () => {
     const { coverage } = await model.test({ sut: createCodeModeDriver });
     expect(coverage.sutComparisons).toBeGreaterThan(0);
   });
+
+  it.each(['ctrlB', 'tick10s'])(
+    'catches a missing %s handoff',
+    async (trigger) => {
+      const model = createCodeModeModel();
+
+      await expect(
+        model.test({
+          sut: () => {
+            const driver = createCodeModeDriver();
+            return {
+              ...driver,
+              send: (event) => {
+                if (event.type !== trigger) {
+                  return driver.send(event);
+                }
+              }
+            };
+          }
+        })
+      ).rejects.toMatchObject({
+        summary: expect.stringContaining('observation diverged'),
+        trace: {
+          events: [
+            { type: 'init', fullCodemode: true },
+            { type: 'startExecute' },
+            { type: trigger }
+          ],
+          finalObservation: {
+            sut: {
+              model: expect.objectContaining({ backgroundJobs: [0] }),
+              observed: expect.objectContaining({ backgroundJobs: [] })
+            }
+          }
+        }
+      });
+    }
+  );
 
   it('catches two foreground blockers without a driver', async () => {
     await expect(
