@@ -1924,6 +1924,8 @@ export type PersistedActorRef = {
   address?: string;
   /** The registered source key the child is restored from. */
   src: string;
+  /** Whether an embedded child was created by an invocation. */
+  invoked?: true;
   registryKey?: string;
   syncSnapshot?: boolean;
 } & (
@@ -2027,6 +2029,9 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
   registryKey?: string;
   /** The input data to pass to the actor. */
   input?: InputFrom<TLogic>;
+
+  /** Enables simulated completion of invoked children. Invocations start normally. */
+  simulate?: boolean;
 
   /** The source actor logic. */
   src?: string | AnyActorLogic;

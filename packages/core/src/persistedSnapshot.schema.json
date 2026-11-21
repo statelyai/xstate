@@ -95,6 +95,10 @@
           "type": "string"
         },
         "registryKey": { "type": "string" },
+        "invoked": {
+          "description": "Identifies an embedded registered invocation when the parent was persisted with simulation enabled.",
+          "const": true
+        },
         "syncSnapshot": { "type": "boolean" },
         "snapshot": {
           "description": "Embedded persisted snapshot of the child's logic. A machine child's snapshot is itself a persisted machine snapshot envelope."
