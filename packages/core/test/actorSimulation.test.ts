@@ -118,7 +118,13 @@ it('retains registered invocation identity across a persisted round trip', () =>
   const machine = setup({ actors: { worker } }).createMachine({
     invoke: { id: 'worker', src: 'worker' }
   });
-  const original = createActor(machine).start();
+  const ordinary = createActor(machine).start();
+  expect(ordinary.getPersistedSnapshot().children.worker).not.toHaveProperty(
+    'invoked'
+  );
+  ordinary.stop();
+
+  const original = createActor(machine, { simulate: true }).start();
   const persisted = JSON.parse(JSON.stringify(original.getPersistedSnapshot()));
   original.stop();
   const restored = restoreActor(machine, persisted, { simulate: true }).start();

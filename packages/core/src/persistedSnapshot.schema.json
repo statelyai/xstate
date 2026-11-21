@@ -96,7 +96,7 @@
         },
         "registryKey": { "type": "string" },
         "invoked": {
-          "description": "Identifies an embedded child invoked by its parent when it has a registered source key.",
+          "description": "Identifies an embedded registered invocation when the parent was persisted with simulation enabled.",
           "const": true
         },
         "syncSnapshot": { "type": "boolean" },

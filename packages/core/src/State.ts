@@ -823,6 +823,10 @@ export function getPersistedSnapshot<
 
   const childrenJson: Record<string, unknown> = {};
   const timersJson: unknown[] = [];
+  const snapshotActor = getSnapshotActorRef(snapshot)?.actor;
+  // Invocation identity is needed only when restoring a simulation.
+  const persistInvocation =
+    snapshotActor && 'simulate' in snapshotActor && !!snapshotActor.simulate;
 
   const embedChildren =
     (options as { embedChildren?: boolean } | undefined)?.embedChildren !==
@@ -876,7 +880,7 @@ export function getPersistedSnapshot<
             incarnation: isRemoteActorRef(child) ? child.sessionId : undefined
           }),
       ...(invoked ? {} : { src: child.src }),
-      ...(embed && !invoked && child._invoked === true
+      ...(persistInvocation && embed && !invoked && child._invoked === true
         ? { invoked: true }
         : {}),
       registryKey: child.registryKey,
@@ -884,7 +888,6 @@ export function getPersistedSnapshot<
     };
   }
 
-  const snapshotActor = getSnapshotActorRef(snapshot)?.actor;
   // Only the wall clock is stamped into persisted timers: a custom clock's
   // readings (a simulated clock, a monotonic counter) are meaningless in any
   // other process, and restoring them under the wall clock would fire every
