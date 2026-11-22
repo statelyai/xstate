@@ -35,7 +35,6 @@ import {
   type TestOptions,
   type PropertyGeneratorKind,
   type EventForType,
-  type EventPayload,
   defaultFormatSnapshot
 } from './propertyTest.ts';
 import { createOutcomeStub, provideActors } from './outcomes.ts';
@@ -77,6 +76,10 @@ export interface TestPathRunResult<
   readonly error?: unknown;
 }
 
+type ExactEventPayload<TEvent extends EventObject> = TEvent extends unknown
+  ? Omit<TEvent, 'type'>
+  : never;
+
 /**
  * Path-generation options. The counterpart of the property-only options.
  *
@@ -104,10 +107,10 @@ interface PathOptions<
   /** Exact payloads by event type. Return an empty array to omit a type. Implies 'edges'. */
   readonly cases?: {
     readonly [TType in TEvent['type']]?:
-      | readonly EventPayload<EventForType<TEvent, TType>>[]
+      | readonly ExactEventPayload<EventForType<TEvent, TType>>[]
       | ((
           snapshot: TSnapshot
-        ) => readonly EventPayload<EventForType<TEvent, TType>>[]);
+        ) => readonly ExactEventPayload<EventForType<TEvent, TType>>[]);
   };
   /** Probes unhandled events as no-ops where the predicate permits. Implies 'edges'. */
   readonly checkUnhandled?: {

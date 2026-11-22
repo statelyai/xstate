@@ -606,7 +606,7 @@ export type EventForType<
   TEvent extends EventObject,
   TType extends EventType<TEvent>
 > = Extract<TEvent, { type: TType }>;
-export type EventPayload<TEvent extends EventObject> = Omit<TEvent, 'type'>;
+type EventPayload<TEvent extends EventObject> = Omit<TEvent, 'type'>;
 
 /**
  * Records a statistic for the current run.
