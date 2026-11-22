@@ -1365,7 +1365,7 @@ describe('parallel states', () => {
     expect(service.getSnapshot().value).toBe('finished');
   });
 
-  it('source parallel region should not be exited when a transition within it targets another parallel region (parallel root)', async () => {
+  it('reenters the parallel root when a transition crosses regions', () => {
     const machine = createMachine({
       type: 'parallel',
       states: {
@@ -1402,10 +1402,21 @@ describe('parallel states', () => {
 
     actor.send({ type: 'TOGGLE_MODE' });
 
-    expect(flushTracked()).toEqual(['exit: Mode.Normal', 'enter: Mode.Demo']);
+    expect(flushTracked()).toEqual([
+      'exit: Mode.Normal',
+      'exit: Mode',
+      'exit: Operation.Waiting',
+      'exit: Operation',
+      'exit: __root__',
+      'enter: __root__',
+      'enter: Operation',
+      'enter: Operation.Waiting',
+      'enter: Mode',
+      'enter: Mode.Demo'
+    ]);
   });
 
-  it('source parallel region should not be exited when a transition within it targets another parallel region (nested parallel)', async () => {
+  it('reenters a nested parallel state when a transition crosses regions', () => {
     const machine = createMachine({
       initial: 'a',
       states: {
@@ -1449,8 +1460,81 @@ describe('parallel states', () => {
 
     expect(flushTracked()).toEqual([
       'exit: a.Mode.Normal',
+      'exit: a.Mode',
+      'exit: a.Operation.Waiting',
+      'exit: a.Operation',
+      'exit: a',
+      'enter: a',
+      'enter: a.Operation',
+      'enter: a.Operation.Waiting',
+      'enter: a.Mode',
       'enter: a.Mode.Demo'
     ]);
+  });
+
+  it('preserves sibling regions when targeting the source region root', () => {
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        left: {
+          id: 'left',
+          initial: 'a',
+          states: {
+            a: { on: { ADVANCE: { target: 'b' } } },
+            b: { on: { RESET: { target: '#left' } } }
+          }
+        },
+        right: {
+          initial: 'x',
+          states: {
+            x: { on: { ADVANCE: { target: 'y' } } },
+            y: {}
+          }
+        }
+      }
+    });
+    const actor = createActor(machine).start();
+
+    actor.send({ type: 'ADVANCE' });
+    actor.send({ type: 'RESET' });
+
+    expect(actor.getSnapshot().value).toEqual({ left: 'a', right: 'y' });
+  });
+
+  it('enters only the history recorded by a cross-region transition', () => {
+    const enteredFirst = vi.fn();
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        left: { on: { RESTORE: { target: '#rightHistory' } } },
+        right: {
+          initial: 'first',
+          states: {
+            first: {
+              entry: (_, enq) => enq(enteredFirst),
+              initial: 'leaf',
+              states: { leaf: {} },
+              on: { ADVANCE: { target: 'second' } }
+            },
+            second: {},
+            history: {
+              id: 'rightHistory',
+              type: 'history',
+              history: 'deep',
+              target: 'first.leaf'
+            }
+          }
+        }
+      }
+    });
+    const actor = createActor(machine).start();
+    actor.send({ type: 'ADVANCE' });
+    enteredFirst.mockClear();
+
+    actor.send({ type: 'RESTORE' });
+
+    expect(actor.getSnapshot().value).toEqual({ left: {}, right: 'second' });
+    expect(enteredFirst).not.toHaveBeenCalled();
   });
 
   it('targetless transition on a parallel state should not enter nor exit any states', () => {
