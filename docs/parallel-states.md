@@ -60,7 +60,7 @@ active: {
 // after `interrupt`: { playback: 'paused', volume: 'muted' }
 ```
 
-For transitions within a region, the other regions keep their active states.
+A region can transition between its child states while the other regions stay active.
 
 ## Transitions between regions
 
@@ -128,7 +128,7 @@ on: {
 }
 ```
 
-Relative paths work the same way: `target: ['playback.stopped', 'volume.audible']`. Regions not named keep their current state.
+Relative paths work the same way: `target: ['playback.stopped', 'volume.audible']`. Unnamed regions keep their current state when they stay active. If the transition exits and reenters the parallel state, unnamed regions restart at their initial states.
 
 The target set must be a legal configuration: the targets must be in different regions of a common parallel ancestor. Two targets in the same region throw at machine creation, not at send time.
 

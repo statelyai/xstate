@@ -1156,10 +1156,9 @@ function createTransitionResultResolver(
 
 function getEffectiveTargetStates(
   transition: Pick<AnyTransitionDefinition, 'target' | 'source'>,
-  snapshot: AnyMachineSnapshot,
+  historyValue: HistoryValue,
   resolveTransition: TransitionResultResolver
 ): Array<AnyStateNode> {
-  const historyValue = snapshot.historyValue;
   const { targets } = resolveTransition(transition);
   if (!targets) {
     return [];
@@ -1176,7 +1175,7 @@ function getEffectiveTargetStates(
       } else {
         for (const node of getEffectiveTargetStates(
           resolveHistoryDefaultTransition(targetNode),
-          snapshot,
+          historyValue,
           resolveTransition
         )) {
           targetSet.add(node);
@@ -1221,7 +1220,7 @@ function getTransitionDomain(
 ): AnyStateNode | undefined {
   const targetStates = getEffectiveTargetStates(
     transition,
-    snapshot,
+    snapshot.historyValue,
     resolveTransition
   );
 
@@ -1273,17 +1272,22 @@ function getTransitionDomain(
       : narrowParallelDomain(transition.source, targetStates);
   }
 
-  const [head, ...tail] = targetStates.concat(transition.source);
+  const sourceAndTargets = targetStates.concat(transition.source);
+  const [head, ...tail] = sourceAndTargets;
   // Find the least common ancestor (LCA) of the source and effective targets.
   for (const ancestor of getProperAncestors(head, undefined)) {
     if (tail.every((sn) => isDescendant(sn, ancestor))) {
-      // SCXML uses the nearest compound ancestor as the transition domain.
-      // A parallel ancestor and its regions are inside that domain.
-      return ancestor.type === 'parallel'
-        ? getProperAncestors(ancestor, undefined).find(
-            (parent) => parent.type === 'compound'
-          )
-        : ancestor;
+      if (
+        ancestor.type === 'parallel' &&
+        narrowParallelDomain(ancestor, sourceAndTargets) === ancestor
+      ) {
+        // SCXML includes the parallel state in the exit set when a transition
+        // crosses its regions.
+        return getProperAncestors(ancestor, undefined).find(
+          (parent) => parent.type === 'compound'
+        );
+      }
+      return reenter ? ancestor : narrowParallelDomain(ancestor, targetStates);
     }
   }
 
@@ -1832,7 +1836,7 @@ function microstep(
         }
         const targetStates = getEffectiveTargetStates(
           transition,
-          currentSnapshot,
+          historyValue,
           getCurrentTransitionResult
         );
         for (const s of targetStates) {

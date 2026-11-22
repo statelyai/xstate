@@ -1308,6 +1308,71 @@ describe('parallel states', () => {
     ]);
   });
 
+  it('preserves sibling regions when targeting the source region root', () => {
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        left: {
+          id: 'left',
+          initial: 'a',
+          states: {
+            a: { on: { ADVANCE: { target: 'b' } } },
+            b: { on: { RESET: { target: '#left' } } }
+          }
+        },
+        right: {
+          initial: 'x',
+          states: {
+            x: { on: { ADVANCE: { target: 'y' } } },
+            y: {}
+          }
+        }
+      }
+    });
+    const actor = createActor(machine).start();
+
+    actor.send({ type: 'ADVANCE' });
+    actor.send({ type: 'RESET' });
+
+    expect(actor.getSnapshot().value).toEqual({ left: 'a', right: 'y' });
+  });
+
+  it('enters only the history recorded by a cross-region transition', () => {
+    const enteredFirst = vi.fn();
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        left: { on: { RESTORE: { target: '#rightHistory' } } },
+        right: {
+          initial: 'first',
+          states: {
+            first: {
+              entry: (_, enq) => enq(enteredFirst),
+              initial: 'leaf',
+              states: { leaf: {} },
+              on: { ADVANCE: { target: 'second' } }
+            },
+            second: {},
+            history: {
+              id: 'rightHistory',
+              type: 'history',
+              history: 'deep',
+              target: 'first.leaf'
+            }
+          }
+        }
+      }
+    });
+    const actor = createActor(machine).start();
+    actor.send({ type: 'ADVANCE' });
+    enteredFirst.mockClear();
+
+    actor.send({ type: 'RESTORE' });
+
+    expect(actor.getSnapshot().value).toEqual({ left: {}, right: 'second' });
+    expect(enteredFirst).not.toHaveBeenCalled();
+  });
+
   it('targetless transition on a parallel state should not enter nor exit any states', () => {
     const machine = createMachine({
       id: 'test',
