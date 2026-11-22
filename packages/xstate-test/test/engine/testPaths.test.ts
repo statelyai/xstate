@@ -127,6 +127,131 @@ describe('testPaths() follows the planned path', () => {
     }
   });
 
+  it('covers discovered events with shared destinations and no-ops', async () => {
+    const model = createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          on: { CLICK: { target: 'done' }, TIMEOUT: { target: 'done' } }
+        },
+        done: { on: { DISMISS: { target: 'done' } } }
+      }
+    });
+    const { results } = await testPaths(model, { pathGenerator: 'edges' });
+    expect(
+      results.map(({ path }) => path.steps.map(({ event }) => event.type))
+    ).toEqual([[], ['CLICK'], ['TIMEOUT'], ['CLICK', 'DISMISS']]);
+  });
+
+  it('sends exact cases only where enabled unless unhandled probes are requested', async () => {
+    const model = createMachine({
+      schemas: {
+        events: { BEGIN: types<{}>(), APPROVE: types<{ id: number }>() }
+      },
+      initial: 'idle',
+      states: {
+        idle: { on: { BEGIN: { target: 'ready' } } },
+        ready: {
+          on: {
+            APPROVE: ({ event }) =>
+              event.id === 5 ? { target: 'done' } : undefined
+          }
+        },
+        done: { type: 'final' }
+      }
+    });
+    const cases = { APPROVE: [{ id: 5 }, { id: 7 }] };
+    const enabled = await testPaths(model, { cases });
+    expect(
+      enabled.results.flatMap(({ path }) => path.steps.at(-1)?.event ?? [])
+    ).toEqual([{ type: 'BEGIN' }, { type: 'APPROVE', id: 5 }]);
+
+    const probed = await testPaths(model, {
+      cases,
+      checkUnhandled: { APPROVE: true }
+    });
+    expect(
+      probed.results.map(({ path }) => path.steps.map(({ event }) => event))
+    ).toEqual([
+      [],
+      [{ type: 'APPROVE', id: 5 }],
+      [{ type: 'APPROVE', id: 7 }],
+      [{ type: 'BEGIN' }],
+      [{ type: 'BEGIN' }, { type: 'APPROVE', id: 5 }],
+      [{ type: 'BEGIN' }, { type: 'APPROVE', id: 7 }]
+    ]);
+  });
+
+  it('uses the current actor snapshot to determine whether an edge is enabled', async () => {
+    const model = createMachine({
+      schemas: { events: { GO: types<{}>() } },
+      initial: 'waiting',
+      states: {
+        waiting: {
+          on: {
+            GO: ({ self }) =>
+              self.getSnapshot().value === 'waiting'
+                ? { target: 'done' }
+                : undefined
+          }
+        },
+        done: { type: 'final' }
+      }
+    });
+    const { results } = await testPaths(model, {
+      cases: { GO: [{}] },
+      checkUnhandled: { GO: true }
+    });
+    expect(results.map(({ path }) => path.state.value)).toEqual([
+      'waiting',
+      'done'
+    ]);
+  });
+
+  it('discovers and filters application events with an xstate prefix', async () => {
+    const model = createMachine({
+      schemas: { events: { BEGIN: types<{}>(), 'xstate.custom': types<{}>() } },
+      initial: 'idle',
+      states: {
+        idle: { on: { BEGIN: { target: 'ready' } } },
+        ready: { on: { 'xstate.custom': { target: 'done' } } },
+        done: { type: 'final' }
+      }
+    });
+
+    for (const options of [
+      { cases: {} },
+      { cases: { 'xstate.custom': [{}] } }
+    ]) {
+      const sent: string[][] = [];
+      await testPaths(model, {
+        ...options,
+        sut: {
+          create: () => {
+            const events: string[] = [];
+            sent.push(events);
+            return {
+              send: (event) => {
+                events.push(event.type);
+              }
+            };
+          }
+        }
+      });
+      expect(sent).toEqual([[], ['BEGIN'], ['BEGIN', 'xstate.custom']]);
+    }
+  });
+
+  it('follows only the first due timer in exact case traversal', async () => {
+    for (const mode of ['pure', 'executed'] as const) {
+      const { results } = await testPaths(raceMachine, {
+        mode,
+        cases: {}
+      });
+      expect(results.map(({ path }) => path.state.value)).toEqual(['s', 'x']);
+    }
+  });
+
   it('fails a path the run departs from', async () => {
     const failure = await captureFailure(() =>
       testPaths(raceMachine, {

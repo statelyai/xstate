@@ -21,6 +21,8 @@ complete worked example.
 
 - [Installation](#installation)
 - [Run tests without fast-check](#run-tests-without-fast-check)
+- [Standalone models](#standalone-models)
+- [Exact event cases for a machine](#exact-event-cases-for-a-machine)
 - [Quick start](#quick-start)
 - [Concepts](#concepts)
 - [How-to guides](#how-to-guides)
@@ -68,6 +70,73 @@ objects with a `sample(rng)` method. Both forms can also be used in a named
 event case. Provide payloads explicitly when the machine needs them. Use
 `assertTestCoverage()` and `formatTestCoverage()` to check or display
 coverage, and `serializeTestTrace()` to attach a trace to a failure report.
+
+## Standalone models
+
+<!-- Standalone model methods and driver from src/model.ts; OpenCode example from test/openCodeModel.ts. -->
+
+Use the experimental `createTestModel()` API for a pure specification written
+with TypeScript functions. Import it from `@xstate/test/paths` or
+`@xstate/test`.
+
+| Model member | Purpose |
+| --- | --- |
+| `initial()` | Returns the initial model state. |
+| `choices(state)` | Returns the exact enabled events, including payloads. Return an empty array when no events are enabled. |
+| `step(state, event)` | Returns the next model state without mutating the current state. |
+| `observe(state)` | Returns the expected observable behavior. |
+| `check(state)` | Optionally throws to report an invariant violation. |
+
+`model.test()` runs each exact choice from every reachable state. It takes
+one shortest path to the choice's source state, then sends the choice's event.
+Choices with the same destination each get a run, including events that leave
+the state unchanged. Use deterministic, JSON-serializable states and events.
+If later behavior depends on how a state was reached, include that history
+in the model state. Pass `limit` to cap the number of planned paths, including
+the initial state check.
+
+Pass `sut` to compare the model with an implementation. It creates a fresh
+driver for each path. The driver exposes `send(event)` and `read()`, and can
+provide `settle()` and `dispose()`. The runner compares `read()` with
+`observe(state)` at the initial state and after each event.
+
+The [two-script OpenCode model](./test/openCodeModel.ts) enumerates actions for
+each eligible script ID. It lists Ctrl+B and the 10-second timeout as
+separate choices that both move a script to the background. Its
+[test](./test/model.test.ts) checks that either handoff can fail independently
+and records a duplicate background completion notice as a JSON fixture.
+Pass that fixture to `model.replay(fixture, { sut })` to replay the recorded
+event sequence. Use `expect: 'pass'` to check the fixed driver against the
+same fixture.
+
+## Exact event cases for a machine
+
+Use `testPaths(machine, { cases })` to supply exact payloads. The machine
+provides event types and decides which concrete events are enabled. An entry
+in `cases` can be an array of payloads or a function of the current snapshot.
+Return `[]` to skip that event at the current snapshot. Supply payloads for
+events whose types have no runtime schema or generator.
+
+<!-- OpenCode machine usage from test/openCodeMachine.test.ts. -->
+
+```ts
+await testPaths(codeModeMachine, {
+  cases: codeModeCases,
+  invariant: ({ snapshot }) => checkCodeMode(snapshot.context),
+  sut
+});
+```
+
+The [OpenCode machine](./test/openCodeMachine.ts) needs cases for the feature
+flag and script IDs. The runner discovers payload-free events such as Ctrl+B
+and the timeout. The [driver and replay tests](./test/openCodeMachine.test.ts)
+also use a `checkUnhandled.approve` predicate to verify that an approval sent
+before a foreground script asks for permission leaves the observation
+unchanged.
+
+Leave `checkUnhandled` out for regular transition coverage. Use it when your
+driver can deliver an event the model would ignore and you want to verify the
+implementation ignores it too.
 
 ## Quick start
 
@@ -1394,6 +1463,9 @@ adapter without shrinking.
 
 ### Exports
 
+`createTestModel(model)` runs and replays [standalone models](#standalone-models).
+It is also available from `@xstate/test/paths`.
+
 The fast-check-backed entry points and helpers:
 
 | Export | Description |
@@ -1477,7 +1549,9 @@ In addition to the shared options:
 
 | Option | Default | Description |
 | --- | --- | --- |
-| `pathGenerator` | `'shortest'` | `'shortest'`, `'simple'`, or a custom `PathGenerator`. |
+| `pathGenerator` | `'shortest'` | `'shortest'`, `'simple'`, `'edges'`, or a custom `PathGenerator`. |
+| `cases` | none | Exact payload arrays or snapshot functions, keyed by event type. An entry overrides any generator for that type. Implies `'edges'`. |
+| `checkUnhandled` | none | A map of event types to `true` or predicates receiving `{ snapshot, event }`. Adds no-op checks only where the machine cannot handle the event. Implies `'edges'`. |
 | `paths` | none | Runs these paths instead of generating any. |
 | `fromEvents` | none | Runs the single path built from this event sequence. |
 | `cover` | none | Plans walks that collectively cover the named steps or consecutive step sequences before executing them. |
@@ -1487,8 +1561,26 @@ In addition to the shared options:
 | `stopWhen` | none | Stops expanding a state when it returns `true`. |
 | `toState` | none | Keeps only paths that end in a matching state. |
 | `fromState` | initial state | Starts traversal from this snapshot. |
-| `allowDuplicatePaths` | `false` | Keeps paths that are prefixes of longer paths. |
+| `allowDuplicatePaths` | `false` | Keeps prefix paths in strategies that deduplicate paths. |
 | `serializeState`, `serializeEvent` | built in | Identity functions for traversal. |
+
+`'edges'` plans one run per enabled event from each reachable active
+machine snapshot, including events with shared destinations and enabled
+events that leave state unchanged. Each run uses a shortest prefix to the
+source snapshot. It discovers concrete event types from the machine and uses
+`cases`, configured or derived generators, or an empty payload. Supply
+concrete event names for wildcard handlers. Timers and invoke outcomes follow
+the same rules as other path strategies. Edge mode keeps each planned path
+and concrete event case, so `allowDuplicatePaths` and `serializeEvent` do not
+apply.
+
+`checkUnhandled` adds one path ending in a selected unhandled event. The
+event must leave the model snapshot unchanged, and when `sut.read()` and
+`sut.projectModel()` are supplied, the runner compares the resulting SUT
+observation with that same model snapshot. Probes do not expand the graph.
+`stopWhen` stops expansion at matching snapshots. `toState` keeps only paths
+ending at matching snapshots. `limit` counts planned paths, including the
+initial check, before filtering by `toState`.
 
 `cover.requirements` maps a name to a predicate or a nonempty array of
 predicates that must match consecutive steps. Predicates receive the event,

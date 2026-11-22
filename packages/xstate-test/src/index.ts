@@ -113,3 +113,8 @@ export {
   mergeEventGenerators
 } from './schema.ts';
 export type { EventsFromSchemasOptions, SchemaConverter } from './schema.ts';
+export {
+  createTestModel,
+  type TestModel,
+  type TestModelDriver
+} from './model.ts';

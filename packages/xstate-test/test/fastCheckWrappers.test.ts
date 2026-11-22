@@ -50,6 +50,18 @@ describe('testPaths() with top-level `states` and no `sut`', () => {
     expect(seen).toContain('red.walk');
   });
 
+  it('uses exact cases without sampling the generator they override', async () => {
+    const { results } = await testPaths(lightMachine, {
+      cases: { NEXT: [{}] },
+      events: {
+        NEXT: fc.constant({}).map(() => {
+          throw new Error('overridden arbitrary was sampled');
+        })
+      }
+    });
+    expect(results.map(({ path }) => path.state.value)).toContain('yellow');
+  });
+
   it('accepts schema-derived events', async () => {
     const schemaMachine = createMachine({
       schemas: { events: { SET: z.object({ value: z.number().int() }) } },

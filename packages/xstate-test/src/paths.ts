@@ -24,3 +24,8 @@ export {
 } from './engine/report.ts';
 export type { TestCoverage } from './engine/coverage.ts';
 export type { TestGenerator } from './engine/eventDescriptors.ts';
+export {
+  createTestModel,
+  type TestModel,
+  type TestModelDriver
+} from './model.ts';

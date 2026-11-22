@@ -602,7 +602,7 @@ export interface TestReferenceSession<TEvent extends EventObject> {
 }
 
 type EventType<TEvent extends EventObject> = TEvent['type'] & string;
-type EventForType<
+export type EventForType<
   TEvent extends EventObject,
   TType extends EventType<TEvent>
 > = Extract<TEvent, { type: TType }>;
