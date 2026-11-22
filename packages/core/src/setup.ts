@@ -316,6 +316,45 @@ type ExtendValidatorConfig<TExtension> = [TExtension] extends [
   ? { validator?: never }
   : { validator: TExtension };
 
+type SourceOverrideKeys<TBase, TOverrides> = string extends keyof TOverrides
+  ? keyof TBase & string
+  : keyof TOverrides & keyof TBase;
+
+// An index signature can replace any matching name. Check its value type
+// directly because TypeScript does not check optional properties against it.
+type CheckSourceOverrides<TOverrides, TContracts> =
+  string extends keyof TOverrides
+    ? {
+        [K in keyof TContracts as K extends keyof TOverrides
+          ? TOverrides[K] extends TContracts[K]
+            ? never
+            : K
+          : never]-?: never;
+      }
+    : Partial<TContracts>;
+
+type ActorOverride<TBase, TOverride> = [TBase] extends [AnyActorLogic]
+  ? [TOverride] extends [AnyActorLogic]
+    ? CompatibleProvidedActorSource<TBase, TOverride>
+    : never
+  : never;
+
+type ActorOverrideContracts<TBase, TOverrides> = string extends keyof TOverrides
+  ? CheckSourceOverrides<
+      TOverrides,
+      {
+        [K in keyof TBase & string]: ActorOverride<
+          TBase[K],
+          TOverrides[K & keyof TOverrides]
+        >;
+      }
+    >
+  : {
+      [K in keyof TOverrides]: K extends keyof TBase
+        ? ActorOverride<TBase[K], TOverrides[K]>
+        : TOverrides[K];
+    };
+
 // A source that reuses a base name replaces it at runtime, so it must
 // satisfy the base contract, the same rule `machine.provide(...)` applies.
 type SourceOverrideContracts<
@@ -326,38 +365,30 @@ type SourceOverrideContracts<
   TOverrideActorMap,
   TOverrideGuardMap
 > = {
-  actions?: {
-    [K in keyof NoInfer<TOverrideActionMap> &
-      keyof TBaseActionMap]?: ProvidedActionContracts<TBaseActionMap>[K];
-  };
-  guards?: {
-    [K in keyof NoInfer<TOverrideGuardMap> &
-      keyof TBaseGuardMap]?: TBaseGuardMap[K];
-  };
-  // Mapped over the override's own keys, like `provide()`'s actor check, so
-  // an incompatible actor becomes `never` under its own name and the error is
-  // reported there.
-  actors?: {
-    [K in keyof NoInfer<TOverrideActorMap>]: K extends keyof TBaseActorMap
-      ? TBaseActorMap[K] extends AnyActorLogic
-        ? NoInfer<TOverrideActorMap>[K] extends AnyActorLogic
-          ? CompatibleProvidedActorSource<
-              TBaseActorMap[K],
-              NoInfer<TOverrideActorMap>[K]
-            >
-          : never
-        : never
-      : NoInfer<TOverrideActorMap>[K];
-  };
+  actions?: CheckSourceOverrides<
+    NoInfer<TOverrideActionMap>,
+    Pick<
+      ProvidedActionContracts<TBaseActionMap>,
+      SourceOverrideKeys<TBaseActionMap, NoInfer<TOverrideActionMap>>
+    >
+  >;
+  guards?: CheckSourceOverrides<
+    NoInfer<TOverrideGuardMap>,
+    Pick<
+      TBaseGuardMap,
+      SourceOverrideKeys<TBaseGuardMap, NoInfer<TOverrideGuardMap>>
+    >
+  >;
+  actors?: ActorOverrideContracts<TBaseActorMap, NoInfer<TOverrideActorMap>>;
 };
 
 type SetupExtensionConfig<
   TBaseSchemas,
   TBaseStates,
   TBaseValidator,
-  TBaseActionMap,
+  TBaseActionMap extends Sources['actions'],
   TBaseActorMap,
-  TBaseGuardMap,
+  TBaseGuardMap extends Sources['guards'],
   TExtendSchemas extends SetupSchemas,
   TExtendStates extends Record<string, SetupStateSchema>,
   TExtendActionMap extends Sources['actions'],
@@ -386,9 +417,9 @@ type SetupExtensionConfig<
     >;
 } & ExtendValidatorConfig<TExtendValidator> &
   SourceOverrideContracts<
-    TBaseActionMap,
+    SetupActions<TBaseSchemas, TBaseActionMap>,
     TBaseActorMap,
-    TBaseGuardMap,
+    SetupGuards<TBaseSchemas, TBaseGuardMap>,
     TExtendActionMap,
     TExtendActorMap,
     TExtendGuardMap
@@ -5198,9 +5229,9 @@ export interface SetupReturn<
       states?: Record<TStateKeys, unknown>;
     } & TConfig &
       SourceOverrideContracts<
-        TSetupActionMap,
+        SetupActions<TSchemas, TSetupActionMap>,
         TSetupActorMap,
-        TSetupGuardMap,
+        SetupGuards<TSchemas, TSetupGuardMap>,
         TActionMap,
         TActorMap,
         TGuardMap

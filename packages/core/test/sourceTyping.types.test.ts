@@ -69,6 +69,80 @@ describe('setup() source typing', () => {
     }
   });
 
+  it('checks schema-only source contracts on createMachine and extend', () => {
+    const base = setup({
+      schemas: {
+        actions: { record: { params: z.string() } },
+        guards: { enabled: { params: z.string() } }
+      }
+    });
+
+    const sources = {
+      actions: { record: (id: string) => ({ id }) },
+      guards: { enabled: (id: string) => id.length > 0 }
+    };
+    base.createMachine(sources);
+    base.extend(sources);
+
+    if (false) {
+      base.createMachine({
+        actions: {
+          // @ts-expect-error the action must accept the schema's params
+          record: (_id: number) => {}
+        },
+        guards: {
+          // @ts-expect-error the guard must accept the schema's params
+          enabled: (id: number) => id > 0
+        }
+      });
+      base.extend({
+        actions: {
+          // @ts-expect-error the action must accept the inherited schema's params
+          record: (_id: number) => {}
+        }
+      });
+    }
+  });
+
+  it('checks dictionary values against every source they could replace', () => {
+    const load = createAsyncLogic({
+      schemas: { input: z.string(), output: z.number() },
+      run: async ({ input }) => input.length
+    });
+    const base = setup({
+      actions: { record: (id: string) => ({ context: { id } }) },
+      actors: { load },
+      guards: { enabled: (id: string) => id.length > 0 }
+    });
+
+    const actions: Record<string, (id: string) => { context: { id: string } }> =
+      { record: (id) => ({ context: { id } }) };
+    const guards: Record<string, (id: string) => boolean> = {
+      enabled: (id) => id.length > 0
+    };
+    const actors: Record<string, typeof load> = { load };
+    base.createMachine({ actions, guards, actors });
+    base.extend({ actions, guards, actors });
+
+    if (false) {
+      const numberActions: Record<string, (id: number) => void> = {};
+      const numberGuards: Record<string, (id: number) => boolean> = {};
+      const otherLoad = createAsyncLogic({
+        schemas: { input: z.number(), output: z.string() },
+        run: async ({ input }) => String(input)
+      });
+      const numberActors: Record<string, typeof otherLoad> = {};
+      base.createMachine({
+        // @ts-expect-error a dictionary action may replace record
+        actions: numberActions,
+        // @ts-expect-error a dictionary guard may replace enabled
+        guards: numberGuards,
+        // @ts-expect-error a dictionary actor may replace load
+        actors: numberActors
+      });
+    }
+  });
+
   it('rejects unknown action and guard names in transition functions', () => {
     setup({
       actions: { record: (_id: string) => {} },
