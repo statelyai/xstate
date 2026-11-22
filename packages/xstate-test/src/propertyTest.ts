@@ -407,7 +407,10 @@ export async function testPaths<TSource extends ActorLogic<any, any, any>>(
     deriveEvents === false
       ? undefined
       : deriveMissingEvents(source, { ...events, ...options.cases });
-  const merged = derived ? { ...derived, ...events } : (events ?? {});
+  const merged = { ...derived, ...events };
+  for (const type of Object.keys(options.cases ?? {})) {
+    delete merged[type];
+  }
   const samples = (options.samples as number | undefined) ?? 3;
   const seed = (options.seed as number | undefined) ?? 0;
   return baseTestPaths(

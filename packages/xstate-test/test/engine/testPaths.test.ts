@@ -182,6 +182,66 @@ describe('testPaths() follows the planned path', () => {
     ]);
   });
 
+  it('uses the current actor snapshot to determine whether an edge is enabled', async () => {
+    const model = createMachine({
+      schemas: { events: { GO: types<{}>() } },
+      initial: 'waiting',
+      states: {
+        waiting: {
+          on: {
+            GO: ({ self }) =>
+              self.getSnapshot().value === 'waiting'
+                ? { target: 'done' }
+                : undefined
+          }
+        },
+        done: { type: 'final' }
+      }
+    });
+    const { results } = await testPaths(model, {
+      cases: { GO: [{}] },
+      checkUnhandled: { GO: true }
+    });
+    expect(results.map(({ path }) => path.state.value)).toEqual([
+      'waiting',
+      'done'
+    ]);
+  });
+
+  it('discovers and filters application events with an xstate prefix', async () => {
+    const model = createMachine({
+      schemas: { events: { BEGIN: types<{}>(), 'xstate.custom': types<{}>() } },
+      initial: 'idle',
+      states: {
+        idle: { on: { BEGIN: { target: 'ready' } } },
+        ready: { on: { 'xstate.custom': { target: 'done' } } },
+        done: { type: 'final' }
+      }
+    });
+
+    for (const options of [
+      { cases: {} },
+      { cases: { 'xstate.custom': [{}] } }
+    ]) {
+      const sent: string[][] = [];
+      await testPaths(model, {
+        ...options,
+        sut: {
+          create: () => {
+            const events: string[] = [];
+            sent.push(events);
+            return {
+              send: (event) => {
+                events.push(event.type);
+              }
+            };
+          }
+        }
+      });
+      expect(sent).toEqual([[], ['BEGIN'], ['BEGIN', 'xstate.custom']]);
+    }
+  });
+
   it('follows only the first due timer in exact case traversal', async () => {
     for (const mode of ['pure', 'executed'] as const) {
       const { results } = await testPaths(raceMachine, {

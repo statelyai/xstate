@@ -1561,7 +1561,7 @@ In addition to the shared options:
 | `stopWhen` | none | Stops expanding a state when it returns `true`. |
 | `toState` | none | Keeps only paths that end in a matching state. |
 | `fromState` | initial state | Starts traversal from this snapshot. |
-| `allowDuplicatePaths` | `false` | Keeps paths that are prefixes of longer paths. |
+| `allowDuplicatePaths` | `false` | Keeps prefix paths in strategies that deduplicate paths. |
 | `serializeState`, `serializeEvent` | built in | Identity functions for traversal. |
 
 `'edges'` plans one run per enabled event from each reachable active
@@ -1570,7 +1570,9 @@ events that leave state unchanged. Each run uses a shortest prefix to the
 source snapshot. It discovers concrete event types from the machine and uses
 `cases`, configured or derived generators, or an empty payload. Supply
 concrete event names for wildcard handlers. Timers and invoke outcomes follow
-the same rules as other path strategies.
+the same rules as other path strategies. Edge mode keeps each planned path
+and concrete event case, so `allowDuplicatePaths` and `serializeEvent` do not
+apply.
 
 `checkUnhandled` adds one path ending in a selected unhandled event. The
 event must leave the model snapshot unchanged, and when `sut.read()` and

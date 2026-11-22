@@ -1,13 +1,14 @@
 import {
   initialTransition,
   isMachineSnapshot,
+  isUnhandled,
   transition,
   type ActorLogic,
   type AnyEventObject,
   type EventObject,
   type Snapshot
 } from 'xstate';
-import { XSTATE_INIT } from './constants.ts';
+import { XSTATE_INIT, XSTATE_STOP } from './constants.ts';
 import { planCoverPaths, type TestCoverOptions } from './coverPaths.ts';
 import { deduplicatePaths } from './deduplicatePaths.ts';
 import { planEdgePaths } from './edgePaths.ts';
@@ -202,10 +203,17 @@ const TRAVERSED_INTERNAL_EVENTS: ReadonlySet<string> = new Set([
   AFTER_EVENT
 ]);
 
-/** Internal events are the machine's own; only user events have declared cases. */
-function isInternalEventType(type: string): boolean {
-  return type.startsWith('xstate.');
-}
+const BUILTIN_INTERNAL_EVENTS = new Set([
+  ...TRAVERSED_INTERNAL_EVENTS,
+  XSTATE_INIT,
+  XSTATE_STOP,
+  DONE_STATE_EVENT,
+  'xstate.snapshot.actor',
+  'xstate.timeout.actor',
+  'xstate.timeout.state',
+  'xstate.error.execution',
+  'xstate.route'
+]);
 
 function assertGeneratedOutcome(
   value: unknown,
@@ -724,6 +732,19 @@ export async function testPaths<TSource extends ActorLogic<any, any, any>>(
         )
       )
     : baseLogic;
+  function isInternalEventType(type: string): boolean {
+    if (
+      useEdges &&
+      'isInternalEventType' in testLogic &&
+      typeof testLogic.isInternalEventType === 'function'
+    ) {
+      return (
+        BUILTIN_INTERNAL_EVENTS.has(type) || testLogic.isInternalEventType(type)
+      );
+    }
+    return type.startsWith('xstate.');
+  }
+
   const configuredEvents = Object.fromEntries(
     Object.entries(options.events ?? {}).filter(
       ([type]) => !exactCases || !Object.hasOwn(exactCases, type)
@@ -1020,23 +1041,23 @@ export async function testPaths<TSource extends ActorLogic<any, any, any>>(
       planEdgePaths(initial, {
         limit,
         events: traversalEvents,
-        classify: (snapshot, event) => {
+        resolveStep: (snapshot, event) => {
+          const result = transition(testLogic, snapshot, event);
           if (
             isInternalEventType(event.type) ||
-            isEventEnabled(snapshot, event)
+            !isMachineSnapshot(snapshot) ||
+            !isUnhandled(snapshot, result)
           ) {
-            return 'edge';
+            return { kind: 'edge', state: result[0] };
           }
           const probe =
             probes && Object.hasOwn(probes, event.type)
               ? probes[event.type]
               : undefined;
-          return probe === true || probe?.({ snapshot, event })
-            ? 'probe'
-            : 'skip';
+          if (probe === true || probe?.({ snapshot, event })) {
+            return { kind: 'probe', state: snapshot };
+          }
         },
-        transition: (snapshot, event) =>
-          transition(testLogic, snapshot, event)[0],
         serializeState: serializeTraversalState,
         stopWhen: options.stopWhen,
         toState: options.toState
@@ -1237,10 +1258,6 @@ function limitReplaySessions(
     onFailure: store.onFailure.bind(store),
     remove: store.remove?.bind(store)
   };
-}
-
-function isEventEnabled(snapshot: unknown, event: EventObject): boolean {
-  return !isMachineSnapshot(snapshot) || snapshot.can(event);
 }
 
 /** Whether `logic` is a state machine (duck-typed, as `xstate/graph` does). */

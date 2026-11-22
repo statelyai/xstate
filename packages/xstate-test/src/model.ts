@@ -92,8 +92,10 @@ export function createTestModel<
       return testPaths(logic, {
         paths: planEdgePaths(initial(), {
           events: (current) => model.choices(current.context),
-          transition: (current, event) =>
-            snapshot(model.step(current.context, event)),
+          resolveStep: (current, event) => ({
+            kind: 'edge',
+            state: snapshot(model.step(current.context, event))
+          }),
           serializeState: simpleStringify,
           limit
         }),
