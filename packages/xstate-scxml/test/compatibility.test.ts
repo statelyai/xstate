@@ -108,25 +108,21 @@ for (const mode of ['native', 'SCXML']) {
       actor.send({ type: 'CROSS' });
 
       expect(actor.getSnapshot().value).toEqual({
-        active: { left: mode === 'native' ? 'b' : 'a', right: 'y' }
+        active: { left: 'a', right: 'y' }
       });
-      expect(trace).toEqual(
-        mode === 'native'
-          ? ['x:exit', 'cross', 'y:entry']
-          : [
-              'x:exit',
-              'right:exit',
-              'b:exit',
-              'left:exit',
-              'active:exit',
-              'cross',
-              'active:entry',
-              'left:entry',
-              'a:entry',
-              'right:entry',
-              'y:entry'
-            ]
-      );
+      expect(trace).toEqual([
+        'x:exit',
+        'right:exit',
+        'b:exit',
+        'left:exit',
+        'active:exit',
+        'cross',
+        'active:entry',
+        'left:entry',
+        'a:entry',
+        'right:entry',
+        'y:entry'
+      ]);
       actor.stop();
     });
 

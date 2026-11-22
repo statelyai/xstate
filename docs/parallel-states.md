@@ -60,7 +60,37 @@ active: {
 // after `interrupt`: { playback: 'paused', volume: 'muted' }
 ```
 
-Regions that do not handle the event are untouched, and an event no region handles changes nothing. A transition from one region into another exits only the target's region; the source region stays where it is.
+For transitions within a region, the other regions keep their active states.
+
+## Transitions between regions
+
+A transition whose source and target are in different regions exits and reenters their common parallel state. The exit domain extends to the nearest compound ancestor, which can enclose more than one parallel state. Untargeted regions restart at their initial states. Exit and entry handlers run again, and invoked actors in exited states stop.
+
+To move another region while preserving the source region, raise an event from a targetless transition and handle it inside the receiving region.
+
+```ts
+active: {
+  type: 'parallel',
+  states: {
+    left: {
+      initial: 'a',
+      states: {
+        a: { on: { ADVANCE: { target: 'b' } } },
+        b: { on: { CROSS: (_, enq) => enq.raise({ type: 'right.activate' }) } }
+      }
+    },
+    right: {
+      initial: 'x',
+      states: {
+        x: { on: { 'right.activate': { target: 'y' } } },
+        y: {}
+      }
+    }
+  }
+}
+```
+
+After `ADVANCE` and `CROSS`, `left` stays in `b` and `right` moves to `y` in a later microstep of the same macrostep. If the response is independent of the active state in `left`, handle `CROSS` directly in `right`.
 
 ## Completion
 

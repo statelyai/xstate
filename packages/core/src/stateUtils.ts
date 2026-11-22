@@ -1277,10 +1277,13 @@ function getTransitionDomain(
   // Find the least common ancestor (LCA) of the source and effective targets.
   for (const ancestor of getProperAncestors(head, undefined)) {
     if (tail.every((sn) => isDescendant(sn, ancestor))) {
-      // A cross-region transition (source in one parallel region, targets in
-      // another) only exits the region containing its targets; the source
-      // region and other sibling regions stay put unless it reenters.
-      return reenter ? ancestor : narrowParallelDomain(ancestor, targetStates);
+      // SCXML uses the nearest compound ancestor as the transition domain.
+      // A parallel ancestor and its regions are inside that domain.
+      return ancestor.type === 'parallel'
+        ? getProperAncestors(ancestor, undefined).find(
+            (parent) => parent.type === 'compound'
+          )
+        : ancestor;
     }
   }
 
