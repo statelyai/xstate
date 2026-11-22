@@ -60,6 +60,10 @@ active: {
 // after `interrupt`: { playback: 'paused', volume: 'muted' }
 ```
 
+XState checks active leaves in the order they are defined. Each leaf searches for an enabled transition on itself and then on its ancestors. This applies to both event and `always` transitions. If multiple leaves select the same ancestor transition, it runs once.
+
+When a leaf selects an ancestor transition and another leaf selects a region transition, both can run if they exit no states in common. For example, a parent `CANCEL` transition can leave the parallel state while a region's targetless `CANCEL` handler runs its action. When the transitions would exit any of the same states, the descendant transition takes precedence over the ancestor transition.
+
 A region can transition between its child states while the other regions stay active.
 
 ## Transitions between regions

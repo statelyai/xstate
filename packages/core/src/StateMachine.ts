@@ -32,7 +32,7 @@ import {
   isStateId,
   macrostep,
   resolveStateValue,
-  transitionNode,
+  selectEventTransitions,
   type TransitionSelectionResults
 } from './stateUtils.ts';
 import {
@@ -929,15 +929,12 @@ export class StateMachine<
     selectionResults?: TransitionSelectionResults
   ): Array<AnyTransitionDefinition> {
     this._microstepHooks?.begin(actorScope.self);
-    return (
-      transitionNode(
-        this.root,
-        snapshot.value,
-        snapshot,
-        event,
-        actorScope,
-        selectionResults
-      ) || []
+    return selectEventTransitions(
+      this.root,
+      snapshot,
+      event,
+      actorScope,
+      selectionResults
     );
   }
 

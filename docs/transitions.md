@@ -107,7 +107,7 @@ If an `always` condition depends only on context updated through transitions, it
 
 Use targetless transitions for edits that keep a form on the same step. Use re-entering transitions to restart a timer, subscription or invoked request.
 
-Put shared transitions on a parent state. A child can set an event to `undefined` to forbid that parent transition. Wildcards such as `pointer.*` match an event family when no exact transition matches.
+Put shared transitions on a parent state. Setting a child's event handler to `undefined` stops the search for that event along that branch. In a [parallel state](parallel-states.md), another active leaf can still select the parent transition. Wildcards such as `pointer.*` match an event family when no exact transition matches.
 
 ```ts
 on: {
