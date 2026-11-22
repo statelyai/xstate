@@ -840,3 +840,13 @@ Simulated completion did not finish child actor "{childId}".
 Value: the child ID.
 
 The child logic did not produce a terminal result. Check whether a custom validator rejects the completion event.
+
+## E80
+
+```text
+Lifecycle event "{eventType}" was not delivered to actor "{targetId}" because it did not originate from the runtime.
+```
+
+Values: the event type and target actor ID.
+
+Send an application event, or use [simulated child completion](testing.md#simulate-child-completion) in a test.

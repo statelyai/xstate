@@ -241,6 +241,8 @@ on: {
 
 See [transitions](transitions.md) for `matches` and the full list of lifecycle events.
 
+The runtime delivers child completion, error, and snapshot events. Application sends of these event types are rejected as dead letters. To control when a child completes in a test, use [simulated child completion](testing.md#simulate-child-completion).
+
 ## Timing out an invocation
 
 `timeout` bounds how long the invocation may run. When it elapses, `onTimeout` is taken. A handler that exits the owning state stops the child; a targetless handler leaves it running unless it calls `enq.stop(...)`. When the child finishes first, the timeout is canceled.

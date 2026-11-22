@@ -1,7 +1,10 @@
 import isDevelopment from '#is-development';
 import { xstateError } from './xstateError.ts';
 import { diagnoseActorOptions } from './devDiagnostics.ts';
-import { publishEmittedEvent } from './runtimeHelpers.ts';
+import {
+  publishEmittedEvent,
+  relayChildLifecycleEvent
+} from './runtimeHelpers.ts';
 import type { ActionRecord, SentRecord } from './inspection.ts';
 import { Mailbox } from './Mailbox.ts';
 import { isMachineSnapshot } from './State.ts';
@@ -961,7 +964,7 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
       this.subscribe({
         next: (snapshot: Snapshot<unknown>) => {
           if (snapshot.status === 'active') {
-            this.system._relay(this, this._parent!, {
+            relayChildLifecycleEvent(this, this._parent!, {
               type: 'xstate.snapshot.actor',
               actorId: this.id,
               sessionId: this.sessionId,
@@ -1320,7 +1323,7 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
       this._stopProcedure();
       this._complete();
       if (this._parent) {
-        this.system._relay(
+        relayChildLifecycleEvent(
           this,
           this._parent,
           createDoneActorEvent(this.id, termination.output, this.sessionId)
@@ -1477,7 +1480,7 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
     this.eventListeners?.clear();
 
     if (this._parent) {
-      this.system._relay(
+      relayChildLifecycleEvent(
         this,
         this._parent,
         createErrorActorEvent(this.id, err, this.sessionId)
