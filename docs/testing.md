@@ -104,6 +104,8 @@ expect(actor.getSnapshot().matches('saved')).toBe(true);
 
 `childDone()` requires a running local invocation with that ID. Call it between the child's events. If the child has a validator, XState checks the terminal result before it runs cleanup. It then publishes a `done` snapshot with the supplied output and delivers completion to the parent. The child cannot complete again if its original work finishes later. TypeScript checks the ID and output when the child is known to the machine's types.
 
+If custom child logic returns a `done` or `error` snapshot when asked to stop, XState publishes that result.
+
 To simulate completion after a restore, enable simulation when creating the actor you persist and when restoring it. XState records invocation identity for embedded registered children of actors with simulation enabled.
 
 ## Control time
