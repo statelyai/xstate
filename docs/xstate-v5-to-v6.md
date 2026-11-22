@@ -1897,11 +1897,11 @@ To handle the failure in the machine, add `onError` to the state, or run the cal
 
 ### Parallel regions
 
-Transitions inside parallel states exit fewer states than in v5. Entry and exit actions and the resulting state value can differ for the same events.
+Some transitions in parallel states exit fewer states than in v5. Entry and exit actions and the resulting state value can differ for the same events.
 
-- A transition whose targets are all inside one region exits and reenters only that region. In v5, sibling regions were also exited and reset to their initial states.
-- A transition from one region to a target in another region exits only the region that contains the target. The source region stays in its current state. Add `reenter: true` to exit the full transition domain as v5 did.
-- A `reenter: true` transition inside one region reenters only that region. Sibling regions do not run their entry actions again.
+- A non-reentering transition defined on the parallel state whose targets all belong to one region limits exits to that region. In v5, sibling regions were also exited and reset to their initial states.
+- A transition from one region to a target in another exits and reenters their common parallel state. Untargeted regions restart at their initial states. See the [before-and-after examples](parallel-states.md#transitions-between-regions) for coordinating regions while preserving their active states.
+- A `reenter: true` transition defined on one region that targets its descendant reenters that region. Sibling regions stay active.
 - A transition from a final state yields to a conflicting transition from a sibling region that is still active.
 
 ```ts
