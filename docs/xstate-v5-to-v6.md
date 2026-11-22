@@ -1612,7 +1612,7 @@ An error thrown by a transition function, an effect, or a child actor is resolve
 1. The `onError` of the nearest active state that handles the error recovers it. The actor stays `active`.
 2. Otherwise the actor's status becomes `'error'`, and the actor stops all of its children, invoked and spawned.
 3. Subscribers with an `error` observer receive the error.
-4. The error is reported once as unhandled (`reportUnhandledError`) if any subscriber lacks an `error` observer, even when another subscriber has one, or if the actor has no subscribers and no parent. Observers installed by runtime integrations (`passive: true`) are not counted. The report runs one macrotask later; subscribing with an `error` observer before then suppresses it.
+4. The error is reported once as unhandled (`reportUnhandledError`) if any subscriber lacks an `error` observer, even when another subscriber has one, or if the actor has no subscribers and no parent. Observers installed by runtime integrations (`passive: true`) are not counted. The report runs one macrotask later; adding a non-passive `error` observer before then suppresses it.
 
 A failed child reaches its parent as an `xstate.error.actor` event with `actorId` and `error` fields, which the parent resolves by the same steps. Select one child's failure with `matches: { actorId }` (see [Internal lifecycle events](#internal-lifecycle-events)). [Lifecycle and errors](lifecycle-and-errors.md) lists the full rules.
 
