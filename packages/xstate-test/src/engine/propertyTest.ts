@@ -602,11 +602,11 @@ export interface TestReferenceSession<TEvent extends EventObject> {
 }
 
 type EventType<TEvent extends EventObject> = TEvent['type'] & string;
-type EventForType<
+export type EventForType<
   TEvent extends EventObject,
   TType extends EventType<TEvent>
 > = Extract<TEvent, { type: TType }>;
-type EventPayload<TEvent extends EventObject> = Omit<TEvent, 'type'>;
+export type EventPayload<TEvent extends EventObject> = Omit<TEvent, 'type'>;
 
 /**
  * Records a statistic for the current run.

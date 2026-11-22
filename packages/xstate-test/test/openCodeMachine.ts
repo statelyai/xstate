@@ -2,7 +2,6 @@ import { createMachine, types, type SnapshotFrom } from 'xstate';
 import {
   isActive,
   maxScripts,
-  type Action,
   type Progress,
   type State
 } from './openCodeSpec.ts';
@@ -158,24 +157,15 @@ export const codeModeMachine = createMachine({
   }
 });
 
-export function codeModeChoices(
-  snapshot: SnapshotFrom<typeof codeModeMachine>
-): Action[] {
-  const candidates: Action[] = [
-    { type: 'init', fullCodemode: true },
-    { type: 'init', fullCodemode: false },
-    { type: 'startExecute' },
-    { type: 'tick10s' },
-    { type: 'ctrlB' },
-    { type: 'esc' }
-  ];
-  for (const script of snapshot.context.scripts.keys()) {
-    candidates.push(
-      { type: 'askPermission', script },
-      { type: 'approve', script },
-      { type: 'reject', script },
-      { type: 'finishScript', script }
-    );
-  }
-  return candidates.filter((event) => snapshot.can(event));
-}
+type CodeModeSnapshot = SnapshotFrom<typeof codeModeMachine>;
+
+const scriptCases = ({ context }: CodeModeSnapshot) =>
+  context.scripts.map((_, script) => ({ script }));
+
+export const codeModeCases = {
+  init: [{ fullCodemode: true }, { fullCodemode: false }],
+  askPermission: scriptCases,
+  approve: scriptCases,
+  reject: scriptCases,
+  finishScript: scriptCases
+};

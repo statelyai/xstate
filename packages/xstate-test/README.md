@@ -22,7 +22,7 @@ complete worked example.
 - [Installation](#installation)
 - [Run tests without fast-check](#run-tests-without-fast-check)
 - [Standalone models](#standalone-models)
-- [Exact choices for a machine](#exact-choices-for-a-machine)
+- [Exact event cases for a machine](#exact-event-cases-for-a-machine)
 - [Quick start](#quick-start)
 - [Concepts](#concepts)
 - [How-to guides](#how-to-guides)
@@ -109,27 +109,34 @@ Pass that fixture to `model.replay(fixture, { sut })` to replay the recorded
 event sequence. Use `expect: 'pass'` to check the fixed driver against the
 same fixture.
 
-## Exact choices for a machine
+## Exact event cases for a machine
 
-Use `testPaths(machine, { choices })` when an XState machine already defines
-the transitions. Return concrete external events from `choices(snapshot)`.
-Use `snapshot.can(event)` to select events the machine enables, or include
-ignored events to check that the implementation ignores them too.
+Use `testPaths(machine, { cases })` to supply exact payloads. The machine
+provides event types and decides which concrete events are enabled. An entry
+in `cases` can be an array of payloads or a function of the current snapshot.
+Return `[]` to skip that event at the current snapshot. Supply payloads for
+events whose types have no runtime schema or generator.
 
 <!-- OpenCode machine usage from test/openCodeMachine.test.ts. -->
 
 ```ts
 await testPaths(codeModeMachine, {
-  choices: codeModeChoices,
+  cases: codeModeCases,
   invariant: ({ snapshot }) => checkCodeMode(snapshot.context),
   sut
 });
 ```
 
-The [OpenCode machine](./test/openCodeMachine.ts) enumerates script IDs and
-asks the machine which events it can take. The [driver and replay
-tests](./test/openCodeMachine.test.ts) compare observations and reuse the
-same fixture format as other `testPaths()` runs.
+The [OpenCode machine](./test/openCodeMachine.ts) needs cases for the feature
+flag and script IDs. The runner discovers payload-free events such as Ctrl+B
+and the timeout. The [driver and replay tests](./test/openCodeMachine.test.ts)
+also use a `checkUnhandled.approve` predicate to verify that an approval sent
+before a foreground script asks for permission leaves the observation
+unchanged.
+
+Leave `checkUnhandled` out for regular transition coverage. Use it when your
+driver can deliver an event the model would ignore and you want to verify the
+implementation ignores it too.
 
 ## Quick start
 
@@ -1543,7 +1550,8 @@ In addition to the shared options:
 | Option | Default | Description |
 | --- | --- | --- |
 | `pathGenerator` | `'shortest'` | `'shortest'`, `'simple'`, `'edges'`, or a custom `PathGenerator`. |
-| `choices` | none | Returns concrete external events for the current snapshot. Implies `'edges'` and replaces external event discovery and sampling. |
+| `cases` | none | Exact payload arrays or snapshot functions, keyed by event type. An entry overrides any generator for that type. Implies `'edges'`. |
+| `checkUnhandled` | none | A map of event types to `true` or predicates receiving `{ snapshot, event }`. Adds no-op checks only where the machine cannot handle the event. Implies `'edges'`. |
 | `paths` | none | Runs these paths instead of generating any. |
 | `fromEvents` | none | Runs the single path built from this event sequence. |
 | `cover` | none | Plans walks that collectively cover the named steps or consecutive step sequences before executing them. |
@@ -1556,14 +1564,21 @@ In addition to the shared options:
 | `allowDuplicatePaths` | `false` | Keeps paths that are prefixes of longer paths. |
 | `serializeState`, `serializeEvent` | built in | Identity functions for traversal. |
 
-`'edges'` plans one run per outgoing choice from each reachable active
-snapshot, including choices that end at the same snapshot and choices that
-leave it unchanged. Each run uses a shortest prefix to the source snapshot.
-Without `choices`, it uses the usual event discovery and sampled payloads.
-With `choices`, omit `events`. Timers and invoke outcomes are still planned
-as usual. `stopWhen` stops expansion at matching snapshots. `toState` keeps
-only paths ending at matching snapshots. `limit` counts planned paths,
-including the initial check, before filtering by `toState`.
+`'edges'` plans one run per enabled event from each reachable active
+machine snapshot, including events with shared destinations and enabled
+events that leave state unchanged. Each run uses a shortest prefix to the
+source snapshot. It discovers concrete event types from the machine and uses
+`cases`, configured or derived generators, or an empty payload. Supply
+concrete event names for wildcard handlers. Timers and invoke outcomes follow
+the same rules as other path strategies.
+
+`checkUnhandled` adds one path ending in a selected unhandled event. The
+event must leave the model snapshot unchanged, and when `sut.read()` and
+`sut.projectModel()` are supplied, the runner compares the resulting SUT
+observation with that same model snapshot. Probes do not expand the graph.
+`stopWhen` stops expansion at matching snapshots. `toState` keeps only paths
+ending at matching snapshots. `limit` counts planned paths, including the
+initial check, before filtering by `toState`.
 
 `cover.requirements` maps a name to a predicate or a nonempty array of
 predicates that must match consecutive steps. Predicates receive the event,

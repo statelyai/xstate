@@ -134,7 +134,7 @@ describe('testPaths() follows the planned path', () => {
         idle: {
           on: { CLICK: { target: 'done' }, TIMEOUT: { target: 'done' } }
         },
-        done: { on: { DISMISS: {} } }
+        done: { on: { DISMISS: { target: 'done' } } }
       }
     });
     const { results } = await testPaths(model, { pathGenerator: 'edges' });
@@ -143,11 +143,50 @@ describe('testPaths() follows the planned path', () => {
     ).toEqual([[], ['CLICK'], ['TIMEOUT'], ['CLICK', 'DISMISS']]);
   });
 
-  it('follows only the first due timer in exact choice traversal', async () => {
+  it('sends exact cases only where enabled unless unhandled probes are requested', async () => {
+    const model = createMachine({
+      schemas: {
+        events: { BEGIN: types<{}>(), APPROVE: types<{ id: number }>() }
+      },
+      initial: 'idle',
+      states: {
+        idle: { on: { BEGIN: { target: 'ready' } } },
+        ready: {
+          on: {
+            APPROVE: ({ event }) =>
+              event.id === 5 ? { target: 'done' } : undefined
+          }
+        },
+        done: { type: 'final' }
+      }
+    });
+    const cases = { APPROVE: [{ id: 5 }, { id: 7 }] };
+    const enabled = await testPaths(model, { cases });
+    expect(
+      enabled.results.flatMap(({ path }) => path.steps.at(-1)?.event ?? [])
+    ).toEqual([{ type: 'BEGIN' }, { type: 'APPROVE', id: 5 }]);
+
+    const probed = await testPaths(model, {
+      cases,
+      checkUnhandled: { APPROVE: true }
+    });
+    expect(
+      probed.results.map(({ path }) => path.steps.map(({ event }) => event))
+    ).toEqual([
+      [],
+      [{ type: 'APPROVE', id: 5 }],
+      [{ type: 'APPROVE', id: 7 }],
+      [{ type: 'BEGIN' }],
+      [{ type: 'BEGIN' }, { type: 'APPROVE', id: 5 }],
+      [{ type: 'BEGIN' }, { type: 'APPROVE', id: 7 }]
+    ]);
+  });
+
+  it('follows only the first due timer in exact case traversal', async () => {
     for (const mode of ['pure', 'executed'] as const) {
       const { results } = await testPaths(raceMachine, {
         mode,
-        choices: () => []
+        cases: {}
       });
       expect(results.map(({ path }) => path.state.value)).toEqual(['s', 'x']);
     }

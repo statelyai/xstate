@@ -6,6 +6,8 @@ import {
   type TestSut,
   type TestSutSession
 } from './engine/propertyTest.ts';
+import { planEdgePaths } from './engine/edgePaths.ts';
+import { simpleStringify } from './engine/utils.ts';
 import { testPaths } from './engine/testPaths.ts';
 
 /** A pure specification of a system's legal inputs and observable behavior. @experimental */
@@ -88,8 +90,13 @@ export function createTestModel<
       limit = 10_000
     }: { sut?: SutFactory; limit?: number } = {}) {
       return testPaths(logic, {
-        choices: (current) => model.choices(current.context),
-        limit,
+        paths: planEdgePaths(initial(), {
+          events: (current) => model.choices(current.context),
+          transition: (current, event) =>
+            snapshot(model.step(current.context, event)),
+          serializeState: simpleStringify,
+          limit
+        }),
         invariant,
         ...(sut ? { sut: adaptSut(sut) } : {})
       });

@@ -3,9 +3,7 @@ import type { Action, Observation } from './openCodeSpec.ts';
 
 // In-memory stand-in for a CLI driver. It records visible results and jobs
 // independently of the specification's state and transition functions.
-export function createCodeModeDriver({
-  duplicateNotice = false
-} = {}): TestModelDriver<Action, Observation> {
+export function createCodeModeDriver({ duplicateNotice = false } = {}) {
   const results: Observation['toolResults'] = [];
   const notices: Observation['deliveredNotices'] = [];
   const pending = new Set<number>();
@@ -44,7 +42,9 @@ export function createCodeModeDriver({
           break;
         case 'approve':
         case 'reject':
-          pending.delete(action.script);
+          if (!pending.delete(action.script)) {
+            break;
+          }
           resolvedOutputs.set(
             action.script,
             action.type === 'approve' ? 'approved:ok' : 'call_failed:ok'
@@ -75,5 +75,5 @@ export function createCodeModeDriver({
         deliveredNotices: [...notices]
       };
     }
-  };
+  } satisfies TestModelDriver<Action, Observation>;
 }

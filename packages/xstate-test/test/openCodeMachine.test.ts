@@ -7,7 +7,7 @@ import {
   type TestFixture
 } from '../src/index.ts';
 import { createCodeModeDriver } from './openCodeDriver.ts';
-import { codeModeChoices, codeModeMachine } from './openCodeMachine.ts';
+import { codeModeCases, codeModeMachine } from './openCodeMachine.ts';
 import { checkCodeMode, observe } from './openCodeSpec.ts';
 
 type CodeModeSnapshot = SnapshotFrom<typeof codeModeMachine>;
@@ -20,7 +20,7 @@ const sut = {
 describe('OpenCode with an XState machine', () => {
   it('runs the full protocol against the driver', async () => {
     const { coverage, results } = await testPaths(codeModeMachine, {
-      choices: codeModeChoices,
+      cases: codeModeCases,
       invariant: ({ snapshot }) => checkCodeMode(snapshot.context),
       sut
     });
@@ -45,7 +45,7 @@ describe('OpenCode with an XState machine', () => {
     async (trigger) => {
       await expect(
         testPaths(codeModeMachine, {
-          choices: codeModeChoices,
+          cases: codeModeCases,
           sut: {
             ...sut,
             create: () => {
@@ -79,13 +79,84 @@ describe('OpenCode with an XState machine', () => {
     }
   );
 
+  it('ignores premature approval when the probe is enabled', async () => {
+    const options = {
+      cases: codeModeCases,
+      checkUnhandled: {
+        approve: ({ snapshot, event }) => {
+          const script = snapshot.context.scripts[event.script];
+          return script?.kind === 'foreground' && script.progress === 'running';
+        }
+      },
+      sut
+    } satisfies Parameters<typeof testPaths<typeof codeModeMachine>>[1];
+
+    const { results } = await testPaths(codeModeMachine, options);
+    expect(
+      results.some(({ path }) => {
+        const last = path.steps.at(-1);
+        return (
+          last?.event.type === 'approve' &&
+          last.state.context.scripts[last.event.script]?.kind ===
+            'foreground' &&
+          path.steps.at(-2)?.event.type === 'startExecute'
+        );
+      })
+    ).toBe(true);
+
+    await expect(
+      testPaths(codeModeMachine, {
+        ...options,
+        sut: {
+          ...sut,
+          create: () => {
+            const driver = createCodeModeDriver();
+            return {
+              ...driver,
+              send: (event) => {
+                if (
+                  event.type === 'approve' &&
+                  !driver.read().pendingPermissions.includes(event.script)
+                ) {
+                  return driver.send({
+                    type: 'finishScript',
+                    script: event.script
+                  });
+                }
+                return driver.send(event);
+              }
+            };
+          }
+        }
+      }).then(() => 'passed')
+    ).rejects.toMatchObject({
+      trace: {
+        events: [
+          { type: 'init', fullCodemode: true },
+          { type: 'startExecute' },
+          { type: 'approve', script: 0 }
+        ],
+        finalObservation: {
+          sut: {
+            model: expect.objectContaining({
+              toolResults: [{ status: 'running' }]
+            }),
+            observed: expect.objectContaining({
+              toolResults: [{ status: 'completed', value: 'ok' }]
+            })
+          }
+        }
+      }
+    });
+  });
+
   it('replays a duplicate notice against the faulty and fixed drivers', async () => {
     const faulty = {
       ...sut,
       create: () => createCodeModeDriver({ duplicateNotice: true })
     };
     const failure = await testPaths(codeModeMachine, {
-      choices: codeModeChoices,
+      cases: codeModeCases,
       sut: faulty
     }).catch((error: unknown) => error);
     if (!(failure instanceof ModelTestFailureError) || !failure.fixture) {

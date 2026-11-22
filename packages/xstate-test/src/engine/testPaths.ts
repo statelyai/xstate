@@ -1,5 +1,6 @@
 import {
   initialTransition,
+  isMachineSnapshot,
   transition,
   type ActorLogic,
   type AnyEventObject,
@@ -32,6 +33,8 @@ import {
   type TestMode,
   type TestOptions,
   type PropertyGeneratorKind,
+  type EventForType,
+  type EventPayload,
   defaultFormatSnapshot
 } from './propertyTest.ts';
 import { createOutcomeStub, provideActors } from './outcomes.ts';
@@ -97,8 +100,23 @@ interface PathOptions<
     | 'simple'
     | 'edges'
     | PathGenerator<TSnapshot, TEvent, TInput>;
-  /** Enumerates exact external events from each snapshot. Implies \`'edges'\`. */
-  readonly choices?: (snapshot: TSnapshot) => readonly TEvent[];
+  /** Exact payloads by event type. Return an empty array to omit a type. Implies 'edges'. */
+  readonly cases?: {
+    readonly [TType in TEvent['type']]?:
+      | readonly EventPayload<EventForType<TEvent, TType>>[]
+      | ((
+          snapshot: TSnapshot
+        ) => readonly EventPayload<EventForType<TEvent, TType>>[]);
+  };
+  /** Probes unhandled events as no-ops where the predicate permits. Implies 'edges'. */
+  readonly checkUnhandled?: {
+    readonly [TType in TEvent['type']]?:
+      | true
+      | ((context: {
+          snapshot: TSnapshot;
+          event: EventForType<TEvent, TType>;
+        }) => boolean);
+  };
   /** Executes a single path built from this literal event sequence. */
   readonly fromEvents?: readonly TEvent[];
   /** Plans walks that cover every named step pattern before executing them. */
@@ -643,8 +661,26 @@ export async function testPaths<TSource extends ActorLogic<any, any, any>>(
       '`commands` is not supported by path generation; use `propertyTest()`. Paths decide their own `advance` and `outcome` commands from the internal events the traversal took.'
     );
   }
-  const choices = options.choices;
-  const useEdges = choices !== undefined || options.pathGenerator === 'edges';
+  const exactCases = options.cases as
+    | Readonly<
+        Record<
+          string,
+          readonly object[] | ((snapshot: TSnapshot) => readonly object[])
+        >
+      >
+    | undefined;
+  const probes = options.checkUnhandled as
+    | Readonly<
+        Record<
+          string,
+          true | ((context: { snapshot: TSnapshot; event: TEvent }) => boolean)
+        >
+      >
+    | undefined;
+  const useEdges =
+    exactCases !== undefined ||
+    probes !== undefined ||
+    options.pathGenerator === 'edges';
   if (
     useEdges &&
     (options.cover ||
@@ -654,9 +690,6 @@ export async function testPaths<TSource extends ActorLogic<any, any, any>>(
         options.pathGenerator !== 'edges'))
   ) {
     throw new Error('Edge traversal requires its own path generation.');
-  }
-  if (choices && Object.keys(options.events ?? {}).length > 0) {
-    throw new Error('Use exact choices without event generators.');
   }
   if (
     options.cover &&
@@ -691,8 +724,13 @@ export async function testPaths<TSource extends ActorLogic<any, any, any>>(
         )
       )
     : baseLogic;
+  const configuredEvents = Object.fromEntries(
+    Object.entries(options.events ?? {}).filter(
+      ([type]) => !exactCases || !Object.hasOwn(exactCases, type)
+    )
+  );
   const { cases } = normalizeEventDescriptors<TSnapshot, TEvent>(
-    (options.events ?? {}) as Readonly<Record<string, unknown>>
+    configuredEvents
   );
   const caseIds = new WeakMap<object, string>();
   const expander = createEventExpander<TSnapshot, TEvent>(
@@ -821,10 +859,15 @@ export async function testPaths<TSource extends ActorLogic<any, any, any>>(
     });
   };
 
+  const declaredEventTypes = [
+    ...expander.declaredTypes,
+    ...Object.keys(exactCases ?? {}),
+    ...Object.keys(probes ?? {})
+  ];
   const traversalEvents = (snapshot: TSnapshot): readonly TEvent[] => {
     // A machine's own events exclude anything only a wildcard (`'*'`) handler
     // accepts, so the declared types are unioned in rather than replaced.
-    const types = new Set<string>(expander.declaredTypes);
+    const types = new Set(declaredEventTypes);
     const internal: TEvent[] = [];
     const afterEvents: TEvent[] = [];
     if (typeof (snapshot as { nodes?: unknown }).nodes === 'object') {
@@ -845,7 +888,9 @@ export async function testPaths<TSource extends ActorLogic<any, any, any>>(
       for (const event of getAllOwnEvents(snapshot as never)) {
         const { type } = event as AnyEventObject;
         if (!isInternalEventType(type)) {
-          types.add(type);
+          if (!useEdges || (type !== '*' && !type.endsWith('.*'))) {
+            types.add(type);
+          }
         } else if (TRAVERSED_INTERNAL_EVENTS.has(type)) {
           // Internal events carry the fields the transition matches on
           // (`actorId`, `delay`, `stateId`), so they are offered whole rather
@@ -860,9 +905,24 @@ export async function testPaths<TSource extends ActorLogic<any, any, any>>(
       (type) => ({ type }) as unknown as TEvent
     );
     return [
-      ...(choices
-        ? choices(snapshot)
-        : templates.flatMap((template) => expander.expand(snapshot, template))),
+      ...templates.flatMap((template) => {
+        const type = template.type;
+        if (!exactCases || !Object.hasOwn(exactCases, type)) {
+          return expander.expand(snapshot, template);
+        }
+        const entry = exactCases[type];
+        const payloads = typeof entry === 'function' ? entry(snapshot) : entry;
+        if (!Array.isArray(payloads)) {
+          throw new Error(`Expected an array of payloads for cases.${type}.`);
+        }
+        return payloads.map((payload) => {
+          if (payload === undefined) {
+            throw new Error(`Expected a payload object in cases.${type}.`);
+          }
+          assertGeneratedPayload(payload, type);
+          return { ...payload, type } as TEvent;
+        });
+      }),
       ...internal,
       ...selectDueAfterEvents(snapshot, afterEvents)
     ];
@@ -960,6 +1020,21 @@ export async function testPaths<TSource extends ActorLogic<any, any, any>>(
       planEdgePaths(initial, {
         limit,
         events: traversalEvents,
+        classify: (snapshot, event) => {
+          if (
+            isInternalEventType(event.type) ||
+            isEventEnabled(snapshot, event)
+          ) {
+            return 'edge';
+          }
+          const probe =
+            probes && Object.hasOwn(probes, event.type)
+              ? probes[event.type]
+              : undefined;
+          return probe === true || probe?.({ snapshot, event })
+            ? 'probe'
+            : 'skip';
+        },
         transition: (snapshot, event) =>
           transition(testLogic, snapshot, event)[0],
         serializeState: serializeTraversalState,
@@ -1051,7 +1126,8 @@ export async function testPaths<TSource extends ActorLogic<any, any, any>>(
   const {
     paths: _paths,
     pathGenerator: _pathGenerator,
-    choices: _choices,
+    cases: _cases,
+    checkUnhandled: _checkUnhandled,
     fromEvents: _fromEvents,
     cover: _cover,
     limit: _limit,
@@ -1063,7 +1139,7 @@ export async function testPaths<TSource extends ActorLogic<any, any, any>>(
     serializeState: _serializeState,
     serializeEvent: _serializeEvent,
     allowDuplicatePaths: _allowDuplicatePaths,
-    events: configuredEvents,
+    events: _events,
     outcomes: configuredOutcomes,
     ...shared
   } = options;
@@ -1161,6 +1237,10 @@ function limitReplaySessions(
     onFailure: store.onFailure.bind(store),
     remove: store.remove?.bind(store)
   };
+}
+
+function isEventEnabled(snapshot: unknown, event: EventObject): boolean {
+  return !isMachineSnapshot(snapshot) || snapshot.can(event);
 }
 
 /** Whether `logic` is a state machine (duck-typed, as `xstate/graph` does). */

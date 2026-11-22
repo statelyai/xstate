@@ -10,6 +10,10 @@ export function planEdgePaths<
   options: {
     limit: number;
     events: (snapshot: TSnapshot) => readonly TEvent[];
+    classify?: (
+      snapshot: TSnapshot,
+      event: TEvent
+    ) => 'edge' | 'probe' | 'skip';
     transition: (snapshot: TSnapshot, event: TEvent) => TSnapshot;
     serializeState: (
       snapshot: TSnapshot,
@@ -20,8 +24,15 @@ export function planEdgePaths<
     toState?: ((snapshot: TSnapshot) => boolean) | undefined;
   }
 ): StatePath<TSnapshot, TEvent>[] {
-  const { limit, events, transition, serializeState, stopWhen, toState } =
-    options;
+  const {
+    limit,
+    events,
+    classify,
+    transition,
+    serializeState,
+    stopWhen,
+    toState
+  } = options;
   if (!Number.isInteger(limit) || limit < 1) {
     throw new Error('Edge traversal limit must be a positive integer.');
   }
@@ -43,6 +54,10 @@ export function planEdgePaths<
       continue;
     }
     for (const event of events(prefix.state)) {
+      const kind = classify?.(prefix.state, event) ?? 'edge';
+      if (kind === 'skip') {
+        continue;
+      }
       if (planned++ >= limit) {
         throw new Error('Traversal limit exceeded');
       }
@@ -51,7 +66,8 @@ export function planEdgePaths<
           `"${XSTATE_INIT}" is reserved for test initialization.`
         );
       }
-      const state = transition(prefix.state, event);
+      const state =
+        kind === 'probe' ? prefix.state : transition(prefix.state, event);
       const path = {
         state,
         steps: [...prefix.steps, { state, event }],
@@ -59,6 +75,9 @@ export function planEdgePaths<
       };
       if (!toState || toState(state)) {
         paths.push(path);
+      }
+      if (kind === 'probe') {
+        continue;
       }
       const key = serializeState(state, event, prefix.state);
       if (!seen.has(key)) {
