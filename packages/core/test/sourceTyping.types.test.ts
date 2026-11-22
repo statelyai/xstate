@@ -140,10 +140,18 @@ describe('setup() source typing', () => {
         // @ts-expect-error a dictionary actor may replace load
         actors: numberActors
       });
+
+      const matching: Record<`re${string}`, (id: number) => void> = {};
+      const unrelated: Record<`extra-${string}`, (id: number) => void> = {};
+      base.createMachine({
+        // @ts-expect-error the index pattern includes record
+        actions: matching
+      });
+      base.createMachine({ actions: unrelated });
     }
   });
 
-  it('checks string dictionaries that replace numeric source names', () => {
+  it('checks string and numeric aliases for source names', () => {
     const load = createAsyncLogic({
       schemas: { input: z.string() },
       run: async ({ input }) => input.length
@@ -157,6 +165,12 @@ describe('setup() source typing', () => {
     const guards: Record<string, (id: string) => boolean> = { '0': () => true };
     const actors: Record<string, typeof load> = { '0': load };
     base.createMachine({ actions, guards, actors });
+
+    base.createMachine({
+      actions: { '0': (_id: string) => {}, newAction: () => {} },
+      actors: { '0': load },
+      guards: { '0': (id: string) => id.length > 0 }
+    });
 
     if (false) {
       const numberActions: Record<string, (id: number) => void> = {};
@@ -173,6 +187,32 @@ describe('setup() source typing', () => {
         guards: numberGuards,
         // @ts-expect-error the dictionary can replace the actor at 0
         actors: numberActors
+      });
+      base.createMachine({
+        actions: {
+          // @ts-expect-error the string alias replaces the numeric action
+          '0': (_id: number) => {}
+        },
+        actors: {
+          // @ts-expect-error the string alias replaces the numeric actor
+          '0': otherLoad
+        },
+        guards: {
+          // @ts-expect-error the string alias replaces the numeric guard
+          '0': (id: number) => id > 0
+        }
+      });
+      const numericActions: Record<number, (id: number) => void> = {};
+      base.createMachine({
+        // @ts-expect-error a numeric index can also replace the action at 0
+        actions: numericActions
+      });
+
+      setup({ actions: { '0': (_id: string) => {} } }).createMachine({
+        actions: {
+          // @ts-expect-error the numeric alias replaces the string action
+          0: (_id: number) => {}
+        }
       });
     }
   });

@@ -316,26 +316,34 @@ type ExtendValidatorConfig<TExtension> = [TExtension] extends [
   ? { validator?: never }
   : { validator: TExtension };
 
-type SourceOverrideKeys<TBase, TOverrides> = string extends keyof TOverrides
-  ? keyof TBase & (string | number)
-  : keyof TOverrides & keyof TBase;
+type SourceName<TKey> = TKey extends number ? `${TKey}` : TKey;
 
-type SourceDictionaryKey<TKey> = TKey extends string | number
-  ? `${TKey}`
+type NormalizeSourceNames<TSources> = {
+  [K in keyof TSources as SourceName<K>]: TSources[K];
+};
+
+type SourceIndexKeys<TKey extends PropertyKey> = TKey extends unknown
+  ? {} extends Record<TKey, unknown>
+    ? TKey
+    : never
   : never;
 
-// An index signature can replace any matching name. Check its value type
-// directly because TypeScript does not check optional properties against it.
-type CheckSourceOverrides<TOverrides, TContracts> =
-  string extends keyof TOverrides
-    ? {
-        [K in keyof TContracts as SourceDictionaryKey<K> extends keyof TOverrides
-          ? TOverrides[SourceDictionaryKey<K>] extends TContracts[K]
-            ? never
-            : K
-          : never]-?: never;
-      }
-    : Partial<TContracts>;
+// TypeScript checks named properties against each other but does not check
+// index signatures against optional named properties.
+type CheckIndexedSourceOverrides<TOverrides, TContracts> = {
+  [K in keyof TContracts & keyof TOverrides as K extends SourceIndexKeys<
+    keyof TOverrides
+  >
+    ? TOverrides[K] extends TContracts[K]
+      ? never
+      : K
+    : never]: never;
+};
+
+type CheckSourceOverrides<TOverrides, TContracts> = Partial<
+  Pick<TContracts, keyof TContracts & keyof TOverrides>
+> &
+  CheckIndexedSourceOverrides<TOverrides, TContracts>;
 
 type ActorOverride<TBase, TOverride> = [TBase] extends [AnyActorLogic]
   ? [TOverride] extends [AnyActorLogic]
@@ -343,21 +351,23 @@ type ActorOverride<TBase, TOverride> = [TBase] extends [AnyActorLogic]
     : never
   : never;
 
-type ActorOverrideContracts<TBase, TOverrides> = string extends keyof TOverrides
-  ? CheckSourceOverrides<
-      TOverrides,
-      {
-        [K in keyof TBase & (string | number)]: ActorOverride<
-          TBase[K],
-          TOverrides[SourceDictionaryKey<K> & keyof TOverrides]
-        >;
-      }
-    >
-  : {
-      [K in keyof TOverrides]: K extends keyof TBase
-        ? ActorOverride<TBase[K], TOverrides[K]>
-        : TOverrides[K];
-    };
+type ActorOverrideContracts<
+  TBase,
+  TOverrides,
+  TNormalizedOverrides = NormalizeSourceNames<TOverrides>
+> = {
+  [K in keyof TOverrides]: SourceName<K> extends keyof TBase
+    ? ActorOverride<TBase[SourceName<K>], TOverrides[K]>
+    : TOverrides[K];
+} & CheckIndexedSourceOverrides<
+  TNormalizedOverrides,
+  {
+    [K in keyof TBase & keyof TNormalizedOverrides]: ActorOverride<
+      TBase[K],
+      TNormalizedOverrides[K]
+    >;
+  }
+>;
 
 // A source that reuses a base name replaces it at runtime, so it must
 // satisfy the base contract, the same rule `machine.provide(...)` applies.
@@ -370,22 +380,18 @@ type SourceOverrideContracts<
   TOverrideGuardMap
 > = {
   actions?: CheckSourceOverrides<
-    NoInfer<TOverrideActionMap>,
-    Pick<
-      ProvidedActionContracts<TBaseActionMap>,
-      SourceOverrideKeys<TBaseActionMap, NoInfer<TOverrideActionMap>>
-    >
+    NormalizeSourceNames<NoInfer<TOverrideActionMap>>,
+    ProvidedActionContracts<NormalizeSourceNames<TBaseActionMap>>
   >;
   guards?: CheckSourceOverrides<
-    NoInfer<TOverrideGuardMap>,
-    Pick<
-      TBaseGuardMap,
-      SourceOverrideKeys<TBaseGuardMap, NoInfer<TOverrideGuardMap>>
-    >
+    NormalizeSourceNames<NoInfer<TOverrideGuardMap>>,
+    NormalizeSourceNames<TBaseGuardMap>
   >;
-  actors?: ActorOverrideContracts<TBaseActorMap, NoInfer<TOverrideActorMap>>;
+  actors?: ActorOverrideContracts<
+    NormalizeSourceNames<TBaseActorMap>,
+    NoInfer<TOverrideActorMap>
+  >;
 };
-
 type SetupExtensionConfig<
   TBaseSchemas,
   TBaseStates,
