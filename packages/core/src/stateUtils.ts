@@ -1,6 +1,6 @@
 import isDevelopment from '#is-development';
 import { xstateError } from './xstateError.ts';
-import { MachineSnapshot, cloneMachineSnapshot } from './State.ts';
+import { cloneMachineSnapshot } from './State.ts';
 import type { StateNode } from './StateNode.ts';
 import {
   createAfterEvent,
@@ -929,92 +929,54 @@ export type TransitionSelectionResults = Map<
   TransitionSelectionResult
 >;
 
-export function transitionNode<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(
-  stateNode: AnyStateNode,
-  stateValue: StateValue,
-  snapshot: MachineSnapshot<
-    TContext,
-    TEvent,
-    any,
-    any,
-    any,
-    any,
-    any,
-    any // TStateSchema
-  >,
-  event: TEvent,
+export function selectEventTransitions(
+  root: AnyStateNode,
+  snapshot: AnyMachineSnapshot,
+  event: AnyEventObject,
   actorScope: AnyActorScope,
   selectionResults?: TransitionSelectionResults
-): Array<TransitionDefinition<TContext, TEvent>> | undefined {
-  // leaf node
-  if (typeof stateValue === 'string') {
-    const childStateNode = getStateNode(stateNode, stateValue);
-    const next = childStateNode.next(
-      snapshot,
-      event,
-      actorScope,
-      selectionResults
-    );
+): AnyTransitionDefinition[] {
+  const transitions: AnyTransitionDefinition[] = [];
+  let checked: Set<AnyStateNode> | undefined;
 
-    if (!next || !next.length) {
-      return stateNode.next(snapshot, event, actorScope, selectionResults);
-    }
-
-    return next;
-  }
-
-  const subStateKeys = Object.keys(stateValue);
-  const subStateKey = subStateKeys[0];
-
-  if (subStateKeys.length === 1) {
-    const childStateNode = getStateNode(stateNode, subStateKey);
-    const next = transitionNode(
-      childStateNode,
-      stateValue[subStateKey]!,
-      snapshot,
-      event,
-      actorScope,
-      selectionResults
-    );
-
-    if (!next || !next.length) {
-      return stateNode.next(snapshot, event, actorScope, selectionResults);
-    }
-
-    return next;
-  }
-
-  const allInnerTransitions: Array<TransitionDefinition<TContext, TEvent>> = [];
-
-  for (const subStateKey of subStateKeys) {
-    const subStateValue = stateValue[subStateKey];
-
-    if (!subStateValue) {
-      continue;
-    }
-
-    const subStateNode = getStateNode(stateNode, subStateKey);
-    const innerTransitions = transitionNode(
-      subStateNode,
-      subStateValue,
-      snapshot,
-      event,
-      actorScope,
-      selectionResults
-    );
-    if (innerTransitions) {
-      allInnerTransitions.push(...innerTransitions);
+  function selectFromLeaf(leaf: AnyStateNode) {
+    // A previous leaf already selected at a shared ancestor or searched
+    // above it. In either case, there is no need to evaluate it again.
+    for (
+      let node: AnyStateNode | undefined = leaf;
+      node && !checked?.has(node);
+      node = node.parent
+    ) {
+      checked?.add(node);
+      const selected = node.next(snapshot, event, actorScope, selectionResults);
+      if (selected?.length) {
+        transitions.push(...selected);
+        break;
+      }
     }
   }
 
-  if (!allInnerTransitions.length) {
-    return stateNode.next(snapshot, event, actorScope, selectionResults);
+  function visit(node: AnyStateNode, value: StateValue) {
+    if (typeof value === 'string') {
+      selectFromLeaf(getStateNode(node, value));
+      return;
+    }
+
+    const keys = Object.keys(value);
+    if (keys.length === 0) {
+      selectFromLeaf(node);
+      return;
+    }
+    if (keys.length > 1) {
+      checked ??= new Set();
+    }
+    for (const key of keys) {
+      visit(getStateNode(node, key), value[key]!);
+    }
   }
 
-  return allInnerTransitions;
+  visit(root, snapshot.value);
+  return transitions;
 }
 
 function isDescendant(

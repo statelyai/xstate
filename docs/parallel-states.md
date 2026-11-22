@@ -60,7 +60,9 @@ active: {
 // after `interrupt`: { playback: 'paused', volume: 'muted' }
 ```
 
-Regions that do not handle the event are untouched, and an event no region handles changes nothing. A transition from one region into another exits only the target's region; the source region stays where it is.
+Each active leaf searches for an enabled transition on itself and then on its ancestors. This applies to both event and `always` transitions. If multiple leaves select the same ancestor transition, it runs once. An ancestor's targetless transition can run alongside a region's transition when another region selects the ancestor. When the transitions would exit any of the same states, the descendant transition takes precedence over the ancestor transition.
+
+A transition from one region into another exits only the target's region. The source region stays where it is.
 
 ## Completion
 

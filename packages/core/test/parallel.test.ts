@@ -500,6 +500,75 @@ const deepFlatParallelMachine = createMachine({
 });
 
 describe('parallel states', () => {
+  it('selects a parallel ancestor transition once for regions without a matching transition', () => {
+    const calls: string[] = [];
+    const record = (name: string) => {
+      calls.push(name);
+    };
+    const machine = createMachine({
+      type: 'parallel',
+      on: {
+        EV: (_, enq) => enq(record, 'parent EV')
+      },
+      always: (_, enq) => enq(record, 'parent always'),
+      states: {
+        first: {},
+        second: {},
+        third: {
+          initial: 'active',
+          states: {
+            active: {
+              on: { EV: (_, enq) => enq(record, 'child EV') },
+              always: (_, enq) => enq(record, 'child always')
+            }
+          }
+        }
+      }
+    });
+    const actor = createActor(machine).start();
+
+    expect(calls.splice(0)).toEqual(['parent always', 'child always']);
+
+    actor.send({ type: 'EV' });
+
+    expect(calls).toEqual([
+      'parent EV',
+      'child EV',
+      'parent always',
+      'child always'
+    ]);
+  });
+
+  it('prefers a descendant transition when the parallel ancestor would exit its region', () => {
+    const machine = createMachine({
+      initial: 'active',
+      states: {
+        active: {
+          type: 'parallel',
+          on: { EV: { target: 'finished' } },
+          states: {
+            first: {},
+            second: {
+              initial: 'idle',
+              states: {
+                idle: { on: { EV: { target: 'running' } } },
+                running: {}
+              }
+            }
+          }
+        },
+        finished: {}
+      }
+    });
+    const actor = createActor(machine).start();
+
+    actor.send({ type: 'EV' });
+
+    expect(actor.getSnapshot().value).toEqual({
+      active: { first: {}, second: 'running' }
+    });
+  });
+
   it('should have initial parallel states', () => {
     const initialState = createActor(wordMachine).getSnapshot();
 
