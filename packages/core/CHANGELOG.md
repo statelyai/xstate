@@ -1,5 +1,21 @@
 # xstate
 
+## 6.0.0-beta.5
+
+### Patch Changes
+
+- a82fa99: Select event transitions from each active leaf in parallel states, matching `always`. A shared ancestor transition can now run alongside a region transition for the same event if they exit no states in common. For example, the ancestor can exit the parallel state while a region runs a targetless handler. To restrict where an event handler is selected, define it in the regions that should handle it.
+  
+  Check active leaves in definition order for both event and `always` transitions. Changing the active leaf in a region no longer changes which region has priority when their transitions conflict.
+- 8f2d4f0: Document when a completing machine captures its output. Context updates from completion exits appear in the completed snapshot's context after the output has been captured.
+- a3354a9: Accept `route: true` in machine configs and let transition functions call `enq.raise({ type: 'xstate.route', to: '#id' })`.
+  
+  Keep inferred declarations compact when a machine defines multiple routes.
+- 0cb0e9c: Breaking change in v6 beta. A transition between parallel regions now exits and reenters the common parallel state, matching SCXML. Untargeted regions restart at their initial states, entry and exit handlers run again, and invoked actors in exited states stop. To move only the receiving region, raise an event with `enq.raise(...)` and handle it inside that region.
+- 3893cf0: Release the first snapshot in pure-transition lineages when only a later snapshot remains in use, while preserving lazy actor identity.
+- 337d346: Reject seconds duration strings without a number, such as `s` and `.s`, instead of treating them as zero milliseconds. Async actors reject unparseable timeouts without starting work. Configured delays with those names still work, including zero-valued delays loaded from JSON or SCXML configuration.
+- ef35593: Reject `waitFor` with a predicate's thrown value and release its timer, actor subscription, and abort listener instead of leaving the wait pending.
+
 ## 6.0.0-beta.4
 
 ### Patch Changes
