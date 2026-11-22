@@ -96,7 +96,7 @@ useEffect(() => {
 }, [actorRef]);
 ```
 
-> **Warning:** Stored snapshots are untrusted input. Validate and version them before restoring. A malformed snapshot starts an actor in an unusable state rather than throwing. See [persist and restore actors](../persist-and-restore-actors.md).
+> **Warning:** Stored snapshots are untrusted input. Validate and version them before restoring. If restoration fails, the actor's snapshot has `status: 'error'`. `useActor` and `useSelector` throw the error during render. To recover, use an error boundary whose fallback can discard the stored snapshot and remount the component with the required input. See [persist and restore actors](../persist-and-restore-actors.md).
 
 ## Input and snapshots cheatsheet
 
