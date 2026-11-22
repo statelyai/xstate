@@ -217,6 +217,36 @@ describe('setup() source typing', () => {
     }
   });
 
+  it('checks each possible action and guard map in a union of overrides', () => {
+    const base = setup({
+      actions: { record: (_id: string) => {} },
+      guards: { enabled: (id: string) => id.length > 0 }
+    });
+
+    function createWithOverrides(
+      actions: { record: (id: string) => void } | { extra: () => void },
+      guards: { enabled: (id: string) => boolean } | { extra: () => boolean }
+    ) {
+      return base.createMachine({ actions, guards });
+    }
+    createWithOverrides({ extra: () => {} }, { extra: () => true });
+
+    function checkWrongOverrides(
+      actions: { record: (id: number) => void } | { extra: () => void },
+      guards:
+        | { extra: () => boolean; enabled: (id: number) => boolean }
+        | { extra: () => boolean }
+    ) {
+      base.createMachine({
+        // @ts-expect-error one possible action map has incompatible params
+        actions,
+        // @ts-expect-error one possible guard map has incompatible params
+        guards
+      });
+    }
+    void checkWrongOverrides;
+  });
+
   it('rejects unknown action and guard names in transition functions', () => {
     setup({
       actions: { record: (_id: string) => {} },

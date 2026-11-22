@@ -340,9 +340,8 @@ type CheckIndexedSourceOverrides<TOverrides, TContracts> = {
     : never]: never;
 };
 
-type CheckSourceOverrides<TOverrides, TContracts> = Partial<
-  Pick<TContracts, keyof TContracts & keyof TOverrides>
-> &
+type CheckSourceOverrides<TOverrides, TContracts> = Record<string, unknown> &
+  Partial<TContracts> &
   CheckIndexedSourceOverrides<TOverrides, TContracts>;
 
 type ActorOverride<TBase, TOverride> = [TBase] extends [AnyActorLogic]
