@@ -1,5 +1,5 @@
 import type { TestModelDriver } from '../src/paths.ts';
-import type { Action, Observation } from './openCodeModel.ts';
+import type { Action, Observation } from './openCodeSpec.ts';
 
 // In-memory stand-in for a CLI driver. It records visible results and jobs
 // independently of the specification's state and transition functions.

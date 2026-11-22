@@ -9,6 +9,7 @@ import {
 import { XSTATE_INIT } from './constants.ts';
 import { planCoverPaths, type TestCoverOptions } from './coverPaths.ts';
 import { deduplicatePaths } from './deduplicatePaths.ts';
+import { planEdgePaths } from './edgePaths.ts';
 import {
   deriveCaseSeed,
   isEventDescriptorObject,
@@ -53,6 +54,7 @@ export type { TestCoverOptions, TestCoverStep } from './coverPaths.ts';
 type TestPathGeneratorKind =
   | 'shortest'
   | 'simple'
+  | 'edges'
   | 'events'
   | 'custom'
   | 'cover';
@@ -87,13 +89,16 @@ interface PathOptions<
    */
   readonly paths?: readonly StatePath<TSnapshot, TEvent>[];
   /**
-   * `'shortest'` (the default), `'simple'`, or a custom
+   * `'shortest'` (the default), `'simple'`, `'edges'`, or a custom
    * {@link PathGenerator}. `'events'` is implied by `fromEvents`.
    */
   readonly pathGenerator?:
     | 'shortest'
     | 'simple'
+    | 'edges'
     | PathGenerator<TSnapshot, TEvent, TInput>;
+  /** Enumerates exact external events from each snapshot. Implies \`'edges'\`. */
+  readonly choices?: (snapshot: TSnapshot) => readonly TEvent[];
   /** Executes a single path built from this literal event sequence. */
   readonly fromEvents?: readonly TEvent[];
   /** Plans walks that cover every named step pattern before executing them. */
@@ -638,6 +643,21 @@ export async function testPaths<TSource extends ActorLogic<any, any, any>>(
       '`commands` is not supported by path generation; use `propertyTest()`. Paths decide their own `advance` and `outcome` commands from the internal events the traversal took.'
     );
   }
+  const choices = options.choices;
+  const useEdges = choices !== undefined || options.pathGenerator === 'edges';
+  if (
+    useEdges &&
+    (options.cover ||
+      options.paths ||
+      options.fromEvents ||
+      (options.pathGenerator !== undefined &&
+        options.pathGenerator !== 'edges'))
+  ) {
+    throw new Error('Edge traversal requires its own path generation.');
+  }
+  if (choices && Object.keys(options.events ?? {}).length > 0) {
+    throw new Error('Use exact choices without event generators.');
+  }
   if (
     options.cover &&
     (options.paths || options.fromEvents || options.pathGenerator)
@@ -840,7 +860,9 @@ export async function testPaths<TSource extends ActorLogic<any, any, any>>(
       (type) => ({ type }) as unknown as TEvent
     );
     return [
-      ...templates.flatMap((template) => expander.expand(snapshot, template)),
+      ...(choices
+        ? choices(snapshot)
+        : templates.flatMap((template) => expander.expand(snapshot, template))),
       ...internal,
       ...selectDueAfterEvents(snapshot, afterEvents)
     ];
@@ -853,6 +875,24 @@ export async function testPaths<TSource extends ActorLogic<any, any, any>>(
     event: TEvent | undefined,
     previousSnapshot: TSnapshot | undefined
   ) => string;
+  // Every state is serialized before its events are expanded, which is
+  // where its virtual time is fixed: the time it was reached at.
+  const serializeTraversalState = (
+    snapshot: TSnapshot,
+    event: TEvent | undefined,
+    previousSnapshot: TSnapshot | undefined
+  ) => {
+    if (!virtualNow.has(snapshot as object)) {
+      const previousNow = previousSnapshot
+        ? (virtualNow.get(previousSnapshot as object) ?? 0)
+        : 0;
+      virtualNow.set(
+        snapshot as object,
+        event ? (afterFiresAt.get(event) ?? previousNow) : previousNow
+      );
+    }
+    return identity(snapshot, event, previousSnapshot);
+  };
   const traversalOptions: TraversalOptions<TSnapshot, TEvent, unknown> = {
     events: traversalEvents,
     input: options.input,
@@ -862,20 +902,7 @@ export async function testPaths<TSource extends ActorLogic<any, any, any>>(
       ? {}
       : { fromState: options.fromState }),
     ...(options.stopWhen === undefined ? {} : { stopWhen: options.stopWhen }),
-    // Every state is serialized before its events are expanded, which is
-    // where its virtual time is fixed: the time it was reached at.
-    serializeState: (snapshot, event, previousSnapshot) => {
-      if (!virtualNow.has(snapshot as object)) {
-        const previousNow = previousSnapshot
-          ? (virtualNow.get(previousSnapshot as object) ?? 0)
-          : 0;
-        virtualNow.set(
-          snapshot as object,
-          event ? (afterFiresAt.get(event) ?? previousNow) : previousNow
-        );
-      }
-      return identity(snapshot, event, previousSnapshot);
-    },
+    serializeState: serializeTraversalState,
     ...(options.serializeEvent === undefined
       ? {}
       : { serializeEvent: options.serializeEvent })
@@ -923,6 +950,23 @@ export async function testPaths<TSource extends ActorLogic<any, any, any>>(
       stopWhen: options.stopWhen,
       toState: options.toState
     });
+  } else if (useEdges) {
+    pathGeneratorKind = 'edges';
+    const initial =
+      options.start?.snapshot ??
+      options.fromState ??
+      initialTransition(testLogic, options.input)[0];
+    paths = generatePaths(() =>
+      planEdgePaths(initial, {
+        limit,
+        events: traversalEvents,
+        transition: (snapshot, event) =>
+          transition(testLogic, snapshot, event)[0],
+        serializeState: serializeTraversalState,
+        stopWhen: options.stopWhen,
+        toState: options.toState
+      })
+    );
   } else if (options.paths) {
     pathGeneratorKind = 'custom';
     paths = options.paths;
@@ -1007,6 +1051,7 @@ export async function testPaths<TSource extends ActorLogic<any, any, any>>(
   const {
     paths: _paths,
     pathGenerator: _pathGenerator,
+    choices: _choices,
     fromEvents: _fromEvents,
     cover: _cover,
     limit: _limit,
@@ -1052,7 +1097,7 @@ export async function testPaths<TSource extends ActorLogic<any, any, any>>(
         ...shared,
         failures,
         adapter,
-        ...(options.cover && options.fromState && !shared.start
+        ...((options.cover || useEdges) && options.fromState && !shared.start
           ? {
               start: {
                 snapshot: options.fromState,

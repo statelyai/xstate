@@ -133,6 +133,7 @@ export interface TestExplorationBounds {
   readonly pathGenerator?:
     | 'shortest'
     | 'simple'
+    | 'edges'
     | 'events'
     | 'custom'
     | 'cover';

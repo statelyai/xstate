@@ -127,6 +127,32 @@ describe('testPaths() follows the planned path', () => {
     }
   });
 
+  it('covers discovered events with shared destinations and no-ops', async () => {
+    const model = createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          on: { CLICK: { target: 'done' }, TIMEOUT: { target: 'done' } }
+        },
+        done: { on: { DISMISS: {} } }
+      }
+    });
+    const { results } = await testPaths(model, { pathGenerator: 'edges' });
+    expect(
+      results.map(({ path }) => path.steps.map(({ event }) => event.type))
+    ).toEqual([[], ['CLICK'], ['TIMEOUT'], ['CLICK', 'DISMISS']]);
+  });
+
+  it('follows only the first due timer in exact choice traversal', async () => {
+    for (const mode of ['pure', 'executed'] as const) {
+      const { results } = await testPaths(raceMachine, {
+        mode,
+        choices: () => []
+      });
+      expect(results.map(({ path }) => path.state.value)).toEqual(['s', 'x']);
+    }
+  });
+
   it('fails a path the run departs from', async () => {
     const failure = await captureFailure(() =>
       testPaths(raceMachine, {

@@ -2,70 +2,14 @@
 // https://gist.github.com/jlongster/86d4be9094ce9edd060057787e40d173
 import { createTestModel } from '../src/paths.ts';
 
-export type Action =
-  | { type: 'init'; fullCodemode: boolean }
-  | { type: 'startExecute' | 'tick10s' | 'ctrlB' | 'esc' }
-  | {
-      type: 'askPermission' | 'approve' | 'reject' | 'finishScript';
-      script: number;
-    };
-
-type Progress = 'running' | 'askingPermission' | 'approved' | 'callFailed';
-type ActiveScript = { kind: 'foreground' | 'background'; progress: Progress };
-type Script =
-  | ActiveScript
-  | { kind: 'completed' | 'backgroundCompleted'; output: string }
-  | { kind: 'cancelled' };
-type Notice = { script: number; output: string };
-type ToolOutput =
-  | { status: 'running' | 'receipt' | 'cancelled' }
-  | { status: 'completed'; value: string };
-
-export interface Observation {
-  turnBlocked: boolean;
-  toolResults: ToolOutput[];
-  pendingPermissions: number[];
-  backgroundJobs: number[];
-  deliveredNotices: Notice[];
-}
-
-interface State {
-  fullCodemode: boolean | null;
-  scripts: Script[];
-  deliveredNotices: Notice[];
-}
-
-const maxScripts = 2;
-
-function isActive(script: Script): script is ActiveScript {
-  return script.kind === 'foreground' || script.kind === 'background';
-}
-
-function observe(state: State): Observation {
-  return {
-    turnBlocked: state.scripts.some((script) => script.kind === 'foreground'),
-    toolResults: state.scripts.map((script) => {
-      switch (script.kind) {
-        case 'foreground':
-          return { status: 'running' };
-        case 'background':
-        case 'backgroundCompleted':
-          return { status: 'receipt' };
-        case 'completed':
-          return { status: 'completed', value: script.output };
-        case 'cancelled':
-          return { status: 'cancelled' };
-      }
-    }),
-    pendingPermissions: state.scripts.flatMap((script, index) =>
-      isActive(script) && script.progress === 'askingPermission' ? [index] : []
-    ),
-    backgroundJobs: state.scripts.flatMap((script, index) =>
-      script.kind === 'background' ? [index] : []
-    ),
-    deliveredNotices: state.deliveredNotices
-  };
-}
+import {
+  checkCodeMode,
+  isActive,
+  maxScripts,
+  observe,
+  type Action,
+  type State
+} from './openCodeSpec.ts';
 
 export function createCodeModeModel({ allowTwoForeground = false } = {}) {
   return createTestModel({
@@ -189,28 +133,6 @@ export function createCodeModeModel({ allowTwoForeground = false } = {}) {
       return { ...state, scripts };
     },
     observe,
-    check(state) {
-      if (
-        state.scripts.filter((script) => script.kind === 'foreground').length >
-        1
-      ) {
-        throw new Error('codemode.single-foreground-blocker');
-      }
-      for (const [index, script] of state.scripts.entries()) {
-        if (
-          state.fullCodemode === false &&
-          (script.kind === 'background' ||
-            script.kind === 'backgroundCompleted')
-        ) {
-          throw new Error('codemode.flag-off-stays-foreground');
-        }
-        const notices = state.deliveredNotices.filter(
-          (notice) => notice.script === index
-        );
-        if (notices.length !== Number(script.kind === 'backgroundCompleted')) {
-          throw new Error('codemode.delivered-once-on-background-finish');
-        }
-      }
-    }
+    check: checkCodeMode
   });
 }

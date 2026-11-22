@@ -404,7 +404,9 @@ export async function testPaths<TSource extends ActorLogic<any, any, any>>(
   } & Record<string, unknown>;
   const failureStore = resolveFailuresOption(failures);
   const derived =
-    deriveEvents === false ? undefined : deriveMissingEvents(source, events);
+    deriveEvents === false || options.choices
+      ? undefined
+      : deriveMissingEvents(source, events);
   const merged = derived ? { ...derived, ...events } : (events ?? {});
   const samples = (options.samples as number | undefined) ?? 3;
   const seed = (options.seed as number | undefined) ?? 0;

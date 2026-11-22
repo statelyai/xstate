@@ -9,6 +9,8 @@ This page tests a hand-written shopping cart against a cart machine. For every o
 
 For a specification written with TypeScript functions, see
 [standalone models](https://github.com/statelyai/xstate/tree/next/packages/xstate-test#standalone-models).
+To exercise every concrete choice from each reachable state in a machine, see
+[exact choices](https://github.com/statelyai/xstate/tree/next/packages/xstate-test#exact-choices-for-a-machine).
 
 ## Install
 

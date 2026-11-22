@@ -22,6 +22,7 @@ complete worked example.
 - [Installation](#installation)
 - [Run tests without fast-check](#run-tests-without-fast-check)
 - [Standalone models](#standalone-models)
+- [Exact choices for a machine](#exact-choices-for-a-machine)
 - [Quick start](#quick-start)
 - [Concepts](#concepts)
 - [How-to guides](#how-to-guides)
@@ -107,6 +108,28 @@ and records a duplicate background completion notice as a JSON fixture.
 Pass that fixture to `model.replay(fixture, { sut })` to replay the recorded
 event sequence. Use `expect: 'pass'` to check the fixed driver against the
 same fixture.
+
+## Exact choices for a machine
+
+Use `testPaths(machine, { choices })` when an XState machine already defines
+the transitions. Return concrete external events from `choices(snapshot)`.
+Use `snapshot.can(event)` to select events the machine enables, or include
+ignored events to check that the implementation ignores them too.
+
+<!-- OpenCode machine usage from test/openCodeMachine.test.ts. -->
+
+```ts
+await testPaths(codeModeMachine, {
+  choices: codeModeChoices,
+  invariant: ({ snapshot }) => checkCodeMode(snapshot.context),
+  sut
+});
+```
+
+The [OpenCode machine](./test/openCodeMachine.ts) enumerates script IDs and
+asks the machine which events it can take. The [driver and replay
+tests](./test/openCodeMachine.test.ts) compare observations and reuse the
+same fixture format as other `testPaths()` runs.
 
 ## Quick start
 
@@ -1519,7 +1542,8 @@ In addition to the shared options:
 
 | Option | Default | Description |
 | --- | --- | --- |
-| `pathGenerator` | `'shortest'` | `'shortest'`, `'simple'`, or a custom `PathGenerator`. |
+| `pathGenerator` | `'shortest'` | `'shortest'`, `'simple'`, `'edges'`, or a custom `PathGenerator`. |
+| `choices` | none | Returns concrete external events for the current snapshot. Implies `'edges'` and replaces external event discovery and sampling. |
 | `paths` | none | Runs these paths instead of generating any. |
 | `fromEvents` | none | Runs the single path built from this event sequence. |
 | `cover` | none | Plans walks that collectively cover the named steps or consecutive step sequences before executing them. |
@@ -1531,6 +1555,15 @@ In addition to the shared options:
 | `fromState` | initial state | Starts traversal from this snapshot. |
 | `allowDuplicatePaths` | `false` | Keeps paths that are prefixes of longer paths. |
 | `serializeState`, `serializeEvent` | built in | Identity functions for traversal. |
+
+`'edges'` plans one run per outgoing choice from each reachable active
+snapshot, including choices that end at the same snapshot and choices that
+leave it unchanged. Each run uses a shortest prefix to the source snapshot.
+Without `choices`, it uses the usual event discovery and sampled payloads.
+With `choices`, omit `events`. Timers and invoke outcomes are still planned
+as usual. `stopWhen` stops expansion at matching snapshots. `toState` keeps
+only paths ending at matching snapshots. `limit` counts planned paths,
+including the initial check, before filtering by `toState`.
 
 `cover.requirements` maps a name to a predicate or a nonempty array of
 predicates that must match consecutive steps. Predicates receive the event,
