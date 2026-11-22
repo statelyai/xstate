@@ -143,6 +143,40 @@ describe('setup() source typing', () => {
     }
   });
 
+  it('checks string dictionaries that replace numeric source names', () => {
+    const load = createAsyncLogic({
+      schemas: { input: z.string() },
+      run: async ({ input }) => input.length
+    });
+    const base = setup({
+      actions: { 0: (_id: string) => {} },
+      actors: { 0: load },
+      guards: { 0: (id: string) => id.length > 0 }
+    });
+    const actions: Record<string, (id: string) => void> = { '0': () => {} };
+    const guards: Record<string, (id: string) => boolean> = { '0': () => true };
+    const actors: Record<string, typeof load> = { '0': load };
+    base.createMachine({ actions, guards, actors });
+
+    if (false) {
+      const numberActions: Record<string, (id: number) => void> = {};
+      const numberGuards: Record<string, (id: number) => boolean> = {};
+      const otherLoad = createAsyncLogic({
+        schemas: { input: z.number() },
+        run: async ({ input }) => input
+      });
+      const numberActors: Record<string, typeof otherLoad> = {};
+      base.createMachine({
+        // @ts-expect-error the dictionary can replace the action at 0
+        actions: numberActions,
+        // @ts-expect-error the dictionary can replace the guard at 0
+        guards: numberGuards,
+        // @ts-expect-error the dictionary can replace the actor at 0
+        actors: numberActors
+      });
+    }
+  });
+
   it('rejects unknown action and guard names in transition functions', () => {
     setup({
       actions: { record: (_id: string) => {} },

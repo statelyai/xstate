@@ -317,16 +317,20 @@ type ExtendValidatorConfig<TExtension> = [TExtension] extends [
   : { validator: TExtension };
 
 type SourceOverrideKeys<TBase, TOverrides> = string extends keyof TOverrides
-  ? keyof TBase & string
+  ? keyof TBase & (string | number)
   : keyof TOverrides & keyof TBase;
+
+type SourceDictionaryKey<TKey> = TKey extends string | number
+  ? `${TKey}`
+  : never;
 
 // An index signature can replace any matching name. Check its value type
 // directly because TypeScript does not check optional properties against it.
 type CheckSourceOverrides<TOverrides, TContracts> =
   string extends keyof TOverrides
     ? {
-        [K in keyof TContracts as K extends keyof TOverrides
-          ? TOverrides[K] extends TContracts[K]
+        [K in keyof TContracts as SourceDictionaryKey<K> extends keyof TOverrides
+          ? TOverrides[SourceDictionaryKey<K>] extends TContracts[K]
             ? never
             : K
           : never]-?: never;
@@ -343,9 +347,9 @@ type ActorOverrideContracts<TBase, TOverrides> = string extends keyof TOverrides
   ? CheckSourceOverrides<
       TOverrides,
       {
-        [K in keyof TBase & string]: ActorOverride<
+        [K in keyof TBase & (string | number)]: ActorOverride<
           TBase[K],
-          TOverrides[K & keyof TOverrides]
+          TOverrides[SourceDictionaryKey<K> & keyof TOverrides]
         >;
       }
     >
