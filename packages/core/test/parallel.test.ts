@@ -539,6 +539,101 @@ describe('parallel states', () => {
     ]);
   });
 
+  it('runs a targetless region handler when a parallel ancestor exits the parallel state', () => {
+    const record = vi.fn();
+    const machine = createMachine({
+      initial: 'active',
+      states: {
+        active: {
+          type: 'parallel',
+          on: { EV: { target: 'finished' } },
+          states: {
+            first: {},
+            second: { on: { EV: (_, enq) => enq(record) } }
+          }
+        },
+        finished: {}
+      }
+    });
+    const actor = createActor(machine).start();
+
+    actor.send({ type: 'EV' });
+
+    expect(record).toHaveBeenCalledTimes(1);
+    expect(actor.getSnapshot().value).toBe('finished');
+  });
+
+  it('limits a forbidden event to its own parallel branch', () => {
+    const machine = createMachine({
+      initial: 'active',
+      states: {
+        active: {
+          type: 'parallel',
+          on: { STOP: { target: 'halted' } },
+          states: {
+            blocked: { on: { STOP: undefined } },
+            other: {}
+          }
+        },
+        halted: {}
+      }
+    });
+    const actor = createActor(machine).start();
+
+    expect(actor.getSnapshot().can({ type: 'STOP' })).toBe(true);
+    actor.send({ type: 'STOP' });
+    expect(actor.getSnapshot().value).toBe('halted');
+  });
+
+  it.each(['event', 'always'] as const)(
+    'uses document order for conflicting %s transitions after a leaf changes',
+    (trigger) => {
+      const machine = createMachine({
+        context: { armed: false },
+        initial: 'active',
+        states: {
+          active: {
+            type: 'parallel',
+            states: {
+              first: {
+                initial: 'idle',
+                states: {
+                  idle: {
+                    on: { ARM: { target: 'armed', context: { armed: true } } }
+                  },
+                  armed: {
+                    on: { GO: { target: '#firstWon' } },
+                    always: ({ context }) =>
+                      trigger === 'always' && context.armed
+                        ? { target: '#firstWon' }
+                        : undefined
+                  }
+                }
+              },
+              second: {
+                on: { GO: { target: '#secondWon' } },
+                always: ({ context }) =>
+                  trigger === 'always' && context.armed
+                    ? { target: '#secondWon' }
+                    : undefined
+              }
+            }
+          },
+          firstWon: { id: 'firstWon' },
+          secondWon: { id: 'secondWon' }
+        }
+      });
+      const actor = createActor(machine).start();
+
+      actor.send({ type: 'ARM' });
+      if (trigger === 'event') {
+        actor.send({ type: 'GO' });
+      }
+
+      expect(actor.getSnapshot().value).toBe('firstWon');
+    }
+  );
+
   it('prefers a descendant transition when the parallel ancestor would exit its region', () => {
     const machine = createMachine({
       initial: 'active',

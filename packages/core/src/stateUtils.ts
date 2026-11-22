@@ -969,6 +969,9 @@ export function selectEventTransitions(
     }
     if (keys.length > 1) {
       checked ??= new Set();
+      keys.sort(
+        (a, b) => getStateNode(node, a).order - getStateNode(node, b).order
+      );
     }
     for (const key of keys) {
       visit(getStateNode(node, key), value[key]!);
@@ -2995,7 +2998,9 @@ function selectEventlessTransitions(
 ) {
   snapshot.machine._microstepHooks?.begin(actorScope.self);
   const enabledTransitionSet: Set<AnyTransitionDefinition> = new Set();
-  const atomicStates = snapshot.nodes.filter(isAtomicStateNode);
+  const atomicStates = snapshot.nodes
+    .filter(isAtomicStateNode)
+    .sort((a, b) => a.order - b.order);
 
   for (const atomicStateNode of atomicStates) {
     loop: for (

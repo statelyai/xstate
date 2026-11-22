@@ -60,7 +60,9 @@ active: {
 // after `interrupt`: { playback: 'paused', volume: 'muted' }
 ```
 
-Each active leaf searches for an enabled transition on itself and then on its ancestors. This applies to both event and `always` transitions. If multiple leaves select the same ancestor transition, it runs once. An ancestor's targetless transition can run alongside a region's transition when another region selects the ancestor. When the transitions would exit any of the same states, the descendant transition takes precedence over the ancestor transition.
+XState checks active leaves in the order they are defined. Each leaf searches for an enabled transition on itself and then on its ancestors. This applies to both event and `always` transitions. If multiple leaves select the same ancestor transition, it runs once.
+
+When a leaf selects an ancestor transition and another leaf selects a region transition, both can run if they exit no states in common. For example, a parent `CANCEL` transition can leave the parallel state while a region's targetless `CANCEL` handler runs its action. When the transitions would exit any of the same states, the descendant transition takes precedence over the ancestor transition.
 
 A transition from one region into another exits only the target's region. The source region stays where it is.
 
