@@ -66,7 +66,19 @@ A region can transition between its child states while the other regions stay ac
 
 A transition whose source and target are in different regions exits and reenters their common parallel state. The exit domain extends to the nearest compound ancestor, which can enclose more than one parallel state. Untargeted regions restart at their initial states. Exit and entry handlers run again, and invoked actors in exited states stop.
 
-To move another region while preserving the source region, raise an event from a targetless transition and handle it inside the receiving region.
+### Move one region and preserve the others
+
+In earlier v6 betas, the following cross-region target moved `right` to `y` and left `left` in `b`. It now reenters the parallel state, so `left` restarts at `a`.
+
+```ts
+// left.states.b
+b: { on: { CROSS: { target: '#y' } } }
+
+// right.states.y
+y: { id: 'y' }
+```
+
+To preserve `left`, raise an event from a targetless transition in `b` and handle it inside `right`.
 
 ```ts
 active: {
@@ -90,7 +102,35 @@ active: {
 }
 ```
 
-After `ADVANCE` and `CROSS`, `left` stays in `b` and `right` moves to `y` in a later microstep of the same macrostep. If the response is independent of the active state in `left`, handle `CROSS` directly in `right`.
+After `ADVANCE` and `CROSS`, `left` stays in `b` and `right` moves to `y` in a later microstep of the same macrostep. If `right` should react regardless of the active state in `left`, handle `CROSS` directly in `right.x`.
+
+### Advance regions in sequence
+
+In earlier v6 betas, these handlers let two `NEXT` events show `value2` and then `value3`. The direct targets now produce overlapping exit sets when both handlers are enabled, so only one transition can run.
+
+```ts
+// value1.states.x
+x: { on: { NEXT: { target: '#question-flow.value2.shown' } } }
+
+// value2.states.shown
+shown: { on: { NEXT: { target: '#question-flow.value3.shown' } } }
+```
+
+Give each step its own event and let each receiving region select its local transition.
+
+```ts
+// value1.states.x
+x: { on: { NEXT: (_, enq) => enq.raise({ type: 'SHOW_SECOND' }) } }
+
+// value2.states
+hidden: { on: { SHOW_SECOND: { target: 'shown' } } },
+shown: { on: { CONTINUE: (_, enq) => enq.raise({ type: 'SHOW_THIRD' }) } }
+
+// value3.states.hidden
+hidden: { on: { SHOW_THIRD: { target: 'shown' } } }
+```
+
+Send `NEXT` for the first step and `CONTINUE` for the second. Both receiving regions end in `shown`. If multiple regions should move in the same microstep, give each region a local transition on the same event as in [One event, every region](#one-event-every-region).
 
 ## Completion
 
