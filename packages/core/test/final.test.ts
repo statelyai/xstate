@@ -442,7 +442,10 @@ describe('final states', () => {
       output: ({ context }) => context.count,
       exit: ({ context }) => ({ context: { count: context.count + 100 } }),
       states: {
-        working: { on: { FINISH: { target: 'done' } } },
+        working: {
+          exit: ({ context }) => ({ context: { count: context.count + 1 } }),
+          on: { FINISH: { target: 'done' } }
+        },
         done: {
           type: 'final',
           exit: ({ context }) => ({ context: { count: context.count + 10 } })
@@ -455,8 +458,8 @@ describe('final states', () => {
 
     expect(actorRef.getSnapshot()).toMatchObject({
       status: 'done',
-      output: 0,
-      context: { count: 110 }
+      output: 1,
+      context: { count: 111 }
     });
   });
 
