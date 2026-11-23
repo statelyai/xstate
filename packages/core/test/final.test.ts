@@ -839,6 +839,85 @@ describe('final states', () => {
 
     expect(actorRef.getSnapshot().status).toEqual('done');
   });
+
+  it('completes a parallel state after every direct final child enters', () => {
+    const order: string[] = [];
+    const onDone = vi.fn();
+    const machine = createMachine({
+      initial: 'running',
+      context: { first: 0, second: 0 },
+      states: {
+        running: {
+          type: 'parallel',
+          states: {
+            first: {
+              type: 'final',
+              entry: ({ context }) => ({
+                context: { first: context.first + 1 }
+              }),
+              output: ({ context }) => context.first
+            },
+            second: {
+              type: 'final',
+              entry: ({ context }, enq) => {
+                enq.raise({ type: 'SECOND_ENTERED' });
+                return { context: { second: context.second + 1 } };
+              },
+              output: ({ context }) => context.second
+            }
+          },
+          on: {
+            SECOND_ENTERED: (_, enq) => {
+              enq(() => order.push('second entered'));
+            }
+          },
+          onDone: ({ event }, enq) => {
+            enq(() => {
+              order.push('parallel done');
+              onDone(event.output);
+            });
+            return { target: 'finished' };
+          }
+        },
+        finished: { type: 'final' }
+      }
+    });
+
+    const actor = createActor(machine).start();
+
+    expect(actor.getSnapshot().status).toBe('done');
+    expect(order).toEqual(['second entered', 'parallel done']);
+    expect(onDone).toHaveBeenCalledExactlyOnceWith({ first: 1, second: 1 });
+  });
+
+  it('includes later direct final entries in the output of a parallel root', () => {
+    const machine = createMachine({
+      type: 'parallel',
+      context: { ready: false },
+      output: ({ event }) => event.output,
+      states: {
+        compound: {
+          initial: 'complete',
+          states: {
+            complete: { type: 'final', output: 'nested output' }
+          }
+        },
+        direct: {
+          type: 'final',
+          entry: () => ({ context: { ready: true } }),
+          output: ({ context }) => context.ready
+        }
+      }
+    });
+
+    const actor = createActor(machine).start();
+
+    expect(actor.getSnapshot()).toMatchObject({
+      status: 'done',
+      output: { compound: 'nested output', direct: true }
+    });
+  });
+
   it('root output should be called with a "xstate.done.state.*" event of the parallel root when a direct final child of that parallel root is reached', () => {
     const spy = vi.fn();
     const machine = createMachine({
