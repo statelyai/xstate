@@ -253,6 +253,103 @@ it('can be inspected', () => {
   ]);
 });
 
+it('removes an inspector whose initial notification throws', () => {
+  const store = createStore({
+    context: { count: 0 },
+    on: { inc: (context) => ({ count: context.count + 1 }) }
+  });
+  const error = new Error('initial inspection failed');
+  const failed = vi.fn(() => {
+    throw error;
+  });
+  const other = vi.fn();
+  store.inspect(other);
+
+  expect(() => store.inspect(failed)).toThrow(error);
+  expect(() => store.trigger.inc()).not.toThrow();
+  expect(failed).toHaveBeenCalledTimes(1);
+  expect(other).toHaveBeenCalledTimes(2);
+  expect(store.getSnapshot().context.count).toBe(1);
+});
+
+it('keeps an already subscribed observer if a repeat initial notification throws', () => {
+  const store = createStore({ context: {}, on: { tick: () => ({}) } });
+  const error = new Error('repeat inspection failed');
+  const next = vi.fn();
+  const observer = { next };
+  const subscription = store.inspect(observer);
+
+  next.mockImplementationOnce(() => {
+    throw error;
+  });
+  expect(() => store.inspect(observer)).toThrow(error);
+  store.trigger.tick();
+  expect(next).toHaveBeenCalledTimes(3);
+  subscription.unsubscribe();
+  store.trigger.tick();
+  expect(next).toHaveBeenCalledTimes(3);
+});
+
+it('keeps a successful reentrant inspection if the outer notification throws', () => {
+  const store = createStore({ context: {}, on: { tick: () => ({}) } });
+  const error = new Error('outer inspection failed');
+  const next = vi.fn();
+  const observer = { next };
+  let nested: ReturnType<typeof store.inspect> | undefined;
+  next.mockImplementationOnce(() => {
+    nested = store.inspect(observer);
+    throw error;
+  });
+
+  expect(() => store.inspect(observer)).toThrow(error);
+  store.trigger.tick();
+  expect(next).toHaveBeenCalledTimes(3);
+  nested?.unsubscribe();
+  store.trigger.tick();
+  expect(next).toHaveBeenCalledTimes(3);
+});
+
+it('does not roll back an observer unsubscribed and registered again during notification', () => {
+  const store = createStore({ context: {}, on: { tick: () => ({}) } });
+  const error = new Error('outer inspection failed');
+  const next = vi.fn();
+  const observer = { next };
+  let replacement: ReturnType<typeof store.inspect> | undefined;
+  next.mockImplementationOnce(() => {
+    store.inspect(observer).unsubscribe();
+    replacement = store.inspect(observer);
+    throw error;
+  });
+
+  expect(() => store.inspect(observer)).toThrow(error);
+  store.trigger.tick();
+  expect(next).toHaveBeenCalledTimes(4);
+  replacement?.unsubscribe();
+  store.trigger.tick();
+  expect(next).toHaveBeenCalledTimes(4);
+});
+
+it('keeps the outer inspection when it catches a reentrant registration failure', () => {
+  const store = createStore({ context: {}, on: { tick: () => ({}) } });
+  const error = new Error('inner inspection failed');
+  const next = vi.fn();
+  const observer = { next };
+  next
+    .mockImplementationOnce(() => {
+      expect(() => store.inspect(observer)).toThrow(error);
+    })
+    .mockImplementationOnce(() => {
+      throw error;
+    });
+
+  const subscription = store.inspect(observer);
+  store.trigger.tick();
+  expect(next).toHaveBeenCalledTimes(3);
+  subscription.unsubscribe();
+  store.trigger.tick();
+  expect(next).toHaveBeenCalledTimes(3);
+});
+
 it('forwards store snapshots to @statelyai/inspect and unsubscribes', async () => {
   const store = createStore({
     context: { count: 0 },
