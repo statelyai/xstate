@@ -154,13 +154,24 @@ describe('compact FSM eventless transitions', () => {
   ])(
     'settles initialization when always is %s that changes nothing',
     (_, always) => {
+      let evaluations = 0;
       const machine = createFSM<{ count: number }>({
         initial: 'idle',
         context: { count: 0 },
-        states: { idle: { always } }
+        states: {
+          idle: {
+            always: () => {
+              if (++evaluations > 1) {
+                throw new Error('always evaluated more than once');
+              }
+              return always;
+            }
+          }
+        }
       });
       expect(machine.initialState.value).toBe('idle');
       expect(machine.initialState.context).toEqual({ count: 0 });
+      expect(evaluations).toBe(1);
     }
   );
 
@@ -173,7 +184,12 @@ describe('compact FSM eventless transitions', () => {
   ])(
     'settles initialization when an always callback returns %s',
     (_, callback) => {
-      const always = vi.fn(callback);
+      const always = vi.fn((args) => {
+        if (always.mock.calls.length > 1) {
+          throw new Error('always evaluated more than once');
+        }
+        return callback(args);
+      });
       const machine = createFSM<{ count: number }>({
         initial: 'idle',
         context: { count: 0 },

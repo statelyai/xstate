@@ -194,7 +194,8 @@ only the settled snapshot. During construction, callbacks receive
 
 The chain also ends when the enabled `always` transition changes nothing: it
 has no target or targets the current state, and its context patch is empty or
-only repeats existing keys with `Object.is`-equal values.
+only repeats own context keys with `Object.is`-equal values. Adding an own key
+whose value was previously inherited counts as a change.
 
 There is no transition-count limit. A cycle that keeps changing the state or
 context, such as `a → b → a`, does not terminate.
