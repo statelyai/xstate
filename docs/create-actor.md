@@ -39,7 +39,7 @@ const actor = createActor(machine, { input: { userId: 'u_1' } });
 | `input` | input of the logic | [Input](input-output.md) passed to the logic when it starts. |
 | `inspect` | function or observer | Receives [inspection](inspection.md) events for the whole system. Ignored on child actors. |
 | `onRejectedEvent` | `(rejection) => void` | Dead-letter hook for events rejected at the delivery boundary. Registers a `system.onRejectedEvent` listener; see [dead letters](systems.md#dead-letters). Ignored on child actors. |
-| `onUnhandledEvent` | `(event, snapshot) => void` | Called when this state machine actor receives an event that no transition handles. Internal lifecycle and actor stop events are not reported. Unhandled public sends are reported even with `xstate.*` names. Applies to this actor only, including a child actor; children do not inherit it. See [unhandled events](transitions.md#unhandled-events). |
+| `onUnhandledEvent` | `(event, snapshot) => void` | Called when this state machine actor receives an event that no transition handles. Providing this callback replaces the default development warning. Internal lifecycle and actor stop events are not reported. Unhandled public sends are reported even with `xstate.*` names. Applies to this actor only, including a child actor; children do not inherit it. See [unhandled events](transitions.md#unhandled-events). |
 | `clock` | `{ setTimeout, clearTimeout, now? }` | Controls [delays](delays.md) and [timeouts](timeouts.md). Use `SimulatedClock` in [tests](testing.md). |
 | `logger` | `(...args) => void` | Used by `log(...)` actions. Defaults to `console.log`. |
 | `registryKey` | `string` | Registers the actor in the [system](systems.md) under this key. |
@@ -121,7 +121,7 @@ actor.subscribe({
 });
 ```
 
-An unrecovered root error is reported to the host's unhandled error channel if any non-passive subscriber lacks an `error` handler, or if there are no such subscribers. Having another subscriber with an `error` handler does not suppress a report caused by a subscriber without one. The report is deferred by one macrotask; a new subscription with an `error` handler before then suppresses it. Child actors report their errors to their parent instead. See [error precedence](lifecycle-and-errors.md#error-precedence).
+XState schedules a host error report if any non-passive subscriber lacks an `error` handler, if all subscribers are passive, or if a root actor has no subscribers. A child actor also sends its error to its parent. XState defers the host report by one macrotask. Adding a non-passive subscriber with an `error` handler before it runs suppresses it. See [error precedence](lifecycle-and-errors.md#error-precedence).
 
 ## TypeScript
 
