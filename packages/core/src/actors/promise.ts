@@ -570,7 +570,14 @@ export function createAsyncLogic<
     }
   }) as unknown as AsyncActorLogic<TOutput, TInput, TEmitted> & { id?: string };
   Object.defineProperty(logic, systemLogicMetadata, {
-    value: { kind: 'async', timeout: config.timeout }
+    value: {
+      kind: 'async',
+      timeout: config.timeout,
+      simulationCompletionEvent: (data: unknown) => ({
+        type: XSTATE_ASYNC_RESOLVE,
+        data
+      })
+    }
   });
   return logic;
 }

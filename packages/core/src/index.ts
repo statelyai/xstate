@@ -54,6 +54,7 @@ export { assertEvent } from './assert.ts';
 export {
   Actor,
   createActor,
+  type ActorSimulation,
   type RequiredActorOptionsKeys as RequiredActorOptionsKeys,
   type RequiredActorOptionsFor
 } from './createActor.ts';
