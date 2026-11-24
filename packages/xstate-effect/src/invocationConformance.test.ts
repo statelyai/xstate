@@ -193,7 +193,9 @@ describe.each(['createActor', 'createEffectActor'] as const)(
       ]);
     });
 
-    it('fires a restored timer at its original deadline', async () => {
+    it('fires a restored timer at its original deadline after downtime', async () => {
+      const downtime = 200;
+      const justBeforeDeadline = 199;
       if (host === 'createActor') {
         // Native actors preserve deadlines with their default wall clock.
         vi.useFakeTimers();
@@ -202,9 +204,10 @@ describe.each(['createActor', 'createEffectActor'] as const)(
           vi.advanceTimersByTime(600);
           const persisted = actor.getPersistedSnapshot();
           actor.stop();
+          vi.advanceTimersByTime(downtime);
           const restored = restoreActor(timer, persisted).start();
           try {
-            vi.advanceTimersByTime(399);
+            vi.advanceTimersByTime(justBeforeDeadline);
             expect(restored.getSnapshot().value).toBe('waiting');
             vi.advanceTimersByTime(1);
             expect(restored.getSnapshot().value).toBe('expired');
@@ -225,13 +228,14 @@ describe.each(['createActor', 'createEffectActor'] as const)(
                 return actor.getPersistedSnapshot();
               })
             );
+            yield* TestClock.adjust(downtime);
             yield* Effect.scoped(
               Effect.gen(function* () {
                 const restored = yield* createEffectActor(timer, {
                   snapshot: persisted
                 });
                 yield* sendAndAwait(restored, { type: 'SYNC' });
-                yield* TestClock.adjust(399);
+                yield* TestClock.adjust(justBeforeDeadline);
                 const early = yield* sendAndAwait(restored, { type: 'SYNC' });
                 expect(early.value).toBe('waiting');
                 yield* TestClock.adjust(1);
