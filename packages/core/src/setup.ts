@@ -3850,9 +3850,10 @@ export interface CreatedInvoke<
   TContextShape,
   TStateSchemas extends Record<string, SetupStateSchema>,
   TStateInput,
-  TConfig = unknown
+  TConfig = unknown,
+  TSrc = NoInfer<TLogic>
 > {
-  src: NoInfer<TLogic>;
+  src: TSrc;
   readonly [createdInvoke]: {
     context: TContext;
     contextShape: TContextShape;
@@ -5001,6 +5002,80 @@ export interface SetupReturn<
     TStateSchemas,
     TStateInput,
     CreatedInvokeValidationConfig<TConfig>
+  >;
+
+  /** Creates an invoke from a registered actor source. */
+  createInvoke<
+    TSrc extends keyof TSetupActorMap & string,
+    TContext extends SetupContext<TSchemas, StandardSchemaV1> = SetupContext<
+      TSchemas,
+      StandardSchemaV1
+    >,
+    TContextShape = SetupContextShape<TSchemas, StandardSchemaV1, TContext>,
+    TStateSchemas extends Record<string, SetupStateSchema> = TStates,
+    TStateInput = undefined,
+    const TConfig = unknown
+  >(
+    config: TConfig &
+      Omit<
+        CreateInvokeConfig<
+          TSetupActorMap[TSrc],
+          TStateSchemas,
+          TContext,
+          TContextShape,
+          SetupEvents<TSchemas, Record<string, StandardSchemaV1>>,
+          SetupEmitted<TSchemas, Record<string, StandardSchemaV1>>,
+          SetupChildren<TSchemas, Record<string, StandardSchemaV1>>,
+          SetupTransitionMeta<TSchemas, StandardSchemaV1, StandardSchemaV1>,
+          SetupActions<TSchemas, TSetupActionMap>,
+          TSetupActorMap,
+          SetupGuards<TSchemas, TSetupGuardMap>,
+          TSetupDelayMap,
+          TSystemRegistry,
+          TStateInput
+        >,
+        'src'
+      > & { src: TSrc },
+    ...check: unknown extends TConfig
+      ? []
+      : [TConfig] extends [
+            NoInfer<
+              Omit<
+                CreateInvokeConfig<
+                  TSetupActorMap[TSrc],
+                  TStateSchemas,
+                  TContext,
+                  TContextShape,
+                  SetupEvents<TSchemas, Record<string, StandardSchemaV1>>,
+                  SetupEmitted<TSchemas, Record<string, StandardSchemaV1>>,
+                  SetupChildren<TSchemas, Record<string, StandardSchemaV1>>,
+                  SetupTransitionMeta<
+                    TSchemas,
+                    StandardSchemaV1,
+                    StandardSchemaV1
+                  >,
+                  SetupActions<TSchemas, TSetupActionMap>,
+                  TSetupActorMap,
+                  SetupGuards<TSchemas, TSetupGuardMap>,
+                  TSetupDelayMap,
+                  TSystemRegistry,
+                  TStateInput
+                >,
+                'src'
+              > & { src: TSrc }
+            > &
+              ValidateSystemInvoke<TConfig, TSystemRegistry, TSetupActorMap>
+          ]
+        ? []
+        : [invalidConfig: never]
+  ): CreatedInvoke<
+    TSetupActorMap[TSrc],
+    TContext,
+    TContextShape,
+    TStateSchemas,
+    TStateInput,
+    CreatedInvokeValidationConfig<TConfig>,
+    TSrc
   >;
 
   /** Creates an invoke from actor logic with its existing source types. */
