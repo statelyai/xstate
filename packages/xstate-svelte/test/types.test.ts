@@ -1,5 +1,6 @@
 import { createActor, createMachine, types } from 'xstate';
 import { useActor, useActorRef, useMachine } from '../src/index.ts';
+import { restoreActor } from 'xstate/persist';
 
 describe('types', () => {
   it('should require input when the machine declares an input schema', () => {
@@ -22,10 +23,11 @@ describe('types', () => {
       const snapshot = createActor(machine, {
         input: { id: 'a' }
       }).getPersistedSnapshot();
-      useActorRef(machine, { snapshot });
-      useActor(machine, { snapshot });
-      useMachine(machine, { snapshot });
-      // @ts-expect-error input or snapshot is required
+      const restored = restoreActor(machine, snapshot);
+      useActorRef(restored);
+      useActor(restored);
+      useMachine(restored);
+      // @ts-expect-error input is required
       useActorRef(machine, {});
     };
 

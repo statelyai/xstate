@@ -25,6 +25,8 @@ type Join<TPrefix extends string, TKey extends string> = TPrefix extends ''
  * state has no single path, so its tag stops at the parallel state. When the
  * machine itself is parallel, the tag is `TRootTag`: the machine id, or `''`
  * for a machine without one.
+ *
+ * @experimental
  */
 export type StateTag<
   TValue,
@@ -72,6 +74,8 @@ type TaggedStateOf<
  * A machine snapshot as a tagged union over its states. `_tag` is the state's
  * dotted path and `context` is the context of that state, including any
  * per-state context schema, so `Match.tag` narrows both.
+ *
+ * @experimental
  */
 export type TaggedStateFrom<TSnapshot> =
   TSnapshot extends MachineSnapshot<
@@ -92,7 +96,11 @@ export type TaggedStateFrom<TSnapshot> =
       >
     : never;
 
-/** The tagged state union of a machine. */
+/**
+ * The tagged state union of a machine.
+ *
+ * @experimental
+ */
 export type TaggedState<TMachine extends AnyStateMachine> = TaggedStateFrom<
   SnapshotFrom<TMachine>
 >;
@@ -124,6 +132,8 @@ function stateTag(value: StateValue, rootTag: string, prefix = ''): string {
  * );
  * view(taggedState(snapshot));
  * ```
+ *
+ * @experimental
  */
 export function taggedState<TSnapshot extends AnyMachineSnapshot>(
   snapshot: TSnapshot

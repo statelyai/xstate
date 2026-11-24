@@ -22,6 +22,8 @@ const instanceStates = /* #__PURE__ */ new WeakMap<
   CallbackInstanceState<any>
 >();
 
+const XSTATE_CALLBACK_SEND_BACK = 'xstate.callback.sendBack';
+
 /** @public */
 export type CallbackSnapshot<TInput> = Snapshot<undefined> & {
   input: TInput;
@@ -265,50 +267,70 @@ export function createCallbackLogic<
       ? undefined
       : callbackOrConfig.validator;
 
-  return createBaseLogic<undefined, undefined, TEvent, TInput, TEmitted>({
-    validator,
-    schemas,
-    context: undefined,
-    run: (args, enq) => {
-      const { event, input, self, system } = args;
-      const emit = (args as any).emit as (emitted: TEmitted) => void;
-      const callbackState = instanceStates.get(self as any);
-      callbackState?.receivers?.forEach((receiver) => receiver(event));
+  const logic = createBaseLogic<undefined, undefined, TEvent, TInput, TEmitted>(
+    {
+      validator: validator && {
+        check: (request) =>
+          request.kind === 'event' &&
+          request.event.type === XSTATE_CALLBACK_SEND_BACK
+            ? undefined
+            : validator.check(request)
+      },
+      schemas,
+      context: undefined,
+      run: (args, enq) => {
+        const { event, input, self, system } = args;
+        if (event.type === XSTATE_CALLBACK_SEND_BACK) {
+          enq.sendBack((event as unknown as { event: EventObject }).event);
+          return;
+        }
+        const emit = (args as any).emit as (emitted: TEmitted) => void;
+        const callbackState = instanceStates.get(self as any);
+        callbackState?.receivers?.forEach((receiver) => receiver(event));
 
-      enq.effect('callback', () => {
-        const callbackState: CallbackInstanceState<TEvent> = {
-          receivers: undefined,
-          dispose: undefined
-        };
+        enq.effect('callback', () => {
+          const callbackState: CallbackInstanceState<TEvent> = {
+            receivers: undefined,
+            dispose: undefined
+          };
 
-        instanceStates.set(self as any, callbackState);
+          instanceStates.set(self as any, callbackState);
 
-        callbackState.dispose = callback({
-          input,
-          system,
-          self: self as any,
-          sendBack: (event) => {
-            if (self.getSnapshot().status === 'stopped') {
-              return;
-            }
-            const parent = (self as any)._parent;
-            if (parent) {
-              system._relay(self as any, parent, event);
-            }
-          },
-          receive: (listener) => {
-            callbackState.receivers ??= new Set();
-            callbackState.receivers.add(listener);
-          },
-          emit: emit as (emitted: TEmitted) => void
+          callbackState.dispose = callback({
+            input,
+            system,
+            self: self as any,
+            sendBack: (event) => {
+              if (self.getSnapshot().status === 'stopped') {
+                return;
+              }
+              const parent = (self as any)._parent;
+              if (parent) {
+                system._relay(self as any, self as any, {
+                  type: XSTATE_CALLBACK_SEND_BACK,
+                  event
+                });
+              }
+            },
+            receive: (listener) => {
+              callbackState.receivers ??= new Set();
+              callbackState.receivers.add(listener);
+            },
+            emit: emit as (emitted: TEmitted) => void
+          });
+
+          return () => {
+            instanceStates.delete(self as any);
+            callbackState.receivers?.clear();
+            callbackState.dispose?.();
+          };
         });
-
-        return () => {
-          instanceStates.delete(self as any);
-          callbackState.receivers?.clear();
-          callbackState.dispose?.();
-        };
-      });
+      }
     }
-  }) as unknown as CallbackActorLogic<TEvent, TInput, TEmitted>;
+  );
+  Object.assign(logic, {
+    isInternalEventType: (eventType: string) =>
+      eventType === XSTATE_CALLBACK_SEND_BACK
+  });
+  return logic as unknown as CallbackActorLogic<TEvent, TInput, TEmitted>;
 }

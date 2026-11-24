@@ -10,6 +10,7 @@ function defaultCompare<T>(a: T, b: T) {
   return a === b;
 }
 
+/** @public */
 export function useSelector<
   TActor extends Pick<AnyActorRef, 'subscribe' | 'getSnapshot'> | undefined,
   T

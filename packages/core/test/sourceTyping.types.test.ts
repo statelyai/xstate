@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import {
   createActor,
+  createAsyncLogic,
   createMachine,
   setup,
   type ActorRefFrom,
@@ -10,6 +11,242 @@ import {
 function expectType<T>(_v: T) {}
 
 describe('setup() source typing', () => {
+  it('requires machine-level source overrides to satisfy setup contracts', () => {
+    const load = createAsyncLogic({
+      schemas: { input: z.string(), output: z.number() },
+      run: async ({ input }) => input.length
+    });
+    const otherLoad = createAsyncLogic({
+      schemas: { input: z.number(), output: z.string() },
+      run: async ({ input }) => String(input)
+    });
+    const base = setup({
+      actions: { record: (id: string) => ({ context: { id } }) },
+      actors: { load },
+      guards: { enabled: (id: string) => id.length > 0 }
+    });
+
+    base.createMachine({
+      actions: {
+        record: (id: string) => ({ context: { id } }),
+        reset: () => {}
+      },
+      actors: { load, otherLoad },
+      guards: { enabled: (id: string) => id === 'ready' },
+      on: {
+        RESET: ({ actions }, enq) => {
+          enq(actions.reset);
+          expectType<{ context: { id: string } }>(actions.record('ready'));
+        }
+      }
+    });
+
+    if (false) {
+      base.createMachine({
+        actions: {
+          // @ts-expect-error the replacement must accept the declared argument
+          record: (id: number) => ({ context: { id: String(id) } })
+        }
+      });
+      base.createMachine({
+        actions: {
+          // @ts-expect-error the replacement must return a compatible result
+          record: () => {}
+        }
+      });
+      base.createMachine({
+        actors: {
+          // @ts-expect-error the replacement must keep the actor's input and output contract
+          load: otherLoad
+        }
+      });
+      base.createMachine({
+        guards: {
+          // @ts-expect-error the replacement must accept the declared argument
+          enabled: (id: number) => id > 0
+        }
+      });
+    }
+  });
+
+  it('checks schema-only source contracts on createMachine and extend', () => {
+    const base = setup({
+      schemas: {
+        actions: { record: { params: z.string() } },
+        guards: { enabled: { params: z.string() } }
+      }
+    });
+
+    const sources = {
+      actions: { record: (id: string) => ({ id }) },
+      guards: { enabled: (id: string) => id.length > 0 }
+    };
+    base.createMachine(sources);
+    base.extend(sources);
+
+    if (false) {
+      base.createMachine({
+        actions: {
+          // @ts-expect-error the action must accept the schema's params
+          record: (_id: number) => {}
+        },
+        guards: {
+          // @ts-expect-error the guard must accept the schema's params
+          enabled: (id: number) => id > 0
+        }
+      });
+      base.extend({
+        actions: {
+          // @ts-expect-error the action must accept the inherited schema's params
+          record: (_id: number) => {}
+        }
+      });
+    }
+  });
+
+  it('checks dictionary values against every source they could replace', () => {
+    const load = createAsyncLogic({
+      schemas: { input: z.string(), output: z.number() },
+      run: async ({ input }) => input.length
+    });
+    const base = setup({
+      actions: { record: (id: string) => ({ context: { id } }) },
+      actors: { load },
+      guards: { enabled: (id: string) => id.length > 0 }
+    });
+
+    const actions: Record<string, (id: string) => { context: { id: string } }> =
+      { record: (id) => ({ context: { id } }) };
+    const guards: Record<string, (id: string) => boolean> = {
+      enabled: (id) => id.length > 0
+    };
+    const actors: Record<string, typeof load> = { load };
+    base.createMachine({ actions, guards, actors });
+    base.extend({ actions, guards, actors });
+
+    if (false) {
+      const numberActions: Record<string, (id: number) => void> = {};
+      const numberGuards: Record<string, (id: number) => boolean> = {};
+      const otherLoad = createAsyncLogic({
+        schemas: { input: z.number(), output: z.string() },
+        run: async ({ input }) => String(input)
+      });
+      const numberActors: Record<string, typeof otherLoad> = {};
+      base.createMachine({
+        // @ts-expect-error a dictionary action may replace record
+        actions: numberActions,
+        // @ts-expect-error a dictionary guard may replace enabled
+        guards: numberGuards,
+        // @ts-expect-error a dictionary actor may replace load
+        actors: numberActors
+      });
+
+      const matching: Record<`re${string}`, (id: number) => void> = {};
+      const unrelated: Record<`extra-${string}`, (id: number) => void> = {};
+      base.createMachine({
+        // @ts-expect-error the index pattern includes record
+        actions: matching
+      });
+      base.createMachine({ actions: unrelated });
+    }
+  });
+
+  it('checks string and numeric aliases for source names', () => {
+    const load = createAsyncLogic({
+      schemas: { input: z.string() },
+      run: async ({ input }) => input.length
+    });
+    const base = setup({
+      actions: { 0: (_id: string) => {} },
+      actors: { 0: load },
+      guards: { 0: (id: string) => id.length > 0 }
+    });
+    const actions: Record<string, (id: string) => void> = { '0': () => {} };
+    const guards: Record<string, (id: string) => boolean> = { '0': () => true };
+    const actors: Record<string, typeof load> = { '0': load };
+    base.createMachine({ actions, guards, actors });
+
+    base.createMachine({
+      actions: { '0': (_id: string) => {}, newAction: () => {} },
+      actors: { '0': load },
+      guards: { '0': (id: string) => id.length > 0 }
+    });
+
+    if (false) {
+      const numberActions: Record<string, (id: number) => void> = {};
+      const numberGuards: Record<string, (id: number) => boolean> = {};
+      const otherLoad = createAsyncLogic({
+        schemas: { input: z.number() },
+        run: async ({ input }) => input
+      });
+      const numberActors: Record<string, typeof otherLoad> = {};
+      base.createMachine({
+        // @ts-expect-error the dictionary can replace the action at 0
+        actions: numberActions,
+        // @ts-expect-error the dictionary can replace the guard at 0
+        guards: numberGuards,
+        // @ts-expect-error the dictionary can replace the actor at 0
+        actors: numberActors
+      });
+      base.createMachine({
+        actions: {
+          // @ts-expect-error the string alias replaces the numeric action
+          '0': (_id: number) => {}
+        },
+        actors: {
+          // @ts-expect-error the string alias replaces the numeric actor
+          '0': otherLoad
+        },
+        guards: {
+          // @ts-expect-error the string alias replaces the numeric guard
+          '0': (id: number) => id > 0
+        }
+      });
+      const numericActions: Record<number, (id: number) => void> = {};
+      base.createMachine({
+        // @ts-expect-error a numeric index can also replace the action at 0
+        actions: numericActions
+      });
+
+      setup({ actions: { '0': (_id: string) => {} } }).createMachine({
+        actions: {
+          // @ts-expect-error the numeric alias replaces the string action
+          0: (_id: number) => {}
+        }
+      });
+    }
+  });
+
+  it('checks each possible action and guard map in a union of overrides', () => {
+    const base = setup({
+      actions: { record: (_id: string) => {} },
+      guards: { enabled: (id: string) => id.length > 0 }
+    });
+
+    function createWithOverrides(
+      actions: { record: (id: string) => void } | { extra: () => void },
+      guards: { enabled: (id: string) => boolean } | { extra: () => boolean }
+    ) {
+      return base.createMachine({ actions, guards });
+    }
+    createWithOverrides({ extra: () => {} }, { extra: () => true });
+
+    function checkWrongOverrides(
+      actions: { record: (id: number) => void } | { extra: () => void },
+      guards:
+        | { extra: () => boolean; enabled: (id: number) => boolean }
+        | { extra: () => boolean }
+    ) {
+      base.createMachine({
+        // @ts-expect-error one possible action map has incompatible params
+        actions,
+        // @ts-expect-error one possible guard map has incompatible params
+        guards
+      });
+    }
+    void checkWrongOverrides;
+  });
+
   it('rejects unknown action and guard names in transition functions', () => {
     setup({
       actions: { record: (_id: string) => {} },

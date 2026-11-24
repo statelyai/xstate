@@ -41,7 +41,7 @@ The delay above is 300ms. It is computed once on each entry to `waiting`; later 
 
 ## Duration formats
 
-A delay is a number of milliseconds, or a duration string: `'250ms'`, `'5s'`, `'1.5s'`, or an ISO 8601 duration such as `'PT1M30S'`, `'PT2H'` or `'P1D'`. Plain `'5m'` and `'1h'` are not accepted.
+A delay is a number of milliseconds, or a duration string: `'250ms'`, `'5s'`, `'1.5s'`, or an ISO 8601 duration such as `'PT1M30S'`, `'PT2H'` or `'P1D'`. Plain `'5m'` and `'1h'` are not accepted. A seconds duration must contain a number: bare `'s'` and `'.s'` are invalid, not zero-delay timers.
 
 ```ts
 loading: { after: { '5s': { target: 'timedOut' } } }
@@ -67,6 +67,10 @@ Common examples include:
 - moving a notification from `visible` to `hidden` after five seconds
 - waiting before retrying a failed request
 - debouncing search input by canceling the previous delayed event
+
+## Persistence
+
+With the default clock, saving a running actor and restoring it preserves each timer's original deadline, including downtime. Pause/resume and full-delay restart require explicit application behavior. Clocks exposing `now()`, including `SimulatedClock`, restart the declared delay on ordinary actor restoration. See [Persist timers](persistence.md#persist-timers) for the policies, clock limitations and complete examples.
 
 ## TypeScript
 

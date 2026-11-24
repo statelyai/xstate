@@ -17,6 +17,8 @@ pnpm install
 pnpm dev
 ```
 
+This example uses Vite 8 while the other examples stay on Vite 7, because `@solidjs/vite-plugin` 3 (the Solid 2 plugin) requires Vite 8 or later.
+
 ## Inspect it
 
 `@statelyai/sdk` is wired up in `src/App.tsx`, so running the example opens Stately's hosted [inspector](https://stately.ai/docs/inspector) with the live actor. Machine definitions and snapshots are sent to Stately's hosted relay.

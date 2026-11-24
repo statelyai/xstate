@@ -63,7 +63,7 @@ Choose logic by lifecycle:
 - Use callback logic for a WebSocket, DOM listener or callback API.
 - Use observable logic for a stream such as location or sensor updates.
 
-Async logic produces a final output or error but does not receive events. Callback logic can receive and send events but does not emit snapshots. Machine logic supports both events and snapshots.
+Async logic produces a final output or error but does not receive events. Callback logic can receive and send events. Each `sendBack(event)` enters the callback actor's mailbox and forwards the event to its parent in a transition. This transition publishes a new snapshot with the same content. Machine logic supports both events and snapshots.
 
 Callback logic can receive events and return cleanup:
 
@@ -159,7 +159,7 @@ Do not wrap a machine by spreading it into a new object:
 const wrapped = { ...checkoutMachine, transition: myTransition };
 ```
 
-A machine is a `StateMachine` class instance. The spread copies only its own properties. `transition`, `initialTransition`, `getInitialSnapshot`, `getPersistedSnapshot`, `restoreSnapshot` and `start` are own properties bound to the original machine, so they are copied. The prototype methods are dropped: `provide`, `resolveState`, `microstep`, `getTransitionData`, `getStateNodeById`, `getExecutionErrorEvent` and `isInternalEventType`. An actor running the copy cannot read `getExecutionErrorEvent` from it, and snapshots the copy produces still reference the original machine. The result is not a machine, and XState does not support running it.
+A machine is a `StateMachine` class instance. The spread copies only its own properties. `transition`, `initialTransition`, `getInitialSnapshot`, `getPersistedSnapshot` and `start` are own properties bound to the original machine, so they are copied. The prototype methods are dropped: `provide`, `resolveState`, `microstep`, `getTransitionData`, `getStateNodeById`, `getExecutionErrorEvent` and `isInternalEventType`. An actor running the copy cannot read `getExecutionErrorEvent` from it, and snapshots the copy produces still reference the original machine. The result is not a machine, and XState does not support running it.
 
 Use one of these instead.
 

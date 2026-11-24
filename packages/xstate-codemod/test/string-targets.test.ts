@@ -102,3 +102,19 @@ createMachine({
     expect(output).toContain("onError: { target: 'a' }");
   });
 });
+
+it.each(['createFSM', 'setup({}).createFSM', 'fsm.createFSM', 'makeFSM'])(
+  'migrates FSM targets in %s while retaining initial',
+  (call) => {
+    const input = `import { createFSM as makeFSM } from 'xstate/fsm';
+${call}({ initial: 'a', states: {
+ a: { on: { GO: 'b' }, always: \`b\` }, b: {}
+}});`;
+    const first = applyTransform(stringTargets, input);
+    expect(first.changed).toBe(true);
+    expect(first.output).toContain("initial: 'a'");
+    expect(first.output).toContain("GO: { target: 'b' }");
+    expect(first.output).toContain('always: { target: `b` }');
+    expect(applyTransform(stringTargets, first.output).changed).toBe(false);
+  }
+);

@@ -1,5 +1,5 @@
 import { Project, SourceFile } from 'ts-morph';
-import type { Transform } from '../src/types.ts';
+import type { ManualSite, Transform } from '../src/types.ts';
 
 /**
  * Applies a transform to an in-memory source string and returns the resulting
@@ -9,14 +9,20 @@ export function applyTransform(
   transform: Transform,
   code: string,
   fileName = 'test.ts'
-): { output: string; changed: boolean; notes: string[] } {
+): {
+  output: string;
+  changed: boolean;
+  notes: string[];
+  sites: ManualSite[];
+} {
   const project = new Project({ useInMemoryFileSystem: true });
   const sourceFile: SourceFile = project.createSourceFile(fileName, code);
   const result = transform.apply(sourceFile);
   return {
     output: sourceFile.getFullText(),
     changed: result.changed,
-    notes: result.notes
+    notes: result.notes,
+    sites: result.sites ?? []
   };
 }
 

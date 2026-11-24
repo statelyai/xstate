@@ -7,6 +7,7 @@ import {
   type AnyEventObject
 } from 'xstate';
 import { createInspector } from '@statelyai/sdk';
+import { restoreActor } from 'xstate/persist';
 
 const inspector = process.env.INSPECT ? createInspector() : undefined;
 
@@ -89,7 +90,7 @@ log('\n3. addresses survive restore; sessionIds do not');
 const persisted = actor.getPersistedSnapshot();
 actor.stop();
 
-const restored = createActor(orderMachine, { snapshot: persisted }).start();
+const restored = restoreActor(orderMachine, persisted).start();
 const restoredAuditor = restored.getSnapshot().children.auditor as AnyActor;
 log(`   address before: ${auditor.address}, after: ${restoredAuditor.address}`);
 log(
@@ -108,7 +109,7 @@ log(`   persisted entry: ${JSON.stringify(byAddress.children.auditor)}`);
 
 // The children live in this process; the restored actor only holds handles to
 // their addresses. A system runtime routes sends to wherever they really are.
-const restoredByAddress = createActor(orderMachine, { snapshot: byAddress });
+const restoredByAddress = restoreActor(orderMachine, byAddress);
 const routed: string[] = [];
 restoredByAddress.system.runtime = {
   sendEvent: (

@@ -1,4 +1,5 @@
 import isDevelopment from '#is-development';
+import { xstateError } from './xstateError.ts';
 import { AnyActorRef, SnapshotFrom, Subscription } from './types.ts';
 
 interface WaitForOptions {
@@ -67,7 +68,13 @@ export function waitFor<TActorRef extends AnyActorRef>(
         ? undefined
         : setTimeout(() => {
             dispose();
-            rej(new Error(`Timeout of ${resolvedOptions.timeout} ms exceeded`));
+            rej(
+              new Error(
+                isDevelopment
+                  ? `Timeout of ${resolvedOptions.timeout} ms exceeded`
+                  : xstateError(75, resolvedOptions.timeout)
+              )
+            );
           }, resolvedOptions.timeout);
 
     const dispose = () => {
@@ -79,10 +86,20 @@ export function waitFor<TActorRef extends AnyActorRef>(
       }
     };
 
+    function rejectWithDisposal(err: unknown) {
+      dispose();
+      // oxlint-disable-next-line typescript/prefer-promise-reject-errors
+      rej(err);
+    }
+
     function checkEmitted(emitted: SnapshotFrom<TActorRef>) {
-      if (predicate(emitted)) {
-        dispose();
-        res(emitted);
+      try {
+        if (predicate(emitted)) {
+          dispose();
+          res(emitted);
+        }
+      } catch (error) {
+        rejectWithDisposal(error);
       }
     }
 
@@ -113,14 +130,16 @@ export function waitFor<TActorRef extends AnyActorRef>(
 
     sub = actorRef.subscribe({
       next: checkEmitted,
-      error: (err) => {
-        dispose();
-        // oxlint-disable-next-line typescript/prefer-promise-reject-errors
-        rej(err);
-      },
+      error: rejectWithDisposal,
       complete: () => {
         dispose();
-        rej(new Error(`Actor terminated without satisfying predicate`));
+        rej(
+          new Error(
+            isDevelopment
+              ? `Actor terminated without satisfying predicate`
+              : xstateError(76)
+          )
+        );
       }
     });
     if (done) {

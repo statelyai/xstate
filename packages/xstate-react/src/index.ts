@@ -4,5 +4,5 @@ export { useActor } from './useActor.ts';
 export { useActorRef } from './useActorRef.ts';
 export { useSelector } from './useSelector.ts';
 
-// deprecated
+// deprecated alias of useActor
 export { useMachine } from './useMachine.ts';

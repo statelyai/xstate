@@ -206,12 +206,15 @@ export function startHostedEffect<A, E>(
     onCancel?.();
     interrupt();
   };
-  const fiber = Fiber.runIn(
-    Effect.runForkWith(host.context)(traced),
-    host.scope
-  );
+  // Register the fiber before its body runs: the body can synchronously
+  // trigger the host's close, which only awaits registered fibers.
+  const registered = Effect.withFiber((fiber) => {
+    Fiber.runIn(fiber, host.scope);
+    host.fibers.add(fiber);
+    return traced;
+  });
+  const fiber = Effect.runForkWith(host.context)(registered);
   const interrupt = () => fiber.interruptUnsafe();
-  host.fibers.add(fiber);
   fiber.addObserver((exit) => {
     host.fibers.delete(fiber);
     if (!active) {
@@ -275,20 +278,18 @@ export function closeEffectHost(host: EffectHost): void {
   );
 }
 
-/**
- * Delivers a stream item to the parent as an event. This runs outside a
- * transition, so it uses the system relay like core's observable logic does.
- */
+export const EFFECT_FORWARD = 'xstate.effect.forward';
+
+/** Queues a stream item for the source actor to forward in its transition. */
 export function relayToParent(
   actor: AnyActorRef,
   event: { type: string; [key: string]: unknown }
 ): void {
   const actorWithParent = actor as AnyActor & { _parent?: AnyActor };
   if (actorWithParent._parent) {
-    (actor as AnyActor).system._relay(
-      actorWithParent,
-      actorWithParent._parent,
+    (actor as AnyActor).system._relay(actorWithParent, actorWithParent, {
+      type: EFFECT_FORWARD,
       event
-    );
+    });
   }
 }

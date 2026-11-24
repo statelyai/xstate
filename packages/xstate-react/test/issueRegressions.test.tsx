@@ -12,6 +12,7 @@ import {
   types
 } from 'xstate';
 import { useMachine } from '../src/index.ts';
+import { restoreActor } from 'xstate/persist';
 
 describe('lifecycle', () => {
   it('#5272 an invoked callback starts once under StrictMode', () => {
@@ -122,9 +123,14 @@ describe('types', () => {
     const fromStorage = JSON.parse(JSON.stringify(persisted));
 
     function App() {
-      const [a] = useMachine(machine, { snapshot: persisted });
-      const [b] = useMachine(machine, { snapshot: live });
-      const [c] = useMachine(machine, { snapshot: fromStorage });
+      const [actors] = React.useState(() => [
+        restoreActor(machine, persisted),
+        restoreActor(machine, live),
+        restoreActor(machine, fromStorage)
+      ]);
+      const [a] = useMachine(actors[0]);
+      const [b] = useMachine(actors[1]);
+      const [c] = useMachine(actors[2]);
       return (
         <div data-testid="values">{[a.value, b.value, c.value].join(',')}</div>
       );

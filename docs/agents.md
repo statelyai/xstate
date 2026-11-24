@@ -47,6 +47,15 @@ No command installs packages, imports application modules, executes code
 expressions or runs external effects. `migrate` remains a separate source
 transformation command that delegates to the codemod package.
 
+To migrate a v5 machine file, use the `@xstate/codemod` loop. Run
+`xstate-codemod baseline <file>` before editing, then
+`xstate-codemod migrate <file> --json`. Exit code 2 means the report's
+`manualSites` need manual changes. Then run
+`xstate-codemod verify --baseline <baseline.json> <file> --json`. It exits with
+0 when the v6 behavior matches the v5 trace, 3 when a diff is unclassified, 4 when
+a module fails to load or run, and 1 on a usage error. See
+[the migration guide](xstate-v5-to-v6.md#27-codemod-and-side-by-side-installs).
+
 | Command | Contract |
 | --- | --- |
 | `xstate docs` | Locate installed documentation and read export stability. |

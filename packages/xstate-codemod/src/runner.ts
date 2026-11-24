@@ -1,15 +1,12 @@
 import { Project, SourceFile, ts } from 'ts-morph';
-import type { Transform } from './types.ts';
+import type { ManualSite, Transform } from './types.ts';
 import {
   transforms as allTransforms,
   transformsByName
 } from './transforms/index.ts';
 
-/** Report-only transforms whose notes list manual migration steps. */
-const REPORT_TRANSFORMS = new Set([
-  'report-removed-apis',
-  'report-id-path-targets'
-]);
+/** Report-only transforms never rewrite; their notes list manual migration steps. */
+const isReportTransform = (name: string) => name.startsWith('report-');
 
 export interface FileTransformReport {
   filePath: string;
@@ -17,6 +14,7 @@ export interface FileTransformReport {
     transform: string;
     changed: boolean;
     notes: string[];
+    sites: ManualSite[];
   }>;
   changed: boolean;
   newText?: string;
@@ -27,6 +25,8 @@ export interface RunReport {
   filesChanged: number;
   /** Notes emitted by the report-only transforms (manual-migration section). */
   manualMigrationNotes: string[];
+  /** Structured locations that need manual migration, from every transform. */
+  manualSites: Array<ManualSite & { transform: string }>;
 }
 
 /** Resolve a list of transform names to Transform objects. */
@@ -62,7 +62,8 @@ export function applyToSourceFile(
     perTransform.push({
       transform: transform.name,
       changed: result.changed,
-      notes: result.notes
+      notes: result.notes,
+      sites: result.sites ?? []
     });
     if (result.changed) {
       changed = true;
@@ -111,6 +112,7 @@ export function run(
 
   const files: FileTransformReport[] = [];
   const manualMigrationNotes: string[] = [];
+  const manualSites: RunReport['manualSites'] = [];
   let filesChanged = 0;
 
   for (const filePath of filePaths) {
@@ -118,8 +120,12 @@ export function run(
     const report = applyToSourceFile(sourceFile, transforms);
 
     for (const pt of report.perTransform) {
-      if (REPORT_TRANSFORMS.has(pt.transform)) {
+      if (isReportTransform(pt.transform)) {
         manualMigrationNotes.push(...pt.notes);
+      }
+      // Any transform may leave code it could not migrate.
+      for (const site of pt.sites) {
+        manualSites.push({ ...site, transform: pt.transform });
       }
     }
 
@@ -132,5 +138,5 @@ export function run(
     files.push(report);
   }
 
-  return { files, filesChanged, manualMigrationNotes };
+  return { files, filesChanged, manualMigrationNotes, manualSites };
 }

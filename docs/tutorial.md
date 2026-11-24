@@ -430,7 +430,7 @@ Nothing about the machine changes. A UI reads snapshots and sends events.
 
 ```html
 <p id="status">stopped</p>
-<p id="title">—</p>
+<p id="title"></p>
 <button id="play">Play</button> <button id="pause">Pause</button>
 <button id="stop">Stop</button> <button id="previous">Previous</button>
 <button id="next">Next</button> <button id="mute">Mute</button>
@@ -475,7 +475,7 @@ Frameworks work the same way, with a hook or store binding instead of manual sub
 
 You built one machine with context, guards, invoked async logic, hierarchy, parallel regions, delayed events, emitted events and a UI. From here:
 
-- [Statecharts](statecharts.md) — nested, parallel and history states
-- [Actors](actors.md) — spawning, communication and actor systems
-- [Frameworks](frameworks.md) — bindings for React, Vue, Svelte and Solid
-- [Testing](testing.md) — testing machines and the actors that run them
+- [Statecharts](statecharts.md): nested, parallel and history states
+- [Actors](actors.md): spawning, communication and actor systems
+- [Frameworks](frameworks.md): bindings for React, Vue, Svelte and Solid
+- [Testing](testing.md): testing machines and the actors that run them

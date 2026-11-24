@@ -1,11 +1,11 @@
 import {
   createActor,
   createMachine,
-  type MachineVersionDescriptor,
   machineVersions,
   setup,
   types
 } from '../src';
+import { restoreActor } from '../src/persist/index.ts';
 
 const checkoutV1 = createMachine({
   id: 'checkout',
@@ -40,7 +40,7 @@ const checkoutV0 = {
     historyValue: Record<string, unknown>;
     timers: readonly unknown[];
     _nextActorId: number;
-    _nextTimerId: number;
+    nextTimerId: number;
     machine: { id: 'checkout'; version: '0' };
     version: '0';
   }>()
@@ -99,8 +99,6 @@ const eventDescriptorVersions = machineVersions([
   eventVersionV0,
   eventMachineV2
 ]);
-const machineVersionDescriptor: MachineVersionDescriptor = eventMachineV1;
-void machineVersionDescriptor;
 
 if (false) {
   // @ts-expect-error version parsers require versioned machines
@@ -165,9 +163,9 @@ async function checkSnapshotMigrationTypes() {
     }
   });
 
-  createActor(checkoutV2, { snapshot: compatible });
+  restoreActor(checkoutV2, compatible);
   // a snapshot from another version of the same machine is accepted (migration path)
-  createActor(checkoutV1, { snapshot: compatible });
+  restoreActor(checkoutV1, compatible);
 
   await versions.migrateSnapshot(
     {},

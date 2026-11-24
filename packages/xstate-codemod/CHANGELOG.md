@@ -1,5 +1,119 @@
 # @xstate/codemod
 
+## 0.1.0-beta.3
+
+### Patch Changes
+
+- 65afd99: Add eventless `always` transitions to `xstate/fsm`. Machines follow these transitions during initialization and after handled events until no eventless transition is enabled.
+  
+  ```ts
+  import { createFSM } from 'xstate/fsm';
+  
+  const machine = createFSM({
+    initial: 'checking',
+    states: {
+      checking: { always: { target: 'ready' } },
+      ready: {}
+    }
+  });
+  
+  machine.initialState.value; // 'ready'
+  ```
+  
+  Breaking beta change: `xstate/fsm` now requires object transition targets for `on` and `always`, matching the main XState API. Replace `on: { GO: 'ready' }` with `on: { GO: { target: 'ready' } }`. Keep `initial: 'idle'` unchanged. Transition functions must return an object or `undefined`.
+  
+  Run the `@xstate/codemod` `string-targets` transform to update inline FSM configurations. Review separately stored configurations and functions returning strings manually.
+- Updated dependencies [0eb9872]
+- Updated dependencies [417e5f4]
+- Updated dependencies [9eb940c]
+- Updated dependencies [65afd99]
+  - xstate@6.0.0-beta.3
+
+## 0.1.0-beta.2
+
+### Patch Changes
+
+- 3cbcc3f: Serialized output no longer uses field names that start with `$` or `_`. Stores such as Convex reject both prefixes, and MongoDB restricts `$`-prefixed field names, so persisted snapshots, `systemTransition` snapshots and effect descriptors could not be stored without rewriting them.
+  
+  | Before                    | After                    | Where                                                                                                      |
+  | ------------------------- | ------------------------ | ---------------------------------------------------------------------------------------------------------- |
+  | `{ $actor: address, incarnation }` | `{ '@actor': address, incarnation }` | `SerializedActorRef`: persisted context, `systemTransition` snapshots, effect descriptors, `sendTo` targets, dead letters, `@xstate/effect` actor `toJSON()` |
+  | `_nextTimerId`            | `nextTimerId`            | Persisted snapshots, `systemTransition` snapshots                                                          |
+  | `_nextActorIds`           | `nextActorIds`           | Persisted snapshots, `systemTransition` snapshots                                                          |
+  | `_stateInputs`            | `stateInputs`            | `systemTransition` snapshots (persisted snapshots already used `stateInputs`)                              |
+  | `{ $error: name, message }` | `{ '@error': name, message }` | `systemTransition` snapshots, `@xstate/test` traces                                                        |
+  | `{ $stateNode: id }`, `{ $systemMapper: key }` | `{ '@stateNode': id }`, `{ '@systemMapper': key }` | `systemTransition` snapshots                                                                        |
+  
+  ```ts
+  // Before
+  { $actor: 'order/worker', incarnation: 'a:1' }
+  // After
+  { '@actor': 'order/worker', incarnation: 'a:1' }
+  ```
+  
+  `snapshot.toJSON()` no longer includes the private `_nextTimerId` and `_nextActorIds` counters.
+  
+  Snapshots written by `6.0.0-beta.1` with the old field names still restore: `restoreActor`, `restoreMachineSnapshot` and `systemTransition` read both shapes. New snapshots use only the new names. Schemas that validate persisted snapshots (for example with `machineVersions`) must use the new names.
+- Updated dependencies [c558afa]
+- Updated dependencies [c70dd85]
+- Updated dependencies [975ba72]
+- Updated dependencies [0ebc550]
+- Updated dependencies [bbc8797]
+- Updated dependencies [757b605]
+- Updated dependencies [3cbcc3f]
+- Updated dependencies [bcd3840]
+  - xstate@6.0.0-beta.2
+
+## 0.1.0-beta.1
+
+### Minor Changes
+
+- 1148d89: `xstate-codemod migrate` accepts `--json`, which prints one JSON report to stdout. The command exits with code `2` when manual migration is needed, and the report lists each site under `manualSites` with its file, line, column, API, and hint.
+  
+  A new report transform, `report-suffixed-lifecycle-events`, flags `on` keys written as `xstate.done.state.<id>`, `xstate.done.actor.<id>`, `xstate.error.actor.<id>`, or `xstate.after.<delay>.<id>`. v6 raises the plain event type with the id in a field, so those transitions never fire after migration. Another report transform, `report-action-shapes`, flags non-function `entry` and `exit` values, transition arrays, and transition `actions`, `guard`, and `cond` keys, which v6 rejects.
+  
+  A new report transform, `report-implementations`, flags a second `createMachine` argument, which v6 ignores.
+  
+  A new transform, `lower-actions`, rewrites v5 transitions with `actions` or `guard`, transition arrays, and `entry`/`exit` lists as v6 functions, converting `assign`, `enqueueActions`, `raise`, `sendTo`, `sendParent`, `forwardTo`, `emit`, `log`, `cancel`, `stopChild`, `spawnChild`, `and`, `or`, `not`, and `stateIn`, including named implementations and module-level constants defined in the same file. Named actions and guards keep their v5 signatures, and a named `assign` action becomes a function that returns a context patch. It also moves an object-literal second `createMachine` argument into the config and rewrites `fromPromise(fn)` as `createAsyncLogic({ run: fn })`. Code it cannot rewrite is left unchanged and reported.
+  
+  ```ts
+  // before
+  on: { INC: { target: 'active', guard: 'canInc', actions: assign({ count: ({ context }) => context.count + 1 }) } }
+  // after
+  on: {
+    INC: (args) => {
+      if (!args.guards.canInc(args)) return;
+      return { target: 'active', context: { count: args.context.count + 1 } };
+    }
+  }
+  ```
+  
+  `types-to-schemas` converts the per-key form `types: { context: {} as C, events: {} as E }`, builds an events map from same-file type aliases, and writes `events: types<E>()` for other event types instead of leaving `types` in place.
+  
+  New `baseline` and `verify` commands check that a migrated machine behaves like the v5 original. `baseline` records a trace of generated event sequences under XState v5, and `verify` replays them against the v6 module and reports the diffs.
+  
+  `baseline` and `verify` accept `--input <file>`, a JSON value passed as the machine's `input`. While a machine runs, `Date.now()`, `performance.now()`, and `Math.random()` return simulated, seeded values, so machines that store them in `context` compare equal, and a v5 root actor's `sendParent` error is classified as the intentional `root-send-parent` delta. `--no-simple-paths` skips the graph's simple paths when `baseline` times out.
+  
+  ```bash
+  npx @xstate/codemod baseline src/checkout.ts --out .xstate-migrate/checkout.json
+  npx @xstate/codemod migrate src/checkout.ts --json
+  # fix the reported manualSites
+  npx @xstate/codemod verify --baseline .xstate-migrate/checkout.json src/checkout.ts
+  ```
+  
+  `migrate` reports string literals that name v5 inspection event types (`@xstate.snapshot`, `@xstate.event`, `@xstate.action`, `@xstate.microstep`, `@xstate.deadletter`), which v6 never emits.
+
+### Patch Changes
+
+- Updated dependencies [599ec3c]
+  - xstate@6.0.0-beta.1
+
+## 0.1.0-beta.0
+
+### Patch Changes
+
+- 6cf6982: XState v6 enters beta. No further breaking changes are planned for APIs tagged `@public`; any that are needed will be called out with a migration path. APIs tagged `@experimental` may still change.
+
 ## 0.1.0-alpha.4
 
 ### Minor Changes

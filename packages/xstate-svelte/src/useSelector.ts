@@ -5,6 +5,7 @@ function defaultCompare<T>(a: T, b: T) {
   return a === b;
 }
 
+/** @public */
 export const useSelector = <
   TActor extends Pick<AnyActorRef, 'getSnapshot' | 'subscribe'>,
   T

@@ -1,15 +1,16 @@
 ---
 title: SCXML
+description: Create XState machines from SCXML documents.
 ---
 
-# SCXML
+> **Experimental:** `createMachineFromSCXML(...)` and `SCXMLConversionOptions` may change in a minor release.
 
 Use `createMachineFromSCXML(...)` to create an XState machine from an [SCXML](https://www.w3.org/TR/scxml/) document.
 
 Install the `@xstate/scxml` package alongside `xstate`. The XML parser is kept out of the `xstate` package.
 
 ```bash
-npm i xstate @xstate/scxml
+npm i xstate@beta @xstate/scxml@beta
 ```
 
 ```ts
@@ -41,7 +42,6 @@ The returned value is an XState machine and can be passed to `createActor(...)`,
 
 | Behavior | Native `createMachine(...)` | `createMachineFromSCXML(...)` |
 | --- | --- | --- |
-| Parallel transition domain | Targets can update individual regions. By default, a cross-region transition preserves the source region and exits only the target region's descendants. | Uses SCXML transition domains. A cross-region transition can exit and reenter the entire parallel subtree, resetting untargeted regions to their initial states. |
 | Reentry | Defaults to `reenter: false`. A transition to the source or its descendants generally preserves the source. | Targeted transitions default to `type="external"`. `type="internal"` preserves a compound source when all targets are its descendants. |
 | Event descriptors | `"foo"` matches exactly. `"foo.*"` matches names such as `"foo.bar"`. | `event="foo"` matches both `foo` and `foo.bar`. |
 | Competing handlers in one state | Exact handlers precede wildcards. More specific wildcard descriptors precede shorter ones. | The first enabled matching transition in document order wins, including prefix and wildcard matches. |
@@ -49,7 +49,9 @@ The returned value is an XState machine and can be passed to `createActor(...)`,
 | Execution errors | The nearest active `onError` can recover a failure. An unhandled failure errors the actor and stops its children. | Executable-content failures queue `error.execution` and stop the remaining content in that block. A failing `cond` evaluates to false and queues `error.execution`. |
 | Undeliverable sends | Missing or stopped targets produce dead letters through `onRejectedEvent`. The sender stays active. | Invalid send targets or unsupported processor types raise `error.execution`. An unreachable SCXML session address raises `error.communication`. |
 
-Both use XState's macrostep bound, which defaults to 1,000 microsteps. Exceeding the bound throws `InfiniteTransitionError`. SCXML itself does not prescribe this bound.
+In both, a [transition between regions](parallel-states.md#transitions-between-regions) exits and reenters the common parallel state. Untargeted regions restart at their initial states.
+
+Both use XState's macrostep bound, which is unbounded unless the machine sets `options.maxIterations`. Exceeding a set bound throws `InfiniteTransitionError`. SCXML does not prescribe a bound.
 
 Imported machines finish all state exits before running selected transition content in document order, then enter states. Transition content sees context changes from exit handlers. The `In(...)` condition during transition content reflects the active states after exits and before entry. Initial and history-default transition content runs during entry, after the parent state's entry content.
 

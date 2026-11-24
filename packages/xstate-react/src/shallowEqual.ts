@@ -7,6 +7,7 @@ function is(x: unknown, y: unknown) {
   }
 }
 
+/** @public */
 export function shallowEqual(objA: any, objB: any) {
   if (is(objA, objB)) return true;
 

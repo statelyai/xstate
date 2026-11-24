@@ -18,11 +18,6 @@ interface OxlintDiagnostic {
   filename: string;
 }
 
-/**
- * Lints one fixture with a config that enables only this repository's
- * `xstate-effect/no-inline-effect` rule, so the result is unaffected by the
- * rest of the repository's lint configuration.
- */
 const lint = (fixture: string): OxlintDiagnostic[] => {
   const result = spawnSync(
     'pnpm',
@@ -51,10 +46,9 @@ const lint = (fixture: string): OxlintDiagnostic[] => {
   ).diagnostics;
 };
 
-/** The rule's own message table, keyed by messageId. */
 const messages = async (): Promise<Record<string, string>> => {
   const specifier = pathToFileURL(
-    path.join(repoRoot, 'scripts/oxlint-plugin-xstate-effect.ts')
+    path.join(repoRoot, 'packages/xstate-effect/src/oxlint.ts')
   ).href;
   const plugin = await import(specifier);
   return plugin.default.rules['no-inline-effect'].meta.messages;
@@ -76,7 +70,7 @@ describe('xstate-effect/no-inline-effect', () => {
           'no-unsafe-return',
           'strict-boolean-expressions'
         ].flatMap((rule) => ['--deny', `typescript/${rule}`]),
-        'scripts/oxlint-plugin-xstate-effect.ts'
+        'packages/xstate-effect/src/oxlint.ts'
       ],
       { cwd: repoRoot, encoding: 'utf8' }
     );

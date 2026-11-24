@@ -15,7 +15,7 @@ const greeting = createActor(greetingMachine, {
 }).start();
 ```
 
-When a machine declares `schemas.input` (directly or through `setup(...)`) and the input type does not accept `undefined`, `createActor` requires the `input` option. Restoring a persisted `snapshot` does not require it.
+When a machine declares `schemas.input` (directly or through `setup(...)`) and the input type does not accept `undefined`, `createActor` requires the `input` option. Restoring a persisted snapshot with `restoreActor(...)` does not take it.
 
 ## Final output
 
@@ -32,6 +32,8 @@ const machine = createMachine({
 ```
 
 Read output from a completed snapshot or an invocation's done event.
+
+The output mapper reads context before the machine runs its [completion exits](final-states.md#completing-the-machine).
 
 Input configures one actor instance. Output reports its final result.
 

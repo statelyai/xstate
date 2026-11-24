@@ -1,6 +1,7 @@
 import { createMachine, createActor } from '../src/index';
 import { createCallbackLogic } from '../src/actors/callback';
 import { z } from 'zod';
+import { restoreActor } from '../src/persist/index.ts';
 
 const exampleMachine = createMachine({
   // types: {} as {
@@ -506,9 +507,10 @@ describe('State', () => {
       const actorRef = createActor(machine).start();
       const persistedState = actorRef.getPersistedSnapshot();
       actorRef.stop();
-      const restoredSnapshot = createActor(machine, {
-        snapshot: persistedState
-      }).getSnapshot();
+      const restoredSnapshot = restoreActor(
+        machine,
+        persistedState
+      ).getSnapshot();
 
       expect(restoredSnapshot.hasTag('foo')).toBe(true);
     });

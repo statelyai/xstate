@@ -127,11 +127,15 @@ describe('clock', () => {
       clock
     }).start();
 
-    expect(actor.getSnapshot().children.child.getSnapshot().value).toEqual('a');
+    expect(actor.getSnapshot().children.child!.getSnapshot().value).toEqual(
+      'a'
+    );
 
     clock.increment(10_000);
 
-    expect(actor.getSnapshot().children.child.getSnapshot().value).toEqual('b');
+    expect(actor.getSnapshot().children.child!.getSnapshot().value).toEqual(
+      'b'
+    );
   });
 });
 

@@ -30,7 +30,7 @@ or the [v5 to v6 migration guide](https://github.com/statelyai/xstate/blob/next/
 ## Quick start
 
 ```bash
-npm install xstate@alpha
+npm install xstate@beta
 ```
 
 ```ts
@@ -122,6 +122,12 @@ and `advanceSystemTime` return an immutable system snapshot and external effects
 as data. Branch or replay actors, messages and virtual timers without starting live
 actors. See [pure system transitions](https://github.com/statelyai/xstate/blob/next/docs/system-transitions.md).
 
+<!-- snapshot restoration from packages/core/src/persist/index.ts -->
+
+The `xstate/persist` entry point provides `restoreActor(logic, persistedSnapshot, options?)`
+to resume any actor from a persisted snapshot, and `snapshotSchema(machine)` for the
+persisted snapshot contract. See [persistence](https://github.com/statelyai/xstate/blob/next/docs/persistence.md).
+
 <!-- durable execution and checkpoint restoration from packages/core/src/durable/index.ts -->
 
 For durable hosts, the experimental `xstate/durable` entry point provides
@@ -142,7 +148,7 @@ context when reading snapshots.
 
 Use `s.createInvoke({ src, input, onDone })` inline in `s.createMachine(...)` for an actor used in one state. It infers the actor's input and output and the enclosing state's narrowed context without registering that actor in `setup.actors`. See [typed inline invokes](https://github.com/statelyai/xstate/blob/next/docs/invoke.md#typed-inline-invokes).
 
-Pass an async function directly as `src`, with `schemas.input`, `schemas.output`, and `schemas.error` on the same invoke. Output also infers from the async return when its schema is omitted. Existing logic values use their own schemas.
+Pass an async function directly as `src`, with `schemas.input`, `schemas.output`, and `schemas.error` on the same invoke. Output also infers from the async return when its schema is omitted. Existing logic values use their own schemas. For an actor registered in `setup.actors`, pass its name as `src` to infer `onSnapshot` and keep the source replaceable with `.provide({ actors })`.
 
 The helper requires input for actors whose input excludes `undefined`, and checks child IDs and source compatibility against `schemas.children` declared in the setup or machine.
 
@@ -165,8 +171,8 @@ import { createFSM } from 'xstate/fsm';
 const machine = createFSM({
   initial: 'inactive',
   states: {
-    inactive: { on: { toggle: 'active' } },
-    active: { on: { toggle: 'inactive' } }
+    inactive: { on: { toggle: { target: 'active' } } },
+    active: { on: { toggle: { target: 'inactive' } } }
   }
 });
 
@@ -174,6 +180,8 @@ let state = machine.initialState;
 [state] = machine.transition(state, { type: 'toggle' });
 ```
 
+States can declare eventless `always` transitions. The machine follows them
+during initialization and after handled events until it reaches a stable state.
 The FSM is also actor logic, so `createActor(machine)` from `xstate` runs it.
 
 For typed context, event payloads, or state-specific context snapshots, use
@@ -335,17 +343,17 @@ const lightMachine = createMachine({
   states: {
     green: {
       on: {
-        TIMER: 'yellow'
+        TIMER: { target: 'yellow' }
       }
     },
     yellow: {
       on: {
-        TIMER: 'red'
+        TIMER: { target: 'red' }
       }
     },
     red: {
       on: {
-        TIMER: 'green'
+        TIMER: { target: 'green' }
       }
     }
   }
@@ -408,12 +416,12 @@ const pedestrianStates = {
   states: {
     walk: {
       on: {
-        PED_TIMER: 'wait'
+        PED_TIMER: { target: 'wait' }
       }
     },
     wait: {
       on: {
-        PED_TIMER: 'stop'
+        PED_TIMER: { target: 'stop' }
       }
     },
     stop: {}
@@ -426,17 +434,17 @@ const lightMachine = createMachine({
   states: {
     green: {
       on: {
-        TIMER: 'yellow'
+        TIMER: { target: 'yellow' }
       }
     },
     yellow: {
       on: {
-        TIMER: 'red'
+        TIMER: { target: 'red' }
       }
     },
     red: {
       on: {
-        TIMER: 'green'
+        TIMER: { target: 'green' }
       },
       ...pedestrianStates
     }
@@ -612,15 +620,15 @@ const paymentMachine = createMachine({
       states: {
         cash: {
           on: {
-            SWITCH_CHECK: 'check'
+            SWITCH_CHECK: { target: 'check' }
           }
         },
         check: {
           on: {
-            SWITCH_CASH: 'cash'
+            SWITCH_CASH: { target: 'cash' }
           }
         },
-        hist: { type: 'history' }
+        hist: { type: 'history', target: 'cash' }
       },
       on: { NEXT: { target: 'review' } }
     },
@@ -704,7 +712,7 @@ For these reasons, it is impractical for our team to be bound by decisions taken
 Most of the packages in the XState family declare a peer dependency on XState itself. We’ll be cautious about maintaining compatibility with already-released packages when releasing a new version of XState, **but** each release of packages depending on XState will always adjust the declared peer dependency range to include the latest version of XState. For example, you should always be able to update `xstate` without `@xstate/react`. But when you update `@xstate/react`, we highly recommend updating `xstate` too.
 
 <!-- public input validation contract from src/StateMachine.ts -->
-Validate external input with `machine.eventSchema` before `actor.send()`.
+Validate external input with `eventSchema(machine)` before `actor.send()`.
 It validates complete public events, excludes internal/runtime events, and allows
 explicitly configured routes. Payload checks require runtime schemas;
 `types<T>()` supplies types only. See [public input validation](https://github.com/statelyai/xstate/blob/next/docs/internal-events.md#validating-public-input).

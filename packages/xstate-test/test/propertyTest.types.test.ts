@@ -134,3 +134,38 @@ it('`testPaths()` accepts fast-check arbitraries in `events`', () => {
       }
     });
 });
+
+it('preserves required fields for each exact payload variant', () => {
+  if (false) {
+    const model = createMachine({
+      schemas: {
+        events: {
+          UPDATE: types<
+            { kind: 'name'; name: string } | { kind: 'age'; age: number }
+          >()
+        }
+      },
+      on: { UPDATE: {} }
+    });
+
+    void testPaths(model, {
+      cases: {
+        UPDATE: [
+          { kind: 'name', name: 'Ada' },
+          { kind: 'age', age: 36 }
+        ]
+      }
+    });
+    void testPaths(model, {
+      cases: {
+        UPDATE: (): { kind: 'name'; name: string }[] => [
+          { kind: 'name', name: 'Ada' }
+        ]
+      }
+    });
+    void testPaths(model, {
+      // @ts-expect-error The name variant requires a name.
+      cases: { UPDATE: [{ kind: 'name' }] }
+    });
+  }
+});

@@ -20,6 +20,7 @@ import {
   type SerializedActorRef
 } from '../src';
 import { createDurable } from '../src/durable/index.ts';
+import { restoreActor, restoreMachineSnapshot } from '../src/persist/index.ts';
 
 const workerMachine = createMachine({
   id: 'worker',
@@ -110,7 +111,7 @@ describe('deterministic actor ids', () => {
     const persisted = actor.getPersistedSnapshot();
     actor.stop();
 
-    const restored = createActor(machine, { snapshot: persisted }).start();
+    const restored = restoreActor(machine, persisted).start();
     restored.send({ type: 'MORE' });
     expect(Object.keys(restored.getSnapshot().children).sort()).toEqual([
       'worker:0',
@@ -188,7 +189,7 @@ describe('actor addresses', () => {
     const persisted = actor.getPersistedSnapshot();
     actor.stop();
 
-    const restored = createActor(machine, { snapshot: persisted }).start();
+    const restored = restoreActor(machine, persisted).start();
     const restoredChild = restored.getSnapshot().children[
       'worker:0'
     ] as AnyActor;
@@ -225,8 +226,8 @@ describe('effect descriptors', () => {
     expect(spawnDescriptor).toEqual({
       kind: 'builtin',
       type: '@xstate.spawn',
-      source: { $actor: 'order' },
-      actor: { $actor: 'order/worker:0' },
+      source: { '@actor': 'order' },
+      actor: { '@actor': 'order/worker:0' },
       id: 'worker:0',
       src: 'worker',
       input: undefined
@@ -239,8 +240,8 @@ describe('effect descriptors', () => {
     expect(sendDescriptor).toEqual({
       kind: 'builtin',
       type: '@xstate.sendTo',
-      source: { $actor: 'order' },
-      target: { $actor: 'order/worker:0' },
+      source: { '@actor': 'order' },
+      target: { '@actor': 'order/worker:0' },
       event: { type: 'PING' },
       id: undefined,
       delay: undefined
@@ -255,8 +256,15 @@ describe('effect descriptors', () => {
 });
 
 describe('sessionId as incarnation id', () => {
+  const worker = createMachine({
+    initial: 'working',
+    states: {
+      working: { on: { FINISH: { target: 'done' } } },
+      done: { type: 'final' }
+    }
+  });
   const invokeMachine = setup({
-    actors: { worker: workerMachine }
+    actors: { worker }
   }).createMachine({
     id: 'order',
     initial: 'working',
@@ -279,7 +287,7 @@ describe('sessionId as incarnation id', () => {
     const persisted = actor.getPersistedSnapshot();
     actor.stop();
 
-    const restored = createActor(invokeMachine, { snapshot: persisted });
+    const restored = restoreActor(invokeMachine, persisted);
     restored.start();
     restored.send({
       type: 'xstate.done.actor',
@@ -295,16 +303,9 @@ describe('sessionId as incarnation id', () => {
     const persisted = actor.getPersistedSnapshot();
     actor.stop();
 
-    const restored = createActor(invokeMachine, { snapshot: persisted });
+    const restored = restoreActor(invokeMachine, persisted);
     restored.start();
-    const currentSessionId = (restored.getSnapshot().children.w as AnyActor)
-      .sessionId;
-    restored.send({
-      type: 'xstate.done.actor',
-      actorId: 'w',
-      output: undefined,
-      sessionId: currentSessionId
-    } as never);
+    restored.getSnapshot().children.w?.send({ type: 'FINISH' });
     expect(restored.getSnapshot().value).toBe('finished');
     expect(restored.getSnapshot().status).toBe('done');
   });
@@ -360,16 +361,17 @@ describe('children-by-address persistence', () => {
     coordinator.send({ type: 'MORE' });
     // Persist ONLY the subtree; its counters must travel with it.
     const persistedSubtree = coordinator.getPersistedSnapshot() as {
-      _nextActorIds?: Record<string, number>;
+      nextActorIds?: Record<string, number>;
     };
-    expect(persistedSubtree._nextActorIds).toEqual({ worker: 2 });
+    expect(persistedSubtree.nextActorIds).toEqual({ worker: 2 });
     root.stop();
 
     // Restore the subtree standalone (a different placement) and keep
     // spawning: numbering continues with no shared system state.
-    const restored = createActor(coordinatorMachine, {
-      snapshot: persistedSubtree as never
-    }).start();
+    const restored = restoreActor(
+      coordinatorMachine,
+      persistedSubtree as never
+    ).start();
     restored.send({ type: 'MORE' });
     expect(Object.keys(restored.getSnapshot().children).sort()).toEqual([
       'worker:0',
@@ -420,9 +422,7 @@ describe('detached children (remote handles)', () => {
     });
     actor.stop();
 
-    const restored = createActor(invokeMachine, {
-      snapshot: persisted
-    }).start();
+    const restored = restoreActor(invokeMachine, persisted).start();
     const handle = restored.getSnapshot().children.w as AnyActor;
     expect(handle.address).toBe('order/w');
     expect(handle.sessionId).toBeUndefined();
@@ -441,9 +441,7 @@ describe('detached children (remote handles)', () => {
     const persisted = actor.getPersistedSnapshot({ embedChildren: false });
     actor.stop();
 
-    const restored = createActor(invokeMachine, {
-      snapshot: persisted
-    }).start();
+    const restored = restoreActor(invokeMachine, persisted).start();
     const handle = restored.getSnapshot().children.w as AnyActor;
 
     expect(() => handle.stop()).toThrow(/co-located/);
@@ -459,15 +457,13 @@ describe('detached children (remote handles)', () => {
     });
     actor.stop();
 
-    const restored = createActor(invokeMachine, {
-      snapshot: persisted
-    }).start();
-    restored.send({
+    const restored = restoreActor(invokeMachine, persisted).start();
+    deliverEvent(restored.getSnapshot().children.w, restored, {
       type: 'xstate.done.actor',
       actorId: 'w',
       output: undefined,
       sessionId: 'some-other-runtime:7'
-    } as never);
+    });
     expect(restored.getSnapshot().value).toBe('finished');
   });
 });
@@ -554,7 +550,7 @@ describe('review findings: identity edge cases', () => {
     const persisted = actor.getPersistedSnapshot({ embedChildren: false });
     actor.stop();
 
-    const restored = createActor(machine, { snapshot: persisted }).start();
+    const restored = restoreActor(machine, persisted).start();
     const again = restored.getPersistedSnapshot() as unknown as {
       children: Record<string, { address: string; snapshot?: unknown }>;
     };
@@ -664,7 +660,7 @@ describe('review findings: second round', () => {
     const persisted = actor.getPersistedSnapshot({ embedChildren: false });
     actor.stop();
 
-    const restored = createActor(machine, { snapshot: persisted }).start();
+    const restored = restoreActor(machine, persisted).start();
     const handle = restored.system.get('theWorker' as never) as AnyActor;
     expect(handle).toBeDefined();
     expect(handle.address).toBe('order/w');
@@ -710,7 +706,7 @@ describe('review findings: third round', () => {
 
     // Fresh process: system counters are empty; the snapshot's own counters
     // must prevent the freed id from being handed out again.
-    const restored = createActor(machine, { snapshot: persisted }).start();
+    const restored = restoreActor(machine, persisted).start();
     restored.send({ type: 'MORE' });
     expect(Object.keys(restored.getSnapshot().children)).toEqual(['worker:1']);
   });
@@ -756,7 +752,7 @@ describe('review findings: fourth round', () => {
     // Simulate a production-persisted inline child: non-string src.
     persisted.children.w.src = {};
 
-    expect(() => machine.restoreSnapshot(persisted as never)).toThrow(
+    expect(() => restoreMachineSnapshot(machine, persisted as never)).toThrow(
       /requires a registered source key/
     );
   });
@@ -888,10 +884,10 @@ describe('review findings: eighth round', () => {
     // Simulate a snapshot persisted before per-snapshot counters existed.
     persisted._nextActorId = 42;
 
-    const restored = createActor(machine, { snapshot: persisted }).start();
+    const restored = restoreActor(machine, persisted).start();
     const repersisted = restored.getPersistedSnapshot() as any;
     expect('_nextActorId' in repersisted).toBe(false);
-    expect(repersisted._nextActorIds).toEqual({ worker: 1 });
+    expect(repersisted.nextActorIds).toEqual({ worker: 1 });
   });
 });
 
@@ -1098,9 +1094,10 @@ describe('incarnation tokens on remote handles', () => {
   }
 
   it('round-trips a host-supplied incarnation verbatim', () => {
-    const restored = createActor(invokeMachine, {
-      snapshot: persistedWithIncarnation('runtime-b:7')
-    }).start();
+    const restored = restoreActor(
+      invokeMachine,
+      persistedWithIncarnation('runtime-b:7')
+    ).start();
     const handle = restored.getSnapshot().children.w as any;
     // The token IS the handle's sessionId: one incarnation identity, one field.
     expect(handle.sessionId).toBe('runtime-b:7');
@@ -1122,25 +1119,26 @@ describe('incarnation tokens on remote handles', () => {
   });
 
   it('drops completions from a different incarnation when a token is present', () => {
-    const restored = createActor(invokeMachine, {
-      snapshot: persistedWithIncarnation('runtime-b:7')
-    }).start();
-    restored.send({
+    const restored = restoreActor(
+      invokeMachine,
+      persistedWithIncarnation('runtime-b:7')
+    ).start();
+    deliverEvent(restored.getSnapshot().children.w, restored, {
       type: 'xstate.done.actor',
       actorId: 'w',
       output: undefined,
       sessionId: 'runtime-b:3'
-    } as never);
+    });
     expect(restored.getSnapshot().value).toBe('a');
     // The stale completion must not remove the still-running child either:
     // the parent keeps its handle until the real completion arrives.
     expect(restored.getSnapshot().children.w).toBeDefined();
-    restored.send({
+    deliverEvent(restored.getSnapshot().children.w, restored, {
       type: 'xstate.done.actor',
       actorId: 'w',
       output: undefined,
       sessionId: 'runtime-b:7'
-    } as never);
+    });
     expect(restored.getSnapshot().value).toBe('finished');
     restored.stop();
   });
@@ -1167,14 +1165,14 @@ describe('incarnation tokens on remote handles', () => {
     actor.stop();
     persisted.children.w.incarnation = 'runtime-b:7';
 
-    const restored = machine.restoreSnapshot(persisted as never);
+    const restored = restoreMachineSnapshot(machine, persisted as never);
     const [, effects] = transition(machine, restored as never, {
       type: 'KICK'
     });
     const descriptor = describeExecutableEffect(effects[0]!) as any;
     expect(descriptor.type).toBe('@xstate.sendTo');
     expect(descriptor.target).toEqual({
-      $actor: 'order/w',
+      '@actor': 'order/w',
       incarnation: 'runtime-b:7'
     });
   });
@@ -1243,9 +1241,7 @@ describe('timer restore honors wall-clock deadlines', () => {
       const [timer] = Object.values(persisted.timers) as any[];
       expect(timer.scheduledAt).toBe(Date.now() - 600);
 
-      const restored = createActor(timerMachine, {
-        snapshot: persisted
-      }).start();
+      const restored = restoreActor(timerMachine, persisted).start();
       vi.advanceTimersByTime(399);
       expect(restored.getSnapshot().value).toBe('waiting');
       vi.advanceTimersByTime(1);
@@ -1264,7 +1260,7 @@ describe('timer restore honors wall-clock deadlines', () => {
       const first = actor.getPersistedSnapshot() as any;
       actor.stop();
 
-      const second = createActor(timerMachine, { snapshot: first }).start();
+      const second = restoreActor(timerMachine, first).start();
       vi.advanceTimersByTime(300);
       const repersisted = second.getPersistedSnapshot() as any;
       second.stop();
@@ -1273,9 +1269,7 @@ describe('timer restore honors wall-clock deadlines', () => {
       const [timer] = Object.values(repersisted.timers) as any[];
       expect(timer.scheduledAt + timer.delay).toBe(Date.now() + 400);
 
-      const third = createActor(timerMachine, {
-        snapshot: repersisted
-      }).start();
+      const third = restoreActor(timerMachine, repersisted).start();
       vi.advanceTimersByTime(400);
       expect(third.getSnapshot().value).toBe('fired');
       third.stop();
@@ -1293,9 +1287,7 @@ describe('timer restore honors wall-clock deadlines', () => {
       // Simulate a long gap while no process was running.
       vi.advanceTimersByTime(5000);
 
-      const restored = createActor(timerMachine, {
-        snapshot: persisted
-      }).start();
+      const restored = restoreActor(timerMachine, persisted).start();
       vi.advanceTimersByTime(0);
       expect(restored.getSnapshot().value).toBe('fired');
       restored.stop();
@@ -1482,10 +1474,7 @@ describe('tenth round: review findings', () => {
     // A wall-clock scheduledAt is meaningless under a simulated clock; the
     // declared delay applies instead of firing instantly (or never).
     const clock = new SimulatedClock();
-    const restored = createActor(machine, {
-      clock,
-      snapshot: persisted
-    }).start();
+    const restored = restoreActor(machine, persisted, { clock }).start();
     clock.increment(999);
     expect(restored.getSnapshot().value).toBe('waiting');
     clock.increment(1);
@@ -1540,13 +1529,13 @@ describe('remote handle serialization', () => {
     const persisted = actor.getPersistedSnapshot({ embedChildren: false });
     actor.stop();
 
-    const restored = createActor(machine, { snapshot: persisted }).start();
+    const restored = restoreActor(machine, persisted).start();
     const handle = restored.getSnapshot().children.w as AnyActor;
-    expect(handle.toJSON!()).toEqual({ $actor: 'order/w' });
+    expect(handle.toJSON!()).toEqual({ '@actor': 'order/w' });
     // JSON round-trip of the whole snapshot keeps the same shape, so
     // tooling that detects actor references sees remote children too.
     const json = JSON.parse(JSON.stringify(restored.getSnapshot())) as any;
-    expect(json.children.w).toEqual({ $actor: 'order/w' });
+    expect(json.children.w).toEqual({ '@actor': 'order/w' });
     restored.stop();
   });
 });
@@ -1572,14 +1561,15 @@ describe('timer scheduledAt survives a restore that never starts', () => {
 
       // A restore → persist cycle with no local schedule (the durable-host
       // shape: pure restore, re-persist) must not push the deadline back.
-      const restored = timerMachine2.restoreSnapshot(persisted as never);
+      const restored = restoreMachineSnapshot(
+        timerMachine2,
+        persisted as never
+      );
       const repersisted = timerMachine2.getPersistedSnapshot(restored) as any;
       const carried = Object.values(repersisted.timers as any)[0] as any;
       expect(carried.scheduledAt).toBe(originalStart.scheduledAt);
 
-      const resumed = createActor(timerMachine2, {
-        snapshot: repersisted
-      }).start();
+      const resumed = restoreActor(timerMachine2, repersisted).start();
       vi.advanceTimersByTime(399);
       expect(resumed.getSnapshot().value).toBe('waiting');
       vi.advanceTimersByTime(1);
@@ -1691,7 +1681,7 @@ describe('serialized actor refs as send targets', () => {
     const actor = createActor(client, {
       onRejectedEvent: (rejection) => rejections.push(rejection)
     }).start();
-    const replyTo: SerializedActorRef = { $actor: 'client/ghost' };
+    const replyTo: SerializedActorRef = { '@actor': 'client/ghost' };
 
     expect(() =>
       actor.send({ type: 'FORWARD', replyTo, requestId: 'r1' })
@@ -1725,8 +1715,7 @@ describe('serialized actor refs as send targets', () => {
     actor.stop();
 
     const rejections: EventRejection[] = [];
-    const restored = createActor(client, {
-      snapshot: persisted,
+    const restored = restoreActor(client, persisted, {
       onRejectedEvent: (rejection) => rejections.push(rejection)
     }).start();
     expect(restored.sessionId).not.toBe(actor.sessionId);
@@ -1753,14 +1742,14 @@ describe('serialized actor refs as send targets', () => {
   it('serializes to the address in effect descriptors', () => {
     const [, effects] = transition(server, initialTransition(server)[0], {
       type: 'PING',
-      replyTo: { $actor: 'other/elsewhere' },
+      replyTo: { '@actor': 'other/elsewhere' },
       requestId: 'd1'
     });
     expect(
       effects
         .map(describeExecutableEffect)
         .find((d) => d.type === '@xstate.sendTo')
-    ).toMatchObject({ target: { $actor: 'other/elsewhere' } });
+    ).toMatchObject({ target: { '@actor': 'other/elsewhere' } });
   });
 
   it('routes and dead-letters by address in pure system transitions', () => {
@@ -1768,21 +1757,21 @@ describe('serialized actor refs as send targets', () => {
     const [snapshot] = initialSystemTransition(logic);
     const [next] = systemTransition(logic, snapshot, 'client', {
       type: 'FORWARD',
-      replyTo: { $actor: 'client' },
+      replyTo: { '@actor': 'client' },
       requestId: 'p1'
     });
     expect(next.actors.client.snapshot.context.got).toBe('p1');
 
     const [, effects] = systemTransition(logic, snapshot, 'client', {
       type: 'FORWARD',
-      replyTo: { $actor: 'ghost' },
+      replyTo: { '@actor': 'ghost' },
       requestId: 'p2'
     });
     expect(effects).toContainEqual(
       expect.objectContaining({
         kind: 'builtin',
         type: '@xstate.deadLetter',
-        source: expect.objectContaining({ $actor: 'client/server' }),
+        source: expect.objectContaining({ '@actor': 'client/server' }),
         reason: 'missingTarget',
         event: { type: 'PONG', requestId: 'p2' }
       })
@@ -1823,9 +1812,7 @@ describe('serialized actor refs as send targets', () => {
     const persisted = JSON.parse(JSON.stringify(actor.getPersistedSnapshot()));
     actor.stop();
 
-    const restored = system
-      .createActor(holder, { snapshot: persisted })
-      .start();
+    const restored = restoreActor(holder, persisted, { system }).start();
     restored.send({ type: 'ASK' });
 
     expect(requester.getSnapshot().context.got).toBe('held');
@@ -1862,9 +1849,7 @@ describe('serialized actor refs as send targets', () => {
     const persisted = JSON.parse(JSON.stringify(actor.getPersistedSnapshot()));
     actor.stop();
 
-    const restored = system
-      .createActor(holder, { snapshot: persisted })
-      .start();
+    const restored = restoreActor(holder, persisted, { system }).start();
     restored.send({ type: 'ASK' });
 
     expect(requester.getSnapshot().context.got).toBe('live');
@@ -1914,7 +1899,7 @@ describe('delayed sends to serialized actor refs', () => {
       ]);
       server.stop();
 
-      system.createActor(delayedServer, { snapshot: persisted }).start();
+      restoreActor(delayedServer, persisted, { system }).start();
       vi.advanceTimersByTime(100);
       expect(requester.getSnapshot().context.got).toBe('r1');
     } finally {
@@ -1931,7 +1916,7 @@ describe('delayed sends to serialized actor refs', () => {
       server.send({
         type: 'PING',
         replyTo: {
-          $actor: requester.address,
+          '@actor': requester.address,
           incarnation: requester.sessionId
         },
         requestId: 'r1'
@@ -1952,7 +1937,7 @@ describe('delayed sends to serialized actor refs', () => {
       system.onRejectedEvent((rejection) => rejections.push(rejection));
       const original = system.createActor(requesterMachine).start();
       const replyTo: SerializedActorRef = {
-        $actor: original.address,
+        '@actor': original.address,
         incarnation: original.sessionId
       };
       const server = system.createActor(delayedServer).start();

@@ -1,5 +1,6 @@
 import { createActor, createMachine, setup, types } from '../src';
 import type { PersistedSnapshotFrom, Snapshot } from '../src';
+import { restoreActor } from '../src/persist/index.ts';
 
 describe('persisted snapshot round-trip types', () => {
   it('should round-trip getPersistedSnapshot into createActor without a cast', () => {
@@ -10,7 +11,7 @@ describe('persisted snapshot round-trip types', () => {
 
     const snapshot = createActor(machine).getPersistedSnapshot();
 
-    createActor(machine, { snapshot });
+    restoreActor(machine, snapshot);
   });
 
   it('should round-trip a versioned machine snapshot without a cast', () => {
@@ -23,7 +24,7 @@ describe('persisted snapshot round-trip types', () => {
 
     const snapshot = createActor(machine).getPersistedSnapshot();
 
-    createActor(machine, { snapshot });
+    restoreActor(machine, snapshot);
   });
 
   it('should accept a snapshot persisted from a different version of the same machine (migration path)', () => {
@@ -42,7 +43,7 @@ describe('persisted snapshot round-trip types', () => {
 
     const snapshot = createActor(checkoutV1).getPersistedSnapshot();
 
-    createActor(checkoutV2, { snapshot });
+    restoreActor(checkoutV2, snapshot);
   });
 
   it('should reject a snapshot persisted from a machine with a different ID', () => {
@@ -61,10 +62,8 @@ describe('persisted snapshot round-trip types', () => {
 
     const snapshot = createActor(checkout).getPersistedSnapshot();
 
-    createActor(cart, {
-      // @ts-expect-error
-      snapshot
-    });
+    // @ts-expect-error
+    restoreActor(cart, snapshot);
   });
 
   it('should reject a snapshot from an unversioned machine with a different ID', () => {
@@ -81,10 +80,8 @@ describe('persisted snapshot round-trip types', () => {
 
     const snapshot = createActor(machineA).getPersistedSnapshot();
 
-    createActor(machineB, {
-      // @ts-expect-error
-      snapshot
-    });
+    // @ts-expect-error
+    restoreActor(machineB, snapshot);
   });
 
   it('should round-trip a provided machine snapshot without a cast', () => {
@@ -97,10 +94,8 @@ describe('persisted snapshot round-trip types', () => {
 
     const snapshot = createActor(provided).getPersistedSnapshot();
 
-    createActor(machine, { snapshot });
-    createActor(provided, {
-      snapshot: createActor(machine).getPersistedSnapshot()
-    });
+    restoreActor(machine, snapshot);
+    restoreActor(provided, createActor(machine).getPersistedSnapshot());
   });
 
   it('preserves identity through repeated provision of a versioned setup machine', () => {
@@ -113,12 +108,8 @@ describe('persisted snapshot round-trip types', () => {
     const provided = machine.provide({}).provide({});
     provided.id satisfies 'checkout';
     provided.version satisfies '1';
-    createActor(machine, {
-      snapshot: createActor(provided).getPersistedSnapshot()
-    });
-    createActor(provided, {
-      snapshot: createActor(machine).getPersistedSnapshot()
-    });
+    restoreActor(machine, createActor(provided).getPersistedSnapshot());
+    restoreActor(provided, createActor(machine).getPersistedSnapshot());
   });
 
   it('should accept a revived (unbranded) snapshot', () => {
@@ -131,7 +122,7 @@ describe('persisted snapshot round-trip types', () => {
       JSON.stringify(createActor(machine).getPersistedSnapshot())
     ) as Snapshot<unknown>;
 
-    createActor(machine, { snapshot: revived });
+    restoreActor(machine, revived);
   });
 
   it('should be usable where a plain Snapshot<unknown> is expected', () => {
@@ -161,7 +152,7 @@ describe('persisted snapshot round-trip types', () => {
 
     snapshot.context.count satisfies number;
 
-    createActor(machine, { snapshot });
+    restoreActor(machine, snapshot);
   });
 
   it('should be assignable to PersistedSnapshotFrom<typeof machine> for a versioned machine', () => {
@@ -177,7 +168,7 @@ describe('persisted snapshot round-trip types', () => {
     const snapshot: PersistedSnapshotFrom<typeof machine> =
       createActor(machine).getPersistedSnapshot();
 
-    createActor(machine, { snapshot });
+    restoreActor(machine, snapshot);
   });
 
   it('should reject a PersistedSnapshotFrom of a machine with a different ID', () => {

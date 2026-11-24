@@ -1,9 +1,6 @@
 import isDevelopment from '#is-development';
-import {
-  MachineSnapshot,
-  cloneMachineSnapshot,
-  freezeContext
-} from './State.ts';
+import { xstateError } from './xstateError.ts';
+import { cloneMachineSnapshot } from './State.ts';
 import type { StateNode } from './StateNode.ts';
 import {
   createAfterEvent,
@@ -69,6 +66,9 @@ import {
   createTransitionEnqueue,
   createSendToEffect,
   deriveDeferredStarts,
+  discardSpawnedActors,
+  createChildActorRef,
+  completeSpawnAllocation,
   mergeContextPatch,
   resolveActionsWithContext
 } from './transitionActions.ts';
@@ -103,7 +103,9 @@ function getConfiguredDelayValue(
   const parsedDelay = parseDurationToMilliseconds(delay);
   if (parsedDelay === undefined) {
     throw new Error(
-      `Invalid delay "${delay}": not a configured delay name or a valid duration string (e.g. "500ms", "1.5s", "PT1M30S").`
+      isDevelopment
+        ? `Invalid delay "${delay}": not a configured delay name or a valid duration string (e.g. "500ms", "1.5s", "PT1M30S").`
+        : xstateError(9, delay)
     );
   }
   return parsedDelay;
@@ -530,7 +532,9 @@ export function formatTransition(
   const removedKey = getRemovedTransitionKey(transitionConfig);
   if (removedKey) {
     throw new Error(
-      `Transition "${descriptor || 'always'}" in state "${stateNode.id}" uses ${removedKey}, which was removed in v6. Use a transition function.`
+      isDevelopment
+        ? `Transition "${descriptor || 'always'}" in state "${stateNode.id}" uses ${removedKey}, which was removed in v6. Use a transition function.`
+        : xstateError(10, descriptor || 'always', stateNode.id, removedKey)
     );
   }
   const normalizedTarget = normalizeTarget(transitionConfig.target);
@@ -649,7 +653,7 @@ function assertLegalTargetSet(
         throw new Error(
           isDevelopment
             ? `Invalid transition definition for state node '${source.id}': target set is not a legal SCXML configuration.`
-            : `Invalid target set for '${source.id}'`
+            : xstateError(11, source.id)
         );
       }
     }
@@ -751,14 +755,14 @@ function resolveTarget(
         throw new Error(
           isDevelopment
             ? `Invalid transition definition for state node '${stateNode.id}':\n${err.message}`
-            : `Invalid transition for '${stateNode.id}': ${err.message}`
+            : xstateError(12, stateNode.id, err.message)
         );
       }
     } else {
       throw new Error(
         isDevelopment
           ? `Invalid target: "${target}" is not a valid target from the root node. Did you mean ".${target}"?`
-          : `Invalid target: "${target}"`
+          : xstateError(13, target)
       );
     }
   });
@@ -832,9 +836,11 @@ function getStateNode(stateNode: AnyStateNode, stateKey: string): AnyStateNode {
   const result = stateNode.states?.[stateKey];
   if (!result) {
     throw new Error(
-      isDevelopment && !stateNode.states
-        ? `Unable to retrieve child state '${stateKey}' from '${stateNode.id}'; no child states exist.`
-        : `Child state '${stateKey}' does not exist on '${stateNode.id}'`
+      isDevelopment
+        ? stateNode.states
+          ? `Child state '${stateKey}' does not exist on '${stateNode.id}'`
+          : `Unable to retrieve child state '${stateKey}' from '${stateNode.id}'; no child states exist.`
+        : xstateError(14, stateKey, stateNode.id)
     );
   }
   return result;
@@ -879,7 +885,9 @@ export function getStateNodes(
     const childStateNode = stateNode.states[stateValue];
     if (!childStateNode) {
       throw new Error(
-        `State '${stateValue}' does not exist on '${stateNode.id}'`
+        isDevelopment
+          ? `State '${stateValue}' does not exist on '${stateNode.id}'`
+          : xstateError(14, stateValue, stateNode.id)
       );
     }
     return [stateNode, childStateNode];
@@ -921,92 +929,57 @@ export type TransitionSelectionResults = Map<
   TransitionSelectionResult
 >;
 
-export function transitionNode<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(
-  stateNode: AnyStateNode,
-  stateValue: StateValue,
-  snapshot: MachineSnapshot<
-    TContext,
-    TEvent,
-    any,
-    any,
-    any,
-    any,
-    any,
-    any // TStateSchema
-  >,
-  event: TEvent,
+export function selectEventTransitions(
+  root: AnyStateNode,
+  snapshot: AnyMachineSnapshot,
+  event: AnyEventObject,
   actorScope: AnyActorScope,
   selectionResults?: TransitionSelectionResults
-): Array<TransitionDefinition<TContext, TEvent>> | undefined {
-  // leaf node
-  if (typeof stateValue === 'string') {
-    const childStateNode = getStateNode(stateNode, stateValue);
-    const next = childStateNode.next(
-      snapshot,
-      event,
-      actorScope,
-      selectionResults
-    );
+): AnyTransitionDefinition[] {
+  const transitions: AnyTransitionDefinition[] = [];
+  let checked: Set<AnyStateNode> | undefined;
 
-    if (!next || !next.length) {
-      return stateNode.next(snapshot, event, actorScope, selectionResults);
-    }
-
-    return next;
-  }
-
-  const subStateKeys = Object.keys(stateValue);
-  const subStateKey = subStateKeys[0];
-
-  if (subStateKeys.length === 1) {
-    const childStateNode = getStateNode(stateNode, subStateKey);
-    const next = transitionNode(
-      childStateNode,
-      stateValue[subStateKey]!,
-      snapshot,
-      event,
-      actorScope,
-      selectionResults
-    );
-
-    if (!next || !next.length) {
-      return stateNode.next(snapshot, event, actorScope, selectionResults);
-    }
-
-    return next;
-  }
-
-  const allInnerTransitions: Array<TransitionDefinition<TContext, TEvent>> = [];
-
-  for (const subStateKey of subStateKeys) {
-    const subStateValue = stateValue[subStateKey];
-
-    if (!subStateValue) {
-      continue;
-    }
-
-    const subStateNode = getStateNode(stateNode, subStateKey);
-    const innerTransitions = transitionNode(
-      subStateNode,
-      subStateValue,
-      snapshot,
-      event,
-      actorScope,
-      selectionResults
-    );
-    if (innerTransitions) {
-      allInnerTransitions.push(...innerTransitions);
+  function selectFromLeaf(leaf: AnyStateNode) {
+    // A previous leaf already selected at a shared ancestor or searched
+    // above it. In either case, there is no need to evaluate it again.
+    for (
+      let node: AnyStateNode | undefined = leaf;
+      node && !checked?.has(node);
+      node = node.parent
+    ) {
+      checked?.add(node);
+      const selected = node.next(snapshot, event, actorScope, selectionResults);
+      if (selected?.length) {
+        transitions.push(...selected);
+        break;
+      }
     }
   }
 
-  if (!allInnerTransitions.length) {
-    return stateNode.next(snapshot, event, actorScope, selectionResults);
+  function visit(node: AnyStateNode, value: StateValue) {
+    if (typeof value === 'string') {
+      selectFromLeaf(getStateNode(node, value));
+      return;
+    }
+
+    const keys = Object.keys(value);
+    if (keys.length === 0) {
+      selectFromLeaf(node);
+      return;
+    }
+    if (keys.length > 1) {
+      checked ??= new Set();
+      keys.sort(
+        (a, b) => getStateNode(node, a).order - getStateNode(node, b).order
+      );
+    }
+    for (const key of keys) {
+      visit(getStateNode(node, key), value[key]!);
+    }
   }
 
-  return allInnerTransitions;
+  visit(root, snapshot.value);
+  return transitions;
 }
 
 function isDescendant(
@@ -1148,10 +1121,9 @@ function createTransitionResultResolver(
 
 function getEffectiveTargetStates(
   transition: Pick<AnyTransitionDefinition, 'target' | 'source'>,
-  snapshot: AnyMachineSnapshot,
+  historyValue: HistoryValue,
   resolveTransition: TransitionResultResolver
 ): Array<AnyStateNode> {
-  const historyValue = snapshot.historyValue;
   const { targets } = resolveTransition(transition);
   if (!targets) {
     return [];
@@ -1168,7 +1140,7 @@ function getEffectiveTargetStates(
       } else {
         for (const node of getEffectiveTargetStates(
           resolveHistoryDefaultTransition(targetNode),
-          snapshot,
+          historyValue,
           resolveTransition
         )) {
           targetSet.add(node);
@@ -1213,7 +1185,7 @@ function getTransitionDomain(
 ): AnyStateNode | undefined {
   const targetStates = getEffectiveTargetStates(
     transition,
-    snapshot,
+    snapshot.historyValue,
     resolveTransition
   );
 
@@ -1265,13 +1237,21 @@ function getTransitionDomain(
       : narrowParallelDomain(transition.source, targetStates);
   }
 
-  const [head, ...tail] = targetStates.concat(transition.source);
+  const sourceAndTargets = targetStates.concat(transition.source);
+  const [head, ...tail] = sourceAndTargets;
   // Find the least common ancestor (LCA) of the source and effective targets.
   for (const ancestor of getProperAncestors(head, undefined)) {
     if (tail.every((sn) => isDescendant(sn, ancestor))) {
-      // A cross-region transition (source in one parallel region, targets in
-      // another) only exits the region containing its targets; the source
-      // region and other sibling regions stay put unless it reenters.
+      if (
+        ancestor.type === 'parallel' &&
+        narrowParallelDomain(ancestor, sourceAndTargets) === ancestor
+      ) {
+        // SCXML includes the parallel state in the exit set when a transition
+        // crosses its regions.
+        return getProperAncestors(ancestor, undefined).find(
+          (parent) => parent.type === 'compound'
+        );
+      }
       return reenter ? ancestor : narrowParallelDomain(ancestor, targetStates);
     }
   }
@@ -1444,7 +1424,10 @@ function microstep(
         actorScope,
         actions,
         internalEvents,
-        true
+        {
+          registeredActors: currentSnapshot.machine.sources.actors,
+          actorSubscriptions: true
+        }
       );
 
       const args = isLazyActorScope(actorScope)
@@ -1478,19 +1461,21 @@ function microstep(
             input,
             stateNode
           };
-      let res;
       try {
-        res = transitionFn(args, enqueue);
+        const res = transitionFn(args, enqueue);
+        assertSyncTransitionResult(res, event, stateNode.id, kind);
+
+        if (res?.context !== undefined) {
+          updatedContext = mergeContextPatch(context, res.context);
+        }
+
+        return [actions, updatedContext, internalEvents, res?.children];
+      } catch (error) {
+        discardSpawnedActors(actorScope);
+        throw error;
       } finally {
         closeTransitionEnqueue(enqueue);
       }
-      assertSyncTransitionResult(res, event, stateNode.id, kind);
-
-      if (res?.context !== undefined) {
-        updatedContext = mergeContextPatch(context, res.context);
-      }
-
-      return [actions, updatedContext, internalEvents, res?.children];
     };
 
     let nextState = currentSnapshot;
@@ -1816,7 +1801,7 @@ function microstep(
         }
         const targetStates = getEffectiveTargetStates(
           transition,
-          currentSnapshot,
+          historyValue,
           getCurrentTransitionResult
         );
         for (const s of targetStates) {
@@ -1829,7 +1814,7 @@ function microstep(
             !transition.source.parent && reenter ? undefined : domain
           );
         }
-        if (reenter && domain === transition.source) {
+        if (targets?.length && reenter && domain === transition.source) {
           // A reentering transition whose domain is its own source exits and
           // reenters the source, so the source must be entered explicitly —
           // it has no ancestor inside the domain to add it.
@@ -1882,80 +1867,77 @@ function microstep(
 
         // Final states are inert, so (as in SCXML) their invocations never
         // start.
-        let invoked = false;
-        for (const invokeDef of stateNodeToEnter.type === 'final'
-          ? []
-          : stateNodeToEnter.invoke) {
-          invoked = true;
-
-          let src = invokeDef.logic;
-          if (typeof src === 'function') {
-            src = src({
-              actors: currentSnapshot.machine.sources.actors,
-              context: nextState.context,
-              event,
-              self: actorScope.self
-            });
-          }
-
-          const logic =
-            typeof src === 'string'
-              ? currentSnapshot.machine.sources.actors[src]
-              : src;
-
-          if (!logic) {
-            throw new Error(
-              isDevelopment
-                ? `Actor logic '${typeof src === 'string' ? src : 'inline'}' not implemented in ${describeMachine(currentSnapshot.machine.id)}`
-                : `Actor logic '${typeof src === 'string' ? src : 'inline'}' not implemented`
-            );
-          }
-
-          const input =
-            typeof invokeDef.input === 'function'
-              ? invokeDef.input({
-                  self: actorScope.self,
-                  context: nextState.context,
-                  event,
-                  input: stateInputMap[stateNodeToEnter.id],
-                  output: getEventOutput(event)
-                })
-              : invokeDef.input;
-
-          assertChildIdFree(actorScope, invokeDef.id);
-          const actor = actorScope.system.createActorRef(logic, {
-            ...invokeDef,
-            // A `src` function may return a registered key, which persists.
-            src: typeof src === 'string' ? src : undefined,
-            input,
-            parent: actorScope.self,
-            syncSnapshot: !!invokeDef.onSnapshot
-          });
-          // Persistence restores a source-less child through its invoke
-          // definition only when the invoke created it.
-          (actor as { _invoked?: boolean })._invoked = true;
-
-          actions.push({
-            action: builtInActions['@xstate.spawn'],
-            args: [actor]
-          });
-
-          if (invokeDef.id) {
-            children = { ...children, [invokeDef.id]: actor };
-          }
-        }
-
-        if (invoked) {
-          nextState = cloneMachineSnapshot(nextState, { children });
-        }
-        let context = nextState.context;
-        let contextChangedByEntry = false;
-
+        const pendingInvokes: Array<{
+          actor: AnyActor;
+          input: (typeof stateNodeToEnter.invoke)[number]['input'];
+        }> = [];
         const stateInput = stateInputMap[stateNodeToEnter.id];
+        try {
+          for (const invokeDef of stateNodeToEnter.type === 'final'
+            ? []
+            : stateNodeToEnter.invoke) {
+            let src = invokeDef.logic;
+            if (typeof src === 'function') {
+              src = src({
+                actors: currentSnapshot.machine.sources.actors,
+                context: nextState.context,
+                event,
+                self: actorScope.self
+              });
+            }
 
-        if (stateNodeToEnter.entry) {
-          const [resultActions, nextContext, nextInternalEvents, nextChildren] =
-            getStateActionsAndContext(
+            const logic =
+              typeof src === 'string'
+                ? currentSnapshot.machine.sources.actors[src]
+                : src;
+
+            if (!logic) {
+              throw new Error(
+                isDevelopment
+                  ? `Actor logic '${typeof src === 'string' ? src : 'inline'}' not implemented in ${describeMachine(currentSnapshot.machine.id)}`
+                  : xstateError(15, typeof src === 'string' ? src : 'inline')
+              );
+            }
+
+            assertChildIdFree(actorScope, invokeDef.id);
+            const actor = createChildActorRef(actorScope, logic, {
+              ...invokeDef,
+              // A `src` function may return a registered key, which persists.
+              src: typeof src === 'string' ? src : undefined,
+              input: undefined,
+              _deferInitialization: true,
+              parent: actorScope.self,
+              syncSnapshot: !!invokeDef.onSnapshot
+            });
+            // Persistence restores a source-less child through its invoke
+            // definition only when the invoke created it.
+            (actor as { _invoked?: boolean })._invoked = true;
+
+            pendingInvokes.push({ actor, input: invokeDef.input });
+
+            actions.push({
+              action: builtInActions['@xstate.spawn'],
+              args: [actor]
+            });
+
+            if (invokeDef.id) {
+              children = { ...children, [invokeDef.id]: actor };
+            }
+          }
+
+          if (pendingInvokes.length) {
+            nextState = cloneMachineSnapshot(nextState, { children });
+          }
+          let context = nextState.context;
+          let contextChangedByEntry = false;
+
+          if (stateNodeToEnter.entry) {
+            const [
+              resultActions,
+              nextContext,
+              nextInternalEvents,
+              nextChildren
+            ] = getStateActionsAndContext(
               stateNodeToEnter.entry,
               context,
               children,
@@ -1963,26 +1945,44 @@ function microstep(
               'entry',
               stateNodeToEnter
             );
-          actions.push(...resultActions);
-          if (nextInternalEvents?.length) {
-            internalQueue.push(...nextInternalEvents);
+            actions.push(...resultActions);
+            if (nextInternalEvents?.length) {
+              internalQueue.push(...nextInternalEvents);
+            }
+            if (nextContext) {
+              context = nextContext;
+              contextChangedByEntry = true;
+            }
+            if (nextChildren) {
+              nextState = cloneMachineSnapshot(nextState, {
+                children: nextChildren
+              });
+            }
           }
-          if (nextContext) {
-            context = nextContext;
-            contextChangedByEntry = true;
-          }
-          if (nextChildren) {
-            nextState = cloneMachineSnapshot(nextState, {
-              children: nextChildren
-            });
-          }
-        }
 
-        if (contextChangedByEntry) {
-          nextState.context = context;
-          if (isDevelopment) {
-            freezeContext(context);
+          if (contextChangedByEntry) {
+            nextState = cloneMachineSnapshot(nextState, { context });
           }
+
+          // Entry can address reserved refs. Initialize them only after its
+          // context patch, before resolving the queued sends and listeners.
+          for (const { actor, input } of pendingInvokes) {
+            actorScope.system.initializeActorRef(
+              actor,
+              typeof input === 'function'
+                ? input({
+                    self: actorScope.self,
+                    context: nextState.context,
+                    event,
+                    input: stateInput,
+                    output: getEventOutput(event)
+                  })
+                : input
+            );
+          }
+        } catch (error) {
+          discardSpawnedActors(actorScope);
+          throw error;
         }
 
         if (statesForDefaultEntry.has(stateNodeToEnter)) {
@@ -2009,13 +2009,9 @@ function microstep(
               internalQueue.push(...initialInternalEvents);
             }
             if (initialContext !== undefined) {
-              nextState.context = mergeContextPatch(
-                nextState.context,
-                initialContext
-              );
-              if (isDevelopment) {
-                freezeContext(nextState.context);
-              }
+              nextState = cloneMachineSnapshot(nextState, {
+                context: mergeContextPatch(nextState.context, initialContext)
+              });
             }
             if (initialInput && defaultTransition.target) {
               for (const targetNode of defaultTransition.target) {
@@ -2350,8 +2346,11 @@ export function getTransitionResult(
         actorScope,
         actions,
         internalEvents,
-        true,
-        options?.resolveActions ?? true
+        {
+          registeredActors: snapshot.machine.sources.actors,
+          actorSubscriptions: true,
+          createActors: options?.resolveActions ?? true
+        }
       );
       const speculativeSelection =
         options?.resolveActions === false
@@ -2424,12 +2423,18 @@ export function getTransitionResult(
   };
 }
 
-/** The default microstep bound for one macrostep. */
-const DEFAULT_MAX_ITERATIONS = 1000;
+/**
+ * Microsteps one macrostep may take before development builds warn, when the
+ * machine sets no `maxIterations` bound.
+ */
+const LONG_MACROSTEP_WARNING = 1000;
+
+/** Machines that already logged the long-macrostep warning. */
+const warnedLongMacrostep = new WeakSet<object>();
 
 /**
  * Thrown when one macrostep takes more microsteps than the machine's
- * `options.maxIterations` (default `1000`) without reaching a stable state,
+ * `options.maxIterations` (unbounded by default) without reaching a stable state,
  * usually because eventless transitions or raised events form a cycle.
  *
  * @public
@@ -2451,13 +2456,15 @@ export class InfiniteTransitionError extends Error {
     states: StateValue[]
   ) {
     super(
-      `Infinite loop detected in actor "${actorId}" processing event "${
-        event.type
-      }": more than ${maxIterations} microsteps without reaching a stable state. Last states: ${states
-        .map((value) => JSON.stringify(value))
-        .join(
-          ' -> '
-        )}. Check for a cycle of eventless transitions or raised events, or raise the bound with createMachine({ options: { maxIterations } }).`
+      isDevelopment
+        ? `Infinite loop detected in actor "${actorId}" processing event "${
+            event.type
+          }": more than ${maxIterations} microsteps without reaching a stable state. Last states: ${states
+            .map((value) => JSON.stringify(value))
+            .join(
+              ' -> '
+            )}. Check for a cycle of eventless transitions or raised events, or raise the bound with createMachine({ options: { maxIterations } }).`
+        : xstateError(16, actorId, event.type, maxIterations)
     );
     this.name = 'InfiniteTransitionError';
     this.actorId = actorId;
@@ -2567,6 +2574,7 @@ export function macrostep(
       }
     }
 
+    completeSpawnAllocation(actorScope);
     return { snapshot: nextSnapshot, microsteps };
   }
 
@@ -2615,7 +2623,11 @@ export function macrostep(
   if (event.type === XSTATE_TIMER) {
     const key = readTimerKey(event);
     const index = key
-      ? nextSnapshot.timers.findIndex((timer) => matchesTimerKey(timer, key))
+      ? nextSnapshot.timers.findIndex(
+          (timer) =>
+            matchesTimerKey(timer, key) &&
+            (!('occurrence' in event) || timer.occurrence === event.occurrence)
+        )
       : -1;
     if (index === -1) {
       return completeMacrostep();
@@ -2693,9 +2705,9 @@ export function macrostep(
     return completeMacrostep();
   }
 
-  let shouldSelectEventlessTransitions = true;
-  const maxIterations =
-    snapshot.machine.options?.maxIterations ?? DEFAULT_MAX_ITERATIONS;
+  // A timer notification must not run eventless transitions before delivery.
+  let shouldSelectEventlessTransitions = event.type !== XSTATE_TIMER;
+  const maxIterations = snapshot.machine.options?.maxIterations ?? Infinity;
   let iterationCount = 0;
   // The last few state values visited, for the infinite-loop error.
   const recentStates: StateValue[] = [];
@@ -2710,16 +2722,40 @@ export function macrostep(
         recentStates
       );
     }
+    if (
+      isDevelopment &&
+      iterationCount === LONG_MACROSTEP_WARNING + 1 &&
+      maxIterations === Infinity &&
+      !warnedLongMacrostep.has(snapshot.machine)
+    ) {
+      warnedLongMacrostep.add(snapshot.machine);
+      console.warn(
+        `Actor "${actorScope.self?.id}" took more than ${LONG_MACROSTEP_WARNING} microsteps processing event "${event.type}" without reaching a stable state. Last states: ${recentStates
+          .map((value) => JSON.stringify(value))
+          .join(
+            ' -> '
+          )}. Check for a cycle of eventless transitions or raised events. To stop a runaway macrostep with an InfiniteTransitionError, set createMachine({ options: { maxIterations } }).`
+      );
+    }
     recentStates.push(nextSnapshot.value);
     if (recentStates.length > 5) {
       recentStates.shift();
     }
 
     let selectionResults: TransitionSelectionResults | undefined;
-    let enabledTransitions: AnyTransitionDefinition[] =
-      shouldSelectEventlessTransitions
-        ? selectEventlessTransitions(nextSnapshot, nextEvent, actorScope)
-        : [];
+    let enabledTransitions: AnyTransitionDefinition[] = [];
+    if (shouldSelectEventlessTransitions) {
+      // Share the selection evaluations with `microstep`, as the event
+      // transition branch does, so a taken eventless transition function is
+      // not evaluated again when its result is applied.
+      selectionResults = new Map();
+      enabledTransitions = selectEventlessTransitions(
+        nextSnapshot,
+        nextEvent,
+        actorScope,
+        selectionResults
+      );
+    }
 
     // eventless transitions should always be selected after selecting *regular* transitions
     // by assigning `undefined` to `previousState` we ensure that `shouldSelectEventlessTransitions` gets always computed to true in such a case
@@ -2813,9 +2849,11 @@ function assertSyncTransitionResult(
   if (res && typeof (res as PromiseLike<unknown>).then === 'function') {
     void Promise.resolve(res as PromiseLike<unknown>).catch(() => {});
     throw new Error(
-      kind && kind !== 'transition'
-        ? `${kind === 'entry' ? 'Entry' : 'Exit'} functions must be synchronous. The ${kind} function of state "${sourceId}" returned a promise (event "${event.type}"). Move async work into an invoked or spawned actor, or enq.effect.`
-        : `Transition functions must be synchronous. Transition for event "${event.type}" in state "${sourceId}" returned a promise. Move async work into an invoked or spawned actor, or enq.effect.`
+      !isDevelopment
+        ? xstateError(17, kind ?? 'transition', sourceId, event.type)
+        : kind && kind !== 'transition'
+          ? `${kind === 'entry' ? 'Entry' : 'Exit'} functions must be synchronous. The ${kind} function of state "${sourceId}" returned a promise (event "${event.type}"). Move async work into an invoked or spawned actor, or enq.effect.`
+          : `Transition functions must be synchronous. Transition for event "${event.type}" in state "${sourceId}" returned a promise. Move async work into an invoked or spawned actor, or enq.effect.`
     );
   }
 }
@@ -2962,11 +3000,14 @@ function cancelTimers(
 function selectEventlessTransitions(
   snapshot: AnyMachineSnapshot,
   event: AnyEventObject,
-  actorScope: AnyActorScope
+  actorScope: AnyActorScope,
+  selectionResults?: TransitionSelectionResults
 ) {
   snapshot.machine._microstepHooks?.begin(actorScope.self);
   const enabledTransitionSet: Set<AnyTransitionDefinition> = new Set();
-  const atomicStates = snapshot.nodes.filter(isAtomicStateNode);
+  const atomicStates = snapshot.nodes
+    .filter(isAtomicStateNode)
+    .sort((a, b) => a.order - b.order);
 
   for (const atomicStateNode of atomicStates) {
     loop: for (
@@ -2979,7 +3020,14 @@ function selectEventlessTransitions(
       }
       for (const transition of stateNode.always) {
         if (
-          evaluateCandidate(transition, event, snapshot, stateNode, actorScope)
+          evaluateCandidate(
+            transition,
+            event,
+            snapshot,
+            stateNode,
+            actorScope,
+            selectionResults
+          )
         ) {
           enabledTransitionSet.add(transition);
           break loop;
@@ -2992,7 +3040,13 @@ function selectEventlessTransitions(
     Array.from(enabledTransitionSet),
     new Set(snapshot.nodes),
     snapshot,
-    createTransitionResultResolver(snapshot, event, actorScope, false)
+    createTransitionResultResolver(
+      snapshot,
+      event,
+      actorScope,
+      false,
+      selectionResults
+    )
   );
 }
 
@@ -3033,6 +3087,12 @@ export function evaluateCandidate(
   }
 
   if (candidate.to) {
+    const cachedEvaluation = selectionResults?.get(candidate);
+    if (cachedEvaluation) {
+      // A shared ancestor is visited once per parallel leaf; reuse the first
+      // evaluation so a later one can't overwrite it in `selectionResults`.
+      return cachedEvaluation.enabled;
+    }
     const evaluation = evaluateTransitionFunction(
       candidate.to,
       snapshot.context,

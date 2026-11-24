@@ -165,4 +165,26 @@ describe('StateId', () => {
       }
     });
   });
+
+  it('keeps child state ids indexable on `self` in callbacks', () => {
+    createMachine({
+      context: ({ self }) => {
+        self.getSnapshot().getMeta()['active'];
+        return {};
+      },
+      initial: 'active',
+      states: {
+        active: {
+          entry: ({ self }) => {
+            self.getSnapshot().getMeta()['active'];
+          },
+          on: {
+            NEXT: ({ self }) => {
+              self.getSnapshot().getMeta()['active'];
+            }
+          }
+        }
+      }
+    });
+  });
 });

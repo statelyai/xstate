@@ -1,5 +1,330 @@
 # xstate
 
+## 6.0.0-beta.5
+
+### Patch Changes
+
+- a82fa99: Select event transitions from each active leaf in parallel states, matching `always`. A shared ancestor transition can now run alongside a region transition for the same event if they exit no states in common. For example, the ancestor can exit the parallel state while a region runs a targetless handler. To restrict where an event handler is selected, define it in the regions that should handle it.
+  
+  Check active leaves in definition order for both event and `always` transitions. Changing the active leaf in a region no longer changes which region has priority when their transitions conflict.
+- 8f2d4f0: Document when a completing machine captures its output. Context updates from completion exits appear in the completed snapshot's context after the output has been captured.
+- a3354a9: Accept `route: true` in machine configs and let transition functions call `enq.raise({ type: 'xstate.route', to: '#id' })`.
+  
+  Keep inferred declarations compact when a machine defines multiple routes.
+- 0cb0e9c: Breaking change in v6 beta. A transition between parallel regions now exits and reenters the common parallel state, matching SCXML. Untargeted regions restart at their initial states, entry and exit handlers run again, and invoked actors in exited states stop. To move only the receiving region, raise an event with `enq.raise(...)` and handle it inside that region.
+- 3893cf0: Release the first snapshot in pure-transition lineages when only a later snapshot remains in use, while preserving lazy actor identity.
+- 337d346: Reject seconds duration strings without a number, such as `s` and `.s`, instead of treating them as zero milliseconds. Async actors reject unparseable timeouts without starting work. Configured delays with those names still work, including zero-valued delays loaded from JSON or SCXML configuration.
+- ef35593: Reject `waitFor` with a predicate's thrown value and release its timer, actor subscription, and abort listener instead of leaving the wait pending.
+
+## 6.0.0-beta.4
+
+### Patch Changes
+
+- cfc1520: Ignore queued timer notifications from cancelled schedulings when a replacement reuses the same ID. Replacements wait for their own deadlines in native and Effect actors, including restored native timers. Preserve anonymous timer keys when named or built-in timers are also scheduled.
+  
+  Custom timer hosts must preserve the scheduling key's `occurrence` in the firing event. Exclude `occurrence` from logical replacement and cancellation lookup keys.
+  
+  Effect snapshot schemas must preserve the optional `nextTimerOccurrence` metadata.
+- cfc1520: Check ancestor context refinements when a transition targets a descendant, including declared `#id` targets, target arrays, and sibling-relative targets inside a refined parent. Require a compatible context patch when the source does not satisfy those refinements.
+  
+  Preserve literal targets returned by choice functions so unknown static targets are TypeScript errors in `createMachine` and `setup().createMachine`. Computed `string` targets remain supported.
+- c72a899: Fixed eventless (`always`) transition functions being called twice per microstep. The evaluation that selects the transition is now the one that is executed, as for event transitions, so a transition function that returns different results on repeated calls no longer follows a result other than the one it was selected with. This does not cover transition functions that call `enq.spawn`, `enq.listen`, or `enq.subscribeTo`: those are still evaluated again when applied, since the selection-time evaluation aborts before it can produce a result.
+- bcd4510: Document timer persistence with tested examples for preserving deadlines, pausing while offline, and restarting delays. Clarify overdue timer delivery and custom clock limitations.
+- f54b3e2: Fix `snapshot.can()` throwing when a transition calls `enq.spawn()` with a registered actor name.
+- 3f5a26e: Preserve declared emitted-event names and payloads on machine callback `self` arguments, including context initialization and typed child input.
+  
+  ```ts
+  const machine = setup({
+    schemas: {
+      emitted: { progress: types<{ percent: number }>() }
+    }
+  }).createMachine({
+    entry: ({ self }) => {
+      self.on('progress', (event) => {
+        console.log(event.percent); // number
+      });
+      // @ts-expect-error Unknown emitted-event type.
+      self.on('unknown', () => {});
+    }
+  });
+  ```
+- 8231fb3: Evaluate invoke input after applying the context patch returned by the invoking state's entry function. Invoke references remain available during entry for sends, listeners, and subscriptions. Failed entry or invoke input evaluation releases new actor ids and registry keys so the state can be retried.
+  
+  ```ts
+  loading: {
+    entry: () => ({ context: { consent: 'granted' } }),
+    invoke: {
+      src: loadUser,
+      input: ({ context }) => ({ consent: context.consent }) // 'granted'
+    }
+  }
+  ```
+
+## 6.0.0-beta.3
+
+### Minor Changes
+
+- 417e5f4: Callback, event observable, listener, and subscription actors now process events they send to a parent in their own transitions. `createEffectEventStreamLogic` actors do the same. Inspection reports each outgoing event on the source transition, and subscribers receive a snapshot notification for that transition.
+- 65afd99: Add eventless `always` transitions to `xstate/fsm`. Machines follow these transitions during initialization and after handled events until no eventless transition is enabled.
+  
+  ```ts
+  import { createFSM } from 'xstate/fsm';
+  
+  const machine = createFSM({
+    initial: 'checking',
+    states: {
+      checking: { always: { target: 'ready' } },
+      ready: {}
+    }
+  });
+  
+  machine.initialState.value; // 'ready'
+  ```
+  
+  Breaking beta change: `xstate/fsm` now requires object transition targets for `on` and `always`, matching the main XState API. Replace `on: { GO: 'ready' }` with `on: { GO: { target: 'ready' } }`. Keep `initial: 'idle'` unchanged. Transition functions must return an object or `undefined`.
+  
+  Run the `@xstate/codemod` `string-targets` transform to update inline FSM configurations. Review separately stored configurations and functions returning strings manually.
+
+### Patch Changes
+
+- 0eb9872: Fix delayed transitions and delayed raised events taking an enabled `always` transition before handling the delayed event. They now handle the delayed event first, then reevaluate eventless transitions, preserving v5 ordering. A delayed send also no longer reevaluates the sender's eventless transitions before delivering its event.
+- 9eb940c: Fix targetless transitions with `reenter: true` unexpectedly running entry behavior. Transitions without a target now preserve the active states without running exit or entry behavior, while still applying context updates and transition effects.
+
+## 6.0.0-beta.2
+
+### Major Changes
+
+- 3cbcc3f: Serialized output no longer uses field names that start with `$` or `_`. Stores such as Convex reject both prefixes, and MongoDB restricts `$`-prefixed field names, so persisted snapshots, `systemTransition` snapshots and effect descriptors could not be stored without rewriting them.
+  
+  | Before                    | After                    | Where                                                                                                      |
+  | ------------------------- | ------------------------ | ---------------------------------------------------------------------------------------------------------- |
+  | `{ $actor: address, incarnation }` | `{ '@actor': address, incarnation }` | `SerializedActorRef`: persisted context, `systemTransition` snapshots, effect descriptors, `sendTo` targets, dead letters, `@xstate/effect` actor `toJSON()` |
+  | `_nextTimerId`            | `nextTimerId`            | Persisted snapshots, `systemTransition` snapshots                                                          |
+  | `_nextActorIds`           | `nextActorIds`           | Persisted snapshots, `systemTransition` snapshots                                                          |
+  | `_stateInputs`            | `stateInputs`            | `systemTransition` snapshots (persisted snapshots already used `stateInputs`)                              |
+  | `{ $error: name, message }` | `{ '@error': name, message }` | `systemTransition` snapshots, `@xstate/test` traces                                                        |
+  | `{ $stateNode: id }`, `{ $systemMapper: key }` | `{ '@stateNode': id }`, `{ '@systemMapper': key }` | `systemTransition` snapshots                                                                        |
+  
+  ```ts
+  // Before
+  { $actor: 'order/worker', incarnation: 'a:1' }
+  // After
+  { '@actor': 'order/worker', incarnation: 'a:1' }
+  ```
+  
+  `snapshot.toJSON()` no longer includes the private `_nextTimerId` and `_nextActorIds` counters.
+  
+  Snapshots written by `6.0.0-beta.1` with the old field names still restore: `restoreActor`, `restoreMachineSnapshot` and `systemTransition` read both shapes. New snapshots use only the new names. Schemas that validate persisted snapshots (for example with `machineVersions`) must use the new names.
+
+### Minor Changes
+
+- c558afa: `durable.checkpoint(snapshot)` returns a checkpoint that `restore()` accepts: the persisted snapshot, the next transition index, and the inbox of root-addressed events that settled `executeEffects` batches captured but `waitForEvent()` has not handed out. A child that completed in the last batch before a checkpoint now reaches its parent after restore, instead of leaving the parent waiting.
+  
+  ```ts
+  await db.save(durable.checkpoint(state));
+  
+  const resumed = createDurable(machine, adapter);
+  let [state, effects] = resumed.restore(await db.load());
+  await resumed.executeEffects(effects);
+  ```
+  
+  `restore()` still accepts a bare persisted snapshot.
+  
+  Long-running durable executions no longer slow down or retain earlier snapshot system views as transitions accumulate. Executions that start from the same snapshot keep separate runtimes, timers and listeners.
+
+### Patch Changes
+
+- c70dd85: fix: apply new context keys and signed-zero updates in `createFSM`, and preserve the snapshot for unchanged `NaN` values
+- 975ba72: An inline invoke's `onDone.event.output` is now `unknown` with no registered
+  actor sources. Use `s.createInvoke({ src, onDone })` or register the
+  actor in `setup({ actors })` to get its exact output type.
+  
+  ```ts
+  const s = setup({});
+  const machine = s.createMachine({
+    invoke: s.createInvoke({
+      src: loadUser,
+      onDone: ({ event }) => ({ context: { user: event.output } })
+    })
+  });
+  ```
+  
+  A literal invoke ID now types its entry in `snapshot.children` from the invoked
+  actor. An empty `schemas.events: {}` no longer erases the context and input
+  types in a final state's output callback. Restoring a machine held in Vue
+  reactive state now keeps its state value consistent after the next transition.
+- 0ebc550: Transitions that read `self` or `system` no longer keep earlier snapshots alive.
+- bbc8797: The error for a state key with an unescaped `.` now uses plain punctuation: `State key "foo.bar" contains ".". Nest the states or escape it as "foo\\.bar".`
+- 757b605: `createFSM` ignores inherited state definitions when looking up outgoing transitions. Own state definitions, including state maps with a null prototype, continue to work.
+- bcd3840: With an inspector attached, events that an actor sends outside a transition, such as a callback actor's `sendBack` or an observable's values relayed to its parent, are no longer held in memory until that actor's next transition. They are also no longer listed in the `sent[]` of that later `@xstate.transition` event. `sent[]` lists only the events the transition itself sent. The receiving actor's `@xstate.transition` still reports each event with its `sourceRef`.
+
+## 6.0.0-beta.1
+
+### Patch Changes
+
+- 599ec3c: Unknown transition targets are now type errors in `setup().createMachine(...)`, not only in `createMachine(...)`. Targets returned from transition functions are also checked:
+  
+  ```ts
+  setup({}).createMachine({
+    initial: 'a',
+    states: {
+      a: {
+        on: {
+          // Type error: 'bb' is not a state
+          GO: () => ({ target: 'bb' })
+        }
+      },
+      b: {}
+    }
+  });
+  ```
+  
+  Dynamic (non-literal) string targets are still accepted.
+
+## 6.0.0-beta.0
+
+### Minor Changes
+
+- 81dd3dd: Restoring a persisted snapshot moved out of `createActor` into `restoreActor`, exported from the new `xstate/persist` entry point. `createActor` only starts fresh actors; passing `snapshot` throws with the replacement.
+  
+  ```ts
+  // Before
+  const actor = createActor(machine, { snapshot: persisted });
+  
+  // After
+  import { restoreActor } from 'xstate/persist';
+  
+  const actor = restoreActor(machine, persisted);
+  ```
+  
+  `restoreActor(logic, snapshot, options?)` works for any actor logic and accepts the `createActor` options except `input`. Pass `system` to restore into a system from `createSystem()`:
+  
+  ```ts
+  const actor = restoreActor(machine, persisted, { system });
+  ```
+  
+  Machine snapshots are validated and migrated, and invoked and spawned children are restored. A snapshot that cannot be restored produces an actor with an `'error'` snapshot. `machine.restoreSnapshot()` is removed.
+  
+  `machine.snapshotSchema` and `machine.eventSchema` are now functions:
+  
+  ```ts
+  // Before
+  await machine.snapshotSchema['~standard'].validate(value);
+  await machine.eventSchema['~standard'].validate(input);
+  
+  // After
+  import { eventSchema } from 'xstate';
+  import { snapshotSchema } from 'xstate/persist';
+  
+  await snapshotSchema(machine)['~standard'].validate(value);
+  await eventSchema(machine)['~standard'].validate(input);
+  ```
+  
+  `machineVersions([...])` accepts machines and `{ id, version, snapshotSchema, eventSchema }` descriptors as before.
+- 047cfb5: Leftover v5 configuration now throws in every build instead of only in development, so it cannot be silently ignored:
+  
+  - `createMachine(config, implementations)` and `setup(...).createMachine(config, implementations)` throw. Declare implementations in `setup({ ... })` or pass them to `machine.provide({ ... })`.
+  - `services`, `activities` and `devTools` in a machine config throw. They previously only warned in development.
+  - `createActor(...)` throws on an option it does not read. Removed options (`systemId`, `state`, `devTools`, `parent`, `deferEvents`, `execute`) throw with their replacement; any other unknown option throws with the list of supported options.
+  
+  ```ts
+  createActor(machine, { systemId: 'payments' });
+  // Error: The "systemId" actor option was renamed. Use "registryKey": createActor(logic, { registryKey }), and look the actor up with system.get(registryKey).
+  ```
+  
+  `predictableActionArguments`, `preserveActionOrder` and `strict` change nothing in v6 and still only warn in development.
+- 965c250: Macrosteps are unbounded by default, as in v5. `options.maxIterations` no longer defaults to `1000`, so a machine whose eventless transitions or raised events take more than 1000 microsteps for one event keeps running instead of erroring. In development builds, a macrostep that passes 1000 microsteps logs a warning once per machine. Set `maxIterations` to turn a runaway macrostep into an `InfiniteTransitionError`:
+  
+  ```ts
+  const machine = createMachine({
+    options: { maxIterations: 5000 },
+    // ...
+  });
+  ```
+
+### Patch Changes
+
+- 6cf6982: XState v6 enters beta. No further breaking changes are planned for APIs tagged `@public`; any that are needed will be called out with a migration path. APIs tagged `@experimental` may still change.
+- 308c52d: `self` in actions, transition functions, context factories, input mappers and delay functions is typed as a machine actor ref instead of `any` in its children and meta positions. Delay and `after` functions now receive the machine's emitted event type.
+- a2e4161: Production builds report errors and diagnostics as short codes. Each message names the code, the values that identify the failing state, event, or actor, and a link to its entry in the error code reference:
+  
+  ```text
+  XState error E1 ("services"). See https://github.com/statelyai/xstate/blob/next/docs/errors.md#e1
+  ```
+  
+  Development messages are unchanged. Error classes and names are the same in both builds.
+- 59fc7cd: `createMachine` throws when an `on` key is a v5 suffixed lifecycle event type such as `'xstate.done.actor.job'`, `'xstate.error.actor.job'`, `'xstate.done.state.form'` or `'xstate.after.1000.loading'`. v6 never sends these types, so the transition never fired. The error names the replacement:
+  
+  ```ts
+  // Throws: Transition "xstate.done.actor.job" in state "loading" never fires ...
+  on: { 'xstate.done.actor.job': { target: 'done' } }
+  
+  // Use the category type and select the child with `matches`
+  on: { 'xstate.done.actor': { matches: { actorId: 'job' }, target: 'done' } }
+  ```
+  
+  Wildcards such as `'xstate.done.actor.*'` and the `'xstate.snapshot.actor'` type are unaffected.
+
+## 6.0.0-alpha.73
+
+### Patch Changes
+
+- 6ef5f1f: Async logic that resolves `null` now reports `null` as its output instead of `undefined`. Rejecting with `null` likewise reports `null` as the error.
+  
+  ```ts
+  const logic = createAsyncLogic({ run: async () => null });
+  // snapshot.output === null
+  // parent receives { type: 'xstate.done.actor', output: null, ... }
+  ```
+
+## 6.0.0-alpha.72
+
+### Patch Changes
+
+- 129fd6b: Events sent by a child actor to a parent started with `createEffectActor` now retain their send order, including bursts from promise continuations.
+  
+  Durable hosts with a single FIFO mailbox can route all root events through their adapter:
+  
+  ```ts
+  const durable = createDurable(machine, adapter, { captureRootEvents: false });
+  ```
+
+## 6.0.0-alpha.71
+
+### Minor Changes
+
+- 749955a: Observe emitted events from every actor in a system with `createSystem({ onEmitted })`. The callback receives the source actor and original event, including emissions from invoked and spawned children.
+  
+  ```ts
+  const system = createSystem({
+    onEmitted: ({ actorRef, event }) => {
+      analytics.track(`${actorRef.id}.${event.type}`, event);
+    }
+  });
+  
+  const root = system.createActor(applicationMachine);
+  root.start();
+  ```
+  
+  Use `system.onEmitted(listener)` for a subscription you can remove with `.unsubscribe()`. Existing `actor.on(...)` handlers continue to observe only that actor's emissions.
+- 2cac9ae: Keep model traversal paths distinct when state inputs or remembered history differ, and fix published declarations for consumers using exact optional properties with library checking enabled.
+  
+  Directed graphs now include static eventless transitions and report function-based destinations that cannot be extracted. The experimental `getMachineSerializationDiagnostics(machine)` helper identifies values that need runtime bindings or cannot be preserved by machine JSON, including omitted `undefined` object properties and array entries.
+  
+  Add JSON CLI commands for version-matched documentation, inspection, definition validation, effect-free simulation, bounded state assertions, counterexample replay, and structural diffs. Run `npx xstate docs --json` to find the installed agent guide and API stability manifest. The data-only CLI refuses code expressions and does not execute external effects or claim formal proofs.
+
+### Patch Changes
+
+- 2672ea8: Preserve the context of previously captured machine snapshots when entry functions return context patches.
+- 29ead0b: Clarify how imported SCXML machines differ from native XState v6 machines, including transition domains, event matching, error handling, and the supported execution profile.
+  
+  Fix SCXML executable content ordering: all state exits finish before selected transition content runs, and all transition content finishes before state entry. Scripts can mutate declared arrays and plain objects while preserving previous snapshots.
+- 0cd2e26: Reject malformed persisted state values, children, and timers consistently during snapshot parsing and restoration. Invalid snapshots now produce an `InvalidSnapshotError` instead of an incidental `TypeError` or plain `Error`.
+  
+  Report unhandled public `xstate.*` events through `onUnhandledEvent` and development warnings, including obsolete suffixed lifecycle names such as `xstate.done.actor.save`.
+  
+  Reject the removed `parent` option passed to `createActor` with migration guidance. Create child actors through `invoke`, `spawn`, or `enq.spawn`.
+
 ## 6.0.0-alpha.70
 
 ### Major Changes

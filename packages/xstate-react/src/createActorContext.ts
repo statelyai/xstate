@@ -3,6 +3,7 @@ import { Actor, ActorOptions, AnyActorLogic, SnapshotFrom } from 'xstate';
 import { useActorRef } from './useActorRef';
 import { useSelector as useSelectorUnbound } from './useSelector';
 
+/** @public */
 export function createActorContext<TLogic extends AnyActorLogic>(
   actorLogic: TLogic,
   actorOptions?: ActorOptions<TLogic>
@@ -16,6 +17,11 @@ export function createActorContext<TLogic extends AnyActorLogic>(
     children: React.ReactNode;
     options?: ActorOptions<TLogic>;
     logic?: TLogic;
+    /**
+     * An already-created actor (e.g. from `restoreActor`) to provide instead
+     * of creating one from `logic` and `options`. Create it once.
+     */
+    actor?: Actor<TLogic>;
   }) => React.ReactElement<any, any>;
 } {
   const ReactContext = React.createContext<Actor<TLogic> | null>(null);
@@ -25,16 +31,18 @@ export function createActorContext<TLogic extends AnyActorLogic>(
   function Provider({
     children,
     logic: providedLogic = actorLogic,
-    options: providedOptions
+    options: providedOptions,
+    actor: providedActor
   }: {
     children: React.ReactNode;
     logic: TLogic;
     options?: ActorOptions<TLogic>;
+    actor?: Actor<TLogic>;
   }) {
-    const actor = useActorRef(providedLogic, {
-      ...actorOptions,
-      ...providedOptions
-    });
+    const actor = (useActorRef as any)(
+      providedActor ?? providedLogic,
+      providedActor ? undefined : { ...actorOptions, ...providedOptions }
+    ) as Actor<TLogic>;
 
     return React.createElement(OriginalProvider, {
       value: actor,

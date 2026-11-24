@@ -1,10 +1,37 @@
-/* @jsxImportSource solid-js */
-import { createMachine } from 'xstate';
+/* @jsxImportSource @solidjs/web */
+import { createActor, createMachine } from 'xstate';
+import { restoreActor } from 'xstate/persist';
 import { render, fireEvent, screen } from '@solidjs/testing-library';
-import { useActorRef } from '../src/index.ts';
-import { createEffect } from 'solid-js';
+import { useActor, useActorRef } from '../src/index.ts';
+import { flush, onSettled } from 'solid-js';
 
 describe('useActorRef', () => {
+  it('uses a ready actor as is, starting it on mount and stopping it on unmount', () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: { a: { on: { NEXT: { target: 'b' } } }, b: {} }
+    });
+    const source = createActor(machine).start();
+    source.send({ type: 'NEXT' });
+    const actor = restoreActor(machine, source.getPersistedSnapshot());
+    source.stop();
+    let received: unknown;
+
+    const App = () => {
+      const [snapshot, , actorRef] = useActor(actor);
+      received = actorRef;
+      return <div data-testid="value">{String(snapshot.value)}</div>;
+    };
+
+    const { unmount } = render(() => <App />);
+    expect(received).toBe(actor);
+    expect(screen.getByTestId('value').textContent).toBe('b');
+    expect(actor.getSnapshot().status).toBe('active');
+
+    unmount();
+    expect(actor.getSnapshot().status).toBe('stopped');
+  });
+
   it('observer should be called with next state', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
     const machine = createMachine({
@@ -22,18 +49,19 @@ describe('useActorRef', () => {
     const App = () => {
       const service = useActorRef(machine);
 
-      createEffect(() => {
-        service.subscribe((state) => {
+      onSettled(() => {
+        const { unsubscribe } = service.subscribe((state) => {
           if (state.matches('active')) {
             resolve();
           }
         });
+        return unsubscribe;
       });
 
       return (
         <button
           data-testid="button"
-          onclick={() => {
+          onClick={() => {
             service.send({ type: 'ACTIVATE' });
           }}
         />
@@ -44,6 +72,8 @@ describe('useActorRef', () => {
     const button = screen.getByTestId('button');
 
     fireEvent.click(button);
+
+    flush();
 
     return promise;
   });
@@ -65,18 +95,19 @@ describe('useActorRef', () => {
     const App = () => {
       const service = useActorRef(machine);
 
-      createEffect(() => {
-        service.subscribe((state) => {
+      onSettled(() => {
+        const { unsubscribe } = service.subscribe((state) => {
           if (state.matches('active')) {
             resolve();
           }
         });
+        return unsubscribe;
       });
 
       return (
         <button
           data-testid="button"
-          onclick={() => {
+          onClick={() => {
             service.send({ type: 'ACTIVATE' });
           }}
         />
@@ -87,6 +118,8 @@ describe('useActorRef', () => {
     const button = screen.getByTestId('button');
 
     fireEvent.click(button);
+
+    flush();
 
     return promise;
   });

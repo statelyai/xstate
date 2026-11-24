@@ -5,6 +5,8 @@ description: Observe actor systems and transitions.
 
 Pass an inspector to the root actor with the `inspect` option.
 
+> **Experimental:** the inspection event types (`InspectionEvent`, `ActorInspectionEvent`, `TransitionInspectionEvent`) may change in a minor release.
+
 ```ts
 const actor = createActor(machine, {
   inspect: (inspectionEvent) => {
@@ -42,7 +44,9 @@ Both event types carry `rootId`, the session ID of the root actor, and `actorRef
 | `snapshot` | The resulting snapshot. |
 | `microsteps` | The microstep transition definitions taken. |
 | `actions` | The executed actions, as `{ type, params }`. |
-| `sent` | Events relayed to other actors, as `{ targetRef, targetId, event, delay, id }`. |
+| `sent` | Events sent by the actor, including events sent to itself, as `{ targetRef, targetId, event, delay, id }`. |
+
+Callback `sendBack`, event observable values, and events mapped by `enq.listen()` or `enq.subscribeTo()` enter the source actor's mailbox before reaching the parent. The source reports a transition with the parent event in `sent`. A `createEffectEventStreamLogic` actor reports its stream items the same way.
 
 Each transition retains the source of its own event, including events queued before the actor starts or while another transition runs. Events sent through the public `actor.send(...)` method have an `undefined` source. Child initialization transitions identify the parent as their source.
 
@@ -71,3 +75,5 @@ event.microsteps, event.actions, event.sent; // '@xstate.transition'
 ```
 
 Microstep transition records contain the targets selected by function transitions. Inspection and `getMicrosteps()` expose resolved copies with a `definition` reference to the shared transition; the machine's shared transition definitions remain reusable.
+
+For visual inspection, use [`@statelyai/sdk/inspect`](inspect-actor-systems.md#5-use-the-visual-inspector). See [Migrate to SDK inspection](migrate-inspector.md) if you use the legacy `@statelyai/inspect` package.

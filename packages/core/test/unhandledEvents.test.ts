@@ -113,9 +113,7 @@ describe('unhandled events', () => {
 
   it.each([
     [false, 'xstate.done.actor.save'],
-    [true, 'xstate.done.actor.save'],
-    [false, 'xstate.snapshot.actor'],
-    [true, 'xstate.snapshot.actor']
+    [true, 'xstate.done.actor.save']
   ] as const)(
     'reports unhandled framework names with validation %s and type %s',
     (validate, type) => {

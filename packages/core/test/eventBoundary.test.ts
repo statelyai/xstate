@@ -2,6 +2,7 @@ import { z } from 'zod';
 import {
   createActor,
   createMachine,
+  deliverEvent,
   initialTransition,
   setup,
   transition,
@@ -130,6 +131,84 @@ describe('event boundary: reject and report', () => {
       eventOrigin: 'external',
       reason: 'internalEvent'
     });
+  });
+
+  it.each([
+    'xstate.done.actor',
+    'xstate.error.actor',
+    'xstate.snapshot.actor',
+    'xstate.done.state',
+    'xstate.error.execution'
+  ])('rejects ordinary sends of the reserved notification %s', (type) => {
+    const onRejectedEvent = vi.fn();
+    const actor = createActor(createValidatedMachine(), {
+      onRejectedEvent
+    }).start();
+    const before = actor.getSnapshot();
+    const send = actor.send as (event: AnyEventObject) => void;
+
+    send({ type });
+
+    expect(actor.getSnapshot()).toBe(before);
+    expect(onRejectedEvent).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        event: { type },
+        eventOrigin: 'external',
+        reason: 'internalEvent'
+      })
+    );
+    actor.stop();
+  });
+
+  it('rejects an ordinary lifecycle-shaped send from an invoked child', () => {
+    const child = createMachine({
+      on: {
+        NOTIFY: ({ parent }, enq) => {
+          enq.sendTo(parent, { type: 'xstate.snapshot.actor' });
+        }
+      }
+    });
+    const onRejectedEvent = vi.fn();
+    const parent = createMachine({ invoke: { id: 'child', src: child } });
+    const actor = createActor(parent, { onRejectedEvent }).start();
+    actor.getSnapshot().children.child?.send({ type: 'NOTIFY' });
+
+    expect(onRejectedEvent).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        event: { type: 'xstate.snapshot.actor' },
+        eventOrigin: 'actor',
+        reason: 'internalEvent'
+      })
+    );
+    actor.stop();
+  });
+
+  it('delivers runtime completion once even if a host repeats local delivery', () => {
+    const onRejectedEvent = vi.fn();
+    const onDone = vi.fn(() => ({}));
+    const job = createMachine({ type: 'final' });
+    const parent = createMachine({
+      invoke: { id: 'job', src: job, onDone }
+    });
+    const actor = createActor(parent, { onRejectedEvent });
+    actor.system.runtime = {
+      sendEvent(source, target, event) {
+        deliverEvent(source, target, event);
+        if (event.type === 'xstate.done.actor') {
+          deliverEvent(source, target, event);
+        }
+      }
+    };
+    actor.start();
+
+    expect(onDone).toHaveBeenCalledOnce();
+    expect(onRejectedEvent).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        event: expect.objectContaining({ type: 'xstate.done.actor' }),
+        reason: 'internalEvent'
+      })
+    );
+    actor.stop();
   });
 
   it('pure transition() returns the snapshot unchanged with a rejection effect', () => {

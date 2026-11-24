@@ -6,6 +6,7 @@ import {
   setup,
   StateId
 } from '../src/index.ts';
+import { restoreActor } from '../src/persist/index.ts';
 
 describe('state meta data', () => {
   const enter_walk = () => {};
@@ -187,9 +188,10 @@ describe('state meta data', () => {
       }
     });
 
-    const actor = createActor(machine, {
-      snapshot: machine.resolveState({ value: 'second' })
-    });
+    const actor = restoreActor(
+      machine,
+      machine.resolveState({ value: 'second' })
+    );
     actor.start();
 
     expect(actor.getSnapshot().getMeta()).toEqual({

@@ -1,6 +1,6 @@
 {
   "name": "@xstate/vue",
-  "version": "6.0.0-alpha.4",
+  "version": "6.0.0-beta.1",
   "description": "XState tools for Vue",
   "keywords": [
     "state",
@@ -53,12 +53,13 @@
     "url": "https://github.com/statelyai/xstate/issues"
   },
   "peerDependencies": {
-    "vue": "^3.0.0",
+    "vue": "^3.2.0",
     "xstate": "workspace:^"
   },
   "devDependencies": {
     "@testing-library/vue": "^8.1.0",
     "@vitejs/plugin-vue": "^6.0.8",
+    "@vueuse/shared": "^15.0.0",
     "vue": "3.5.27",
     "xstate": "workspace:^"
   }

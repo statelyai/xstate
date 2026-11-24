@@ -9,6 +9,7 @@ import {
   createEventObservableLogic,
   createObservableLogic
 } from '../src';
+import { restoreActor } from '../src/persist/index.ts';
 
 // mocked reportUnhandledError due to unknown issue with vitest and global error
 // handlers not catching thrown errors
@@ -532,9 +533,7 @@ describe('event emitter', () => {
     const persistedSnapshot = actor.getPersistedSnapshot();
 
     // Rehydrate a new instance of the root actor using the persisted snapshot
-    const restoredActor = createActor(machine, {
-      snapshot: persistedSnapshot
-    });
+    const restoredActor = restoreActor(machine, persistedSnapshot);
 
     restoredActor.getSnapshot().children.cb!.on('emitted', (ev) => {
       spy(ev);

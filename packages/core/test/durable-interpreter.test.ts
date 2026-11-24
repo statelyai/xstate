@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { restoreMachineSnapshot } from '../src/persist/index.ts';
 import {
   type AnyActor,
   type AnyMachineSnapshot,
@@ -322,7 +323,8 @@ describe('durable interpreter adapter', () => {
       resumedRuntime.operations.find(({ type }) => type === 'schedule')?.dueAt
     ).toBe(startedAt + fiveMinutes);
 
-    const restoredSnapshot = machine.restoreSnapshot(
+    const restoredSnapshot = restoreMachineSnapshot(
+      machine,
       persistedRecord.snapshot as Snapshot<unknown>
     );
     const [timedOutSnapshot, timerEffects] = machine.transition(

@@ -1,3 +1,4 @@
+import { upgradeLegacySystemSnapshot } from './legacySnapshot.ts';
 import { createMachineSnapshot, isMachineSnapshot } from './State.ts';
 import { createDoneActorEvent, createErrorActorEvent } from './eventUtils.ts';
 import { encodeAddressSegment, getActorIdPrefix } from './system.ts';
@@ -7,6 +8,7 @@ import { TimeoutError } from './actors/promise.ts';
 import { systemLogicMetadata } from './systemLogicMetadata.ts';
 import { listenerLogic } from './actors/listener.ts';
 import { subscriptionLogic } from './actors/subscription.ts';
+import { XSTATE_ATTACHED_FORWARD } from './actors/attached.ts';
 import { matchesEventDescriptor } from './utils.ts';
 import { IndexedHeap } from './IndexedHeap.ts';
 import { XSTATE_STOP, XSTATE_STOP_EFFECT } from './constants.ts';
@@ -24,7 +26,8 @@ import type {
   AnyEventObject,
   ExecutableEffect,
   InputFrom,
-  TimerKey
+  TimerKey,
+  LogicalTimer
 } from './types.ts';
 
 /** Immutable definitions for a pure actor system. @experimental */
@@ -42,7 +45,7 @@ export interface SystemLogic<TLogic extends AnyActorLogic = AnyActorLogic> {
 
 /** An actor identity, without a live actor or runtime. @experimental */
 export interface SystemActorReference {
-  readonly $actor: string;
+  readonly '@actor': string;
   readonly incarnation: string;
 }
 
@@ -162,7 +165,7 @@ function systemTimerKey(
 ): string {
   const key = event.type === 'xstate.timer' ? readTimerKey(event) : undefined;
   return JSON.stringify([
-    source.$actor,
+    source['@actor'],
     source.incarnation,
     key ? serializeTimerKey(key) : event.type
   ]);
@@ -180,7 +183,7 @@ function isLogicalTimerPending(
 function isReference(value: any): value is SystemActorReference {
   return (
     !!value &&
-    typeof value.$actor === 'string' &&
+    typeof value['@actor'] === 'string' &&
     typeof value.incarnation === 'string'
   );
 }
@@ -203,13 +206,13 @@ function encode(
   mappers?: ReadonlyMap<(...args: any[]) => unknown, string>
 ): any {
   if (typeof value === 'function' && mappers?.has(value))
-    return { $systemMapper: mappers.get(value) };
+    return { '@systemMapper': mappers.get(value) };
   if (isHandle(value)) {
     if (!(value as any)[systemActorHandle])
       throw new Error(
         'Live actors cannot be stored in a pure system snapshot.'
       );
-    return { $actor: value.address, incarnation: value.sessionId };
+    return { '@actor': value.address, incarnation: value.sessionId };
   }
   if (!value || typeof value !== 'object') {
     if (
@@ -233,9 +236,9 @@ function encode(
     typeof value.id === 'string' &&
     Array.isArray(value.path)
   ) {
-    result = { $stateNode: value.id };
+    result = { '@stateNode': value.id };
   } else if (value instanceof Error) {
-    result = { $error: value.name, message: value.message };
+    result = { '@error': value.name, message: value.message };
   } else if (Array.isArray(value)) {
     result = value.map((item) => encode(item, seen, mappers));
   } else {
@@ -271,10 +274,22 @@ function snapshotData(
     getMeta,
     getInputs,
     toJSON,
+    // Stores such as Convex reject `_`-prefixed field names.
+    _stateInputs: stateInputs,
+    _nextTimerId: nextTimerId,
+    _nextTimerOccurrence: nextTimerOccurrence,
+    _nextActorIds: nextActorIds,
     ...data
   } = snapshot;
   return encode(
-    { ...data, nodeIds: nodes.map((node: any) => node.id) },
+    {
+      ...data,
+      stateInputs,
+      nextTimerId,
+      ...(nextTimerOccurrence > 0 && { nextTimerOccurrence }),
+      nextActorIds,
+      nodeIds: nodes.map((node: any) => node.id)
+    },
     new Set(),
     mappers
   );
@@ -336,6 +351,8 @@ class SystemReduction {
   constructor(logic: SystemLogic, snapshot: SystemSnapshot, maxSteps = 10_000) {
     if (!Number.isSafeInteger(maxSteps) || maxSteps < 1)
       throw new Error('maxSteps must be a positive integer.');
+    // TODO(v7): remove with legacySnapshot.ts.
+    snapshot = upgradeLegacySystemSnapshot(snapshot);
     this.logic = definitions(logic);
     this.mappers = logic.mappers ?? {};
     this.mapperNames = new Map(
@@ -386,30 +403,30 @@ class SystemReduction {
   }
 
   private reference(actor: AnyActor): SystemActorReference {
-    return { $actor: actor.address, incarnation: actor.sessionId as string };
+    return { '@actor': actor.address, incarnation: actor.sessionId as string };
   }
 
   private current(ref: SystemActorReference): SystemActorState | undefined {
-    const actor = this.snapshot.actors[ref.$actor];
+    const actor = this.snapshot.actors[ref['@actor']];
     return actor?.incarnation === ref.incarnation ? actor : undefined;
   }
 
   private decode(value: any, machine?: any): any {
     if (isReference(value)) return this.handle(value);
     if (!value || typeof value !== 'object') return value;
-    if (typeof value.$systemMapper === 'string') {
+    if (typeof value['@systemMapper'] === 'string') {
       const mapper =
-        Object.hasOwn(this.mappers, value.$systemMapper) &&
-        this.mappers[value.$systemMapper];
+        Object.hasOwn(this.mappers, value['@systemMapper']) &&
+        this.mappers[value['@systemMapper']];
       if (!mapper)
-        throw new Error(`Missing pure mapper '${value.$systemMapper}'.`);
+        throw new Error(`Missing pure mapper '${value['@systemMapper']}'.`);
       return mapper;
     }
-    if (typeof value.$stateNode === 'string')
-      return machine.getStateNodeById(value.$stateNode);
-    if (typeof value.$error === 'string') {
+    if (typeof value['@stateNode'] === 'string')
+      return machine.getStateNodeById(value['@stateNode']);
+    if (typeof value['@error'] === 'string') {
       const error = new Error(value.message);
-      error.name = value.$error;
+      error.name = value['@error'];
       if (error.name === 'TimeoutError')
         Object.setPrototypeOf(error, TimeoutError.prototype);
       return error;
@@ -432,9 +449,27 @@ class SystemReduction {
     return (this.logic.get(actor.src) as any)?.[systemLogicMetadata]?.kind;
   }
 
+  private forwardAttachment(
+    ref: SystemActorReference,
+    event: AnyEventObject,
+    immediate = false
+  ) {
+    if (!immediate) {
+      this.enqueue(ref, ref, { type: XSTATE_ATTACHED_FORWARD, event });
+      return;
+    }
+    this.process({
+      source: ref,
+      target: ref,
+      event: this.encode({ type: XSTATE_ATTACHED_FORWARD, event }),
+      sequence: this.snapshot.counters.sequence++
+    });
+  }
+
   private relayAttachments(
     source: SystemActorReference,
-    emitted?: AnyEventObject
+    emitted?: AnyEventObject,
+    immediate = false
   ) {
     for (const actor of Object.values(this.snapshot.actors)) {
       const kind = this.attachedKind(actor);
@@ -447,7 +482,7 @@ class SystemReduction {
       const target = (actor.input as any).actor as SystemActorReference;
       if (
         !target ||
-        target.$actor !== source.$actor ||
+        target['@actor'] !== source['@actor'] ||
         target.incarnation !== source.incarnation ||
         !actor.parent ||
         this.current(actor.parent)?.snapshot.status !== 'active'
@@ -480,10 +515,10 @@ class SystemReduction {
           );
       }
       if (event)
-        this.enqueue(
-          { $actor: actor.address, incarnation: actor.incarnation },
-          actor.parent,
-          event
+        this.forwardAttachment(
+          { '@actor': actor.address, incarnation: actor.incarnation },
+          event,
+          immediate
         );
     }
   }
@@ -493,10 +528,10 @@ class SystemReduction {
       const kind = this.attachedKind(actor);
       if (
         (kind === '@xstate.listener' || kind === '@xstate.subscription') &&
-        actor.parent?.$actor === parent.$actor &&
+        actor.parent?.['@actor'] === parent['@actor'] &&
         actor.parent.incarnation === parent.incarnation
       )
-        this.stop({ $actor: actor.address, incarnation: actor.incarnation });
+        this.stop({ '@actor': actor.address, incarnation: actor.incarnation });
     }
   }
 
@@ -517,6 +552,14 @@ class SystemReduction {
         ? createMachineSnapshot(
             {
               ...data,
+              _stateInputs: data.stateInputs,
+              _nextTimerId: data.nextTimerId,
+              _nextTimerOccurrence: (data.timers ?? []).reduce(
+                (next: number, timer: LogicalTimer) =>
+                  Math.max(next, (timer.occurrence ?? -1) + 1),
+                data.nextTimerOccurrence ?? 0
+              ),
+              _nextActorIds: data.nextActorIds,
               _nodes: data.nodeIds.map((id: string) =>
                 logic.getStateNodeById(id)
               )
@@ -547,10 +590,12 @@ class SystemReduction {
     };
     const handle = {
       [systemActorHandle]: true,
-      id: actor?.id ?? ref.$actor.split('/').at(-1),
-      address: ref.$actor,
+      id: actor?.id ?? ref['@actor'].split('/').at(-1),
+      address: ref['@actor'],
       sessionId: ref.incarnation,
-      options: { _inert: true, input: actor?.input },
+      get options() {
+        return { _inert: true, input: getState()?.input };
+      },
       get logic() {
         return getLogic();
       },
@@ -583,11 +628,15 @@ class SystemReduction {
     return {
       createActorRef: (logic: AnyActorLogic, options: any) =>
         this.allocate(logic, options),
+      initializeActorRef: (actor: AnyActor, input: unknown) =>
+        this.initializeActorRef(this.reference(actor), input),
+      discardActorRef: (actor: AnyActor) =>
+        this.discardActorRef(this.reference(actor)),
       _unregister: (actor: AnyActor) => {
         this.stopping.add(JSON.stringify(this.reference(actor)));
         for (const [key, ref] of Object.entries(this.snapshot.registry)) {
           if (
-            ref.$actor === actor.address &&
+            ref['@actor'] === actor.address &&
             ref.incarnation === actor.sessionId
           )
             delete this.snapshot.registry[key];
@@ -596,7 +645,7 @@ class SystemReduction {
       _getByAddress: (address: string) => {
         const actor = this.snapshot.actors[address];
         return actor?.snapshot.status === 'active'
-          ? this.handle({ $actor: address, incarnation: actor.incarnation })
+          ? this.handle({ '@actor': address, incarnation: actor.incarnation })
           : undefined;
       },
       get: (key: string) =>
@@ -658,16 +707,16 @@ class SystemReduction {
     const id =
       options.id ??
       `${getActorIdPrefix(options.src ?? logic)}:${this.snapshot.counters.actor}`;
-    const address = `${parent ? parent.$actor + '/' : ''}${encodeAddressSegment(id)}`;
+    const address = `${parent ? parent['@actor'] + '/' : ''}${encodeAddressSegment(id)}`;
     const occupied = this.snapshot.actors[address];
     if (occupied?.snapshot.status === 'active') {
-      const previous = { $actor: address, incarnation: occupied.incarnation };
+      const previous = { '@actor': address, incarnation: occupied.incarnation };
       if (!this.stopping.has(JSON.stringify(previous)))
         throw new Error(`Actor address '${address}' is already occupied.`);
       this.stop(previous);
     }
     const incarnation = String(this.snapshot.counters.actor++);
-    const ref = { $actor: address, incarnation };
+    const ref = { '@actor': address, incarnation };
     const state: SystemActorState = {
       id,
       address,
@@ -683,14 +732,30 @@ class SystemReduction {
       input: this.encode(options.input),
       snapshot: { status: 'active', output: undefined, error: undefined }
     };
+    if (options.registryKey && this.snapshot.registry[options.registryKey]) {
+      throw new Error(
+        `Registry key '${options.registryKey}' is already occupied.`
+      );
+    }
     this.snapshot.actors[address] = state;
     if (options.registryKey) {
-      if (this.snapshot.registry[options.registryKey])
-        throw new Error(
-          `Registry key '${options.registryKey}' is already occupied.`
-        );
       this.snapshot.registry[options.registryKey] = ref;
     }
+    try {
+      if (!options._deferInitialization) {
+        this.initializeActorRef(ref, options.input);
+      }
+      return this.handle(ref);
+    } catch (error) {
+      this.discardActorRef(ref);
+      throw error;
+    }
+  }
+
+  private initializeActorRef(ref: SystemActorReference, input: unknown) {
+    const state = { ...this.current(ref)!, input: this.encode(input) };
+    this.snapshot.actors[ref['@actor']] = state;
+    const logic = this.logic.get(state.src)!;
     const scope = this.scope(ref);
     const result = logic.initialTransition(this.decode(state.input), scope);
     const [snapshot, effects] = finalizeTransitionResult(
@@ -700,14 +765,43 @@ class SystemReduction {
     );
     this.store(ref, snapshot);
     this.initialEffects.set(JSON.stringify(ref), effects);
-    return this.handle(ref);
+  }
+
+  private discardActorRef(ref: SystemActorReference) {
+    const actor = this.current(ref);
+    if (!actor || actor.started) return;
+    for (const child of Object.values(this.snapshot.actors)) {
+      if (
+        child.parent?.['@actor'] === ref['@actor'] &&
+        child.parent.incarnation === ref.incarnation
+      ) {
+        this.discardActorRef({
+          '@actor': child.address,
+          incarnation: child.incarnation
+        });
+      }
+    }
+    for (const [key, registered] of Object.entries(this.snapshot.registry)) {
+      if (
+        registered['@actor'] === ref['@actor'] &&
+        registered.incarnation === ref.incarnation
+      ) {
+        delete this.snapshot.registry[key];
+      }
+    }
+    const key = JSON.stringify(ref);
+    delete this.snapshot.actors[ref['@actor']];
+    this.snapshots.delete(key);
+    this.initialEffects.delete(key);
+    this.handles.delete(key);
+    this.stopping.delete(key);
   }
 
   private store(ref: SystemActorReference, snapshot: any) {
     const actor = this.current(ref);
     if (!actor) return;
     this.snapshots.set(JSON.stringify(ref), snapshot);
-    this.snapshot.actors[ref.$actor] = {
+    this.snapshot.actors[ref['@actor']] = {
       ...actor,
       snapshot: snapshotData(snapshot, this.mapperNames)
     };
@@ -776,7 +870,7 @@ class SystemReduction {
       key && systemTimerKey(ref, { type: 'xstate.timer', ...key });
     for (const [timerKey, timer] of Object.entries(this.snapshot.timers)) {
       if (
-        timer.source.$actor === ref.$actor &&
+        timer.source['@actor'] === ref['@actor'] &&
         timer.source.incarnation === ref.incarnation &&
         (cancelled === undefined || timerKey === cancelled)
       )
@@ -813,11 +907,15 @@ class SystemReduction {
             const key = getTimerKey(value);
             const actor = this.current(ref);
             if (!actor || !isLogicalTimerPending(actor.snapshot, key)) break;
-            this.schedule(ref, value.delay, { type: 'xstate.timer', ...key });
+            this.schedule(ref, value.delay, {
+              type: 'xstate.timer',
+              ...key,
+              occurrence: value.occurrence
+            });
           } else if (isSerializedActorRef(value.target)) {
             // A ref that went through JSON targets the current incarnation
             // at its address; without one the event is a dead letter.
-            const target = this.snapshot.actors[value.target.$actor];
+            const target = this.snapshot.actors[value.target['@actor']];
             if (
               target?.snapshot.status === 'active' &&
               (value.target.incarnation === undefined ||
@@ -825,7 +923,7 @@ class SystemReduction {
             )
               this.enqueue(
                 ref,
-                { $actor: target.address, incarnation: target.incarnation },
+                { '@actor': target.address, incarnation: target.incarnation },
                 value.event
               );
             else
@@ -877,7 +975,7 @@ class SystemReduction {
   private start(ref: SystemActorReference) {
     const actor = this.current(ref);
     if (!actor || actor.started || actor.snapshot.status === 'stopped') return;
-    this.snapshot.actors[ref.$actor] = { ...actor, started: true };
+    this.snapshot.actors[ref['@actor']] = { ...actor, started: true };
     this.effectsFor(ref, this.initialEffects.get(JSON.stringify(ref)) ?? []);
     this.initialEffects.delete(JSON.stringify(ref));
     if (this.attachedKind(actor) === '@xstate.subscription') {
@@ -892,9 +990,8 @@ class SystemReduction {
         input.mappers.error &&
         actor.parent
       ) {
-        this.enqueue(
+        this.forwardAttachment(
           ref,
-          actor.parent,
           input.mappers.error(this.hydrate(target).error)
         );
       }
@@ -929,7 +1026,7 @@ class SystemReduction {
     this.handle(ref).system._unregister(this.handle(ref));
     this.snapshot.messages = this.snapshot.messages.filter(
       (message) =>
-        message.target.$actor !== ref.$actor ||
+        message.target['@actor'] !== ref['@actor'] ||
         message.target.incarnation !== ref.incarnation
     );
     this.cancelExternal(ref);
@@ -942,7 +1039,7 @@ class SystemReduction {
         effect.kind !== 'action' ||
         effect.type === '@xstate.cancelEffect' ||
         effect.type === '@xstate.cleanup' ||
-        effect.source.$actor !== ref.$actor ||
+        effect.source['@actor'] !== ref['@actor'] ||
         effect.source.incarnation !== ref.incarnation
       )
         continue;
@@ -963,7 +1060,7 @@ class SystemReduction {
     const actor = this.current(ref);
     if (!actor) return;
     // Publish terminal observations before cleanup and the native parent event.
-    this.relayAttachments(ref);
+    this.relayAttachments(ref, undefined, true);
     this.cancel(ref);
     this.cancelExternal(ref);
     this.stopAttachments(ref);
@@ -1001,7 +1098,7 @@ class SystemReduction {
     if (
       (logic as any).isInternalEventType?.(message.event.type) &&
       (!message.source ||
-        message.source.$actor !== actor.address ||
+        message.source['@actor'] !== actor.address ||
         message.source.incarnation !== actor.incarnation)
     ) {
       throw new Error(
@@ -1093,7 +1190,7 @@ class SystemReduction {
       if (!actor) throw new Error(`Unknown actor address '${path}'.`);
       const timer = Object.values(this.snapshot.timers).find(
         (pending) =>
-          pending.source.$actor === path &&
+          pending.source['@actor'] === path &&
           pending.source.incarnation === actor.incarnation &&
           pending.occurrence === event.occurrence
       );
@@ -1104,12 +1201,12 @@ class SystemReduction {
     this.advance(this.snapshot.now);
     const actor = this.snapshot.actors[path];
     if (!actor) throw new Error(`Unknown actor address '${path}'.`);
-    const ref = { $actor: path, incarnation: actor.incarnation };
+    const ref = { '@actor': path, incarnation: actor.incarnation };
     if (event.type === 'xstate.system.effect.result') {
       const effect = this.snapshot.externalEffects[event.effectId];
       if (
         !effect ||
-        effect.source.$actor !== path ||
+        effect.source['@actor'] !== path ||
         (event.event &&
           (effect.source.incarnation !== actor.incarnation ||
             actor.snapshot.status !== 'active' ||

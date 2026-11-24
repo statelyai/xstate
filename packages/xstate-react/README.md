@@ -10,7 +10,7 @@ This package contains utilities for using [XState](https://github.com/statelyai/
 1. Install `xstate` and `@xstate/react`:
 
 ```bash
-npm i xstate @xstate/react
+npm i xstate@beta @xstate/react@beta
 ```
 
 2. Import the `useMachine` hook:

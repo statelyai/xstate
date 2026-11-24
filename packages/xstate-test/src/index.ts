@@ -44,6 +44,8 @@ export {
   type TestActorOutcome,
   type TestAdapter,
   type TestCommand,
+  type TestCoverOptions,
+  type TestCoverStep,
   type TestCoverage,
   type TestCoverageDimension,
   type TestCoverageJSON,
@@ -117,3 +119,8 @@ export {
   type SourceCoverageSessionStep,
   type SourceCoverageSessionOptions
 } from './sourceCoverage.ts';
+export {
+  createTestModel,
+  type TestModel,
+  type TestModelDriver
+} from './model.ts';

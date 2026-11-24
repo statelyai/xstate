@@ -167,7 +167,10 @@ export function durableExecutionConformance({
         ).toEqual([
           expect.objectContaining({
             type: 'timer.schedule',
-            timer: { id: 'deadline' },
+            timer: expect.objectContaining({
+              id: 'deadline',
+              occurrence: expect.any(Number)
+            }),
             delay: 100
           }),
           expect.objectContaining({
@@ -176,12 +179,18 @@ export function durableExecutionConformance({
           }),
           expect.objectContaining({
             type: 'timer.schedule',
-            timer: { id: 'deadline' },
+            timer: expect.objectContaining({
+              id: 'deadline',
+              occurrence: expect.any(Number)
+            }),
             delay: 100
           }),
           expect.objectContaining({
             type: 'timer.schedule',
-            timer: { id: 'deadline' },
+            timer: expect.objectContaining({
+              id: 'deadline',
+              occurrence: expect.any(Number)
+            }),
             delay: 20
           })
         ]);

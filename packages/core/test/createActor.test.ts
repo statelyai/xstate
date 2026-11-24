@@ -29,9 +29,9 @@ describe('createActor()', () => {
     const logic = createMachine({});
     const persisted = createActor(logic).getPersistedSnapshot();
     expect(() =>
-      // @ts-expect-error removed; use `snapshot`
+      // @ts-expect-error removed; use `restoreActor` from `xstate/persist`
       createActor(logic, { state: persisted })
-    ).toThrow('"snapshot"');
+    ).toThrow('restoreActor(logic, snapshot)');
   });
 
   it('reserves explicit IDs in the generated ID namespace', () => {

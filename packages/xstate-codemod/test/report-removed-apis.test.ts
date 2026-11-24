@@ -8,7 +8,7 @@ describe('report-removed-apis', () => {
 const a = assign({ count: 0 });
 const p = fromPromise(async () => {});
 const g = and(['x', 'y']);`;
-    const { output, changed, notes } = applyTransform(
+    const { output, changed, notes, sites } = applyTransform(
       reportRemovedApis,
       input,
       'src/machine.ts'
@@ -27,6 +27,16 @@ const g = and(['x', 'y']);`;
     expect(notes.some((n) => /machine\.ts:\d+:\d+/.test(n))).toBe(true);
     // Replacement hints present.
     expect(joined).toContain('createAsyncLogic');
+    // Structured sites mirror the notes.
+    expect(sites).toHaveLength(notes.length);
+    expect(sites[0]).toMatchObject({
+      file: expect.stringMatching(/machine\.ts$/),
+      line: 2,
+      api: 'assign',
+      hint: expect.stringContaining('{ context }')
+    });
+    expect(sites[0].hint).toContain('`enq(actions.x)` ignores return values');
+    expect(notes[0]).toContain(`:${sites[0].line}:${sites[0].column} `);
   });
 
   it('reports removed v5 helpers', () => {
@@ -59,5 +69,14 @@ const a = assign({}, b);`;
     );
     expect(changed).toBe(false);
     expect(notes).toHaveLength(0);
+  });
+
+  it('does not report member names that match an import', () => {
+    const input = `import { emit } from 'xstate';
+const a = emit({ type: 'A' });
+const f = (args, enq) => enq.emit({ type: 'B' });
+const o = { emit: 1 };`;
+    const { sites } = applyTransform(reportRemovedApis, input, 'src/c.ts');
+    expect(sites?.map((s) => s.line)).toEqual([2]);
   });
 });

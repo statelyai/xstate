@@ -1,3 +1,4 @@
+import { serializeTimerKey } from '../src/timerKey.ts';
 import {
   deliverEvent,
   stopActor,
@@ -53,7 +54,7 @@ class InMemoryDurableHost implements DurableConformanceHarness {
       }
     };
     const timerKey = (source: AnyActor, timer: TimerKey) =>
-      `${source.sessionId}:${JSON.stringify(timer)}`;
+      `${source.sessionId}:${serializeTimerKey(timer)}`;
     let rootAddress: string | undefined;
     const actorRuntime = {
       spawnActor: (_source: AnyActor | undefined, actor: AnyActor) => {

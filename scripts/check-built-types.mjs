@@ -44,7 +44,7 @@ try {
   writeFileSync(
     join(consumer, 'index.mts'),
     `
-    import { createActor, createMachine, setup, types, type ContextFrom, type EventFrom } from 'xstate';
+    import { createActor, createMachine, eventSchema, setup, types, type ContextFrom, type EventFrom } from 'xstate';
     ${imports}
     const actor = createActor(createMachine({ initial: 'idle', states: { idle: {} } }));
     actor.start(); actor.stop();
@@ -82,7 +82,7 @@ try {
       }
     }).createMachine({ initial: 'idle', states: { idle: {} } });
     const internals = createActor(internalsMachine);
-    const validated = await internalsMachine.eventSchema['~standard'].validate({ type: 'start' });
+    const validated = await eventSchema(internalsMachine)['~standard'].validate({ type: 'start' });
     if (!validated.issues) {
       const publicType: 'start' = validated.value.type;
       void publicType;

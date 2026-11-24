@@ -1,6 +1,7 @@
-import { createActor, machineVersions, setup } from 'xstate';
+import { machineVersions, setup } from 'xstate';
 import { createInspector } from '@statelyai/sdk';
 import { z } from 'zod';
+import { restoreActor } from 'xstate/persist';
 
 const inspector = process.env.INSPECT ? createInspector() : undefined;
 
@@ -77,8 +78,8 @@ const storedSnapshot = {
   children: {},
   historyValue: {},
   timers: [],
-  _nextActorIds: {},
-  _nextTimerId: 0,
+  nextActorIds: {},
+  nextTimerId: 0,
   machine: { id: 'checkout', version: '1' },
   version: '1'
 };
@@ -105,8 +106,7 @@ const migrated = await checkoutVersions.migrateSnapshot(storedSnapshot, {
 log(`   migrated context: ${JSON.stringify(migrated.context)}`);
 log(`   stamped identity: ${JSON.stringify(migrated.machine)}`);
 
-const actor = createActor(checkoutV2, {
-  snapshot: migrated,
+const actor = restoreActor(checkoutV2, migrated, {
   inspect: inspector?.inspect
 }).start();
 actor.send({ type: 'addItem', cents: 599 });

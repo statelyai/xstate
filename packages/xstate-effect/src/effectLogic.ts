@@ -13,7 +13,11 @@ import {
 } from 'xstate';
 import { EffectFailure } from './errors.ts';
 import type { EffectRequirements } from './types.ts';
-import { relayToParent, startHostedEffect } from './internal.ts';
+import {
+  EFFECT_FORWARD,
+  relayToParent,
+  startHostedEffect
+} from './internal.ts';
 import {
   type EffectSchemaLike,
   type ToStandardSchema,
@@ -37,6 +41,8 @@ const effectLogicBrand: unique symbol = Symbol.for(
  * failure type and its Effect service requirements, which is how
  * `RequirementsFrom` collects the `R` channel of `createEffectActor` without
  * inspecting the logic at runtime.
+ *
+ * @experimental
  */
 export interface EffectLogicBrand<TError, TRequirements> {
   readonly [effectLogicBrand]: {
@@ -49,6 +55,8 @@ export interface EffectLogicBrand<TError, TRequirements> {
  * Snapshot of a `createEffectLogic` actor. The actor holds no context of its own: it
  * is `active` while the Effect runs, `done` with the Effect's success value as
  * `output`, or `error` with the original `Cause` wrapped in `EffectFailure` as `error`.
+ *
+ * @experimental
  */
 export type EffectSnapshot<TOutput, TError, TInput> = Snapshot<TOutput> & {
   readonly context: undefined;
@@ -61,6 +69,8 @@ export type EffectSnapshot<TOutput, TError, TInput> = Snapshot<TOutput> & {
  * source the actor's `input`, its own reference (`self`), the actor `system`,
  * and `emit` for publishing events that `actor.on(...)` and `emitted(actor)`
  * observe.
+ *
+ * @experimental
  */
 export type EffectSourceArgs<TInput> = {
   readonly input: TInput;
@@ -74,6 +84,8 @@ export type EffectSourceArgs<TInput> = {
  * What `createEffectLogic` accepts as its Effect: either an Effect value, or a
  * function of {@link EffectSourceArgs} returning one. The function form is
  * called once per actor start, so it sees that actor's input.
+ *
+ * @experimental
  */
 export type EffectSource<TOutput, TError, TInput, TRequirements> =
   | Effect.Effect<TOutput, TError, TRequirements>
@@ -127,6 +139,8 @@ type EffectSchemaValidationConfig<TSchemas extends EffectActorSchemas> =
  * ordinary XState actor logic carrying {@link EffectLogicBrand}, so a machine
  * can invoke or spawn it, and `createEffectActor` can collect its
  * requirements.
+ *
+ * @experimental
  */
 export type EffectActorLogic<TOutput, TError, TInput, TRequirements> =
   ActorLogic<
@@ -140,6 +154,8 @@ export type EffectActorLogic<TOutput, TError, TInput, TRequirements> =
  * Snapshot of a `createEffectStreamLogic` actor. `context` holds the most recent
  * stream item, or `undefined` before the first one. The actor reaches `done`
  * with no output when the stream completes, and `error` when it fails.
+ *
+ * @experimental
  */
 export type EffectStreamSnapshot<TItem, TError, TInput> =
   Snapshot<undefined> & {
@@ -152,6 +168,8 @@ export type EffectStreamSnapshot<TItem, TError, TInput> =
  * Actor logic produced by `createEffectStreamLogic`. Its snapshot is an
  * {@link EffectStreamSnapshot}, so the parent reads the latest item from the
  * child's `context` rather than from events.
+ *
+ * @experimental
  */
 export type EffectStreamActorLogic<TItem, TError, TInput, TRequirements> =
   ActorLogic<
@@ -230,6 +248,8 @@ function brandLogic<TLogic extends AnyActorLogic>(
  * Resources belong to this task's scope and close on completion, failure or
  * interruption. Use `withActorScope` to retain a resource until the owning
  * Effect actor stops.
+ *
+ * @experimental
  */
 export function createEffectLogic<
   const TInputSchema extends EffectSchemaLike,
@@ -432,6 +452,8 @@ export function createEffectLogic<
  * What `createEffectStreamLogic` and `createEffectEventStreamLogic` accept as their stream:
  * either a Stream value, or a function of {@link EffectSourceArgs} returning
  * one. The function form is called once per actor start.
+ *
+ * @experimental
  */
 export type EffectStreamSource<TItem, TError, TInput, TRequirements> =
   | Stream.Stream<TItem, TError, TRequirements>
@@ -490,6 +512,8 @@ function toLogicSchemas(
  * {@link EffectSourceArgs} returning one, or a config object with `id`,
  * `schemas`, `validator` and `stream`. Its resources close when the stream
  * completes, fails or is interrupted.
+ *
+ * @experimental
  */
 export function createEffectStreamLogic<
   const TInputSchema extends EffectSchemaLike,
@@ -625,6 +649,8 @@ export function createEffectStreamLogic<
  * has no output: it reaches `done` when the stream completes and `error` when
  * it fails. Accepts the same forms as `createEffectStreamLogic`. Its resources close
  * when the stream completes, fails or is interrupted.
+ *
+ * @experimental
  */
 export function createEffectEventStreamLogic<
   const TInputSchema extends EffectSchemaLike,
@@ -688,10 +714,19 @@ export function createEffectEventStreamLogic<
     EventObject
   >({
     id: config.id,
-    validator: config.validator,
+    validator: config.validator && {
+      check: (request) =>
+        request.kind === 'event' && request.event.type === EFFECT_FORWARD
+          ? undefined
+          : config.validator!.check(request)
+    },
     schemas: toLogicSchemas(config.schemas),
     context: undefined,
     run: ({ event, input, self, system }, enq) => {
+      if (event.type === EFFECT_FORWARD) {
+        enq.sendBack((event as EventObject & { event: EventObject }).event);
+        return;
+      }
       if (event.type === EFFECT_COMPLETE) {
         return { status: 'done', input: undefined };
       }
@@ -738,6 +773,10 @@ export function createEffectEventStreamLogic<
         )
       );
     }
+  });
+
+  Object.assign(logic, {
+    isInternalEventType: (eventType: string) => eventType === EFFECT_FORWARD
   });
 
   return brandLogic(

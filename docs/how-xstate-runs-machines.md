@@ -41,7 +41,9 @@ event received
   → subscribers are notified
 ```
 
-One event may take at most `maxIterations` microsteps (default `1000`). A machine that exceeds the bound, usually through a cycle of `always` transitions or raised events, throws an `InfiniteTransitionError` whose message names the actor, the event and the last five states visited. Raise the bound for machines that legitimately take more steps:
+The number of microsteps one event may take is unbounded by default. In development builds, a macrostep that passes 1000 microsteps logs a warning once per machine, naming the actor, the event and the last five states visited. A cycle of `always` transitions or raised events never reaches a stable state, so it runs until the process stops it.
+
+Set `maxIterations` to bound the macrostep. A macrostep that exceeds the bound throws an `InfiniteTransitionError` with the same details, and the actor's status becomes `'error'`:
 
 ```ts
 const machine = createMachine({
@@ -64,9 +66,9 @@ Events raised with `enq.raise(...)` are processed before the actor handles the n
 
 ## Which transition runs
 
-When an event arrives, the deepest active state gets the first chance to handle it. If it has no matching transition, or its transition function returns `undefined` without calling `enq`, the event bubbles up through its ancestors. A child can define an event as `undefined` to block a parent's transition. Wildcards such as `pointer.*` and `*` only match when no exact transition matches at that state.
+When an event arrives, the deepest active state gets the first chance to handle it. If it has no matching transition, or its transition function returns `undefined` without calling `enq`, the event bubbles up through its ancestors. A child can define an event as `undefined` to stop the search along that branch. Wildcards such as `pointer.*` and `*` only match when no exact transition matches at that state.
 
-In a [parallel state](parallel-states.md), every active region receives the event, so one event can move several regions at once.
+In a [parallel state](parallel-states.md), the search starts independently from each active leaf. A leaf can select a shared ancestor's transition while another leaf selects a transition in its own region.
 
 An event with no matching transition anywhere is ignored: no state change and no effects. Subscribers are still notified once, with the same snapshot object as before, so a reference check is enough to skip re-rendering.
 

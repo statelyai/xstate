@@ -3,7 +3,7 @@ title: Server rendering
 description: Use XState actors with SolidStart and server-rendered Solid.
 ---
 
-Solid does not run `onMount` or effects on the server. `useActorRef(...)` starts the actor in `onMount`, and `fromActorRef(...)` subscribes in an effect, so during SSR the actor is created but never started: the server renders the initial snapshot, and everything else happens after hydration.
+Solid does not run `onSettled` or effects on the server. `useActorRef(...)` starts the actor in `onSettled`, and `fromActorRef(...)` subscribes in an effect, so during SSR the actor is created but never started: the server renders the initial snapshot, and everything else happens after hydration.
 
 The initial snapshot is therefore what the server output and the first client render must agree on.
 
@@ -32,7 +32,7 @@ const [snapshot] = initialTransition(checkoutMachine, { cartId });
 
 ## Hydrating with a persisted snapshot
 
-To resume the same state in the browser, serialize a persisted snapshot on the server and pass it as the `snapshot` option on the client.
+To resume the same state in the browser, serialize a persisted snapshot on the server. On the client, create an actor with `restoreActor(...)` and pass it to `useActor(...)`.
 
 ```ts
 // server
@@ -41,34 +41,34 @@ const persisted = JSON.parse(JSON.stringify(actor.getPersistedSnapshot()));
 actor.stop();
 ```
 
-In SolidStart, deliver it through a route loader and read it with `createAsync(...)`:
+Load it with an async memo and derive the actor from it, under a `<Loading>` boundary:
 
 ```tsx
+import { createMemo, Loading } from 'solid-js';
+import { useActor } from '@xstate/solid';
+import { restoreActor } from 'xstate/persist';
+
 function Checkout() {
-  const persisted = createAsync(() => getPersistedCheckout());
+  const persisted = createMemo(() => getPersistedCheckout());
+  const [snapshot, send] = useActor(() =>
+    restoreActor(checkoutMachine, persisted())
+  );
 
   return (
-    <Show when={persisted()} keyed>
-      {(snapshot) => <CheckoutView snapshot={snapshot} />}
-    </Show>
+    <Loading fallback={<p>Loading checkout…</p>}>
+      <output>{snapshot.context.total}</output>
+    </Loading>
   );
-}
-
-function CheckoutView(props: { snapshot: unknown }) {
-  const [snapshot, send] = useActor(checkoutMachine, {
-    snapshot: props.snapshot
-  });
-  // ...
 }
 ```
 
-The `keyed` boundary matters: the actor options are read once, so the actor must be created after the snapshot is available, not before.
+Until the snapshot loads, the actor is pending and `<Loading>` shows its fallback. The actor is created once the snapshot is available and starts in the browser.
 
 ## Avoid hydration mismatches
 
 The server renders the initial or restored snapshot, and the client's first render must match it.
 
-- Do not send events while the component function runs. Send them from `onMount(...)` or from user interaction.
+- Do not send events while the component function runs. Send them from `onSettled(...)` or from user interaction.
 - Keep `Date.now()`, `Math.random()` and `window` out of the initial context. Pass them as `input`, or set them from an entry action after the actor starts.
 - Delayed transitions only run once the actor starts in the browser, so a state entered via `after` is never part of the server output.
 
@@ -76,4 +76,4 @@ The server renders the initial or restored snapshot, and the client's first rend
 
 ## Browser-only work
 
-Put browser APIs behind `onMount(...)`, or invoke them from actor logic. Actors only start on the client, so a [callback actor](../actor-logic.md) that attaches a `resize` or media-element listener never runs on the server.
+Put browser APIs behind `onSettled(...)`, or invoke them from actor logic. Actors only start on the client, so a [callback actor](../actor-logic.md) that attaches a `resize` or media-element listener never runs on the server.

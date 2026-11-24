@@ -104,4 +104,56 @@ describe('createFSM differential behavior', () => {
       });
     }
   });
+
+  it('matches initialization and eventless chains after handled events', () => {
+    type Event =
+      | { type: 'increment' }
+      | { type: 'reset' }
+      | { type: 'unknown' };
+    const increment = ({ context }: { context: { count: number } }) => ({
+      target: 'checking',
+      context: { count: context.count + 1 }
+    });
+    const reset = { target: 'idle', context: { count: 0 } };
+    const config = {
+      initial: 'checking',
+      context: { count: 0 },
+      states: {
+        idle: { on: { increment, reset } },
+        checking: {
+          always: ({ context }: { context: { count: number } }) =>
+            context.count < 3
+              ? { context: { count: context.count + 1 } }
+              : { target: 'ready' }
+        },
+        ready: { on: { increment, reset } }
+      }
+    };
+    const fsm = createFSM<{ count: number }, Event>(config);
+    // Bound the reference machine so a divergence fails instead of hanging.
+    const machine = createMachine({
+      ...config,
+      options: { maxIterations: 20 }
+    });
+
+    for (const events of eventSequences<Event>(
+      [{ type: 'increment' }, { type: 'reset' }, { type: 'unknown' }],
+      4
+    )) {
+      let fsmSnapshot = fsm.initialState;
+      let [machineSnapshot] = initialTransition(machine);
+      const check = () =>
+        expect(fsmSnapshot).toEqual({
+          status: 'active',
+          value: machineSnapshot.value,
+          context: machineSnapshot.context
+        });
+      check();
+      for (const event of events) {
+        [fsmSnapshot] = fsm.transition(fsmSnapshot, event);
+        [machineSnapshot] = transition(machine, machineSnapshot, event);
+        check();
+      }
+    }
+  });
 });

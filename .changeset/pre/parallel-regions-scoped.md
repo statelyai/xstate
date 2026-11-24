@@ -1,5 +1,5 @@
 ---
-'xstate': patch
+'xstate': major
 ---
 
 Parallel-state transitions no longer disturb sibling regions:

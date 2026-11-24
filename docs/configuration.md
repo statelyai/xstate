@@ -47,7 +47,7 @@ The root of a machine is a state node. It accepts everything a [state node](#sta
 | `migrate` | `(persistedSnapshot, fromVersion) => unknown` | Upgrades a persisted snapshot whose `version` does not match. Restoring a mismatched snapshot without it throws. |
 | `meta` | `object` | Metadata for the root state node. Must match `schemas.meta`. |
 | `tags` | `string[]` | Tags for the root state node. Must match `schemas.tags`. |
-| `options` | `{ maxIterations }` | Microsteps one event may take before `InfiniteTransitionError` is thrown. Defaults to `1000`. |
+| `options` | `{ maxIterations }` | Microsteps one event may take before `InfiniteTransitionError` is thrown. Unbounded by default. |
 
 Named actions take their params as the first argument, so they can be called directly or enqueued:
 

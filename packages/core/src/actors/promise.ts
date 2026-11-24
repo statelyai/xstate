@@ -424,7 +424,8 @@ export function createAsyncLogic<
     run: ({ event, input, self, system }, enq) => {
       switch (event.type) {
         case XSTATE_ASYNC_RESOLVE: {
-          const resolvedValue = (event as any).data ?? (event as any).output;
+          const resolvedValue =
+            'data' in event ? event.data : (event as any).output;
           return {
             status: 'done',
             output: resolvedValue,
@@ -435,7 +436,7 @@ export function createAsyncLogic<
           };
         }
         case XSTATE_ASYNC_REJECT: {
-          const error = (event as any).data ?? (event as any).error;
+          const error = 'data' in event ? event.data : (event as any).error;
           return {
             status: 'error',
             error,
@@ -458,6 +459,13 @@ export function createAsyncLogic<
         const controller = new AbortController();
         const timeout = config.timeout;
         const timeoutMs = parseDelayToMilliseconds(timeout);
+        if (timeout !== undefined && timeoutMs === undefined) {
+          sendSelf({
+            type: XSTATE_ASYNC_REJECT,
+            data: new Error('Unable to resolve async actor timeout.')
+          });
+          return;
+        }
         const timeoutId =
           timeoutMs === undefined
             ? undefined
@@ -562,7 +570,14 @@ export function createAsyncLogic<
     }
   }) as unknown as AsyncActorLogic<TOutput, TInput, TEmitted> & { id?: string };
   Object.defineProperty(logic, systemLogicMetadata, {
-    value: { kind: 'async', timeout: config.timeout }
+    value: {
+      kind: 'async',
+      timeout: config.timeout,
+      simulationCompletionEvent: (data: unknown) => ({
+        type: XSTATE_ASYNC_RESOLVE,
+        data
+      })
+    }
   });
   return logic;
 }

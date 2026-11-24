@@ -10,7 +10,7 @@ How to restore data written by a machine version that no longer exists as code: 
 - `migrateSnapshot()` with an exact-version migration, and the identity it stamps
 - `adaptEvents()` rewriting a whole v1 event history into v2 events
 - machine `version`, Zod schemas as Standard Schemas for `schemas.context` and `schemas.events`
-- restoring the migrated snapshot with `createActor(machine, { snapshot })`
+- restoring the migrated snapshot with `restoreActor(machine, snapshot)` from `xstate/persist`
 
 ## Run it
 
