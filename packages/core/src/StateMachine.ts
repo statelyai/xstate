@@ -38,7 +38,7 @@ import {
   isStateId,
   macrostep,
   resolveStateValue,
-  transitionNode,
+  selectEventTransitions,
   type TransitionSelectionResults
 } from './stateUtils.ts';
 import {
@@ -936,15 +936,13 @@ export class StateMachine<
     includeRejections = false
   ): Array<AnyTransitionDefinition> {
     this._microstepHooks?.begin(actorScope.self);
-    const transitions =
-      transitionNode(
-        this.root,
-        snapshot.value,
-        snapshot,
-        event,
-        actorScope,
-        selectionResults
-      ) || [];
+    const transitions = selectEventTransitions(
+      this.root,
+      snapshot,
+      event,
+      actorScope,
+      selectionResults
+    );
     return includeRejections
       ? transitions
       : transitions.filter(

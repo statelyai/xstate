@@ -44,6 +44,8 @@ export {
   type TestActorOutcome,
   type TestAdapter,
   type TestCommand,
+  type TestCoverOptions,
+  type TestCoverStep,
   type TestCoverage,
   type TestCoverageDimension,
   type TestCoverageJSON,
@@ -111,3 +113,8 @@ export {
   mergeEventGenerators
 } from './schema.ts';
 export type { EventsFromSchemasOptions, SchemaConverter } from './schema.ts';
+export {
+  createTestModel,
+  type TestModel,
+  type TestModelDriver
+} from './model.ts';

@@ -8,6 +8,7 @@ import {
 import {
   createMissingAddressError,
   getAddressId,
+  isRemoteActorRef,
   isSerializedActorRef,
   resolveSerializedActorRef
 } from './remoteActorRef.ts';
@@ -17,8 +18,28 @@ import type {
   ActorTermination,
   AnyActor,
   AnyEventObject,
+  DoneActorEvent,
+  ErrorActorEvent,
+  SnapshotEvent,
   Subscription
 } from './types.ts';
+
+const lifecycleDeliveries = new WeakMap<
+  AnyEventObject,
+  { source: AnyActor; target: AnyActor }
+>();
+
+/** @internal Marks an actor lifecycle notification for one delivery to its parent. */
+export function relayChildLifecycleEvent(
+  source: AnyActor,
+  target: AnyActor,
+  event: DoneActorEvent | ErrorActorEvent | SnapshotEvent
+): void | PromiseLike<void> {
+  // Keep origin off the event payload. Hosts can inspect or serialize the
+  // payload, but application sends cannot mint a local delivery.
+  lifecycleDeliveries.set(Object.freeze(event), { source, target });
+  return source.system._relay(source, target, event);
+}
 
 /** @internal */
 export function publishEmittedEvent(
@@ -138,6 +159,9 @@ export async function runStep<TStepOutput>(
  * Delivers an event directly to a target actor, bypassing any installed host
  * runtime. Custom runtimes use this for the default local delivery behavior
  * inside their own `sendEvent` implementations.
+ * Pass a co-located lifecycle notification through without cloning it.
+ * For a remote lifecycle notification, supply the parent's current child
+ * handle as `source` after the host verifies the notification's origin.
  *
  * @experimental
  */
@@ -163,7 +187,7 @@ export function deliverEvent(
     }
     target = live;
   }
-  if (rejectUndeliverableEvent(source, target, event)) {
+  if (rejectUndeliverableEvent(source, target, event, true)) {
     return;
   }
   const runtimeTarget = target as AnyActor & {
@@ -180,8 +204,42 @@ export function deliverEvent(
 function getEventBoundaryError(
   source: AnyActor | undefined,
   target: AnyActor,
-  event: AnyEventObject
+  event: AnyEventObject,
+  directDelivery: boolean
 ): Error | undefined {
+  switch (event.type) {
+    case 'xstate.done.actor':
+    case 'xstate.error.actor':
+    case 'xstate.snapshot.actor': {
+      const origin = lifecycleDeliveries.get(event);
+      if (origin && origin.source === source && origin.target === target) {
+        if (directDelivery) {
+          lifecycleDeliveries.delete(event);
+        }
+        return undefined;
+      }
+      // Host adapters deliver decoded notifications directly from the
+      // current remote child handle. Ordinary system sends have no such lane.
+      if (
+        directDelivery &&
+        source &&
+        isRemoteActorRef(source) &&
+        source._parent === target &&
+        source.id === event.actorId &&
+        typeof event.sessionId === 'string' &&
+        (source.sessionId === undefined ||
+          source.sessionId === event.sessionId) &&
+        target.getSnapshot().children?.[source.id] === source
+      ) {
+        return undefined;
+      }
+      return lifecycleOriginError(event.type, target.id);
+    }
+    case 'xstate.done.state':
+    case 'xstate.error.execution':
+      return lifecycleOriginError(event.type, target.id);
+  }
+
   const runtimeTarget = target as AnyActor & {
     logic?: { isInternalEventType?: (eventType: string) => boolean };
   };
@@ -199,19 +257,25 @@ function getEventBoundaryError(
   return undefined;
 }
 
+function lifecycleOriginError(eventType: string, targetId: string): Error {
+  return new Error(
+    isDevelopment
+      ? `Lifecycle event "${eventType}" was not delivered to actor "${targetId}" because it did not originate from the runtime.`
+      : xstateError(80, eventType, targetId)
+  );
+}
+
 /**
- * Rejects an event that must not cross the delivery boundary — an internal
- * event type sent from outside its owning actor — by reporting it as a dead
- * letter. Returns `true` when the event was rejected and must not be
- * delivered. Host runtimes must call this before taking ownership of
- * delivery.
+ * Reports unauthorized internal or lifecycle events as dead letters.
+ * Returns `true` when the event must not be delivered.
  */
 export function rejectUndeliverableEvent(
   source: AnyActor | undefined,
   target: AnyActor,
-  event: AnyEventObject
+  event: AnyEventObject,
+  directDelivery = false
 ): boolean {
-  const error = getEventBoundaryError(source, target, event);
+  const error = getEventBoundaryError(source, target, event, directDelivery);
   if (error) {
     void target.system.deadLetter(source, target, event, 'internalEvent', {
       error

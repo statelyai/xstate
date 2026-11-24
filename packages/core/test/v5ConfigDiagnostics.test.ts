@@ -547,7 +547,7 @@ describe('v5 config diagnostics', () => {
       expect(() =>
         createActor(machine, { inptu: { id: 1 } } as any)
       ).toThrowError(
-        'Unknown actor option "inptu". Supported options: clock, logger, syncSnapshot, id, registryKey, input, src, inspect, onRejectedEvent, onUnhandledEvent.'
+        'Unknown actor option "inptu". Supported options: clock, logger, syncSnapshot, id, registryKey, input, simulate, src, inspect, onRejectedEvent, onUnhandledEvent.'
       );
     });
 

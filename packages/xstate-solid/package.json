@@ -1,6 +1,6 @@
 {
   "name": "@xstate/solid",
-  "version": "3.0.0-beta.0",
+  "version": "3.0.0-beta.1",
   "description": "XState tools for SolidJS",
   "keywords": [
     "state",
@@ -42,14 +42,15 @@
     "url": "https://github.com/statelyai/xstate/issues"
   },
   "peerDependencies": {
-    "solid-js": "^1.6.0",
+    "solid-js": "^2.0.3",
     "xstate": "workspace:^"
   },
   "devDependencies": {
-    "@solidjs/testing-library": "^0.8.10",
-    "solid-js": "^1.9.12",
-    "vite": "^6.4.3",
-    "vite-plugin-solid": "^2.11.6",
+    "@solidjs/compiler": "^2.0.2",
+    "@solidjs/testing-library": "^1.0.0-rc.2",
+    "@solidjs/web": "^2.0.3",
+    "jsdom": "^26.0.0",
+    "solid-js": "^2.0.3",
     "xstate": "workspace:^",
     "zod": "^3.25.51"
   }

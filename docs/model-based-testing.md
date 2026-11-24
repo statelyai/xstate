@@ -7,6 +7,11 @@ A machine describes what a feature should do. Model-based testing uses that mach
 
 This page tests a hand-written shopping cart against a cart machine. For every option, see the [`@xstate/test` README](https://github.com/statelyai/xstate/tree/next/packages/xstate-test#readme).
 
+For a specification written with TypeScript functions, see
+[standalone models](https://github.com/statelyai/xstate/tree/next/packages/xstate-test#standalone-models).
+To exercise every enabled event case from each reachable state in a machine, see
+[exact event cases](https://github.com/statelyai/xstate/tree/next/packages/xstate-test#exact-event-cases-for-a-machine).
+
 ## Install
 
 ```bash
@@ -172,6 +177,22 @@ test('every simple path matches the model', async () => {
 
 Use `testPaths()` when the reachable graph is finite and you want every path through it. Use `propertyTest()` when payloads, ordering, or timing matter.
 
+### Cover named scenarios
+
+Pass `cover.requirements` to plan walks that collectively cover named steps or
+consecutive step sequences. For example, approval and cancellation might each
+end a request. The planner uses separate walks for those outcomes and opens a
+fresh SUT session for each. It prefers fewer sessions, then fewer total events.
+Set `cover.maxPaths` if your test environment has a fixed session budget. If
+planning fails, the SUT does not start. See the [coverage planning
+options](https://github.com/statelyai/xstate/tree/next/packages/xstate-test#testpaths-options).
+
+For deterministic tests without fast-check, import `testPaths()` and
+`replayTest()` from `@xstate/test/paths`. The same entry point accepts
+precomputed paths. Supply event payloads as functions such as
+`ADD: () => ({ sku: 'apple' })`. See
+[Run tests without fast-check](https://github.com/statelyai/xstate/tree/next/packages/xstate-test#run-tests-without-fast-check).
+
 ### Generate paths without running them
 
 `xstate/graph` generates paths and does not run them. `getShortestPaths(logic, options)`, `getSimplePaths(logic, options)`, and `getPathsFromEvents(logic, events, options)` return `{ state, steps, weight }` objects. Pass any of them to `testPaths()` to run them against the implementation:
@@ -277,7 +298,22 @@ test('regression: removing an item', async () => {
 
 With `expect: 'pass'`, the replay must complete without a failure. The default, `expect: 'failure'`, expects the recorded failure to happen again, and throws `ReplayNotReproducedError` when it does not.
 
+If the SUT's `send()` throws or rejects, the trace includes the completed steps and marks the attempted event. The fixture replays the completed steps and retries that event.
+
 To save failures without writing any code, pass `failures: true`. A failing campaign writes its fixture to `.xstate-test/`, and the next campaign replays the saved fixtures before it generates anything. A fixture that no longer fails is deleted.
+
+## Follow an observed outcome
+
+A test can let the system under test choose between legal outcomes. Define
+each outcome as an ordinary model event. Configure inputs in `events` and
+return the next outcome from the SUT session’s `receive({ signal })` hook.
+The runner applies the observed event to the model before selecting another
+input. For example, `HEADS` after `FLIP` can enable `CLAIM_PRIZE`.
+
+A saved fixture expects the same output at that step. A different legal
+output stops replay with `ReplayNotReproducedError`. An illegal output fails
+the conformance check with `ModelTestFailureError`. See
+[Follow outcomes from the system under test](https://github.com/statelyai/xstate/tree/next/packages/xstate-test#follow-outcomes-from-the-system-under-test).
 
 ## Gate CI on coverage
 

@@ -97,7 +97,7 @@ Every timeout accepts a number of milliseconds or one of these duration strings:
 | Seconds | `'5s'`, `'1.5s'` |
 | ISO 8601 duration | `'PT5S'`, `'PT1M30S'`, `'PT2H'`, `'P1D'`, `'P1W'`, `'P1DT12H'` |
 
-Plain `'5m'`, `'1h'`, `'1d'` and `'1w'` are not accepted. Use the ISO 8601 form for anything longer than seconds.
+Plain `'5m'`, `'1h'`, `'1d'` and `'1w'` are not accepted. Use the ISO 8601 form for anything longer than seconds. A seconds duration requires a number: `'s'` and `'.s'` are invalid. An async actor with an unparseable timeout errors without starting its work; only omitting `timeout` leaves it unbounded.
 
 > **Warning:** A state `timeout` that names a delay is looked up in `delays` first. A string such as `'5s'` is parsed as a duration only when no delay of that name exists.
 

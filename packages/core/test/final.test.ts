@@ -435,6 +435,34 @@ describe('final states', () => {
     expect(actorRef.getSnapshot().output).toBe('final output');
   });
 
+  it('captures machine output before completion exits update context', () => {
+    const machine = createMachine({
+      context: { count: 0 },
+      initial: 'working',
+      output: ({ context }) => context.count,
+      exit: ({ context }) => ({ context: { count: context.count + 100 } }),
+      states: {
+        working: {
+          exit: ({ context }) => ({ context: { count: context.count + 1 } }),
+          on: { FINISH: { target: 'done' } }
+        },
+        done: {
+          type: 'final',
+          exit: ({ context }) => ({ context: { count: context.count + 10 } })
+        }
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+    actorRef.send({ type: 'FINISH' });
+
+    expect(actorRef.getSnapshot()).toMatchObject({
+      status: 'done',
+      output: 1,
+      context: { count: 111 }
+    });
+  });
+
   it('output mapper should receive self', () => {
     const machine = createMachine({
       schemas: {

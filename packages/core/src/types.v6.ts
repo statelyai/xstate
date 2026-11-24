@@ -1166,10 +1166,9 @@ type Next_ChoiceArgs<
 >;
 
 /**
- * Route config: either a static config object, or a transition-style function
- * that acts as the route's guard and resolver — returning `undefined`/`false`
- * blocks the route; returning `true` or a config object allows it (optionally
- * updating `context` and providing `input`/`reenter`/`meta`).
+ * Use `true` or a static config object to enable a route unconditionally.
+ * A transition-style function can block the route by returning `undefined` or
+ * `false`, or allow it by returning `true` or a config object.
  *
  * Guard objects/strings on routes are only produced by the JSON layer
  * (`machineFromJSON`) — authoring uses the function form.
@@ -1184,6 +1183,7 @@ type Next_RouteConfig<
   TGuardMap extends Sources['guards'],
   TDelayMap extends Sources['delays']
 > =
+  | true
   | {
       description?: string;
       reenter?: boolean;

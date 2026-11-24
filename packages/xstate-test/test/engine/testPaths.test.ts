@@ -1,3 +1,4 @@
+import * as fc from 'fast-check';
 import { createAsyncLogic, createMachine, types } from 'xstate';
 import * as graph from '../../src/engine/index.ts';
 import {
@@ -5,10 +6,12 @@ import {
   ModelTestFailureError,
   propertyTest,
   replayTest,
+  serializeTestTrace,
   testPaths,
   type TestFixture,
   type TestTrace
 } from '../../src/engine/index.ts';
+import { propertyTest as fastCheckPropertyTest } from '../../src/index.ts';
 import { constant, randomAdapter } from './propertyTestAdapter.ts';
 
 const lightMachine = createMachine({
@@ -121,6 +124,131 @@ describe('testPaths() follows the planned path', () => {
       expect(coverage.transitions.uncovered).toEqual([
         '["transition","race.s","xstate.after",1]'
       ]);
+    }
+  });
+
+  it('covers discovered events with shared destinations and no-ops', async () => {
+    const model = createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          on: { CLICK: { target: 'done' }, TIMEOUT: { target: 'done' } }
+        },
+        done: { on: { DISMISS: { target: 'done' } } }
+      }
+    });
+    const { results } = await testPaths(model, { pathGenerator: 'edges' });
+    expect(
+      results.map(({ path }) => path.steps.map(({ event }) => event.type))
+    ).toEqual([[], ['CLICK'], ['TIMEOUT'], ['CLICK', 'DISMISS']]);
+  });
+
+  it('sends exact cases only where enabled unless unhandled probes are requested', async () => {
+    const model = createMachine({
+      schemas: {
+        events: { BEGIN: types<{}>(), APPROVE: types<{ id: number }>() }
+      },
+      initial: 'idle',
+      states: {
+        idle: { on: { BEGIN: { target: 'ready' } } },
+        ready: {
+          on: {
+            APPROVE: ({ event }) =>
+              event.id === 5 ? { target: 'done' } : undefined
+          }
+        },
+        done: { type: 'final' }
+      }
+    });
+    const cases = { APPROVE: [{ id: 5 }, { id: 7 }] };
+    const enabled = await testPaths(model, { cases });
+    expect(
+      enabled.results.flatMap(({ path }) => path.steps.at(-1)?.event ?? [])
+    ).toEqual([{ type: 'BEGIN' }, { type: 'APPROVE', id: 5 }]);
+
+    const probed = await testPaths(model, {
+      cases,
+      checkUnhandled: { APPROVE: true }
+    });
+    expect(
+      probed.results.map(({ path }) => path.steps.map(({ event }) => event))
+    ).toEqual([
+      [],
+      [{ type: 'APPROVE', id: 5 }],
+      [{ type: 'APPROVE', id: 7 }],
+      [{ type: 'BEGIN' }],
+      [{ type: 'BEGIN' }, { type: 'APPROVE', id: 5 }],
+      [{ type: 'BEGIN' }, { type: 'APPROVE', id: 7 }]
+    ]);
+  });
+
+  it('uses the current actor snapshot to determine whether an edge is enabled', async () => {
+    const model = createMachine({
+      schemas: { events: { GO: types<{}>() } },
+      initial: 'waiting',
+      states: {
+        waiting: {
+          on: {
+            GO: ({ self }) =>
+              self.getSnapshot().value === 'waiting'
+                ? { target: 'done' }
+                : undefined
+          }
+        },
+        done: { type: 'final' }
+      }
+    });
+    const { results } = await testPaths(model, {
+      cases: { GO: [{}] },
+      checkUnhandled: { GO: true }
+    });
+    expect(results.map(({ path }) => path.state.value)).toEqual([
+      'waiting',
+      'done'
+    ]);
+  });
+
+  it('discovers and filters application events with an xstate prefix', async () => {
+    const model = createMachine({
+      schemas: { events: { BEGIN: types<{}>(), 'xstate.custom': types<{}>() } },
+      initial: 'idle',
+      states: {
+        idle: { on: { BEGIN: { target: 'ready' } } },
+        ready: { on: { 'xstate.custom': { target: 'done' } } },
+        done: { type: 'final' }
+      }
+    });
+
+    for (const options of [
+      { cases: {} },
+      { cases: { 'xstate.custom': [{}] } }
+    ]) {
+      const sent: string[][] = [];
+      await testPaths(model, {
+        ...options,
+        sut: {
+          create: () => {
+            const events: string[] = [];
+            sent.push(events);
+            return {
+              send: (event) => {
+                events.push(event.type);
+              }
+            };
+          }
+        }
+      });
+      expect(sent).toEqual([[], ['BEGIN'], ['BEGIN', 'xstate.custom']]);
+    }
+  });
+
+  it('follows only the first due timer in exact case traversal', async () => {
+    for (const mode of ['pure', 'executed'] as const) {
+      const { results } = await testPaths(raceMachine, {
+        mode,
+        cases: {}
+      });
+      expect(results.map(({ path }) => path.state.value)).toEqual(['s', 'x']);
     }
   });
 
@@ -437,6 +565,74 @@ describe('testPaths() coverage report', () => {
 });
 
 describe('failure messages', () => {
+  it.each(['testPaths', 'propertyTest'] as const)(
+    '%s replays the completed prefix and the attempted event after a SUT send fails',
+    async (runner) => {
+      const cause = new Error('drag did not complete');
+      const makeSut = (attempts: unknown[]) => ({
+        create: () => {
+          attempts.length = 0;
+          return {
+            send: async (
+              _event: unknown,
+              { snapshot }: { snapshot: { value: unknown } }
+            ) => {
+              attempts.push(snapshot.value);
+              if (attempts.length === 2) {
+                throw cause;
+              }
+            }
+          };
+        }
+      });
+      const attempts: unknown[] = [];
+      const sut = makeSut(attempts);
+      const failure = await captureFailure(() =>
+        runner === 'testPaths'
+          ? testPaths(lightMachine, { sut })
+          : fastCheckPropertyTest(lightMachine, {
+              sut,
+              events: { NEXT: fc.constant({}) },
+              seed: 3,
+              numRuns: 20,
+              maxCommands: 4,
+              endOnFailure: true
+            })
+      );
+
+      expect(failure.cause).toBe(cause);
+      expect(failure.trace.steps).toMatchObject([
+        { event: { type: 'NEXT' }, snapshot: { value: 'yellow' } },
+        {
+          event: { type: 'NEXT' },
+          snapshot: { value: { red: 'walk' } },
+          sutSendFailed: true
+        }
+      ]);
+      expect(failure.trace.steps[0].sutSendFailed).toBeUndefined();
+      expect(failure.message).toContain('NEXT (SUT send failed)');
+      expect(serializeTestTrace(failure.trace)).toMatchObject({
+        timeline: [
+          { command: { event: { type: 'NEXT' } } },
+          { command: { event: { type: 'NEXT' } }, sutSendFailed: true }
+        ]
+      });
+      expect(attempts).toEqual(['yellow', { red: 'walk' }]);
+
+      const fixture = JSON.parse(
+        JSON.stringify(failure.fixture)
+      ) as TestFixture;
+      const replayAttempts: unknown[] = [];
+      const replayed = await captureFailure(() =>
+        replayTest(lightMachine, fixture, { sut: makeSut(replayAttempts) })
+      );
+
+      expect(replayed.cause).toBe(cause);
+      expect(replayed.trace.steps).toEqual(failure.trace.steps);
+      expect(replayAttempts).toEqual(attempts);
+    }
+  );
+
   it('lead with the path, then the fixture line, then the trace', async () => {
     const failure = await captureFailure(() =>
       testPaths(lightMachine, {

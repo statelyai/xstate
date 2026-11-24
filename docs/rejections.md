@@ -56,6 +56,8 @@ With `setup().extend()`, an extension rejection schema replaces any base schema 
 
 `snapshot.check(event)` evaluates transition selection without executing queued effects or changing the snapshot. It checks the supplied event against the current snapshot; it does not predict the result of asynchronous work or guarantee acceptance by a later `send`.
 
+With `@xstate/effect`, `sendAndAwait(actor, event)` resolves to the resulting snapshot when a transition rejects the event. Inspect a snapshot with `check(event)` to get the typed reasons.
+
 | Status | Meaning |
 | --- | --- |
 | `accepted` | At least one non-forbidden transition accepts the event and no region rejects it. |

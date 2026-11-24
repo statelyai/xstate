@@ -76,6 +76,38 @@ test('confirms an order once the card is charged', async () => {
 
 Test the failure path the same way, with fake logic that throws instead of resolving. Always pass a `timeout` to `waitFor(...)`. Without one it waits forever, so a broken machine hangs the test suite instead of failing the test.
 
+## Simulate child completion
+
+Use `{ simulate: true }` to control when an invoked child finishes in a test. Invocations start normally, so provide a fake for any child that performs external work.
+
+```ts
+import { createActor, createAsyncLogic, setup } from 'xstate';
+
+const checkout = setup({
+  actors: {
+    save: createAsyncLogic({ run: () => new Promise<string>(() => {}) })
+  }
+}).createMachine({
+  initial: 'saving',
+  states: {
+    saving: {
+      invoke: { id: 'save', src: 'save', onDone: { target: 'saved' } }
+    },
+    saved: {}
+  }
+});
+
+const actor = createActor(checkout, { simulate: true }).start();
+actor.simulate.childDone({ id: 'save', output: 'receipt-1' });
+expect(actor.getSnapshot().matches('saved')).toBe(true);
+```
+
+`childDone()` requires a running local invocation with that ID. Call it between the child's events. If the child has a validator, XState checks the terminal result before it runs cleanup. It then publishes a `done` snapshot with the supplied output and delivers completion to the parent. The child cannot complete again if its original work finishes later. TypeScript checks the ID and output when the child is known to the machine's types.
+
+If custom child logic returns a `done` or `error` snapshot when asked to stop, XState publishes that result.
+
+To simulate completion after a restore, enable simulation when creating the actor you persist and when restoring it. XState records invocation identity for embedded registered children of actors with simulation enabled.
+
 ## Control time
 
 Delays and timeouts do not need real time. Pass a `SimulatedClock` and move it forward yourself.

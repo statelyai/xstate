@@ -42,13 +42,14 @@ The returned value is an XState machine and can be passed to `createActor(...)`,
 
 | Behavior | Native `createMachine(...)` | `createMachineFromSCXML(...)` |
 | --- | --- | --- |
-| Parallel transition domain | Targets can update individual regions. By default, a cross-region transition preserves the source region and exits only the target region's descendants. | Uses SCXML transition domains. A cross-region transition can exit and reenter the entire parallel subtree, resetting untargeted regions to their initial states. |
 | Reentry | Defaults to `reenter: false`. A transition to the source or its descendants generally preserves the source. | Targeted transitions default to `type="external"`. `type="internal"` preserves a compound source when all targets are its descendants. |
 | Event descriptors | `"foo"` matches exactly. `"foo.*"` matches names such as `"foo.bar"`. | `event="foo"` matches both `foo` and `foo.bar`. |
 | Competing handlers in one state | Exact handlers precede wildcards. More specific wildcard descriptors precede shorter ones. | The first enabled matching transition in document order wins, including prefix and wildcard matches. |
 | Initial state | Compound states require an explicit `initial`. | Without `initial` or an `<initial>` element, a compound state enters its first child state in document order. |
 | Execution errors | The nearest active `onError` can recover a failure. An unhandled failure errors the actor and stops its children. | Executable-content failures queue `error.execution` and stop the remaining content in that block. A failing `cond` evaluates to false and queues `error.execution`. |
 | Undeliverable sends | Missing or stopped targets produce dead letters through `onRejectedEvent`. The sender stays active. | Invalid send targets or unsupported processor types raise `error.execution`. An unreachable SCXML session address raises `error.communication`. |
+
+In both, a [transition between regions](parallel-states.md#transitions-between-regions) exits and reenters the common parallel state. Untargeted regions restart at their initial states.
 
 Both use XState's macrostep bound, which is unbounded unless the machine sets `options.maxIterations`. Exceeding a set bound throws `InfiniteTransitionError`. SCXML does not prescribe a bound.
 

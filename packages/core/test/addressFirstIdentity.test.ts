@@ -256,8 +256,15 @@ describe('effect descriptors', () => {
 });
 
 describe('sessionId as incarnation id', () => {
+  const worker = createMachine({
+    initial: 'working',
+    states: {
+      working: { on: { FINISH: { target: 'done' } } },
+      done: { type: 'final' }
+    }
+  });
   const invokeMachine = setup({
-    actors: { worker: workerMachine }
+    actors: { worker }
   }).createMachine({
     id: 'order',
     initial: 'working',
@@ -298,14 +305,7 @@ describe('sessionId as incarnation id', () => {
 
     const restored = restoreActor(invokeMachine, persisted);
     restored.start();
-    const currentSessionId = (restored.getSnapshot().children.w as AnyActor)
-      .sessionId;
-    restored.send({
-      type: 'xstate.done.actor',
-      actorId: 'w',
-      output: undefined,
-      sessionId: currentSessionId
-    } as never);
+    restored.getSnapshot().children.w?.send({ type: 'FINISH' });
     expect(restored.getSnapshot().value).toBe('finished');
     expect(restored.getSnapshot().status).toBe('done');
   });
@@ -458,12 +458,12 @@ describe('detached children (remote handles)', () => {
     actor.stop();
 
     const restored = restoreActor(invokeMachine, persisted).start();
-    restored.send({
+    deliverEvent(restored.getSnapshot().children.w, restored, {
       type: 'xstate.done.actor',
       actorId: 'w',
       output: undefined,
       sessionId: 'some-other-runtime:7'
-    } as never);
+    });
     expect(restored.getSnapshot().value).toBe('finished');
   });
 });
@@ -1123,22 +1123,22 @@ describe('incarnation tokens on remote handles', () => {
       invokeMachine,
       persistedWithIncarnation('runtime-b:7')
     ).start();
-    restored.send({
+    deliverEvent(restored.getSnapshot().children.w, restored, {
       type: 'xstate.done.actor',
       actorId: 'w',
       output: undefined,
       sessionId: 'runtime-b:3'
-    } as never);
+    });
     expect(restored.getSnapshot().value).toBe('a');
     // The stale completion must not remove the still-running child either:
     // the parent keeps its handle until the real completion arrives.
     expect(restored.getSnapshot().children.w).toBeDefined();
-    restored.send({
+    deliverEvent(restored.getSnapshot().children.w, restored, {
       type: 'xstate.done.actor',
       actorId: 'w',
       output: undefined,
       sessionId: 'runtime-b:7'
-    } as never);
+    });
     expect(restored.getSnapshot().value).toBe('finished');
     restored.stop();
   });

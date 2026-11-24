@@ -254,6 +254,7 @@ export function restoreMachineSnapshot<TMachine extends AnyStateMachine>(
       address?: string;
       remote?: boolean;
       incarnation?: string;
+      invoked?: true;
       syncSnapshot?: boolean;
       registryKey?: string;
     }
@@ -310,7 +311,7 @@ export function restoreMachineSnapshot<TMachine extends AnyStateMachine>(
     // Mark so `start()` knows to start this child (freshly invoked/spawned
     // children are started via deferred `@xstate.start` actions instead).
     (actor as any)._rehydrated = true;
-    if (src === undefined) {
+    if (src === undefined || actorData.invoked === true) {
       (actor as any)._invoked = true;
     }
 

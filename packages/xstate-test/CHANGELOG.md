@@ -1,5 +1,57 @@
 # @xstate/test
 
+## 2.0.0-beta.3
+
+### Minor Changes
+
+- e67ce38: Use `testPaths(machine, { cases })` to exercise exact payloads for enabled
+  events, including events that lead to the same state. Set `checkUnhandled`
+  per event to verify that the implementation ignores it where the machine
+  has no enabled transition.
+  
+  ```ts
+  await testPaths(machine, {
+    cases: { APPROVE: [{ script: 0 }] },
+    checkUnhandled: { APPROVE: true },
+    sut
+  });
+  ```
+  
+  Use `createTestModel()` to test and replay a standalone specification written
+  with TypeScript functions.
+
+## 2.0.0-beta.2
+
+### Minor Changes
+
+- 2ca7466: Add a SUT session `receive({ signal })` hook for live model-based tests. Let an observed event advance the model and determine which inputs the test can send next. Replay fixtures check the recorded output and report when the SUT takes a different legal branch.
+- e2af1dc: Add experimental `cover` support to `testPaths()`. Define named step predicates or consecutive step sequences to find and run walks that collectively cover them. The planner prefers fewer SUT sessions, then fewer events. Set `maxPaths` to cap the number of sessions.
+  
+  ```ts
+  await testPaths(model, {
+    sut,
+    cover: {
+      requirements: {
+        consecutiveUndos: [
+          ({ event }) => event.type === 'UNDO',
+          ({ event }) => event.type === 'UNDO'
+        ]
+      }
+    }
+  });
+  ```
+- e2af1dc: Import from `@xstate/test/paths` to generate and run deterministic test paths or replay fixtures without installing fast-check.
+  
+  ```ts
+  import { testPaths } from '@xstate/test/paths';
+  
+  await testPaths(machine, { pathGenerator: 'shortest', sut });
+  ```
+
+### Patch Changes
+
+- 268d54e: Preserve the original error when the test adapter's `send()` throws or rejects. The failure trace shows the completed steps and the attempted event, and the replay fixture retries the failed send.
+
 ## 2.0.0-beta.1
 
 ### Major Changes

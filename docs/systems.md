@@ -148,6 +148,8 @@ subscription.unsubscribe();
 
 A system accepts any number of listeners, added at any time. Listeners run in registration order, and a listener that throws does not prevent the others from running. The `onRejectedEvent` option on `createActor` registers a listener the same way when the actor is created.
 
+Application sends of reserved actor completion, actor error, actor snapshot, state completion, and execution error events are rejected with reason `internalEvent`.
+
 ## TypeScript
 
 Without a declared registry, `system.get(key)` is untyped. Annotate the system with `ActorSystem<{ actors: { receiver: ActorRef<...> } }>` or, preferably, use `createSystem({ registry })` so keys and reference types are inferred.

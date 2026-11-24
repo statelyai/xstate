@@ -500,6 +500,170 @@ const deepFlatParallelMachine = createMachine({
 });
 
 describe('parallel states', () => {
+  it('selects a parallel ancestor transition once for regions without a matching transition', () => {
+    const calls: string[] = [];
+    const record = (name: string) => {
+      calls.push(name);
+    };
+    const machine = createMachine({
+      type: 'parallel',
+      on: {
+        EV: (_, enq) => enq(record, 'parent EV')
+      },
+      always: (_, enq) => enq(record, 'parent always'),
+      states: {
+        first: {},
+        second: {},
+        third: {
+          initial: 'active',
+          states: {
+            active: {
+              on: { EV: (_, enq) => enq(record, 'child EV') },
+              always: (_, enq) => enq(record, 'child always')
+            }
+          }
+        }
+      }
+    });
+    const actor = createActor(machine).start();
+
+    expect(calls.splice(0)).toEqual(['parent always', 'child always']);
+
+    actor.send({ type: 'EV' });
+
+    expect(calls).toEqual([
+      'parent EV',
+      'child EV',
+      'parent always',
+      'child always'
+    ]);
+  });
+
+  it('runs a targetless region handler when a parallel ancestor exits the parallel state', () => {
+    const record = vi.fn();
+    const machine = createMachine({
+      initial: 'active',
+      states: {
+        active: {
+          type: 'parallel',
+          on: { EV: { target: 'finished' } },
+          states: {
+            first: {},
+            second: { on: { EV: (_, enq) => enq(record) } }
+          }
+        },
+        finished: {}
+      }
+    });
+    const actor = createActor(machine).start();
+
+    actor.send({ type: 'EV' });
+
+    expect(record).toHaveBeenCalledTimes(1);
+    expect(actor.getSnapshot().value).toBe('finished');
+  });
+
+  it('limits a forbidden event to its own parallel branch', () => {
+    const machine = createMachine({
+      initial: 'active',
+      states: {
+        active: {
+          type: 'parallel',
+          on: { STOP: { target: 'halted' } },
+          states: {
+            blocked: { on: { STOP: undefined } },
+            other: {}
+          }
+        },
+        halted: {}
+      }
+    });
+    const actor = createActor(machine).start();
+
+    expect(actor.getSnapshot().can({ type: 'STOP' })).toBe(true);
+    actor.send({ type: 'STOP' });
+    expect(actor.getSnapshot().value).toBe('halted');
+  });
+
+  it.each(['event', 'always'] as const)(
+    'uses document order for conflicting %s transitions after a leaf changes',
+    (trigger) => {
+      const machine = createMachine({
+        context: { armed: false },
+        initial: 'active',
+        states: {
+          active: {
+            type: 'parallel',
+            states: {
+              first: {
+                initial: 'idle',
+                states: {
+                  idle: {
+                    on: { ARM: { target: 'armed', context: { armed: true } } }
+                  },
+                  armed: {
+                    on: { GO: { target: '#firstWon' } },
+                    always: ({ context }) =>
+                      trigger === 'always' && context.armed
+                        ? { target: '#firstWon' }
+                        : undefined
+                  }
+                }
+              },
+              second: {
+                on: { GO: { target: '#secondWon' } },
+                always: ({ context }) =>
+                  trigger === 'always' && context.armed
+                    ? { target: '#secondWon' }
+                    : undefined
+              }
+            }
+          },
+          firstWon: { id: 'firstWon' },
+          secondWon: { id: 'secondWon' }
+        }
+      });
+      const actor = createActor(machine).start();
+
+      actor.send({ type: 'ARM' });
+      if (trigger === 'event') {
+        actor.send({ type: 'GO' });
+      }
+
+      expect(actor.getSnapshot().value).toBe('firstWon');
+    }
+  );
+
+  it('prefers a descendant transition when the parallel ancestor would exit its region', () => {
+    const machine = createMachine({
+      initial: 'active',
+      states: {
+        active: {
+          type: 'parallel',
+          on: { EV: { target: 'finished' } },
+          states: {
+            first: {},
+            second: {
+              initial: 'idle',
+              states: {
+                idle: { on: { EV: { target: 'running' } } },
+                running: {}
+              }
+            }
+          }
+        },
+        finished: {}
+      }
+    });
+    const actor = createActor(machine).start();
+
+    actor.send({ type: 'EV' });
+
+    expect(actor.getSnapshot().value).toEqual({
+      active: { first: {}, second: 'running' }
+    });
+  });
+
   it('should have initial parallel states', () => {
     const initialState = createActor(wordMachine).getSnapshot();
 
@@ -1201,7 +1365,7 @@ describe('parallel states', () => {
     expect(service.getSnapshot().value).toBe('finished');
   });
 
-  it('source parallel region should not be exited when a transition within it targets another parallel region (parallel root)', async () => {
+  it('reenters the parallel root when a transition crosses regions', () => {
     const machine = createMachine({
       type: 'parallel',
       states: {
@@ -1238,10 +1402,21 @@ describe('parallel states', () => {
 
     actor.send({ type: 'TOGGLE_MODE' });
 
-    expect(flushTracked()).toEqual(['exit: Mode.Normal', 'enter: Mode.Demo']);
+    expect(flushTracked()).toEqual([
+      'exit: Mode.Normal',
+      'exit: Mode',
+      'exit: Operation.Waiting',
+      'exit: Operation',
+      'exit: __root__',
+      'enter: __root__',
+      'enter: Operation',
+      'enter: Operation.Waiting',
+      'enter: Mode',
+      'enter: Mode.Demo'
+    ]);
   });
 
-  it('source parallel region should not be exited when a transition within it targets another parallel region (nested parallel)', async () => {
+  it('reenters a nested parallel state when a transition crosses regions', () => {
     const machine = createMachine({
       initial: 'a',
       states: {
@@ -1285,8 +1460,81 @@ describe('parallel states', () => {
 
     expect(flushTracked()).toEqual([
       'exit: a.Mode.Normal',
+      'exit: a.Mode',
+      'exit: a.Operation.Waiting',
+      'exit: a.Operation',
+      'exit: a',
+      'enter: a',
+      'enter: a.Operation',
+      'enter: a.Operation.Waiting',
+      'enter: a.Mode',
       'enter: a.Mode.Demo'
     ]);
+  });
+
+  it('preserves sibling regions when targeting the source region root', () => {
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        left: {
+          id: 'left',
+          initial: 'a',
+          states: {
+            a: { on: { ADVANCE: { target: 'b' } } },
+            b: { on: { RESET: { target: '#left' } } }
+          }
+        },
+        right: {
+          initial: 'x',
+          states: {
+            x: { on: { ADVANCE: { target: 'y' } } },
+            y: {}
+          }
+        }
+      }
+    });
+    const actor = createActor(machine).start();
+
+    actor.send({ type: 'ADVANCE' });
+    actor.send({ type: 'RESET' });
+
+    expect(actor.getSnapshot().value).toEqual({ left: 'a', right: 'y' });
+  });
+
+  it('enters only the history recorded by a cross-region transition', () => {
+    const enteredFirst = vi.fn();
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        left: { on: { RESTORE: { target: '#rightHistory' } } },
+        right: {
+          initial: 'first',
+          states: {
+            first: {
+              entry: (_, enq) => enq(enteredFirst),
+              initial: 'leaf',
+              states: { leaf: {} },
+              on: { ADVANCE: { target: 'second' } }
+            },
+            second: {},
+            history: {
+              id: 'rightHistory',
+              type: 'history',
+              history: 'deep',
+              target: 'first.leaf'
+            }
+          }
+        }
+      }
+    });
+    const actor = createActor(machine).start();
+    actor.send({ type: 'ADVANCE' });
+    enteredFirst.mockClear();
+
+    actor.send({ type: 'RESTORE' });
+
+    expect(actor.getSnapshot().value).toEqual({ left: {}, right: 'second' });
+    expect(enteredFirst).not.toHaveBeenCalled();
   });
 
   it('targetless transition on a parallel state should not enter nor exit any states', () => {
