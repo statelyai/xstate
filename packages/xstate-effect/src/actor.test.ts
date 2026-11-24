@@ -2,6 +2,7 @@ import { expectTypeOf } from 'vitest';
 import { Cause, Duration, Effect, Exit, Fiber, Scope, Stream } from 'effect';
 import {
   createMachine,
+  setup,
   types,
   type AnyActorRef,
   type SnapshotFrom
@@ -536,6 +537,49 @@ describe('inspect', () => {
     );
     secondSubscription.unsubscribe();
     expect(actor.system._hasInspectionObservers?.()).toBe(false);
+  });
+
+  it('streams a live child transition without inspecting its parent', async () => {
+    const parent = setup({ actors: { child: counterMachine } }).createMachine({
+      schemas: {
+        events: { GO: types<{}>() }
+      },
+      initial: 'idle',
+      states: {
+        idle: { on: { GO: { target: 'running' } } },
+        running: { invoke: { id: 'child', src: 'child' } }
+      }
+    });
+    const events = await runScoped(
+      Effect.gen(function* () {
+        const actor = yield* createEffectActor(parent);
+        yield* send(actor, { type: 'GO' });
+        const running = yield* waitFor(
+          actor,
+          (snapshot) => snapshot.value === 'running'
+        );
+        const child = running.children.child!;
+        let listening = false;
+        const systemInspect = child.system.inspect.bind(child.system);
+        child.system.inspect = ((...args: Parameters<typeof systemInspect>) => {
+          listening = true;
+          return systemInspect(...args);
+        }) as typeof child.system.inspect;
+        const fiber = yield* Effect.forkScoped(
+          Stream.runCollect(inspect(child).pipe(Stream.take(1)))
+        );
+        yield* Effect.promise(() => until(() => listening));
+        child.send({ type: 'INCREMENT' });
+
+        return yield* Fiber.join(fiber);
+      })
+    );
+
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({
+      type: '@xstate.transition',
+      event: { type: 'INCREMENT' }
+    });
   });
 });
 

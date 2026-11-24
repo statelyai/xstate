@@ -17,6 +17,7 @@ import {
   adoptSystem,
   getInspectionBaseSystem,
   getSnapshotActorRef,
+  peekSnapshotActorRef,
   withExecutionOwner
 } from '../snapshotActorRef.ts';
 import {
@@ -793,8 +794,16 @@ export function createDurable<TLogic extends AnyActorLogic>(
   };
   function inExecution<T>(fn: () => T): T {
     return withExecutionOwner(owner, () =>
-      withSystemInspector(isInspected() ? ambientInspection : undefined, fn)
+      withSystemInspector(ambientInspection, fn)
     );
+  }
+
+  const seenSnapshots = new WeakSet<object>();
+  function markSnapshotSeen<TSnapshot>(snapshot: TSnapshot): TSnapshot {
+    if (typeof snapshot === 'object' && snapshot !== null) {
+      seenSnapshots.add(snapshot);
+    }
+    return snapshot;
   }
 
   function installSystemRuntime<TSnapshot>(
@@ -811,38 +820,25 @@ export function createDurable<TLogic extends AnyActorLogic>(
         observedRoots.add(root);
       }
     }
-    if (wrappedSystemRuntime || isInspected()) {
-      const ref = getSnapshotActorRef(snapshot as Snapshot<unknown>)?.actor;
-      const systems = new Set<AnyActor['system']>();
-      const visit = (actor: AnyActor) => {
-        if (!systems.has(actor.system)) {
-          systems.add(actor.system);
-          if (adoptSystem(actor.system, owner)) {
-            if (wrappedSystemRuntime) {
-              actor.system.runtime = wrappedSystemRuntime;
-            }
-            wireInspection(actor.system);
+    const ref = (
+      wrappedSystemRuntime || isInspected()
+        ? getSnapshotActorRef(snapshot as Snapshot<unknown>)
+        : peekSnapshotActorRef(snapshot as Snapshot<unknown>)
+    )?.actor;
+    const systems = new Set<AnyActor['system']>();
+    const visit = (actor: AnyActor) => {
+      if (!systems.has(actor.system)) {
+        systems.add(actor.system);
+        if (adoptSystem(actor.system, owner)) {
+          if (wrappedSystemRuntime) {
+            actor.system.runtime = wrappedSystemRuntime;
           }
+          wireInspection(actor.system);
         }
-        if (recursive) {
-          const children = (
-            actor.getSnapshot() as {
-              children?: Record<string, AnyActor | undefined>;
-            }
-          ).children;
-          for (const child of Object.values(children ?? {})) {
-            if (child) {
-              visit(child);
-            }
-          }
-        }
-      };
-      if (ref) {
-        visit(ref);
       }
-      if (!recursive || !ref) {
+      if (recursive) {
         const children = (
-          snapshot as {
+          actor.getSnapshot() as {
             children?: Record<string, AnyActor | undefined>;
           }
         ).children;
@@ -850,6 +846,21 @@ export function createDurable<TLogic extends AnyActorLogic>(
           if (child) {
             visit(child);
           }
+        }
+      }
+    };
+    if (ref) {
+      visit(ref);
+    }
+    if (!recursive || !ref) {
+      const children = (
+        snapshot as {
+          children?: Record<string, AnyActor | undefined>;
+        }
+      ).children;
+      for (const child of Object.values(children ?? {})) {
+        if (child) {
+          visit(child);
         }
       }
     }
@@ -955,6 +966,7 @@ export function createDurable<TLogic extends AnyActorLogic>(
           };
         })
       );
+      markSnapshotSeen(snapshot);
       for (const { event, source } of checkpoint?.inbox ?? []) {
         const child = lifecycleChild(snapshot, event);
         if (child === null) {
@@ -1018,15 +1030,22 @@ export function createDurable<TLogic extends AnyActorLogic>(
           initialTransition(logic, ...args)
         )
       );
-      return [installSystemRuntime(snapshot), tagEffects(effects)];
+      return [
+        markSnapshotSeen(installSystemRuntime(snapshot)),
+        tagEffects(effects)
+      ];
     },
     transition(snapshot, event) {
+      markSnapshotSeen(snapshot);
       const [nextSnapshot, effects] = inExecution(() =>
         withExecutionIdentity(executionIdentity, () =>
           transition(logic, snapshot, event)
         )
       );
-      return [installSystemRuntime(nextSnapshot), tagEffects(effects)];
+      return [
+        markSnapshotSeen(installSystemRuntime(nextSnapshot)),
+        tagEffects(effects)
+      ];
     },
     inspect(observer) {
       const entry = (inspectionEvent: InspectionEvent) =>
@@ -1045,6 +1064,13 @@ export function createDurable<TLogic extends AnyActorLogic>(
       };
     },
     getActorRef(snapshot, address) {
+      if (
+        typeof snapshot !== 'object' ||
+        snapshot === null ||
+        !seenSnapshots.has(snapshot)
+      ) {
+        return undefined;
+      }
       const root = getSnapshotActorRef(snapshot as Snapshot<unknown>)?.actor;
       if (root && adoptSystem(root.system, owner)) {
         wireInspection(root.system);

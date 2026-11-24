@@ -157,6 +157,74 @@ describe('durable execution inspection', () => {
     expect((next as { value?: unknown }).value).toBe('approved');
   });
 
+  it('starts inspecting children that a per-effect runtime already started', async () => {
+    const child = createMachine({
+      context: { count: 0 },
+      on: {
+        PING: ({ context }) => ({
+          context: { count: context.count + 1 }
+        })
+      }
+    });
+    const parent = setup({ actors: { child } }).createMachine({
+      invoke: { id: 'child', src: 'child' }
+    });
+    const durable = createDurable(parent, {
+      runtime: () => ({
+        startActor: (actor) => {
+          actor.start();
+        }
+      }),
+      executeAction: () => {},
+      waitForEvent: () => {
+        throw new Error('host-driven loop');
+      }
+    });
+    const [snapshot, effects] = durable.initialTransition();
+    await durable.executeEffects(effects);
+    const inspected: InspectionEvent[] = [];
+    const subscription = durable.inspect((event) => inspected.push(event));
+    const childActor = snapshot.children.child!;
+
+    childActor.send({ type: 'PING' });
+
+    expect(inspected).toContainEqual(
+      expect.objectContaining({
+        type: '@xstate.transition',
+        actorRef: childActor,
+        event: { type: 'PING' }
+      })
+    );
+    subscription.unsubscribe();
+  });
+
+  it('does not claim a snapshot before the execution sees it', () => {
+    const counter = createMachine({
+      context: { count: 0 },
+      on: {
+        TICK: ({ context }) => ({
+          context: { count: context.count + 1 }
+        })
+      }
+    });
+    const [foreign] = initialTransition(counter);
+    const makeDurable = () =>
+      createDurable(counter, {
+        executeAction: () => {},
+        waitForEvent: () => {
+          throw new Error('host-driven loop');
+        }
+      });
+    const first = makeDurable();
+    const second = makeDurable();
+
+    expect(first.getActorRef(foreign)).toBeUndefined();
+    const [owned] = second.transition(foreign, { type: 'TICK' });
+
+    expect(second.getActorRef(owned)).toBeDefined();
+    expect(owned.context.count).toBe(1);
+  });
+
   it('observes the first transition from an existing pure snapshot', () => {
     const inspected: InspectionEvent[] = [];
     const durable = createDurable(machine, {

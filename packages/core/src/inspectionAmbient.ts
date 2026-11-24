@@ -6,9 +6,9 @@ import type { AnyActor } from './types.ts';
  *
  * - Snapshot systems created while it is installed belong to the execution, so
  *   they forward inspection to their base system instead of stubbing it out.
- * - Runtime systems constructed while it is installed are handed to `attach`,
- *   so creation-time inspection events (the root actor's own registration,
- *   actors spawned during the first transition) can be observed.
+ * - Runtime systems constructed while it is installed and active are handed
+ *   to `attach`, so creation-time inspection events (the root actor's own
+ *   registration, actors spawned during the first transition) can be observed.
  * - `isActive` tells the pure-transition path whether the execution has
  *   observers; when it has none, no inspection event is built.
  *
@@ -32,7 +32,9 @@ export function isAmbientInspectionActive(): boolean {
 
 /** @internal */
 export function attachAmbientInspector(system: AnyActor['system']): void {
-  ambientInspection?.attach(system);
+  if (ambientInspection?.isActive()) {
+    ambientInspection.attach(system);
+  }
 }
 
 /** @internal */

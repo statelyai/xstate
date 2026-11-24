@@ -145,8 +145,13 @@ export function createSnapshotSystem(
   const reverseKeyedActors = new WeakMap<AnyActor, PropertyKey>();
   // The view's execution system; adoption can make the view its own.
   const execution = () => snapshotSystemViews.get(system)!.executionSystem;
-  const forwards = () =>
-    snapshotSystemViews.get(system)!.inspection?.isActive() ?? false;
+  const forwards = () => {
+    const inspection = snapshotSystemViews.get(system)!.inspection;
+    return (
+      inspection !== undefined &&
+      (getAmbientInspection() !== inspection || inspection.isActive())
+    );
+  };
   const system: AnyActor['system'] = Object.assign(
     Object.create(baseExecutionSystem),
     {
