@@ -160,6 +160,7 @@ describe('durable execution inspection', () => {
   it('observes the first transition from an existing pure snapshot', () => {
     const inspected: InspectionEvent[] = [];
     const durable = createDurable(machine, {
+      executeAction: () => {},
       waitForEvent: () => {
         throw new Error('host-driven loop');
       }
@@ -190,13 +191,14 @@ describe('durable execution inspection', () => {
       }
     });
     const durable = createDurable(counter, {
+      executeAction: () => {},
       waitForEvent: () => {
         throw new Error('host-driven loop');
       }
     });
     const [initial] = durable.initialTransition();
     const actor = durable.getActorRef(initial)!;
-    actor.system.inspect((event) => direct.push(event));
+    actor.system.inspect((event: InspectionEvent) => direct.push(event));
     const subscription = durable.inspect((event) => inspected.push(event));
     const event = { type: 'TOGGLE' };
     const [verifying] = durable.transition(initial, event);

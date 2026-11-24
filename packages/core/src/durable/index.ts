@@ -741,32 +741,44 @@ export function createDurable<TLogic extends AnyActorLogic>(
   // ambient inspection); visiting snapshots covers systems materialized
   // outside that window — a snapshot's system first touched here, or a
   // restored child's foreign system.
-  const executionSystems = new Map<
-    AnyActor['system'],
+  // Keep earlier systems eligible for inspection without retaining their snapshots.
+  type InspectionSystem = AnyActor['system'];
+  const executionSystems = new Set<WeakRef<InspectionSystem>>();
+  const subscriptions = new WeakMap<
+    InspectionSystem,
     Subscription | undefined
   >();
+  const untrackSystem = new FinalizationRegistry<WeakRef<InspectionSystem>>(
+    (ref) => executionSystems.delete(ref)
+  );
 
-  function wireInspection(system: AnyActor['system']): void {
+  function wireInspection(system: InspectionSystem): void {
     const baseSystem = getInspectionBaseSystem(system);
-    if (executionSystems.get(baseSystem)) {
-      return;
+    if (!subscriptions.has(baseSystem)) {
+      const ref = new WeakRef(baseSystem);
+      subscriptions.set(baseSystem, undefined);
+      executionSystems.add(ref);
+      untrackSystem.register(baseSystem, ref);
     }
-    executionSystems.set(
-      baseSystem,
-      isInspected() ? baseSystem.inspect(dispatchInspection) : undefined
-    );
+    if (isInspected() && !subscriptions.get(baseSystem)) {
+      subscriptions.set(baseSystem, baseSystem.inspect(dispatchInspection));
+    }
   }
 
   function startInspection(): void {
-    for (const system of executionSystems.keys()) {
-      wireInspection(system);
+    for (const ref of executionSystems) {
+      const system = ref.deref();
+      if (system) wireInspection(system);
     }
   }
 
   function stopInspection(): void {
-    for (const [system, subscription] of executionSystems) {
-      subscription?.unsubscribe();
-      executionSystems.set(system, undefined);
+    for (const ref of executionSystems) {
+      const system = ref.deref();
+      if (system) {
+        subscriptions.get(system)?.unsubscribe();
+        subscriptions.set(system, undefined);
+      }
     }
   }
 
@@ -781,7 +793,7 @@ export function createDurable<TLogic extends AnyActorLogic>(
   };
   function inExecution<T>(fn: () => T): T {
     return withExecutionOwner(owner, () =>
-      withSystemInspector(ambientInspection, fn)
+      withSystemInspector(isInspected() ? ambientInspection : undefined, fn)
     );
   }
 

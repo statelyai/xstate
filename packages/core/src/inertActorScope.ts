@@ -22,10 +22,7 @@ import {
   SnapshotFrom
 } from './types.ts';
 import { lazyActorScope } from './actorScope.ts';
-import {
-  getAmbientInspection,
-  withSystemInspector
-} from './inspectionAmbient.ts';
+import { isAmbientInspectionActive } from './inspectionAmbient.ts';
 
 /** @internal */
 export function setInertActorScopeSnapshot<T>(
@@ -201,22 +198,18 @@ function createMaterializedInertActorScope<T extends AnyActorLogic>(
           owner
         )
       : undefined;
-  const self = withSystemInspector(
-    owner?.inspection ?? getAmbientInspection(),
-    () =>
-      createActor(
-        actorLogic as AnyActorLogic,
-        {
-          _inert: true,
-          ...(previousSelf
-            ? {
-                id: previousSelf.id,
-                _sessionId: previousSelf.sessionId
-              }
-            : {}),
-          ...(system ? { _systemRef: { current: system } } : {})
-        } as any
-      )
+  const self = createActor(
+    actorLogic as AnyActorLogic,
+    {
+      _inert: true,
+      ...(previousSelf
+        ? {
+            id: previousSelf.id,
+            _sessionId: previousSelf.sessionId
+          }
+        : {}),
+      ...(system ? { _systemRef: { current: system } } : {})
+    } as any
   );
   if (previousSelf?._parent) {
     self._parent = previousSelf._parent;
@@ -276,7 +269,7 @@ function createIdentityScope<T extends AnyActorLogic>(
       Object.defineProperty(actor, '_snapshot', {
         configurable: true,
         enumerable: true,
-        ...(getAmbientInspection()?.isActive()
+        ...(isAmbientInspectionActive()
           ? { writable: true, value: cell.snapshot?.deref() }
           : { get: () => cell.snapshot?.deref(), set: setSnapshot })
       });
