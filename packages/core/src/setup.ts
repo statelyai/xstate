@@ -316,49 +316,88 @@ type ExtendValidatorConfig<TExtension> = [TExtension] extends [
   ? { validator?: never }
   : { validator: TExtension };
 
-// An extension may add sources freely, but a source that reuses a base name
-// replaces it at runtime, so it must satisfy the base contract, the same rule
-// `machine.provide(...)` applies.
-type ExtendOverrideContracts<
+type SourceName<TKey> = TKey extends number ? `${TKey}` : TKey;
+
+type NormalizeSourceNames<TSources> = {
+  [K in keyof TSources as SourceName<K>]: TSources[K];
+};
+
+type SourceIndexKeys<TKey extends PropertyKey> = TKey extends unknown
+  ? {} extends Record<TKey, unknown>
+    ? TKey
+    : never
+  : never;
+
+// TypeScript checks named properties against each other but does not check
+// index signatures against optional named properties.
+type CheckIndexedSourceOverrides<TOverrides, TContracts> = {
+  [K in keyof TContracts & keyof TOverrides as K extends SourceIndexKeys<
+    keyof TOverrides
+  >
+    ? TOverrides[K] extends TContracts[K]
+      ? never
+      : K
+    : never]: never;
+};
+
+type CheckSourceOverrides<TOverrides, TContracts> = Record<string, unknown> &
+  Partial<TContracts> &
+  CheckIndexedSourceOverrides<TOverrides, TContracts>;
+
+type ActorOverride<TBase, TOverride> = [TBase] extends [AnyActorLogic]
+  ? [TOverride] extends [AnyActorLogic]
+    ? CompatibleProvidedActorSource<TBase, TOverride>
+    : never
+  : never;
+
+type ActorOverrideContracts<
+  TBase,
+  TOverrides,
+  TNormalizedOverrides = NormalizeSourceNames<TOverrides>
+> = {
+  [K in keyof TOverrides]: SourceName<K> extends keyof TBase
+    ? ActorOverride<TBase[SourceName<K>], TOverrides[K]>
+    : TOverrides[K];
+} & CheckIndexedSourceOverrides<
+  TNormalizedOverrides,
+  {
+    [K in keyof TBase & keyof TNormalizedOverrides]: ActorOverride<
+      TBase[K],
+      TNormalizedOverrides[K]
+    >;
+  }
+>;
+
+// A source that reuses a base name replaces it at runtime, so it must
+// satisfy the base contract, the same rule `machine.provide(...)` applies.
+type SourceOverrideContracts<
   TBaseActionMap,
   TBaseActorMap,
   TBaseGuardMap,
-  TExtendActionMap,
-  TExtendActorMap,
-  TExtendGuardMap
+  TOverrideActionMap,
+  TOverrideActorMap,
+  TOverrideGuardMap
 > = {
-  actions?: {
-    [K in keyof NoInfer<TExtendActionMap> &
-      keyof TBaseActionMap]?: ProvidedActionContracts<TBaseActionMap>[K];
-  };
-  guards?: {
-    [K in keyof NoInfer<TExtendGuardMap> &
-      keyof TBaseGuardMap]?: TBaseGuardMap[K];
-  };
-  // Mapped over the extension's own keys, like `provide()`'s actor check, so
-  // an incompatible actor becomes `never` under its own name and the error is
-  // reported there.
-  actors?: {
-    [K in keyof NoInfer<TExtendActorMap>]: K extends keyof TBaseActorMap
-      ? TBaseActorMap[K] extends AnyActorLogic
-        ? NoInfer<TExtendActorMap>[K] extends AnyActorLogic
-          ? CompatibleProvidedActorSource<
-              TBaseActorMap[K],
-              NoInfer<TExtendActorMap>[K]
-            >
-          : never
-        : never
-      : NoInfer<TExtendActorMap>[K];
-  };
+  actions?: CheckSourceOverrides<
+    NormalizeSourceNames<NoInfer<TOverrideActionMap>>,
+    ProvidedActionContracts<NormalizeSourceNames<TBaseActionMap>>
+  >;
+  guards?: CheckSourceOverrides<
+    NormalizeSourceNames<NoInfer<TOverrideGuardMap>>,
+    NormalizeSourceNames<TBaseGuardMap>
+  >;
+  actors?: ActorOverrideContracts<
+    NormalizeSourceNames<TBaseActorMap>,
+    NoInfer<TOverrideActorMap>
+  >;
 };
-
 type SetupExtensionConfig<
   TBaseSchemas,
   TBaseStates,
   TBaseValidator,
-  TBaseActionMap,
+  TBaseActionMap extends Sources['actions'],
   TBaseActorMap,
-  TBaseGuardMap,
+  TBaseGuardMap extends Sources['guards'],
   TExtendSchemas extends SetupSchemas,
   TExtendStates extends Record<string, SetupStateSchema>,
   TExtendActionMap extends Sources['actions'],
@@ -386,10 +425,10 @@ type SetupExtensionConfig<
       NoInfer<MergedSetupSchemas<TBaseSchemas, TExtendSchemas>>
     >;
 } & ExtendValidatorConfig<TExtendValidator> &
-  ExtendOverrideContracts<
-    TBaseActionMap,
+  SourceOverrideContracts<
+    SetupActions<TBaseSchemas, TBaseActionMap>,
     TBaseActorMap,
-    TBaseGuardMap,
+    SetupGuards<TBaseSchemas, TBaseGuardMap>,
     TExtendActionMap,
     TExtendActorMap,
     TExtendGuardMap
@@ -5198,6 +5237,14 @@ export interface SetupReturn<
       delays?: TDelayMap;
       states?: Record<TStateKeys, unknown>;
     } & TConfig &
+      SourceOverrideContracts<
+        SetupActions<TSchemas, TSetupActionMap>,
+        TSetupActorMap,
+        SetupGuards<TSchemas, TSetupGuardMap>,
+        TActionMap,
+        TActorMap,
+        TGuardMap
+      > &
       RuntimeValidationConstraint<
         NoInfer<MachineConfigSchemas<TConfig>>,
         NoInfer<MachineConfigStates<TConfig>>,
