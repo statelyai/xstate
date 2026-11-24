@@ -22,10 +22,9 @@ export interface SourceCoverageSessionStep<TSnapshot = unknown> {
   terminal: boolean;
 }
 /** @experimental */
-export interface SourceCoverageSessionOptions<T extends AnyStateMachine> {
+export type SourceCoverageSessionOptions<T extends AnyStateMachine> = {
   /** Exact runtime identity recorded in replay fixtures, e.g. xstate@6.0.0-alpha.70. */
   runtimeId: string;
-  input?: InputFrom<T>;
   /** Optional host validation; type-only schemas cannot validate payload fields. */
   validateEvent?: (
     event: EventFromLogic<T>,
@@ -36,7 +35,9 @@ export interface SourceCoverageSessionOptions<T extends AnyStateMachine> {
     snapshot: SnapshotFrom<T>,
     event: EventFromLogic<T> | undefined
   ) => void;
-}
+} & (undefined extends InputFrom<T>
+  ? { input?: InputFrom<T> }
+  : { input: InputFrom<T> });
 /**
  * Runs an instrumented v6 machine once per step, collecting source outcomes
  * and static transition metadata from the same microstep calculation. External

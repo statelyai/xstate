@@ -31,3 +31,28 @@ it('preserves event payload and snapshot types across the source coverage sessio
     createSourceCoverageSession(machine, control, {});
   }
 });
+
+it('requires input when the machine input is required', () => {
+  const machine = createMachine({
+    schemas: {
+      context: types<{ balance: number }>(),
+      input: types<{ balance: number }>()
+    },
+    context: ({ input }) => ({ balance: input.balance }),
+    initial: 'idle',
+    states: { idle: {} }
+  });
+  const control = { observer: undefined, faults: 0 };
+
+  createSourceCoverageSession(machine, control, {
+    runtimeId: 'xstate@test',
+    input: { balance: 10 }
+  });
+
+  if (false) {
+    // @ts-expect-error required machine input cannot be omitted
+    createSourceCoverageSession(machine, control, {
+      runtimeId: 'xstate@test'
+    });
+  }
+});
