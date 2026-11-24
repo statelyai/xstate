@@ -218,3 +218,11 @@ export {
   terminateActor
 } from './runtimeHelpers.ts';
 export { waitFor } from './waitFor.ts';
+
+export type {
+  Reject,
+  RejectionResult,
+  RejectionFrom,
+  TransitionCheck,
+  TransitionRejection
+} from './rejections.ts';

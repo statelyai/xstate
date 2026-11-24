@@ -1,3 +1,4 @@
+import { reject, isRejection, assertRejectionResult } from './rejections.ts';
 import isDevelopment from '#is-development';
 import { xstateError } from './xstateError.ts';
 import { cloneMachineSnapshot } from './State.ts';
@@ -1024,6 +1025,27 @@ function hasIntersection<T>(s1: Iterable<T>, s2: Iterable<T>): boolean {
     }
   }
   return false;
+}
+
+export function selectNonConflictingTransitions(
+  transitions: AnyTransitionDefinition[],
+  snapshot: AnyMachineSnapshot,
+  event: EventObject,
+  actorScope: AnyActorScope,
+  selectionResults: TransitionSelectionResults
+): AnyTransitionDefinition[] {
+  return removeConflictingTransitions(
+    transitions,
+    new Set(snapshot.nodes),
+    snapshot,
+    createTransitionResultResolver(
+      snapshot,
+      event,
+      actorScope,
+      false,
+      selectionResults
+    )
+  );
 }
 
 function removeConflictingTransitions(
@@ -2311,6 +2333,7 @@ export function getTransitionResult(
             actors: snapshot.machine.sources.actors,
             guards: snapshot.machine.sources.guards,
             delays: snapshot.machine.sources.delays,
+            reject,
             input: getStateInput(snapshot, transition.source.id)
           },
           actorScope
@@ -2328,12 +2351,14 @@ export function getTransitionResult(
           actors: snapshot.machine.sources.actors,
           guards: snapshot.machine.sources.guards,
           delays: snapshot.machine.sources.delays,
+          reject,
           input: getStateInput(snapshot, transition.source.id)
         });
 
   if (transition.to) {
     const actions: AnyAction[] = [];
     const internalEvents: EventObject[] = [];
+    let attemptedRefProducingEffect = false;
     let res;
     if (
       options?.selectionResult?.reusable &&
@@ -2349,7 +2374,10 @@ export function getTransitionResult(
         {
           registeredActors: snapshot.machine.sources.actors,
           actorSubscriptions: true,
-          createActors: options?.resolveActions ?? true
+          createActors: options?.resolveActions ?? true,
+          onRefProducingCall: () => {
+            attemptedRefProducingEffect = true;
+          }
         }
       );
       const speculativeSelection =
@@ -2373,6 +2401,26 @@ export function getTransitionResult(
         speculativeSelection?.close();
         closeTransitionEnqueue(enqueue);
       }
+    }
+
+    if (isRejection(res)) {
+      assertRejectionResult(res, snapshot.machine.schemas?.rejections);
+      if (
+        actions.length ||
+        internalEvents.length ||
+        attemptedRefProducingEffect
+      ) {
+        throw new Error(
+          'A rejecting transition cannot enqueue effects. Check rejection conditions before calling enq.'
+        );
+      }
+      return {
+        targets: undefined,
+        context: undefined,
+        actions: undefined,
+        internalEvents: undefined,
+        input: undefined
+      };
     }
 
     const targets = res?.target
@@ -2662,7 +2710,10 @@ export function macrostep(
       selectionResults
     );
 
-    if (isErr && !transitions.length) {
+    const rejected = [...selectionResults.values()].some((result) =>
+      isRejection(result.result)
+    );
+    if (isErr && !transitions.length && !rejected) {
       if (
         currentEvent.type === 'xstate.error.actor' &&
         !matchesActorSession(
@@ -2683,7 +2734,7 @@ export function macrostep(
       removeTerminatedChild(currentEvent);
       return completeMacrostep();
     }
-    handled = transitions.length > 0;
+    handled = transitions.length > 0 || rejected;
     const step = microstep(
       transitions,
       snapshot,
@@ -2933,6 +2984,7 @@ function evaluateTransitionFunction(
           actors: sources.actors,
           guards: sources.guards,
           delays: sources.delays,
+          reject,
           input: getStateInput(snapshot, sourceId)
         },
         actorScope
@@ -2948,6 +3000,15 @@ function evaluateTransitionFunction(
     selection.close();
   }
   assertSyncTransitionResult(res, event, sourceId);
+
+  if (isRejection(res)) {
+    assertRejectionResult(res, snapshot.machine.schemas?.rejections);
+    if (selection.operations.length || selection.frame.requiresReevaluation) {
+      throw new Error(
+        'A rejecting transition cannot enqueue effects. Check rejection conditions before calling enq.'
+      );
+    }
+  }
 
   if (selection.frame.requiresReevaluation) {
     return { enabled: true, result: undefined, reusable: false };
@@ -3004,6 +3065,7 @@ function selectEventlessTransitions(
   selectionResults?: TransitionSelectionResults
 ) {
   snapshot.machine._microstepHooks?.begin(actorScope.self);
+  selectionResults ??= new Map();
   const enabledTransitionSet: Set<AnyTransitionDefinition> = new Set();
   const atomicStates = snapshot.nodes
     .filter(isAtomicStateNode)
@@ -3029,7 +3091,9 @@ function selectEventlessTransitions(
             selectionResults
           )
         ) {
-          enabledTransitionSet.add(transition);
+          const result = selectionResults?.get(transition);
+          if (!isRejection(result?.result))
+            enabledTransitionSet.add(transition);
           break loop;
         }
       }
