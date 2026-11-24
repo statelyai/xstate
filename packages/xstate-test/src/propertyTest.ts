@@ -1,3 +1,4 @@
+import { implicitInputTypes } from './engine/receive.ts';
 /**
  * `xstate/graph`'s property-testing entry points with the fast-check adapter
  * already applied.
@@ -229,6 +230,7 @@ function resolveOptions(source: unknown, options: object): object {
       ? { maxRuns: adapterOptions.numRuns }
       : {}),
     events: derived ? { ...derived, ...events } : (events ?? {}),
+    ...(derived ? { [implicitInputTypes]: new Set(Object.keys(derived)) } : {}),
     adapter: adapter ?? fastCheckAdapter(adapterOptions),
     ...(failureStore ? { failures: failureStore } : {})
   };
@@ -402,8 +404,13 @@ export async function testPaths<TSource extends ActorLogic<any, any, any>>(
   } & Record<string, unknown>;
   const failureStore = resolveFailuresOption(failures);
   const derived =
-    deriveEvents === false ? undefined : deriveMissingEvents(source, events);
-  const merged = derived ? { ...derived, ...events } : (events ?? {});
+    deriveEvents === false
+      ? undefined
+      : deriveMissingEvents(source, { ...events, ...options.cases });
+  const merged = { ...derived, ...events };
+  for (const type of Object.keys(options.cases ?? {})) {
+    delete merged[type];
+  }
   const samples = (options.samples as number | undefined) ?? 3;
   const seed = (options.seed as number | undefined) ?? 0;
   return baseTestPaths(

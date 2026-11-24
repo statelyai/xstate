@@ -1,4 +1,6 @@
 import isDevelopment from '#is-development';
+import type { InternalActorOptions } from './createActor.ts';
+import { xstateError } from './xstateError.ts';
 import { publishEmittedEvent } from './runtimeHelpers.ts';
 import { assertSendToEvent, builtInActions } from './actions.ts';
 import { resolveRegisteredActorSource } from './actorSource.ts';
@@ -188,9 +190,11 @@ function createMissingTargetEffect(
     detail: {
       targetId,
       error: new Error(
-        targetId !== undefined
-          ? `Unable to send event to unknown child '${targetId}'`
-          : 'Unable to send event to an undefined actor'
+        !isDevelopment
+          ? xstateError(65, targetId)
+          : targetId !== undefined
+            ? `Unable to send event to unknown child '${targetId}'`
+            : 'Unable to send event to an undefined actor'
       )
     },
     params: undefined,
@@ -260,7 +264,7 @@ function execRaiseEffect(
 ): void | PromiseLike<void> {
   return runtime.scheduleTimer!(
     this.source,
-    getTimerKey(this),
+    { ...getTimerKey(this), occurrence: this.occurrence },
     this.delay ?? 0
   );
 }
@@ -271,7 +275,11 @@ function execSendToEffect(
 ): void | PromiseLike<void> {
   assertSendToEvent(this.event);
   if (this.delay !== undefined) {
-    return runtime.scheduleTimer!(this.source, getTimerKey(this), this.delay);
+    return runtime.scheduleTimer!(
+      this.source,
+      { ...getTimerKey(this), occurrence: this.occurrence },
+      this.delay
+    );
   }
   return runtime.sendEvent!(this.source, this.target, this.event);
 }
@@ -322,11 +330,14 @@ function updateLogicalTimers(
       seq: effect.seq
     };
   }
+  const occurrence = snapshot._nextTimerOccurrence ?? 0;
+  effect.occurrence = occurrence;
   const target =
     effect.type === '@xstate.raise' || effect.target === actorScope.self
       ? 'self'
       : effect.target;
   const timer: LogicalTimer = {
+    occurrence,
     ...(effect.id !== undefined && { id: effect.id }),
     ...(effect.seq !== undefined && { seq: effect.seq }),
     delay: effect.delay,
@@ -345,7 +356,8 @@ function updateLogicalTimers(
       index === -1
         ? [...timers, timer]
         : timers.map((pending, i) => (i === index ? timer : pending)),
-    _nextTimerId: nextTimerId
+    _nextTimerId: nextTimerId,
+    _nextTimerOccurrence: occurrence + 1
   };
 }
 
@@ -404,7 +416,7 @@ function applyChildUpdate(
     throw new Error(
       isDevelopment
         ? `Cannot stop child actor ${update.actor.id} of ${actorScope.self.id} because it is not a child`
-        : `Cannot stop non-child actor ${update.actor.id}`
+        : xstateError(47, update.actor.id, actorScope.self.id)
     );
   }
   actorScope.system._unregister(update.actor);
@@ -423,6 +435,39 @@ function getTransitionActionRecord(
     return action as TransitionActionRecord;
   }
   return undefined;
+}
+
+/** @internal Creates a child and commits its allocation only on success. */
+export function createChildActorRef(
+  actorScope: AnyActorScope,
+  logic: AnyActorLogic,
+  options: InternalActorOptions<AnyActorLogic>,
+  localAllocation?: SpawnAllocation
+): AnyActor {
+  const allocation = spawnAllocations.get(actorScope) ?? localAllocation;
+  try {
+    const actor = actorScope.system.createActorRef(logic, options);
+    allocation?.actors.push(actor);
+    return actor;
+  } catch (error) {
+    if (options.id !== undefined) allocation?.explicitIds.delete(options.id);
+    throw error;
+  }
+}
+
+/** @internal Discards allocations from an aborted transition. */
+export function discardSpawnedActors(actorScope: AnyActorScope): void {
+  const actors = spawnAllocations.get(actorScope)?.actors.splice(0) ?? [];
+  for (const actor of actors) {
+    actorScope.system.discardActorRef(actor);
+    recordStoppedChild(actorScope, actor);
+  }
+}
+
+/** @internal Releases tracking refs after successful macrostep calculation. */
+export function completeSpawnAllocation(actorScope: AnyActorScope): void {
+  const allocation = spawnAllocations.get(actorScope);
+  if (allocation) allocation.actors.length = 0;
 }
 
 function pushSpawnedChild(
@@ -445,6 +490,7 @@ function pushSpawnedChild(
  * microsteps of the same event.
  */
 interface SpawnAllocation {
+  actors: AnyActor[];
   counters: Map<string, number>;
   /** Explicit child ids claimed by spawns/invokes of this transition. */
   explicitIds: Set<string>;
@@ -455,6 +501,7 @@ interface SpawnAllocation {
 const spawnAllocations = new WeakMap<object, SpawnAllocation>();
 
 const createSpawnAllocation = (): SpawnAllocation => ({
+  actors: [],
   counters: new Map(),
   explicitIds: new Set(),
   stoppedIds: new Set()
@@ -489,25 +536,18 @@ function getWorkingSnapshotOf(actorScope: AnyActorScope):
   )._snapshot;
 }
 
-function getRegisteredActors(
-  actorScope: AnyActorScope
-): Record<string, AnyActorLogic> | undefined {
-  return (
-    actorScope.self as {
-      logic?: { sources?: { actors?: Record<string, AnyActorLogic> } };
-    }
-  ).logic?.sources?.actors;
-}
-
 function resolveTransitionSpawnSource(
-  actorScope: AnyActorScope,
+  registeredActors: Record<string, AnyActorLogic> | undefined,
   source: string | AnyActorLogic
 ): { logic: AnyActorLogic; src: string | undefined } {
-  const registeredActors = getRegisteredActors(actorScope);
   if (typeof source === 'string') {
     const logic = registeredActors?.[source];
     if (!logic) {
-      throw new Error(`Actor source '${source}' is not provided`);
+      throw new Error(
+        isDevelopment
+          ? `Actor source '${source}' is not provided`
+          : xstateError(66, source)
+      );
     }
     return { logic, src: source };
   }
@@ -638,7 +678,7 @@ export function assertChildIdFree(
     throw new Error(
       isDevelopment
         ? `Cannot spawn child actor with id '${id}': the id is already in use by another child of '${actorScope.self.id}'. Stop the existing child before reusing its id.`
-        : `Child actor id '${id}' is already in use`
+        : xstateError(67, id, actorScope.self.id)
     );
   }
   allocation.explicitIds.add(id);
@@ -719,7 +759,7 @@ export function assertRaiseEvent(event: unknown): void {
     throw new Error(
       isDevelopment
         ? `Only event objects may be used with raise; use raise({ type: "${event}" }) instead`
-        : `Only event objects may be used with raise`
+        : xstateError(68, event)
     );
   }
 }
@@ -728,8 +768,15 @@ export function createTransitionEnqueue(
   actorScope: AnyActorScope,
   actions: any[],
   internalEvents: EventObject[],
-  actorSubscriptions = false,
-  createActors = true
+  {
+    registeredActors,
+    actorSubscriptions = false,
+    createActors = true
+  }: {
+    registeredActors?: Record<string, AnyActorLogic>;
+    actorSubscriptions?: boolean;
+    createActors?: boolean;
+  } = {}
 ) {
   // Paths that never begin a transaction keep a per-enqueue scope.
   const localAllocation =
@@ -764,7 +811,10 @@ export function createTransitionEnqueue(
       }
     },
     spawn: (source: string | AnyActorLogic, options?: any) => {
-      const { logic, src } = resolveTransitionSpawnSource(actorScope, source);
+      const { logic, src } = resolveTransitionSpawnSource(
+        registeredActors,
+        source
+      );
       if (!createActors) {
         // Speculative evaluation creates no actor and allocates no id: return
         // an inert ref with the id this spawn would get.
@@ -795,12 +845,17 @@ export function createTransitionEnqueue(
         assertChildIdFree(actorScope, id, localAllocation);
         counters = reserveChildId(actorScope, id, localAllocation);
       }
-      const actor = actorScope.system.createActorRef(logic, {
-        ...options,
-        ...(src !== undefined && { src }),
-        id,
-        parent: actorScope.self
-      });
+      const actor = createChildActorRef(
+        actorScope,
+        logic,
+        {
+          ...options,
+          ...(src !== undefined && { src }),
+          id,
+          parent: actorScope.self
+        },
+        localAllocation
+      );
       pushSpawnedChild(actions, actor, id, counters);
       return actor;
     },
@@ -844,7 +899,7 @@ export function createTransitionEnqueue(
           eventType,
           mapper
         };
-        const listenerActor = actorScope.system.createActorRef(listenerLogic, {
+        const listenerActor = createChildActorRef(actorScope, listenerLogic, {
           input,
           parent: actorScope.self
         });
@@ -866,7 +921,8 @@ export function createTransitionEnqueue(
           actor,
           mappers: normalizedMappers
         };
-        const subscriptionActor = actorScope.system.createActorRef(
+        const subscriptionActor = createChildActorRef(
+          actorScope,
           subscriptionLogic,
           {
             input,
@@ -1063,6 +1119,7 @@ export function createTimerEffect(
       source,
       event: timer.event,
       id: timer.id,
+      occurrence: timer.occurrence,
       ...(timer.seq !== undefined && { seq: timer.seq }),
       delay,
       params: undefined,
@@ -1078,6 +1135,7 @@ export function createTimerEffect(
     target,
     event: timer.event,
     id: timer.id,
+    occurrence: timer.occurrence,
     ...(timer.seq !== undefined && { seq: timer.seq }),
     delay,
     params: undefined,
@@ -1135,7 +1193,11 @@ export function createTerminationEffect(
   snapshot: Snapshot<unknown>
 ): TerminateExecutableEffect {
   if (snapshot.status !== 'done' && snapshot.status !== 'error') {
-    throw new Error('Cannot terminate an active or stopped actor');
+    throw new Error(
+      isDevelopment
+        ? 'Cannot terminate an active or stopped actor'
+        : xstateError(69, actorScope.self.id, snapshot.status)
+    );
   }
   const termination: ActorTermination =
     snapshot.status === 'done'

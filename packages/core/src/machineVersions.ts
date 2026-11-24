@@ -1,4 +1,4 @@
-import { historicalEventSchemas } from './historicalEventSchemas.ts';
+import { historicalEventSchema, snapshotSchema } from './machineSchemas.ts';
 import type { StandardSchemaV1 } from './schema.types.ts';
 import type {
   MachineEventSchema,
@@ -26,11 +26,9 @@ export type {
 
 type VersionedStateMachine = AnyStateMachine & {
   version: string;
-  snapshotSchema: MachineSnapshotSchema;
-  eventSchema: MachineEventSchema;
 };
 
-type VersionEntry = MachineVersionDescriptor;
+type VersionEntry = MachineVersionDescriptor | VersionedStateMachine;
 
 /** @public */
 export type PersistedSnapshotDataFrom<TMachine extends AnyStateMachine> =
@@ -218,18 +216,20 @@ function isVersionedStateMachine(
   );
 }
 
-function hasSnapshotSchema(
+function getEntrySnapshotSchema(
   entry: VersionEntry
-): entry is MachineVersionDescriptor & {
-  snapshotSchema: MachineSnapshotSchema;
-} {
-  return 'snapshotSchema' in entry && entry.snapshotSchema !== undefined;
+): MachineSnapshotSchema | undefined {
+  return isVersionedStateMachine(entry)
+    ? snapshotSchema(entry)
+    : (entry as MachineVersionDescriptor).snapshotSchema;
 }
 
-function hasEventSchema(
+function getEntryEventSchema(
   entry: VersionEntry
-): entry is MachineVersionDescriptor & { eventSchema: MachineEventSchema } {
-  return 'eventSchema' in entry && entry.eventSchema !== undefined;
+): MachineEventSchema | undefined {
+  return isVersionedStateMachine(entry)
+    ? historicalEventSchema(entry)
+    : (entry as MachineVersionDescriptor).eventSchema;
 }
 
 function getSnapshotSource(raw: unknown): PersistedSnapshotSource {
@@ -268,7 +268,7 @@ async function finalizeSnapshot<TTarget extends VersionedStateMachine>(
   target: TTarget
 ): Promise<PersistedSnapshotFrom<TTarget>> {
   return (await validate(
-    target.snapshotSchema,
+    snapshotSchema(target),
     {
       ...snapshot,
       machine: { id: target.id, version: target.version }
@@ -277,17 +277,13 @@ async function finalizeSnapshot<TTarget extends VersionedStateMachine>(
   )) as PersistedSnapshotFrom<TTarget>;
 }
 
-async function validateEvents<
-  TSource extends MachineVersionDescriptor & {
-    eventSchema: MachineEventSchema;
-  }
->(
+async function validateEvents<TSource extends VersionEntry>(
   events: readonly unknown[],
-  source: TSource
+  _source: TSource,
+  schema: MachineEventSchema
 ): Promise<EventFromEntry<TSource>[]> {
   return Promise.all(
     events.map(async (event, index) => {
-      const schema = historicalEventSchemas.get(source) ?? source.eventSchema;
       const result = await schema['~standard'].validate(event);
       if (result.issues) {
         const message = result.issues[0]?.message;
@@ -397,13 +393,14 @@ export function machineVersions<
       throw new Error(`Unknown machine identity '${id}' version '${version}'.`);
     }
 
-    if (!hasSnapshotSchema(source)) {
+    const sourceSnapshotSchema = getEntrySnapshotSchema(source);
+    if (!sourceSnapshotSchema) {
       throw new Error(
         `Machine version '${version}' does not define a snapshot schema.`
       );
     }
     const snapshot = await validate(
-      source.snapshotSchema,
+      sourceSnapshotSchema,
       raw,
       `snapshot for machine '${id}' version '${version}'`
     );
@@ -440,11 +437,16 @@ export function machineVersions<
       );
       let sourceError: unknown;
       let sourceValidationFailed = false;
-      const hasTypedSource = source && hasEventSchema(source);
-      if (hasTypedSource) {
+      const sourceEventSchema = source && getEntryEventSchema(source);
+      const hasTypedSource = !!source && !!sourceEventSchema;
+      if (source && sourceEventSchema) {
         let sourceEvents: EventObject[] | undefined;
         try {
-          sourceEvents = await validateEvents(events, source);
+          sourceEvents = await validateEvents(
+            events,
+            source,
+            sourceEventSchema
+          );
         } catch (error) {
           sourceError = error;
           sourceValidationFailed = true;
@@ -467,7 +469,8 @@ export function machineVersions<
           if (adapter) {
             return validateEvents(
               await adapter(sourceEvents),
-              target
+              target,
+              historicalEventSchema(target)
             ) as Promise<EventFrom<TargetMachine>[]>;
           }
         }
@@ -477,7 +480,8 @@ export function machineVersions<
       if (wildcardAdapter) {
         return validateEvents(
           await wildcardAdapter(events, adaptationOptions.from),
-          target
+          target,
+          historicalEventSchema(target)
         ) as Promise<EventFrom<TargetMachine>[]>;
       }
       if (hasTypedSource) {

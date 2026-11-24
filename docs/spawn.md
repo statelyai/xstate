@@ -46,7 +46,7 @@ The name is checked against `actors`; its required input and returned actor refe
 
 Passing the logic value remains convenient: `enq.spawn(actors.upload, options)`. XState recovers its registered name when possible. Inline unregistered logic may run but cannot be durably persisted.
 
-Spawning with an `id` that a live child of the same parent already uses throws: an address names at most one live actor. Stop the existing child first — an id stopped earlier in the same transition is free to reuse, and a child that completed on its own frees its id for the transition handling its completion. Generate ids from something stable, such as a file or participant id.
+Spawning with an `id` that a live child of the same parent already uses throws: an address names at most one live actor. Stop the existing child first. An id stopped earlier in the same transition is free to reuse, and a child that completed on its own frees its id for the transition handling its completion. Generate ids from something stable, such as a file or participant id.
 
 ## Where you can spawn
 
@@ -65,15 +65,7 @@ const machine = createMachine({
 
 ## Spawn or invoke
 
-| | [Invoke](invoke.md) | Spawn |
-| --- | --- | --- |
-| Started by | Entering a state | A transition function |
-| Stopped by | Exiting that state | `enq.stop(ref)`, or the parent stopping |
-| How many | Fixed by the config | Any number, decided at runtime |
-| Outcome handling | `onDone`, `onError`, `onSnapshot` | `enq.subscribeTo(...)`, `enq.listen(...)` |
-| Persistence | Restored with the parent | See below |
-
-Invoke a payment actor for the `authorizing` state. Spawn one upload actor per selected file, one participant actor per person in a call, or one track actor per queued item in a media player.
+Invoke a child when its lifetime matches a state: the state starts it on entry and stops it on exit. Spawn a child when the machine decides at runtime how many children exist and when each one stops. See [invoke or spawn](invoke.md#invoke-or-spawn) for a comparison.
 
 ## Referencing spawned children
 
@@ -172,7 +164,7 @@ const machine = createMachine({
 });
 ```
 
-Each child records `src: 'connection'`, which `createActor(machine, { snapshot })` resolves back to the currently registered logic. `provide(...)` may replace that implementation under the same source key. Restoring a snapshot whose child source is not registered fails instead of silently dropping the child.
+Each child records `src: 'connection'`, which `restoreActor(machine, persisted)` resolves back to the currently registered logic. `provide(...)` may replace that implementation under the same source key. Restoring a snapshot whose child source is not registered fails instead of silently dropping the child.
 
 Register persistent child logic in `actors`. Spawning inline logic that is not registered works while the parent is running, but `getPersistedSnapshot()` throws `An inline child actor cannot be persisted.` while that child exists.
 

@@ -1,0 +1,8 @@
+{
+  "main": "../dist/xstate-persist.cjs.js",
+  "module": "../dist/xstate-persist.esm.js",
+  "umd:main": "../dist/xstate-persist.umd.min.js",
+  "preconstruct": {
+    "umdName": "XStatePersist"
+  }
+}

@@ -1,4 +1,5 @@
 import isDevelopment from '#is-development';
+import { xstateError } from './xstateError.ts';
 import { protectSelectionRelay } from './transitionSelection.ts';
 import type { InspectionEvent, SentRecord } from './inspection.ts';
 import type { StandardSchemaV1 } from './schema.types.ts';
@@ -20,7 +21,7 @@ import { XSTATE_TIMER } from './constants.ts';
 import { getScheduledTimerKey, matchesTimerKey } from './timerKey.ts';
 import { toObserver } from './utils.ts';
 import { reportUnhandledError } from './reportUnhandledError.ts';
-import { getAmbientInspector } from './inspectionAmbient.ts';
+import { attachAmbientInspector } from './inspectionAmbient.ts';
 import { markSystemSnapshotDirty } from './snapshotActorRef.ts';
 import {
   createMissingAddressError,
@@ -132,10 +133,7 @@ export function withExecutionIdentity<T>(
 }
 
 /** @internal */
-export {
-  hasAmbientInspector,
-  withSystemInspector
-} from './inspectionAmbient.ts';
+export { withSystemInspector } from './inspectionAmbient.ts';
 
 /**
  * Derives the deterministic id prefix for a generated actor id from its actor
@@ -367,7 +365,8 @@ export interface ActorSystemRuntime {
   emitEvent(source: AnyActor, event: EventObject): void | PromiseLike<void>;
   /**
    * Schedules a logical timer. `source.address` and `timer` identify it; when
-   * it fires, deliver `{ type: 'xstate.timer', ...timer }` to `source`.
+   * it fires, deliver `{ type: 'xstate.timer', ...timer }` to `source`. Preserve
+   * `occurrence` in that input, but exclude it from cancellation lookup keys.
    */
   scheduleTimer(
     source: AnyActor,
@@ -472,6 +471,10 @@ export interface ActorSystem<
     logic: AnyActorLogic,
     options: InternalActorOptions<AnyActorLogic>
   ): AnyActor;
+  /** @internal Completes an invoke reference reserved before parent entry. */
+  initializeActorRef(actor: AnyActor, input: unknown): void;
+  /** @internal Discards an allocation whose creation effects will not run. */
+  discardActorRef(actor: AnyActor): void;
   /** @internal */
   children: Map<string, AnyActor>;
   /** @internal Avoids materializing the registered-actor map. */
@@ -610,6 +613,8 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
   public _clock: Clock;
   public _logger: (...args: any[]) => void;
   public createActorRef: ActorSystem<T>['createActorRef'];
+  public initializeActorRef: ActorSystem<T>['initializeActorRef'];
+  public discardActorRef: ActorSystem<T>['discardActorRef'];
 
   public get children(): Map<string, AnyActor> {
     const children = (this._children ??= new Map());
@@ -659,25 +664,19 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
     options: {
       clock: Clock;
       logger: (...args: any[]) => void;
-      snapshot?: unknown;
       createActorRef: ActorSystem<T>['createActorRef'];
+      initializeActorRef: ActorSystem<T>['initializeActorRef'];
+      discardActorRef: ActorSystem<T>['discardActorRef'];
     }
   ) {
-    const restoredSnapshot =
-      typeof options.snapshot === 'object' && options.snapshot !== null
-        ? (options.snapshot as {
-            scheduler?: Record<ScheduledTimerId, ScheduledTimer>;
-          })
-        : undefined;
     this._clock = options.clock;
     this._logger = options.logger;
     this.createActorRef = options.createActorRef;
-    const ambientInspector = getAmbientInspector();
-    if (ambientInspector) {
-      this.inspect(ambientInspector);
-    }
+    this.initializeActorRef = options.initializeActorRef;
+    this.discardActorRef = options.discardActorRef;
+    attachAmbientInspector(this);
     this._snapshot = {
-      _scheduledTimers: restoredSnapshot?.scheduler ?? emptyScheduledTimers,
+      _scheduledTimers: emptyScheduledTimers,
       // System-level counters are process-local backstops; per-actor
       // counters persist on each machine snapshot, and restored explicit ids
       // reserve their numbering here via `resolveActorId`.
@@ -688,6 +687,10 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
   // Records a send on the *sender's* transition for the `sent[]` inspection
   // facet. Captures the send when it is initiated (including delayed sends that
   // may never deliver), keyed to the source actor's in-flight transition.
+  // A send made with no transition in flight (a callback's `sendBack`, a value
+  // an observable relays to its parent) is not recorded: no transition reports
+  // it, so it would be held until the source's next transition, or for as long
+  // as the source lives if it never makes one.
   private _recordSent(
     source: AnyActor | undefined,
     target: AnyActor,
@@ -700,7 +703,11 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
     }
     const inspectionSource = source as AnyActor & {
       _collectedSent?: SentRecord[];
+      _inTransition?: boolean;
     };
+    if (!inspectionSource._inTransition) {
+      return;
+    }
     const collected = (inspectionSource._collectedSent ??= []);
     collected.push({
       targetRef: target,
@@ -858,7 +865,9 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
     const existing = this._keyedActors?.get(registryKey);
     if (existing && existing !== actor) {
       throw new Error(
-        `Actor with registry key '${registryKey as string}' already exists.`
+        isDevelopment
+          ? `Actor with registry key '${registryKey as string}' already exists.`
+          : xstateError(45, String(registryKey))
       );
     }
 
@@ -997,11 +1006,11 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
       } else if (
         // A live actor of another incarnation is stale locally; an
         // address this system cannot see may belong to a host runtime.
-        this._getByAddress(target.$actor) ||
+        this._getByAddress(target['@actor']) ||
         !this.runtime?.sendEvent
       ) {
         return this.deadLetter(source, undefined, event, 'missingTarget', {
-          targetId: getAddressId(target.$actor),
+          targetId: getAddressId(target['@actor']),
           error: createMissingAddressError(target)
         });
       }
@@ -1183,8 +1192,9 @@ export function createRuntimeSystem<T extends ActorSystemInfo>(
   options: {
     clock: Clock;
     logger: (...args: any[]) => void;
-    snapshot?: unknown;
     createActorRef: ActorSystem<T>['createActorRef'];
+    initializeActorRef: ActorSystem<T>['initializeActorRef'];
+    discardActorRef: ActorSystem<T>['discardActorRef'];
   }
 ): ActorSystem<T> {
   return new RuntimeSystem(rootActor, options);

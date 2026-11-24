@@ -1,6 +1,7 @@
 import { getTimerStart } from './timerClock.ts';
 import { getScheduledTimerKey, getTimerKey } from './timerKey.ts';
 import isDevelopment from '#is-development';
+import { xstateError } from './xstateError.ts';
 import { getStateValue, isStateId } from './stateUtils.ts';
 import type {
   AnyMachineSnapshot,
@@ -318,6 +319,8 @@ interface MachineSnapshotBase<
   _stateInputs: Record<string, Record<string, unknown>>;
   /** @internal */
   _nextTimerId: number;
+  /** @internal Next scheduling occurrence, independent of anonymous timer keys. */
+  _nextTimerOccurrence: number;
   /** @internal */
   _nextActorIds?: Record<string, number>;
   /**
@@ -597,6 +600,9 @@ const machineSnapshotToJSON = function toJSON(this: AnyMachineSnapshot) {
   const {
     nodes,
     _stateInputs,
+    _nextTimerId,
+    _nextTimerOccurrence,
+    _nextActorIds,
     tags,
     machine,
     getMeta,
@@ -677,6 +683,7 @@ export function createMachineSnapshot<
     historyValue: compactSnapshotRecord(config.historyValue),
     _stateInputs: compactSnapshotRecord(config._stateInputs),
     _nextTimerId: config._nextTimerId ?? 0,
+    _nextTimerOccurrence: config._nextTimerOccurrence ?? 0,
     _nextActorIds: config._nextActorIds,
     matches: machineSnapshotMatches as never,
     hasTag: machineSnapshotHasTag,
@@ -718,6 +725,7 @@ export function cloneMachineSnapshot<TState extends AnyMachineSnapshot>(
       historyValue: compactSnapshotRecord(configWithSnapshot.historyValue),
       _stateInputs: compactSnapshotRecord(configWithSnapshot._stateInputs),
       _nextTimerId: configWithSnapshot._nextTimerId ?? 0,
+      _nextTimerOccurrence: configWithSnapshot._nextTimerOccurrence ?? 0,
       _nextActorIds: configWithSnapshot._nextActorIds,
       matches: machineSnapshotMatches as never,
       hasTag: machineSnapshotHasTag,
@@ -783,6 +791,9 @@ export function getPersistedSnapshot<
   const {
     nodes,
     _stateInputs,
+    _nextTimerId,
+    _nextTimerOccurrence,
+    _nextActorIds,
     tags,
     machine,
     children,
@@ -812,6 +823,10 @@ export function getPersistedSnapshot<
 
   const childrenJson: Record<string, unknown> = {};
   const timersJson: unknown[] = [];
+  const snapshotActor = getSnapshotActorRef(snapshot)?.actor;
+  // Invocation identity is needed only when restoring a simulation.
+  const persistInvocation =
+    snapshotActor && 'simulate' in snapshotActor && !!snapshotActor.simulate;
 
   const embedChildren =
     (options as { embedChildren?: boolean } | undefined)?.embedChildren !==
@@ -830,7 +845,11 @@ export function getPersistedSnapshot<
       !invoked &&
       (!options || !('__unsafeAllowInlineActors' in (options as object)))
     ) {
-      throw new Error('An inline child actor cannot be persisted.');
+      throw new Error(
+        isDevelopment
+          ? 'An inline child actor cannot be persisted.'
+          : xstateError(41, id)
+      );
     }
     // Children are referenced by their logical address. Embedding the child
     // state is the co-locating runtime's whole-tree checkpoint capability;
@@ -840,7 +859,9 @@ export function getPersistedSnapshot<
       // Fail where it is actionable: a by-address reference without a
       // registered source key could be persisted but never restored.
       throw new Error(
-        `Unable to persist child '${id}' by address: it requires a registered source key.`
+        isDevelopment
+          ? `Unable to persist child '${id}' by address: it requires a registered source key.`
+          : xstateError(42, id)
       );
     }
     childrenJson[id as keyof typeof childrenJson] = {
@@ -859,12 +880,14 @@ export function getPersistedSnapshot<
             incarnation: isRemoteActorRef(child) ? child.sessionId : undefined
           }),
       ...(invoked ? {} : { src: child.src }),
+      ...(persistInvocation && embed && !invoked && child._invoked === true
+        ? { invoked: true }
+        : {}),
       registryKey: child.registryKey,
       syncSnapshot: child._syncSnapshot
     };
   }
 
-  const snapshotActor = getSnapshotActorRef(snapshot)?.actor;
   // Only the wall clock is stamped into persisted timers: a custom clock's
   // readings (a simulated clock, a monotonic counter) are meaningless in any
   // other process, and restoring them under the wall clock would fire every
@@ -897,7 +920,9 @@ export function getPersistedSnapshot<
         target = { type: 'parent' };
       } else {
         throw new Error(
-          `Unable to persist timer ${timer.id !== undefined ? `'${timer.id}'` : `for event '${timer.event.type}'`}: target actor '${timer.target.id}' is no longer addressable from this snapshot.`
+          isDevelopment
+            ? `Unable to persist timer ${timer.id !== undefined ? `'${timer.id}'` : `for event '${timer.event.type}'`}: target actor '${timer.target.id}' is no longer addressable from this snapshot.`
+            : xstateError(43, timer.target.id)
         );
       }
     }
@@ -916,6 +941,7 @@ export function getPersistedSnapshot<
       ? scheduled.dueAt - timer.delay
       : getTimerStart(timer);
     timersJson.push({
+      ...(timer.occurrence !== undefined && { occurrence: timer.occurrence }),
       ...(timer.id !== undefined && { id: timer.id }),
       ...(timer.seq !== undefined && { seq: timer.seq }),
       delay: timer.delay,
@@ -939,6 +965,14 @@ export function getPersistedSnapshot<
 
   if (_stateInputs && Object.keys(_stateInputs).length > 0) {
     persisted.stateInputs = _stateInputs;
+  }
+  // Stores such as Convex reject `_`-prefixed field names.
+  persisted.nextTimerId = _nextTimerId;
+  if (_nextTimerOccurrence > 0) {
+    persisted.nextTimerOccurrence = _nextTimerOccurrence;
+  }
+  if (_nextActorIds && Object.keys(_nextActorIds).length > 0) {
+    persisted.nextActorIds = _nextActorIds;
   }
 
   if (machine.version !== undefined) {
@@ -984,14 +1018,16 @@ function persistContext(
           ? (contextPart.slice() as typeof contextPart)
           : { ...contextPart };
         // The address lets refs to non-children still route after restore.
-        copy[key] = { $actor: (value as any as AnyActor).address };
+        copy[key] = { '@actor': (value as any as AnyActor).address };
       } else {
         const valuePath = Array.isArray(contextPart)
           ? `${path}[${key}]`
           : `${path}.${key}`;
         if (ancestors.includes(value)) {
           throw new Error(
-            `Cannot persist actor "${getActorId()}": circular reference at ${valuePath}`
+            isDevelopment
+              ? `Cannot persist actor "${getActorId()}": circular reference at ${valuePath}`
+              : xstateError(44, getActorId(), valuePath)
           );
         }
         const result = persistContext(

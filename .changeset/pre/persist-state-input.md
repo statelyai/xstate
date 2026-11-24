@@ -27,7 +27,7 @@ actor.send({ type: 'LOAD' });
 const persisted = actor.getPersistedSnapshot();
 const restored = createActor(machine, { snapshot: persisted }).start();
 
-restored.getSnapshot().getInputs(); // { '(machine).loading': { userId: 'u1' } }
+restored.getSnapshot().getInputs(); // { loading: { userId: 'u1' } }
 ```
 
 The persisted snapshot only includes a `stateInputs` field when at least one active state has an input, so machines that don't use state input persist to an unchanged snapshot.

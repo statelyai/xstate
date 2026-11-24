@@ -68,6 +68,26 @@ Every consumer subscribes to the same actor and re-renders only when its own sel
 
 The actor's lifetime is the provider's lifetime: unmounting `CheckoutProvider` stops the actor and everything it invoked. Mount the provider at the level where the state should live: a cart above the checkout routes, or a session actor above the whole app shell.
 
+## Shared composables
+
+<!-- lifecycle ownership from ../src/useActorRef.ts and ../src/useSelector.ts -->
+
+With VueUse's `createSharedComposable`, `useMachine`, `useActor` and `useActorRef` belong to the shared effect scope. Unmounting the first consumer keeps the actor running while other consumers remain. The last consumer's disposal stops the actor and its subscriptions. A later consumer creates a fresh actor.
+
+```ts
+import { createSharedComposable } from '@vueuse/shared';
+import { useMachine } from '@xstate/vue';
+import { checkoutMachine } from './checkoutMachine';
+
+export const useCheckout = createSharedComposable(() =>
+  useMachine(checkoutMachine)
+);
+```
+
+Call `useCheckout()` synchronously during each consumer's `setup()`. The actor starts when the first consumer mounts. These composables still require component setup for startup; an `effectScope()` outside a component does not start the actor. Vue 3.2 or later is required for scope disposal. VueUse may require a newer Vue version; check its peer dependencies.
+
+Server rendering creates an initial snapshot without starting the actor. Use a VueUse version that creates separate state for each server request. See [Server rendering](server-rendering.md).
+
 ## Create the actor yourself
 
 A provider can create the actor with `createActor(...)` instead of `useActorRef(...)`. The provider then owns the actor's lifecycle: start it in `setup`, and stop it in `onUnmounted`.

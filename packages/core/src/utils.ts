@@ -1,4 +1,5 @@
 import isDevelopment from '#is-development';
+import { xstateError } from './xstateError.ts';
 import { isMachineSnapshot } from './State.ts';
 import type { StateNode } from './StateNode.ts';
 import { TARGETLESS_KEY, WILDCARD } from './constants.ts';
@@ -61,7 +62,9 @@ export function matchesState(
 export function assertUnreservedSourceName(kind: string, name: string): void {
   if (name.startsWith('xstate.') || name.startsWith('@xstate.')) {
     throw new Error(
-      `Invalid ${kind} name '${name}': the 'xstate.' and '@xstate.' prefixes are reserved for built-in names.`
+      isDevelopment
+        ? `Invalid ${kind} name '${name}': the 'xstate.' and '@xstate.' prefixes are reserved for built-in names.`
+        : xstateError(37, kind, name)
     );
   }
 }
@@ -290,7 +293,9 @@ export function toTransitionConfigArray(
     const value: unknown = transitionLike;
     if (typeof value === 'string') {
       throw new Error(
-        `Transition for "${name}" in ${stateId ? `state "${stateId}"` : 'the root state'} is the string "${value}". Use { target: '${value}' }. The @xstate/codemod string-targets transform rewrites these.`
+        isDevelopment
+          ? `Transition for "${name}" in ${stateId ? `state "${stateId}"` : 'the root state'} is the string "${value}". Use { target: '${value}' }. The @xstate/codemod string-targets transform rewrites these.`
+          : xstateError(38, name, stateId, value)
       );
     }
     if (typeof transitionLike === 'undefined') {
@@ -374,7 +379,9 @@ export function resolveInvokedActorLogic(
   }
   if (definitions.length !== 1) {
     throw new Error(
-      `Unable to restore child actor '${childId}': it has no source key, and ${definitions.length ? 'several active states' : 'no active state'} of ${describeMachine(machine.id)} ${definitions.length ? 'invoke' : 'invokes'} it.`
+      isDevelopment
+        ? `Unable to restore child actor '${childId}': it has no source key, and ${definitions.length ? 'several active states' : 'no active state'} of ${describeMachine(machine.id)} ${definitions.length ? 'invoke' : 'invokes'} it.`
+        : xstateError(39, childId)
     );
   }
   const logic = definitions[0].logic;
@@ -382,14 +389,18 @@ export function resolveInvokedActorLogic(
     const registered = machine.sources.actors[logic];
     if (!registered) {
       throw new Error(
-        `Unable to restore child actor '${childId}': child source '${logic}' is not provided in ${describeMachine(machine.id)}.`
+        isDevelopment
+          ? `Unable to restore child actor '${childId}': child source '${logic}' is not provided in ${describeMachine(machine.id)}.`
+          : xstateError(29, childId, logic)
       );
     }
     return registered;
   }
   if (typeof logic === 'function') {
     throw new Error(
-      `Unable to restore child actor '${childId}': its invoke resolves \`src\` with a function that returned inline logic. Register the logic in \`actors\` and return its key so the child persists by source key.`
+      isDevelopment
+        ? `Unable to restore child actor '${childId}': its invoke resolves \`src\` with a function that returned inline logic. Register the logic in \`actors\` and return its key so the child persists by source key.`
+        : xstateError(40, childId)
     );
   }
   return logic;

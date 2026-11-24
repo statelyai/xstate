@@ -27,10 +27,11 @@ function countingMachine(target: number, maxIterations?: number) {
 }
 
 describe('macrostep bound', () => {
-  it('throws InfiniteTransitionError at the default bound for an always loop', () => {
+  it('throws InfiniteTransitionError at maxIterations for an always loop', () => {
     const actor = createActor(
       createMachine({
         id: 'loop',
+        options: { maxIterations: 1000 },
         initial: 'idle',
         states: {
           idle: { on: { GO: { target: 'a' } } },
@@ -82,17 +83,42 @@ describe('macrostep bound', () => {
     expect(new Set(err.states)).toEqual(new Set(['a', 'b', 'c']));
   });
 
-  it('counts 1000 microsteps within the default bound', () => {
-    const actor = createActor(countingMachine(999)).start();
-    actor.send({ type: 'START' });
+  it('is unbounded by default and warns once per machine after 1000 microsteps', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const machine = countingMachine(1400);
 
+    const actor = createActor(machine).start();
+    actor.send({ type: 'START' });
     expect(actor.getSnapshot().status).toBe('active');
-    expect(actor.getSnapshot().context.n).toBe(999);
+    expect(actor.getSnapshot().context.n).toBe(1400);
+
+    const again = createActor(machine).start();
+    again.send({ type: 'START' });
+    expect(again.getSnapshot().context.n).toBe(1400);
+
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn.mock.calls[0][0]).toContain(
+      'took more than 1000 microsteps processing event "START"'
+    );
+    warn.mockRestore();
+  });
+
+  it('does not warn for 1000 microsteps or when maxIterations is set', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const short = createActor(countingMachine(999)).start();
+    short.send({ type: 'START' });
+    const bounded = createActor(countingMachine(1400, 5000)).start();
+    bounded.send({ type: 'START' });
+
+    expect(bounded.getSnapshot().context.n).toBe(1400);
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
   });
 
   it('allows 3000 microsteps with maxIterations: 5000', () => {
     const error = vi.fn();
-    const failing = createActor(countingMachine(3000));
+    const failing = createActor(countingMachine(3000, 1000));
     failing.subscribe({ error });
     failing.start();
     failing.send({ type: 'START' });

@@ -4,6 +4,7 @@ import { createActor } from 'xstate';
 import { isOrderEvent, ORDER_EVENTS, orderMachine } from './orderMachine';
 import { TaskQueue } from './TaskQueue';
 import { createInspector } from '@statelyai/sdk';
+import { restoreActor } from 'xstate/persist';
 
 const inspector = process.env.INSPECT ? createInspector() : undefined;
 
@@ -31,10 +32,10 @@ console.log(
     : `No persisted state at ${key}. Starting from scratch.`
 );
 
-const actor = createActor(orderMachine, {
-  snapshot: stored ? JSON.parse(stored) : undefined,
-  inspect: inspector?.inspect
-});
+const options = { inspect: inspector?.inspect };
+const actor = stored
+  ? restoreActor(orderMachine, JSON.parse(stored), options)
+  : createActor(orderMachine, options);
 
 // Writes are queued so that snapshots reach Redis in transition order.
 const taskQueue = new TaskQueue();

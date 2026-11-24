@@ -2,7 +2,7 @@ import * as fc from 'fast-check';
 import * as Schema from 'effect/Schema';
 import * as z from 'zod';
 import * as z3 from 'zod/v3';
-import { createMachine, types } from 'xstate';
+import { createMachine, eventSchema, types } from 'xstate';
 import {
   arbitraryFromSchema,
   eventsFromSchemas,
@@ -540,7 +540,7 @@ describe('eventsFromSchemas with wildcard schema keys', () => {
       string,
       fc.Arbitrary<Record<string, unknown>>
     >;
-    const { validate } = (machine as any).eventSchema['~standard'];
+    const { validate } = eventSchema(machine as any)['~standard'];
     for (const [type, arbitrary] of Object.entries(events)) {
       for (const payload of sample(arbitrary)) {
         expect((await validate({ type, ...payload })).issues).toBeUndefined();

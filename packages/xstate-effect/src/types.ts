@@ -1,6 +1,5 @@
 import type { Effect, Scope } from 'effect';
 import type { EffectLogicBrand } from './effectLogic.ts';
-import { effectActionBrand } from './brands.ts';
 import type { ActorScope } from './actorScope.ts';
 
 /** The `R` channel of an Effect type, or `never` for anything else. */
@@ -11,7 +10,7 @@ type RequirementsFromActions<T> =
   T extends Record<string, (...args: any[]) => any>
     ? T[keyof T] extends infer TAction
       ? TAction extends {
-          readonly [effectActionBrand]?: infer R;
+          readonly '~effectRequirements'?: infer R;
         }
         ? unknown extends R
           ? EffectRequirements<
@@ -86,6 +85,8 @@ type RequirementsFromStateSchema<TSchema, TDepth extends Depth> =
  * Effect actors, the Effect logic passed inline as `invoke.src` anywhere in
  * its state tree, and — recursively — the requirements of any child machine
  * reached either way (capped at {@link MaxDepth} levels of machine nesting).
+ *
+ * @experimental
  */
 export type RequirementsFrom<T, TDepth extends Depth = MaxDepth> =
   T extends EffectLogicBrand<any, infer R>

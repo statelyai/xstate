@@ -1,3 +1,4 @@
+import { eventSchema } from '../src/index.ts';
 import { z } from 'zod';
 import { createActor, createMachine, machineVersions, types } from '../src';
 import type { StandardSchemaV1 } from '../src';
@@ -20,7 +21,7 @@ describe('public eventSchema', () => {
 
   it('validates and transforms public payloads', async () => {
     await expect(
-      machine.eventSchema['~standard'].validate({ type: 'ADD', value: '2' })
+      eventSchema(machine)['~standard'].validate({ type: 'ADD', value: '2' })
     ).resolves.toEqual({ value: { type: 'ADD', value: 2 } });
     for (const value of [
       null,
@@ -31,7 +32,7 @@ describe('public eventSchema', () => {
       { type: 'ADD', value: false }
     ]) {
       await expect(
-        machine.eventSchema['~standard'].validate(value)
+        eventSchema(machine)['~standard'].validate(value)
       ).resolves.toHaveProperty('issues');
     }
   });
@@ -47,21 +48,21 @@ describe('public eventSchema', () => {
       'xstate.future'
     ]) {
       await expect(
-        machine.eventSchema['~standard'].validate({ type, value: 1 })
+        eventSchema(machine)['~standard'].validate({ type, value: 1 })
       ).resolves.toHaveProperty('issues');
     }
   });
 
   it('accepts only explicitly configured route destinations', async () => {
     await expect(
-      machine.eventSchema['~standard'].validate({
+      eventSchema(machine)['~standard'].validate({
         type: 'xstate.route',
         to: '#routed'
       })
     ).resolves.toEqual({ value: { type: 'xstate.route', to: '#routed' } });
     for (const to of ['#hidden', '#missing', 'routed', undefined, 1]) {
       await expect(
-        machine.eventSchema['~standard'].validate({ type: 'xstate.route', to })
+        eventSchema(machine)['~standard'].validate({ type: 'xstate.route', to })
       ).resolves.toHaveProperty('issues');
     }
     const actor = createActor(machine).start();
@@ -80,13 +81,13 @@ describe('public eventSchema', () => {
       states: { idle: {}, routed: { id: 'routed', route: {} } }
     });
     await expect(
-      route.eventSchema['~standard'].validate({
+      eventSchema(route)['~standard'].validate({
         type: 'xstate.route',
         to: '#routed'
       })
     ).resolves.toHaveProperty('issues');
     await expect(
-      route.eventSchema['~standard'].validate({
+      eventSchema(route)['~standard'].validate({
         type: 'xstate.route',
         to: '#routed',
         token: 'ok'
@@ -99,10 +100,10 @@ describe('public eventSchema', () => {
   it('keeps unspecified application events open without schemas', async () => {
     const open = createMachine({});
     await expect(
-      open.eventSchema['~standard'].validate({ type: 'anything' })
+      eventSchema(open)['~standard'].validate({ type: 'anything' })
     ).resolves.toEqual({ value: { type: 'anything' } });
     await expect(
-      open.eventSchema['~standard'].validate({ type: 'xstate.init' })
+      eventSchema(open)['~standard'].validate({ type: 'xstate.init' })
     ).resolves.toHaveProperty('issues');
   });
 
@@ -114,10 +115,10 @@ describe('public eventSchema', () => {
       }
     });
     await expect(
-      wildcard.eventSchema['~standard'].validate({ type: 'private.tick' })
+      eventSchema(wildcard)['~standard'].validate({ type: 'private.tick' })
     ).resolves.toHaveProperty('issues');
     await expect(
-      wildcard.eventSchema['~standard'].validate({ type: 'public.tick' })
+      eventSchema(wildcard)['~standard'].validate({ type: 'public.tick' })
     ).resolves.toEqual({ value: { type: 'public.tick' } });
   });
 
@@ -164,7 +165,9 @@ const typed = createMachine({
     internalEvents: { PRIVATE: types<{ secret: string }>() }
   }
 });
-type PublicEvent = StandardSchemaV1.InferOutput<typeof typed.eventSchema>;
+type PublicEvent = StandardSchemaV1.InferOutput<
+  ReturnType<typeof eventSchema<typeof typed>>
+>;
 const publicEvent: PublicEvent = { type: 'ADD', value: 1 };
 // @ts-expect-error Internal events are not public schema output.
 const internalEvent: PublicEvent = { type: 'PRIVATE', secret: 'hidden' };
@@ -209,7 +212,7 @@ const runtimeTyped = createMachine({
   }
 });
 type RuntimePublicEvent = StandardSchemaV1.InferOutput<
-  typeof runtimeTyped.eventSchema
+  ReturnType<typeof eventSchema<typeof runtimeTyped>>
 >;
 const runtimePublicEvent: RuntimePublicEvent = {
   // @ts-expect-error Runtime notifications are excluded even if a schema declares them.

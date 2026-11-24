@@ -1,11 +1,13 @@
 import isDevelopment from '#is-development';
 import { diagnoseAuthorConfig } from './devDiagnostics.ts';
+import { xstateError } from './xstateError.ts';
 import { StandardSchemaV1 } from './schema.types.ts';
 import { StateMachine } from './StateMachine.ts';
 import type { Spawner } from './spawn.ts';
 import type { ActorLogicValidator } from './validation.types.ts';
 import {
   AnyActorRef,
+  ContextFactory,
   AnyStateMachine,
   EventObject,
   AnyEventObject,
@@ -15,7 +17,8 @@ import {
   ToChildren,
   MetaObject,
   StateSchema,
-  RoutableStateId
+  RoutableStateId,
+  RouteEvent
 } from './types.ts';
 import type { Cast, DoNotInfer, Compute } from './typeUtils.ts';
 import {
@@ -23,6 +26,7 @@ import {
   Sources,
   DelayMapFromNames,
   InferChildren,
+  InferredInvokeChildren,
   InferMachineInput,
   InferOutput,
   SchemaOrConfigOutput,
@@ -47,6 +51,13 @@ type MergeChildren<
 > = [keyof TChildren] extends [never]
   ? Compute<ToChildren<TActor>>
   : Compute<TChildren>;
+
+type ConfigActors<
+  TConfig,
+  TActorMap extends Sources['actors']
+> = TConfig extends { actors: infer TActors extends Sources['actors'] }
+  ? TActors
+  : TActorMap;
 
 type MachineIdentity<TConfig> = {
   readonly id: TConfig extends { id: infer TId extends string } ? TId : '';
@@ -190,7 +201,8 @@ export function createMachine<
       TSS,
       InferOutput<TContextSchema, MachineContext>,
       | InferEvents<TEventSchemaMap>
-      | InferInternalEvents<TInternalEventSchemaMap>
+      | InferInternalEvents<TInternalEventSchemaMap>,
+      InferEvents<TEmittedSchemaMap>
     >
 ): [TSS] extends [never]
   ? AnyStateMachine
@@ -202,12 +214,10 @@ export function createMachine<
         )
       | ([RoutableStateId<TSS>] extends [never]
           ? never
-          : {
-              type: 'xstate.route';
-              to: RoutableStateId<TSS>;
-            }),
+          : RouteEvent<`${RoutableStateId<TSS>}`>),
       Cast<
-        MergeChildren<InferChildren<TChildrenSchemaMap>, TActor>,
+        MergeChildren<InferChildren<TChildrenSchemaMap>, TActor> &
+          InferredInvokeChildren<TSS, ConfigActors<TSS, TActorMap>>,
         Record<string, AnyActorRef | undefined>
       >,
       StateValueFromStateSchema<TSS>,
@@ -324,13 +334,23 @@ export function createMachine<
             spawn: Spawner;
             actors: TActorMap;
             input: InferOutput<TInputSchema, unknown>;
-            self: any;
+            self: Parameters<
+              ContextFactory<
+                MachineContext,
+                TActorMap,
+                InferOutput<TInputSchema, unknown>,
+                | InferEvents<TEventSchemaMap>
+                | InferInternalEvents<TInternalEventSchemaMap>,
+                InferEvents<TEmittedSchemaMap>
+              >
+            >[0]['self'];
           }) => TContext);
     } & ValidateTopLevelFinalOutputs<
       TSS,
       WidenLiterals<TContext>,
       | InferEvents<TEventSchemaMap>
-      | InferInternalEvents<TInternalEventSchemaMap>
+      | InferInternalEvents<TInternalEventSchemaMap>,
+      InferEvents<TEmittedSchemaMap>
     >
 ): [TSS] extends [never]
   ? AnyStateMachine
@@ -342,12 +362,10 @@ export function createMachine<
         )
       | ([RoutableStateId<TSS>] extends [never]
           ? never
-          : {
-              type: 'xstate.route';
-              to: RoutableStateId<TSS>;
-            }),
+          : RouteEvent<`${RoutableStateId<TSS>}`>),
       Cast<
-        MergeChildren<InferChildren<TChildrenSchemaMap>, TActor>,
+        MergeChildren<InferChildren<TChildrenSchemaMap>, TActor> &
+          InferredInvokeChildren<TSS, ConfigActors<TSS, TActorMap>>,
         Record<string, AnyActorRef | undefined>
       >,
       StateValueFromStateSchema<TSS>,
@@ -368,10 +386,15 @@ export function createMachine<
     } & MachineIdentity<TSS>;
 
 // Implementation
-export function createMachine(config: any): any {
-  if (isDevelopment) {
-    diagnoseAuthorConfig(config);
+export function createMachine(config: any, ...rest: unknown[]): any {
+  if (rest[0] !== undefined) {
+    throw new Error(
+      isDevelopment
+        ? 'createMachine(config) takes one argument; the second argument (implementations) was removed. Declare implementations with setup({ actions, guards, actors, delays }).createMachine(config), or pass them to machine.provide({ ... }).'
+        : xstateError(71)
+    );
   }
+  diagnoseAuthorConfig(config);
   return new StateMachine(config) as any;
 }
 

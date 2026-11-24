@@ -1,5 +1,6 @@
 import { createActor, type PersistedSnapshotFrom } from 'xstate';
 import { ORDER_EVENTS, orderMachine, type OrderEvent } from './orderMachine';
+import { restoreActor } from 'xstate/persist';
 
 export interface Env {
   ORDER: DurableObjectNamespace;
@@ -24,7 +25,9 @@ export class OrderActor implements DurableObject {
     }
 
     const persisted = await this.state.storage.get<OrderSnapshot>('snapshot');
-    const actor = createActor(orderMachine, { snapshot: persisted });
+    const actor = persisted
+      ? restoreActor(orderMachine, persisted)
+      : createActor(orderMachine);
     actor.start();
 
     if (request.method === 'POST') {

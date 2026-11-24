@@ -527,7 +527,7 @@ describe('invoke-level timeout', () => {
       }
     });
     const [working] = initialTransition(machine);
-    const child = working.children.child;
+    const child = working.children.child!;
 
     const [timedOut] = transition(machine, working, {
       type: 'xstate.timeout.actor',

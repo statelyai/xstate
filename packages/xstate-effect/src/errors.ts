@@ -1,7 +1,11 @@
 import { Cause, Data } from 'effect';
 import type { Snapshot } from 'xstate';
 
-/** Preserves an Effect failure, defect or interruption through XState error routing. */
+/**
+ * Preserves an Effect failure, defect or interruption through XState error routing.
+ *
+ * @experimental
+ */
 export class EffectFailure<E> extends Error {
   readonly _tag = 'EffectFailure';
   readonly #effectFailure = true;
@@ -21,7 +25,11 @@ export class EffectFailure<E> extends Error {
   }
 }
 
-/** @deprecated Inspect `EffectFailure.cause` for interruption instead. */
+/**
+ * @deprecated Inspect `EffectFailure.cause` for interruption instead.
+ *
+ * @experimental
+ */
 export class EffectInterruptedError extends Data.TaggedError(
   'EffectInterruptedError'
 )<{
@@ -36,6 +44,8 @@ export class EffectInterruptedError extends Data.TaggedError(
  * Reported by `waitFor` when the actor stops or errors before a snapshot
  * matches, and by `join` when the actor stops without output. `join` reports
  * an errored actor's outcome instead, preserving an Effect failure's Cause.
+ *
+ * @experimental
  */
 export class ActorStoppedError extends Data.TaggedError('ActorStoppedError')<{
   readonly actorId: string;
@@ -51,6 +61,8 @@ export class ActorStoppedError extends Data.TaggedError('ActorStoppedError')<{
 /**
  * Reported by the `send` atom of `createActorAtoms` when an event is sent
  * before the actor's runtime has finished building.
+ *
+ * @experimental
  */
 export class NotReadyError extends Data.TaggedError('NotReadyError') {
   override get message(): string {
@@ -58,7 +70,12 @@ export class NotReadyError extends Data.TaggedError('NotReadyError') {
   }
 }
 
-/** @internal */
+/**
+ * Returns an EffectFailure's original Cause, or wraps an ordinary error with
+ * Cause.fail. Defects and interruption in an existing Cause are preserved.
+ *
+ * @experimental
+ */
 export function causeFromError<E>(
   error: E
 ): Cause.Cause<UnwrapEffectFailure<E>> {
@@ -67,10 +84,19 @@ export function causeFromError<E>(
   ) as Cause.Cause<UnwrapEffectFailure<E>>;
 }
 
+/**
+ * Extracts the typed failure from EffectFailure while retaining ordinary errors.
+ *
+ * @experimental
+ */
 export type UnwrapEffectFailure<E> =
   E extends EffectFailure<infer Failure> ? Failure : E;
 
-/** An event rejected at the actor's delivery boundary. */
+/**
+ * An event rejected at the actor's delivery boundary.
+ *
+ * @experimental
+ */
 export class EventRejectedError extends Data.TaggedError('EventRejectedError')<{
   readonly actorId: string;
   readonly event: { readonly type: string };

@@ -29,7 +29,7 @@ const machine = setup({
 });
 ```
 
-A declared input schema whose inferred type does not accept `undefined` makes `input` required: `createActor(machine)` is a type error until you pass `{ input }` (or restore a `snapshot`). Framework hooks such as `useActor`, `useActorRef` and `useMachine` inherit the same requirement. `createActorContext` from `@xstate/react` is the exception: `input` stays optional because its options are merged from the context defaults and the `<Provider options>` prop, so a missing input surfaces at runtime as an initialization error instead.
+A declared input schema whose inferred type does not accept `undefined` makes `input` required: `createActor(machine)` is a type error until you pass `{ input }` (or restore a snapshot with `restoreActor(...)`). Framework hooks such as `useActor`, `useActorRef` and `useMachine` inherit the same requirement. `createActorContext` from `@xstate/react` is the exception: `input` stays optional because its options are merged from the context defaults and the `<Provider options>` prop, so a missing input surfaces at runtime as an initialization error instead.
 
 <!-- state-contract typing and declaration emit from packages/core/src/setup.ts and packages/core/test/declarations.test.ts -->
 
@@ -48,6 +48,12 @@ You can export machines and state configs with their inferred types, without
 adding explicit type annotations.
 
 For an actor used in one state, `invoke: s.createInvoke({ src, input, onDone })` infers input and completion output from `src`. Keep the helper inline in `s.createMachine(...)` to also infer that state's narrowed context, ancestor context, state input and transition target requirements. The helper works alongside named actor sources. See [typed inline invokes](invoke.md#typed-inline-invokes).
+
+A bare inline `invoke: { src: logic, onDone }` cannot correlate its source with
+the output; with no registered actor sources it has `event.output: unknown`.
+Use `s.createInvoke(...)` or a source registered in `setup({ actors })` when
+reading the output. This is especially important for generated machine code:
+the bare form cannot infer the output type from `src`.
 
 An async function can be used directly as `src`. Declare `schemas.input`, `schemas.output`, and `schemas.error` on the invoke to type the function and its lifecycle handlers together. Without `schemas.output`, `onDone.event.output` infers from the async return value.
 
@@ -84,6 +90,9 @@ When `schemas.events` is declared, each key in an `on` map must match a
 declared event type. Matching wildcards (`'*'`, `'user.*'`) and known reserved
 machine descriptors are allowed; misspelled or invented reserved prefixes are rejected. Without `schemas.events`, any key is accepted.
 
+An empty `schemas.events: {}` means the machine has no public events. Final
+state output callbacks still receive the declared context and input types.
+
 ```ts
 on: {
   toggel: { target: 'active' }
@@ -91,7 +100,7 @@ on: {
 }
 ```
 
-Known reserved descriptors in `on` carry their actual event payloads: actor completion, error and snapshot events; execution errors; state completion; delayed events; and state or actor timeouts. Bare `xstate.error.actor` handlers receive `event.error` and `event.actorId`. Known actor-specific completion aliases preserve the actor output type. Legacy suffixed descriptors and their wildcards match runtime actor/state aliases; the event itself retains its stable bare type. Use `xstate.error.actor` and filter `event.actorId` explicitly when handling a particular child.
+Known reserved descriptors in `on` carry their actual event payloads: actor completion, error and snapshot events; execution errors; state completion; delayed events; and state or actor timeouts. Bare `xstate.error.actor` handlers receive `event.error` and `event.actorId`. Suffixed v5 descriptors such as `xstate.done.actor.fetchUser` never match, because v6 lifecycle event types carry the id in a payload field; `createMachine` throws when `on` uses one. Wildcards over a category type, such as `xstate.done.actor.*`, still match. Use `xstate.error.actor` and filter `event.actorId` explicitly when handling a particular child.
 
 ## Child completion events
 
@@ -143,6 +152,8 @@ after: {
 ## Runtime validation
 
 <!-- runtime validation API and boundaries from packages/core/src/validation.types.ts, packages/core/src/validation/index.ts, and packages/core/src/setup.ts -->
+
+> **Experimental:** `standardSchemaValidator()`, `ActorValidationError` and the other `xstate/validation` exports may change in a minor release.
 
 Runtime validation is opt-in. Install the Standard Schema validator from the
 separate `xstate/validation` entry point:

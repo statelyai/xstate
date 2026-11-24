@@ -1,0 +1,155 @@
+import { createMachine, setup, types } from '../src/index.ts';
+
+const s = setup({ schemas: { events: { GO: types<{}>() } } });
+
+describe('transition target types', () => {
+  it('accepts valid static, returned and dynamic targets', () => {
+    const dynamic: string = String(Math.random());
+
+    createMachine({
+      id: 'm',
+      initial: 'a',
+      states: {
+        a: {
+          initial: 'child',
+          states: { child: { id: 'deep' }, other: {} },
+          on: {
+            GO: () => {
+              if (Math.random()) return { target: 'b' };
+              if (Math.random()) return { target: '.other' };
+              if (Math.random()) return { target: '#deep' };
+              return { target: dynamic };
+            }
+          }
+        },
+        b: { on: { GO: { target: 'a.other' } } }
+      }
+    });
+
+    s.createMachine({
+      initial: 'a',
+      states: {
+        a: { on: { GO: () => ({ target: 'b' }) } },
+        b: { on: { GO: { target: 'a' } } }
+      }
+    });
+
+    expect(true).toBe(true);
+  });
+
+  it('rejects unknown targets in createMachine', () => {
+    if (false) {
+      // @ts-expect-error - 'bb' is not a state
+      createMachine({
+        initial: 'a',
+        states: { a: { on: { GO: { target: 'bb' } } }, b: {} }
+      });
+
+      // @ts-expect-error - 'bb' is not a state
+      createMachine({
+        initial: 'a',
+        states: { a: { on: { GO: () => ({ target: 'bb' }) } }, b: {} }
+      });
+    }
+
+    expect(true).toBe(true);
+  });
+
+  it('rejects unknown targets in setup().createMachine', () => {
+    if (false) {
+      // @ts-expect-error - 'bb' is not a state
+      setup({}).createMachine({
+        initial: 'a',
+        states: { a: { on: { GO: { target: 'bb' } } }, b: {} }
+      });
+
+      // @ts-expect-error - 'bb' is not a state
+      s.createMachine({
+        initial: 'a',
+        states: { a: { on: { GO: { target: 'bb' } } }, b: {} }
+      });
+
+      s.createMachine({
+        initial: 'a',
+        // @ts-expect-error - 'bb' is not a state
+        states: { a: { on: { GO: 'bb' } }, b: {} }
+      });
+
+      // @ts-expect-error - 'bb' is not a state
+      s.createMachine({
+        initial: 'a',
+        states: { a: { on: { GO: () => ({ target: 'bb' }) } }, b: {} }
+      });
+    }
+
+    expect(true).toBe(true);
+  });
+});
+
+it('checks choice literals while accepting valid and dynamic choice targets', () => {
+  const dynamic: string = String(Math.random());
+  createMachine({
+    id: 'm',
+    initial: 'route',
+    states: {
+      route: { type: 'choice', choice: () => ({ target: 'b' }) },
+      b: {}
+    }
+  });
+  createMachine({
+    initial: 'route',
+    states: {
+      route: { type: 'choice', choice: () => ({ target: dynamic }) },
+      b: {}
+    }
+  });
+  setup({}).createMachine({
+    id: 'm',
+    initial: 'route',
+    states: {
+      route: { type: 'choice', choice: () => ({ target: 'b' }) },
+      b: {}
+    }
+  });
+  setup({}).createMachine({
+    initial: 'route',
+    states: {
+      route: { type: 'choice', choice: () => ({ target: dynamic }) },
+      b: {}
+    }
+  });
+  createMachine({
+    id: 'm',
+    initial: 'route',
+    states: {
+      route: { type: 'choice', choice: () => ({ target: '#m.b' }) },
+      b: {}
+    }
+  });
+  setup({}).createMachine({
+    id: 'm',
+    initial: 'route',
+    states: {
+      route: { type: 'choice', choice: () => ({ target: '#m.b' }) },
+      b: {}
+    }
+  });
+  if (false) {
+    // @ts-expect-error unknown choice target
+    createMachine({
+      initial: 'route',
+      states: {
+        route: { type: 'choice', choice: () => ({ target: 'bb' }) },
+        b: {}
+      }
+    });
+    // @ts-expect-error unknown choice target through setup
+    setup({}).createMachine({
+      initial: 'route',
+      states: {
+        route: { type: 'choice', choice: () => ({ target: 'bb' }) },
+        b: {}
+      }
+    });
+  }
+});

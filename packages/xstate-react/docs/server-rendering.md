@@ -83,7 +83,7 @@ export const CheckoutContext = createActorContext(checkoutMachine);
 Server components can still do machine work, such as computing a snapshot with `initialTransition(...)` or running an actor to completion, and pass the result down as a serializable prop:
 
 ```tsx
-// app/checkout/page.tsx — server component
+// app/checkout/page.tsx (server component)
 export default async function Page({ params }) {
   const persisted = await loadCheckoutSnapshot(params.orderId);
 

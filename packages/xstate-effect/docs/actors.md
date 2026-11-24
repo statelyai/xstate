@@ -5,6 +5,15 @@ description: Create actors whose lifetime and dependencies belong to an Effect a
 
 `createEffectActor(logic, options?)` starts an actor and returns its handle as a scoped Effect.
 
+The actor processes events through one FIFO mailbox. Events sent by a child
+keep their send order, including when each send runs in a separate promise
+continuation while the parent executes transition effects. Under continuous
+traffic, the loop periodically yields so timers and other Effects can run.
+
+Observers see each step in the order that `createActor` uses. The events that
+the transition emits come first. Then an active step gives `next`, a `done`
+step gives `next` and then `complete`, and an `error` step gives `error`.
+
 - Pass `options.input` when the logic requires input.
 - Pass `options.snapshot` to resume an actor from a persisted snapshot. See [persisting and restoring](#persisting-and-restoring).
 - Provide the services required by its declared actions and child actors.
@@ -17,7 +26,7 @@ The [quick start](quick-start.md) shows an actor with input and a deployment ser
 The enclosing scope owns the actor. When that scope closes, the actor stops and its hosted Effects are interrupted.
 
 - `Effect.scoped(program)` closes the scope when `program` finishes.
-- `actor.stop()` stops the actor explicitly.
+- `actor.stop()` stops the actor explicitly. Called synchronously by an `on` listener or an observer while the actor delivers a step to it, it takes effect when that step ends. Called from anywhere else, it stops the actor at once.
 - Tasks created with `createEffectLogic`, `createEffectStreamLogic` and `createEffectEventStreamLogic` have their own scopes. Their resources are released when the task completes, fails or is interrupted.
 - Background Effect actions use the owning actor's scope. Their resources are released when that actor stops.
 - Use `withActorScope` around a resource acquisition to keep it until the owning actor stops.
@@ -156,8 +165,7 @@ An actor can outlive its process. Save `actor.getPersistedSnapshot()` after an e
 
 ```ts
 import { Effect } from 'effect';
-import { createEffectActor } from '@xstate/effect';
-import { sendAndAwait } from '@xstate/effect/test';
+import { createEffectActor, sendAndAwait } from '@xstate/effect';
 import { createMachine, type Snapshot } from 'xstate';
 
 const review = createMachine({
@@ -236,7 +244,8 @@ const Snapshot = Schema.Struct({
   children: Schema.Record(Schema.String, Schema.Never),
   timers: Schema.Array(Schema.Unknown),
   historyValue: Schema.Record(Schema.String, Schema.Unknown),
-  _nextTimerId: Schema.Number
+  nextTimerId: Schema.Number,
+  nextTimerOccurrence: Schema.optionalKey(Schema.Number)
 });
 const codec = createSnapshotCodec(review, Snapshot);
 
@@ -258,7 +267,7 @@ console.log(result); // { submittedAt: '2026-01-01T00:00:00.000Z', amount: '42' 
 
 - The transport has its own format version and stable machine ID. It preserves the source machine version. A schema can explicitly support historical versions, for example with a union.
 - The supplied schema owns every rich value, including nested child snapshots and child input. Use reversible schemas for Date, bigint, Map, Set and application classes. The codec does not derive child schemas or revive constructors.
-- Include all existing core metadata. Omitting or changing children, timers, history, actor counters or state input owners fails with `SnapshotCodecError`. Unknown defined metadata must also survive. Optional undefined fields such as an active snapshot's output can be deliberately omitted by the schema.
+- Include all existing core metadata. Omitting or changing children, timers, history, timer and actor counters or state input owners fails with `SnapshotCodecError`. Unknown defined metadata must also survive. Optional undefined fields such as an active snapshot's output can be deliberately omitted by the schema.
 - Encoded values must be lossless plain JSON. Undefined, nonfinite numbers, negative zero, cycles, holes, functions, symbols, accessor properties and unsupported object prototypes are rejected. Schema validation errors retain `Schema.SchemaError` and the schema's service requirements.
 - Errored snapshots, including failed embedded children, are rejected. Recover or project their outcome before persisting. JSON cannot preserve a live Effect Cause or the genuine `EffectFailure` brand; direct restoration of a serialized failed task or stream is rejected too.
 - Decoding does not run migrations or start actors. Use the existing `machineVersions(...).migrateSnapshot` before restoration, or the machine's configured `migrate` during restoration. Choose one migration owner. Decoding a historical snapshot alone does not prove its restoration will succeed.

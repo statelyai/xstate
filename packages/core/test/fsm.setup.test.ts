@@ -36,7 +36,7 @@ describe('xstate/fsm setup', () => {
               }
             }),
             reset: { context: { status: 'loading' as const } },
-            retry: 'loading',
+            retry: { target: 'loading' },
             load: {
               target: 'loaded',
               context: {
@@ -122,8 +122,8 @@ describe('xstate/fsm setup', () => {
       states: {
         loading: {
           on: {
-            // @ts-expect-error a string target cannot retain incompatible context
-            finish: 'loaded'
+            // @ts-expect-error the target requires a compatible context patch
+            finish: { target: 'loaded' }
           }
         },
         loaded: {}

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { createActor, createMachine } from '../src/index.ts';
+import { restoreActor } from '../src/persist/index.ts';
 
 const machine = createMachine({
   schemas: {
@@ -24,7 +25,7 @@ describe('restoring into eventless transitions', () => {
     } as typeof persisted;
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-    const actor = createActor(machine, { snapshot: tampered }).start();
+    const actor = restoreActor(machine, tampered).start();
     warn.mockRestore();
 
     expect(actor.getSnapshot().value).toBe('waiting');
@@ -42,10 +43,10 @@ describe('restoring into eventless transitions', () => {
     });
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-    createActor(machine, { snapshot: persisted }).start();
+    restoreActor(machine, persisted).start();
     const guardedSnapshot = createActor(guarded).getPersistedSnapshot();
     guard.mockClear();
-    createActor(guarded, { snapshot: guardedSnapshot });
+    restoreActor(guarded, guardedSnapshot);
     const calls = warn.mock.calls.slice();
     warn.mockRestore();
 
@@ -64,9 +65,7 @@ describe('restoring into eventless transitions', () => {
   it('does not warn when the restored configuration has no eventless transitions', () => {
     const plain = createMachine({ initial: 'a', states: { a: {} } });
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    createActor(plain, {
-      snapshot: createActor(plain).getPersistedSnapshot()
-    }).start();
+    restoreActor(plain, createActor(plain).getPersistedSnapshot()).start();
     const calls = warn.mock.calls.slice();
     warn.mockRestore();
 

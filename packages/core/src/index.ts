@@ -54,6 +54,7 @@ export { assertEvent } from './assert.ts';
 export {
   Actor,
   createActor,
+  type ActorSimulation,
   type RequiredActorOptionsKeys as RequiredActorOptionsKeys,
   type RequiredActorOptionsFor
 } from './createActor.ts';
@@ -123,6 +124,7 @@ export type {
   SetupStateParentTypeMarker,
   SetupStateSchemasWithParentType,
   RootSetupStateSchemasMarker,
+  SetupStateAncestorContextMarker,
   WithRootSetupStateSchemas,
   SetupConfig,
   SetupReturn,
@@ -164,6 +166,7 @@ export { createMachineFromCompiledConfig as _createMachineFromCompiledConfig } f
 export { type Spawner } from './spawn.ts';
 export { isMachineSnapshot, type MachineSnapshot } from './State.ts';
 export { InvalidSnapshotError, StateMachine } from './StateMachine.ts';
+export { eventSchema } from './machineSchemas.ts';
 export { StateNode } from './StateNode.ts';
 export { getStateNodes, InfiniteTransitionError } from './stateUtils.ts';
 export type {

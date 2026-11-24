@@ -11,6 +11,8 @@ import type {
  * `createEffectStreamLogic` and `createEffectEventStreamLogic` convert it to a Standard
  * Schema, so XState infers the decoded `Schema.Type` without an explicit call
  * to `Schema.toStandardSchemaV1`.
+ *
+ * @experimental
  */
 export type EffectSchema = Schema.ConstraintDecoder<unknown>;
 
@@ -18,6 +20,8 @@ export type EffectSchema = Schema.ConstraintDecoder<unknown>;
  * Either an Effect {@link EffectSchema} or a Standard Schema. Every schema
  * position in this package accepts both, so Effect schemas and schemas from
  * other libraries can be mixed in one machine.
+ *
+ * @experimental
  */
 export type EffectSchemaLike = StandardSchemaV1 | EffectSchema;
 
@@ -68,6 +72,8 @@ type ToStandardSchemaShape<TValue> = TValue extends EffectSchemaLike
  * schema position widened to {@link EffectSchemaLike}. Covers `context`,
  * `input`, `output` and the per-key records for `events`, `internalEvents`,
  * `emitted` and `children`.
+ *
+ * @experimental
  */
 export type EffectSetupSchemas = {
   [K in keyof SetupSchemas]?: EffectSchemaShape<NonNullable<SetupSchemas[K]>>;
@@ -91,6 +97,7 @@ export type ValidateEffectSetupSchemas<TSchemas> = {
       : TSchemas[K];
 };
 
+/** @experimental */
 export type ToStandardSetupSchemas<TSchemas> = {
   [K in keyof TSchemas]: ToStandardSchemaShape<TSchemas[K]>;
 } extends infer TStandardSchemas extends SetupSchemas
@@ -102,6 +109,8 @@ export type ToStandardSetupSchemas<TSchemas> = {
  * that state, and the same shape recursively for its child states. It is
  * XState's `SetupStateSchema` with Effect schemas allowed in every schema
  * position.
+ *
+ * @experimental
  */
 export interface EffectSetupStateSchema {
   schemas?: EffectSchemaShape<SetupStateSchemas>;
@@ -143,6 +152,7 @@ type ToStandardSetupStateSchema<TStateSchema> =
       : never
     : never;
 
+/** @experimental */
 export type ToStandardSetupStates<TStates> = {
   [K in keyof TStates]: ToStandardSetupStateSchema<TStates[K]>;
 };

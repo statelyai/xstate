@@ -1,5 +1,89 @@
 # @xstate/test
 
+## 2.0.0-beta.3
+
+### Minor Changes
+
+- e67ce38: Use `testPaths(machine, { cases })` to exercise exact payloads for enabled
+  events, including events that lead to the same state. Set `checkUnhandled`
+  per event to verify that the implementation ignores it where the machine
+  has no enabled transition.
+  
+  ```ts
+  await testPaths(machine, {
+    cases: { APPROVE: [{ script: 0 }] },
+    checkUnhandled: { APPROVE: true },
+    sut
+  });
+  ```
+  
+  Use `createTestModel()` to test and replay a standalone specification written
+  with TypeScript functions.
+
+## 2.0.0-beta.2
+
+### Minor Changes
+
+- 2ca7466: Add a SUT session `receive({ signal })` hook for live model-based tests. Let an observed event advance the model and determine which inputs the test can send next. Replay fixtures check the recorded output and report when the SUT takes a different legal branch.
+- e2af1dc: Add experimental `cover` support to `testPaths()`. Define named step predicates or consecutive step sequences to find and run walks that collectively cover them. The planner prefers fewer SUT sessions, then fewer events. Set `maxPaths` to cap the number of sessions.
+  
+  ```ts
+  await testPaths(model, {
+    sut,
+    cover: {
+      requirements: {
+        consecutiveUndos: [
+          ({ event }) => event.type === 'UNDO',
+          ({ event }) => event.type === 'UNDO'
+        ]
+      }
+    }
+  });
+  ```
+- e2af1dc: Import from `@xstate/test/paths` to generate and run deterministic test paths or replay fixtures without installing fast-check.
+  
+  ```ts
+  import { testPaths } from '@xstate/test/paths';
+  
+  await testPaths(machine, { pathGenerator: 'shortest', sut });
+  ```
+
+### Patch Changes
+
+- 268d54e: Preserve the original error when the test adapter's `send()` throws or rejects. The failure trace shows the completed steps and the attempted event, and the replay fixture retries the failed send.
+
+## 2.0.0-beta.1
+
+### Major Changes
+
+- 3cbcc3f: Serialized output no longer uses field names that start with `$` or `_`. Stores such as Convex reject both prefixes, and MongoDB restricts `$`-prefixed field names, so persisted snapshots, `systemTransition` snapshots and effect descriptors could not be stored without rewriting them.
+  
+  | Before                    | After                    | Where                                                                                                      |
+  | ------------------------- | ------------------------ | ---------------------------------------------------------------------------------------------------------- |
+  | `{ $actor: address, incarnation }` | `{ '@actor': address, incarnation }` | `SerializedActorRef`: persisted context, `systemTransition` snapshots, effect descriptors, `sendTo` targets, dead letters, `@xstate/effect` actor `toJSON()` |
+  | `_nextTimerId`            | `nextTimerId`            | Persisted snapshots, `systemTransition` snapshots                                                          |
+  | `_nextActorIds`           | `nextActorIds`           | Persisted snapshots, `systemTransition` snapshots                                                          |
+  | `_stateInputs`            | `stateInputs`            | `systemTransition` snapshots (persisted snapshots already used `stateInputs`)                              |
+  | `{ $error: name, message }` | `{ '@error': name, message }` | `systemTransition` snapshots, `@xstate/test` traces                                                        |
+  | `{ $stateNode: id }`, `{ $systemMapper: key }` | `{ '@stateNode': id }`, `{ '@systemMapper': key }` | `systemTransition` snapshots                                                                        |
+  
+  ```ts
+  // Before
+  { $actor: 'order/worker', incarnation: 'a:1' }
+  // After
+  { '@actor': 'order/worker', incarnation: 'a:1' }
+  ```
+  
+  `snapshot.toJSON()` no longer includes the private `_nextTimerId` and `_nextActorIds` counters.
+  
+  Snapshots written by `6.0.0-beta.1` with the old field names still restore: `restoreActor`, `restoreMachineSnapshot` and `systemTransition` read both shapes. New snapshots use only the new names. Schemas that validate persisted snapshots (for example with `machineVersions`) must use the new names.
+
+## 2.0.0-beta.0
+
+### Patch Changes
+
+- 6cf6982: XState v6 enters beta. No further breaking changes are planned for APIs tagged `@public`; any that are needed will be called out with a migration path. APIs tagged `@experimental` may still change.
+
 ## 2.0.0-alpha.4
 
 ### Major Changes

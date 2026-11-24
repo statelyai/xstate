@@ -6,12 +6,14 @@ description: Restore a workflow, process an event and persist the next snapshot.
 Backend workflows usually have a longer lifetime than one request. Persist their snapshots between requests.
 
 ```ts
+import { createActor } from 'xstate';
+import { restoreActor } from 'xstate/persist';
+
 export async function handleOrderEvent(orderId: string, event: unknown) {
   const stored = await database.orders.find(orderId);
-  const order = createActor(orderMachine, {
-    input: { orderId },
-    snapshot: stored?.snapshot
-  }).start();
+  const order = stored
+    ? restoreActor(orderMachine, stored.snapshot).start()
+    : createActor(orderMachine, { input: { orderId } }).start();
 
   order.send(event as { type: string });
   await database.orders.save(orderId, {
@@ -54,7 +56,7 @@ The same rule applies to writes the workflow makes. Pass an idempotency key to t
 
 ## Durable steps
 
-Async logic that runs several external calls can record each one on the snapshot with `enq.step(...)` — this page's pattern is hostless durability, where the snapshot is the journal, and `enq.step` is built for it (on a [durable host](durable-execution.md), write plain promise actors instead):
+Async logic that runs several external calls can record each one on the snapshot with `enq.step(...)`. This page's pattern is hostless durability, where the snapshot is the journal, and `enq.step` is built for it (on a [durable host](durable-execution.md), write plain promise actors instead):
 
 ```ts
 const fulfillOrder = createAsyncLogic({
@@ -89,12 +91,13 @@ Store the version alongside the snapshot so a restored workflow is either migrat
 
 ## Request-response endpoints
 
-Some endpoints have to answer with the result, not just acknowledge the event. Start the actor, send the event and wait for the snapshot you need:
+Some endpoints have to answer with the result, not only acknowledge the event. Start the actor, send the event and wait for the snapshot you need:
 
 ```ts
 import { waitFor } from 'xstate';
+import { restoreActor } from 'xstate/persist';
 
-const order = createActor(orderMachine, { snapshot: stored?.snapshot }).start();
+const order = restoreActor(orderMachine, stored.snapshot).start();
 order.send({ type: 'confirm' });
 
 const settled = await waitFor(
@@ -108,7 +111,7 @@ const settled = await waitFor(
 
 ## Long delays across restarts
 
-Pending delayed transitions are part of the snapshot: `snapshot.timers` lists each one with its declared delay and the event it will deliver. A snapshot persisted from a running actor also records each timer's wall-clock start (`scheduledAt`), and restoring it schedules the remaining time toward the original deadline — a timer already past due fires immediately, so a three-day `after` survives deploys. The deadline only holds while some process restores the actor and stays up; for timers that must fire with no process running, use a durable host that owns timer scheduling.
+Pending delayed transitions are part of the snapshot: `snapshot.timers` lists each one with its declared delay and the event it will deliver. A snapshot persisted from a running actor also records each timer's wall-clock start (`scheduledAt`), and restoring it schedules the remaining time toward the original deadline. A timer already past due fires immediately, so a three-day `after` survives deploys. The deadline only holds while some process restores the actor and stays up; for timers that must fire with no process running, use a durable host that owns timer scheduling.
 
 For deadlines that must respect real time, persist the scheduled and due times next to the snapshot and have the host (a scheduler, a queue with a visibility timeout, or a cron job) deliver the event when it is due. Keep short delays such as debounces and retry backoffs inside the machine, where restarting the delay has little effect.
 

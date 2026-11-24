@@ -18,8 +18,7 @@ Decode unknown input and events before actor creation or sending. `Schema.decode
 
 ```ts
 import { Effect, Schema } from 'effect';
-import { createEffectActor, setupEffect } from '@xstate/effect';
-import { sendAndAwait } from '@xstate/effect/test';
+import { createEffectActor, sendAndAwait, setupEffect } from '@xstate/effect';
 import { standardSchemaValidator } from 'xstate/validation';
 
 const Input = Schema.Struct({ count: Schema.NumberFromString });
@@ -248,6 +247,12 @@ The action function is called synchronously during the transition. The returned 
 - A final state or a closing scope can interrupt pending background work. Invoke a task when the workflow must wait for completion.
 
 </details>
+
+## Action descriptor names
+
+The action descriptors returned by `initialTransition()` and `transition()` use `kind: 'action'` and the registered action key as their `type`. For example, an action registered as `audit` and enqueued with `enq(actions.audit, args)` produces an action descriptor with `type: 'audit'`.
+
+Use the registered keys when identifying enqueued actions in transition results, inspection, or a durable adapter's `executeAction` handler. The `xstate.` and `@xstate.` prefixes are reserved for internal names.
 
 ## Provide an action
 

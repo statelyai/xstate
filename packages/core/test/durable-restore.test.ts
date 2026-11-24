@@ -122,7 +122,7 @@ describe('durable checkpoint restoration', () => {
     expect(effects.map(({ id }) => id)).toEqual(['restore:0:0']);
     expect(effects[0].descriptor).toMatchObject({
       type: '@xstate.start',
-      actor: { $actor: 'request/worker' }
+      actor: { '@actor': 'request/worker' }
     });
     await execution.executeEffects(effects);
     expect(run).toHaveBeenCalledOnce();
@@ -220,7 +220,7 @@ describe('durable checkpoint restoration', () => {
       expect.arrayContaining([
         expect.objectContaining({
           type: '@xstate.sendTo',
-          target: { $actor: 'timers/worker' },
+          target: { '@actor': 'timers/worker' },
           id: 'ping',
           delay: 200
         }),
@@ -230,7 +230,7 @@ describe('durable checkpoint restoration', () => {
     await execution.executeEffects(effects);
     expect(scheduleTimer).toHaveBeenCalledWith(
       execution.getActorRef(snapshot),
-      { id: 'ping' },
+      { id: 'ping', occurrence: 0 },
       200
     );
     expect(scheduleTimer).toHaveBeenCalledWith(
@@ -245,7 +245,7 @@ describe('durable checkpoint restoration', () => {
         .map(({ id, descriptor }) => ({ id, descriptor }))
     ).toEqual(effects.map(({ id, descriptor }) => ({ id, descriptor })));
     expect(execution.nextTransitionIndex).toBe(12);
-    stopActor(snapshot.children.worker);
+    stopActor(snapshot.children.worker!);
   });
 
   it.each([
@@ -404,9 +404,9 @@ describe('durable checkpoint restoration', () => {
     const execution = createDurable(machine, adapter({ sendEvent }));
     const [snapshot, effects] = execution.restore(persisted);
     expect(effects).toEqual([]);
-    snapshot.children.worker.send({ type: 'PING' });
+    snapshot.children.worker!.send({ type: 'PING' });
     expect(sendEvent).toHaveBeenCalledOnce();
-    expect(sendEvent.mock.calls[0][1]).toBe(snapshot.children.worker);
+    expect(sendEvent.mock.calls[0][1]).toBe(snapshot.children.worker!);
     expect(sendEvent.mock.calls[0][2]).toEqual({ type: 'PING' });
   });
 
@@ -505,7 +505,8 @@ describe('durable checkpoint restoration', () => {
     const deadlines = new Map<string, number>();
     const host = adapter({
       scheduleTimer: (source, timer, delay) => {
-        const key = `${source.address}:${JSON.stringify(timer)}`;
+        const { occurrence: _occurrence, ...logicalKey } = timer;
+        const key = `${source.address}:${JSON.stringify(logicalKey)}`;
         if (!deadlines.has(key)) deadlines.set(key, Date.now() + delay);
       }
     });

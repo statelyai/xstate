@@ -10,7 +10,7 @@ import type {
 
 /**
  * A serializable view of an executable effect. Actor references are replaced
- * by `{ $actor: address, incarnation? }` and actor sources by their registered
+ * by `{ "@actor": address, incarnation? }` and actor sources by their registered
  * source keys, so a durable host can journal, deduplicate, and route effects without
  * holding live actor references. Payload fields (`event`, `input`, `params`,
  * `output`, `error`) pass through by reference and are only as serializable
@@ -43,6 +43,7 @@ export type ExecutableEffectDescriptor =
       id: string | undefined;
       /** Set for a delayed raise scheduled without an `id`. */
       seq?: number;
+      occurrence?: number;
       delay: number | undefined;
     }
   | {
@@ -54,6 +55,7 @@ export type ExecutableEffectDescriptor =
       id: string | undefined;
       /** Set for a delayed send scheduled without an `id`. */
       seq?: number;
+      occurrence?: number;
       delay: number | undefined;
     }
   | {
@@ -117,14 +119,14 @@ function toRef(actor: AnyActor | SerializedActorRef): SerializedActorRef {
     ? actor.sessionId
     : undefined;
   return incarnation === undefined
-    ? { $actor: (actor as any).address }
-    : { $actor: (actor as any).address, incarnation };
+    ? { '@actor': (actor as any).address }
+    : { '@actor': (actor as any).address, incarnation };
 }
 
 /**
  * Returns the serializable descriptor for an executable effect: the same
  * discriminants (`kind`, `type`) with actor references replaced by
- * `{ $actor: address, incarnation? }` and actor sources by source keys. Payload fields pass through by
+ * `{ "@actor": address, incarnation? }` and actor sources by source keys. Payload fields pass through by
  * reference.
  *
  * @experimental
@@ -179,6 +181,9 @@ export function describeExecutableEffect(
         event: effect.event,
         id: effect.id,
         ...(effect.seq !== undefined && { seq: effect.seq }),
+        ...(effect.occurrence !== undefined && {
+          occurrence: effect.occurrence
+        }),
         delay: effect.delay
       };
     case '@xstate.sendTo':
@@ -190,6 +195,9 @@ export function describeExecutableEffect(
         event: effect.event,
         id: effect.id,
         ...(effect.seq !== undefined && { seq: effect.seq }),
+        ...(effect.occurrence !== undefined && {
+          occurrence: effect.occurrence
+        }),
         delay: effect.delay
       };
     case '@xstate.cancel':

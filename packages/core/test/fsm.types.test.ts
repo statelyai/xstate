@@ -145,3 +145,33 @@ describe('createFSM types', () => {
     }
   });
 });
+
+it('requires object transition targets', () => {
+  const check = () => {
+    createFSM({
+      initial: 'a',
+      states: {
+        a: {
+          // @ts-expect-error use an object target
+          on: { GO: 'b' },
+          // @ts-expect-error use an object target
+          always: 'b'
+        },
+        b: {}
+      }
+    });
+    setup({ states: { a: {}, b: {} } }).createFSM({
+      initial: 'a',
+      states: {
+        a: {
+          // @ts-expect-error use an object target
+          on: { GO: 'b' },
+          // @ts-expect-error use an object target
+          always: 'b'
+        },
+        b: {}
+      }
+    });
+  };
+  expect(typeof check).toBe('function');
+});

@@ -120,7 +120,7 @@ console.log(result); // [{ type: 'reminder', message: 'Review pending' }]
 
 ## Inspect execution
 
-`inspect(actor)` streams [inspection events](../../../docs/inspection.md) for the actor's system. Use `Stream.runForEach(inspect(actor), ...)` to record actor creation and transitions. Start that consumer before the events you want to inspect, and keep it in the same scope as the actor.
+`inspect(actor)` streams [inspection events](../../../docs/inspection.md) for the actor's system. Use `Stream.runForEach(inspect(actor), ...)` to record actor creation and transitions. Start that consumer before the events you want to inspect, and keep it in the same scope as the actor. Subscribing does not replay announcements for actors that already exist.
 
 For a visual inspector, forward `actor.inspect` events through the SDK's `actor`, `event` and `snapshot` methods, using session IDs to identify actors across execution steps. This demo uses the optional `INSPECT=1` flag and releases the subscription and inspector with its Effect scope:
 

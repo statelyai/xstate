@@ -15,6 +15,8 @@ import {
 } from '../src';
 import { createMachineFromCompiledConfig } from '../src/createMachine.ts';
 import type {
+  ActorLogic,
+  Snapshot,
   AnyActor,
   AnyEventObject,
   ExecutableEffect,
@@ -32,6 +34,8 @@ import {
 import { getSnapshotActorRef } from '../src/snapshotActorRef';
 import { setInertActorMaterializationObserver } from '../src/inertActorScope';
 import { z } from 'zod';
+import { restoreActor } from '../src/persist/index.ts';
+import { createDurable } from '../src/durable/index.ts';
 
 const isEffect =
   <T extends SpecialExecutableEffect['type']>(type: T) =>
@@ -90,6 +94,231 @@ function describeEffects(effects: ExecutableEffect[]): string[] {
 }
 
 describe('transition function', () => {
+  describe('targetless reentry', () => {
+    it.each([undefined, []])(
+      'does not return lifecycle effects with target %j and reenter: true',
+      (target) => {
+        const record = vi.fn();
+        const machine = createMachine({
+          initial: 'active',
+          states: {
+            active: {
+              entry: (_, enq) => enq(record, 'entry'),
+              exit: (_, enq) => enq(record, 'exit'),
+              on: { GO: { target, reenter: true } }
+            }
+          }
+        });
+
+        const [initial] = initialTransition(machine);
+        const [next, effects] = transition(machine, initial, { type: 'GO' });
+
+        expect(next.value).toBe('active');
+        expect(effects).toEqual([]);
+      }
+    );
+
+    it.each([undefined, []])(
+      'preserves transition effects and context updates with dynamic target %j',
+      (target) => {
+        const record = vi.fn();
+        const machine = createMachine({
+          context: { count: 0 },
+          initial: 'active',
+          states: {
+            active: {
+              entry: (_, enq) => enq(record, 'entry'),
+              exit: (_, enq) => enq(record, 'exit'),
+              on: {
+                GO: ({ context }, enq) => {
+                  enq(record, 'transition');
+                  return {
+                    target,
+                    reenter: true,
+                    context: { count: context.count + 1 }
+                  };
+                }
+              }
+            }
+          }
+        });
+
+        const [initial] = initialTransition(machine);
+        const [next, effects] = transition(machine, initial, { type: 'GO' });
+
+        expect(next.value).toBe('active');
+        expect(next.context).toEqual({ count: 1 });
+        expect(effects).toMatchObject([
+          { action: record, args: ['transition'] }
+        ]);
+        expect(record).not.toHaveBeenCalled();
+      }
+    );
+
+    it('still returns exit and entry effects for explicit self-reentry', () => {
+      const record = vi.fn();
+      const machine = createMachine({
+        initial: 'active',
+        states: {
+          active: {
+            entry: (_, enq) => enq(record, 'entry'),
+            exit: (_, enq) => enq(record, 'exit'),
+            on: { GO: { target: 'active', reenter: true } }
+          }
+        }
+      });
+
+      const [initial] = initialTransition(machine);
+      const [next, effects] = transition(machine, initial, { type: 'GO' });
+
+      expect(next.value).toBe('active');
+      expect(effects).toMatchObject([
+        { action: record, args: ['exit'] },
+        { action: record, args: ['entry'] }
+      ]);
+    });
+
+    it('does not reenter a targetless source when another parallel region changes state', () => {
+      const record = vi.fn();
+      const machine = createMachine({
+        type: 'parallel',
+        states: {
+          left: {
+            initial: 'active',
+            states: {
+              active: {
+                entry: (_, enq) => enq(record, 'entry left'),
+                exit: (_, enq) => enq(record, 'exit left'),
+                on: { GO: { reenter: true } }
+              }
+            }
+          },
+          right: {
+            initial: 'before',
+            states: {
+              before: {
+                exit: (_, enq) => enq(record, 'exit right'),
+                on: { GO: { target: 'after' } }
+              },
+              after: {
+                entry: (_, enq) => enq(record, 'entry right')
+              }
+            }
+          }
+        }
+      });
+
+      const [initial] = initialTransition(machine);
+      const [next, effects] = transition(machine, initial, { type: 'GO' });
+
+      expect(next.value).toEqual({ left: 'active', right: 'after' });
+      expect(effects).toMatchObject([
+        { action: record, args: ['exit right'] },
+        { action: record, args: ['entry right'] }
+      ]);
+    });
+
+    it('reenters the region of a targetless source when another region reenters the parallel parent', () => {
+      const record = vi.fn();
+      const log = (name: string) => ({
+        entry: (_: unknown, enq: (fn: typeof record, arg: string) => void) =>
+          enq(record, `entry ${name}`),
+        exit: (_: unknown, enq: (fn: typeof record, arg: string) => void) =>
+          enq(record, `exit ${name}`)
+      });
+      const machine = createMachine({
+        id: 'm',
+        initial: 'parent',
+        states: {
+          parent: {
+            ...log('parent'),
+            type: 'parallel',
+            states: {
+              left: {
+                ...log('left'),
+                initial: 'active',
+                states: {
+                  active: { ...log('active'), on: { GO: { reenter: true } } }
+                }
+              },
+              right: {
+                ...log('right'),
+                on: { GO: { target: '#m.parent', reenter: true } }
+              }
+            }
+          }
+        }
+      });
+
+      const [initial] = initialTransition(machine);
+      const [next, effects] = transition(machine, initial, { type: 'GO' });
+
+      expect(next.nodes.map((node) => node.id)).toEqual([
+        'm',
+        'm.parent',
+        'm.parent.left',
+        'm.parent.left.active',
+        'm.parent.right'
+      ]);
+      expect(
+        effects.map((effect) => ('args' in effect ? effect.args[0] : undefined))
+      ).toEqual([
+        'exit right',
+        'exit active',
+        'exit left',
+        'exit parent',
+        'entry parent',
+        'entry left',
+        'entry active',
+        'entry right'
+      ]);
+    });
+
+    it('preserves an active descendant without rerunning parent entry in a running actor', () => {
+      const record = vi.fn();
+      const machine = createMachine({
+        context: { count: 0 },
+        initial: 'active',
+        states: {
+          active: {
+            initial: 'first',
+            entry: (_, enq) => enq(record, 'entry active'),
+            exit: (_, enq) => enq(record, 'exit active'),
+            on: {
+              GO: ({ context }, enq) => {
+                enq(record, 'transition');
+                return {
+                  reenter: true,
+                  context: { count: context.count + 1 }
+                };
+              }
+            },
+            states: {
+              first: { on: { NEXT: { target: 'second' } } },
+              second: {
+                entry: (_, enq) => enq(record, 'entry second'),
+                exit: (_, enq) => enq(record, 'exit second')
+              }
+            }
+          }
+        }
+      });
+      const actor = createActor(machine).start();
+      try {
+        actor.send({ type: 'NEXT' });
+        record.mockClear();
+
+        actor.send({ type: 'GO' });
+
+        expect(actor.getSnapshot().value).toEqual({ active: 'second' });
+        expect(actor.getSnapshot().context).toEqual({ count: 1 });
+        expect(record.mock.calls).toEqual([['transition']]);
+      } finally {
+        actor.stop();
+      }
+    });
+  });
+
   it('does not materialize actors or systems for context-only planning', () => {
     let materializations = 0;
     setInertActorMaterializationObserver(() => materializations++);
@@ -152,6 +381,38 @@ describe('transition function', () => {
         entry: ({ context }) => ({ context })
       });
       initialTransition(entryMachine);
+      expect(materializations).toBe(0);
+    } finally {
+      setInertActorMaterializationObserver(undefined);
+    }
+  });
+
+  it('does not materialize an unchanged durable transition scope to wire its runtime', () => {
+    const initial: Snapshot<never> = {
+      status: 'active',
+      output: undefined,
+      error: undefined
+    };
+    const logic: ActorLogic<Snapshot<never>, { type: 'GO' }, undefined> = {
+      initialTransition: () => [initial, []],
+      transition: (snapshot) => [snapshot, []],
+      getInitialSnapshot: () => initial,
+      getPersistedSnapshot: (snapshot) => snapshot
+    };
+    const execution = createDurable(logic, {
+      executionId: 'pinned',
+      executeAction: (effect) => effect.exec(),
+      waitForEvent: () => ({ type: 'GO' }),
+      sendEvent: () => {}
+    });
+    const [snapshot] = execution.initialTransition();
+    execution.getActorRef(snapshot);
+    let materializations = 0;
+    setInertActorMaterializationObserver(() => materializations++);
+    try {
+      const [next, effects] = execution.transition(snapshot, { type: 'GO' });
+      expect(next).toBe(snapshot);
+      expect(effects).toEqual([]);
       expect(materializations).toBe(0);
     } finally {
       setInertActorMaterializationObserver(undefined);
@@ -789,7 +1050,7 @@ describe('transition function', () => {
       }
     });
     const actor = createActor(machine);
-    const child = actor.getSnapshot().children.child;
+    const child = actor.getSnapshot().children.child!;
 
     expect(actor.system.get('child')).toBe(child);
 
@@ -813,7 +1074,7 @@ describe('transition function', () => {
       invoke: { id: 'child', src: childLogic }
     });
     const actor = createActor(machine).start();
-    const child = actor.getSnapshot().children.child;
+    const child = actor.getSnapshot().children.child!;
 
     child.send({ type: 'PING' });
 
@@ -1323,7 +1584,7 @@ describe('transition function', () => {
       });
       const [active, initialEffects] = initialTransition(machine);
       initialEffects.forEach((effect) => void effect.exec());
-      const child = active.children.child;
+      const child = active.children.child!;
 
       const [stopped, effects] = transition(machine, active, { type: 'STOP' });
 
@@ -1380,7 +1641,7 @@ describe('transition function', () => {
         void effect.exec();
       }
 
-      const child = active.children.child;
+      const child = active.children.child!;
       expect(child.getSnapshot().status).toBe('active');
 
       const [reentered, restartEffects] = transition(machine, active, {
@@ -1396,7 +1657,7 @@ describe('transition function', () => {
       }
 
       expect(child.getSnapshot().status).toBe('stopped');
-      expect(reentered.children.child.getSnapshot().status).toBe('active');
+      expect(reentered.children.child!.getSnapshot().status).toBe('active');
       expect(dispose).toHaveBeenCalledTimes(1);
     });
 
@@ -1613,7 +1874,7 @@ describe('transition function', () => {
       const actor = createActor(machine).start();
       const oldSnapshot = actor.getSnapshot();
 
-      oldSnapshot.children.child.send({ type: 'SPAWN' });
+      oldSnapshot.children.child!.send({ type: 'SPAWN' });
       transition(machine, oldSnapshot, { type: 'CHECK' });
 
       expect(oldSnapshotSawGrandchild).toBe(false);
@@ -1661,11 +1922,11 @@ describe('transition function', () => {
         }
       });
       const [active] = initialTransition(machine);
-      const firstSessionId = active.children.child.sessionId;
+      const firstSessionId = active.children.child!.sessionId;
       const [inactive] = transition(machine, active, { type: 'EXIT' });
       const [reentered] = transition(machine, inactive, { type: 'ENTER' });
 
-      expect(reentered.children.child.sessionId).not.toBe(firstSessionId);
+      expect(reentered.children.child!.sessionId).not.toBe(firstSessionId);
     });
 
     it('assigns distinct opaque session IDs across pure initial transitions', () => {
@@ -1676,8 +1937,8 @@ describe('transition function', () => {
       const [first] = initialTransition(machine);
       const [second] = initialTransition(machine);
 
-      expect(first.children.child.sessionId).not.toBe(
-        second.children.child.sessionId
+      expect(first.children.child!.sessionId).not.toBe(
+        second.children.child!.sessionId
       );
     });
 
@@ -1695,8 +1956,8 @@ describe('transition function', () => {
       const [second] = transition(machine, idle, { type: 'ENTER' });
 
       expect(first.children.child).not.toBe(second.children.child);
-      expect(first.children.child.sessionId).not.toBe(
-        second.children.child.sessionId
+      expect(first.children.child!.sessionId).not.toBe(
+        second.children.child!.sessionId
       );
     });
 
@@ -1719,7 +1980,7 @@ describe('transition function', () => {
       });
 
       const [initial] = machine.initialTransition(undefined);
-      const grandchild = initial.children.child.getSnapshot().children
+      const grandchild = initial.children.child!.getSnapshot().children
         .grandchild as AnyActor;
       machine.transition(initial, { type: 'CHECK' });
 
@@ -1736,7 +1997,7 @@ describe('transition function', () => {
       const parent = createActor(
         createMachine({ invoke: { id: 'child', src: child } })
       ).start();
-      const childSnapshot = parent.getSnapshot().children.child.getSnapshot();
+      const childSnapshot = parent.getSnapshot().children.child!.getSnapshot();
 
       const [, effects] = transition(child, childSnapshot, { type: 'CHECK' });
       effects.forEach((effect) => void effect.exec());
@@ -1903,7 +2164,7 @@ describe('transition function', () => {
         'start(child)'
       ]);
       effects.forEach((effect) => void effect.exec());
-      expect(snapshot.children.child.getSnapshot().status).toBe('active');
+      expect(snapshot.children.child!.getSnapshot().status).toBe('active');
       expect(started).toHaveBeenCalledOnce();
     });
   });
@@ -1995,7 +2256,7 @@ describe('transition function', () => {
         }
       });
       const [firstSnapshot] = initialTransition(machine);
-      const firstChild = firstSnapshot.children.child;
+      const firstChild = firstSnapshot.children.child!;
       const [secondSnapshot] = transition(machine, firstSnapshot, {
         type: 'REPLACE'
       });
@@ -2028,7 +2289,7 @@ describe('transition function', () => {
         }
       });
       const [firstSnapshot] = initialTransition(machine);
-      const firstChild = firstSnapshot.children.child;
+      const firstChild = firstSnapshot.children.child!;
       const [secondSnapshot] = transition(machine, firstSnapshot, {
         type: 'RESET'
       });
@@ -2066,7 +2327,7 @@ describe('transition function', () => {
       const [afterStaleError] = transition(machine, secondSnapshot, {
         type: 'xstate.error.actor',
         actorId: 'child',
-        sessionId: firstSnapshot.children.child.sessionId,
+        sessionId: firstSnapshot.children.child!.sessionId,
         error: new Error('stale')
       } as any);
 
@@ -2400,6 +2661,35 @@ describe('transition function', () => {
       // child start last
       'start(child)'
     ]);
+  });
+
+  it('initialTransition: invoke input and child snapshot include the entry patch', () => {
+    const child = createMachine({
+      schemas: { input: z.object({ consent: z.string() }) },
+      context: ({ input }) => input
+    });
+    let entryRef;
+    const machine = createMachine({
+      context: { consent: 'unset' },
+      entry: ({ children }) => {
+        entryRef = children.child;
+        return { context: { consent: 'patched' } };
+      },
+      invoke: {
+        id: 'child',
+        src: child,
+        input: ({ context }) => ({ consent: context.consent })
+      }
+    });
+    const [snapshot, effects] = initialTransition(machine);
+    const [spawn] = effects.filter(isEffect(XSTATE_SPAWN));
+
+    expect(spawn.input).toEqual({ consent: 'patched' });
+    expect(spawn.actor).toBe(entryRef);
+    expect(snapshot.children.child).toBe(entryRef);
+    expect(snapshot.children.child!.getSnapshot().context).toEqual({
+      consent: 'patched'
+    });
   });
 
   it('initialTransition: invoke start is deferred to the end, after entry actions', () => {
@@ -2942,9 +3232,7 @@ describe('getNextTransitions', () => {
       states: { a: {} }
     });
     const persisted = createActor(machineV1).start().getPersistedSnapshot();
-    const errorSnapshot = createActor(machineV2, {
-      snapshot: persisted
-    }).getSnapshot();
+    const errorSnapshot = restoreActor(machineV2, persisted).getSnapshot();
 
     expect(errorSnapshot.status).toBe('error');
     expect(getNextTransitions(errorSnapshot)).toEqual([]);

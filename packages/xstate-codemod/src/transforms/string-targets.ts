@@ -20,7 +20,10 @@ const DIRECT_TRANSITION_KEYS = new Set(['onDone', 'onError', 'always']);
  * Returns true if a change was made.
  */
 function wrapValue(node: Node): boolean {
-  if (Node.isStringLiteral(node)) {
+  if (
+    Node.isStringLiteral(node) ||
+    Node.isNoSubstitutionTemplateLiteral(node)
+  ) {
     const raw = node.getText(); // includes quotes
     node.replaceWithText(`{ target: ${raw} }`);
     return true;
@@ -30,7 +33,10 @@ function wrapValue(node: Node): boolean {
     // Iterate over a snapshot; replacing elements is index-stable here since
     // we replace text in place without adding/removing elements.
     for (const el of node.getElements()) {
-      if (Node.isStringLiteral(el)) {
+      if (
+        Node.isStringLiteral(el) ||
+        Node.isNoSubstitutionTemplateLiteral(el)
+      ) {
         el.replaceWithText(`{ target: ${el.getText()} }`);
         changed = true;
       }
@@ -136,7 +142,7 @@ function getKey(prop: PropertyAssignment): string | undefined {
 
 /**
  * Converts bare string transition values inside `createMachine`/`setup().
- * createMachine`/`createStateConfig` config objects into `{ target: '...' }`.
+ * createMachine`/`createStateConfig`/`createFSM` config objects into `{ target: '...' }`.
  *
  * Does NOT touch `initial:` (still a string in v6) or existing `target:`
  * values.
@@ -144,12 +150,23 @@ function getKey(prop: PropertyAssignment): string | undefined {
 export const stringTargets: Transform = {
   name: 'string-targets',
   description:
-    "Wrap bare string transition values (on/after/onDone/onError/always) into { target: '...' } inside machine config objects. Best-effort: matches createMachine/createStateConfig by call name.",
+    "Wrap bare string transition values (on/after/onDone/onError/always) into { target: '...' } inside machine config objects. Best-effort: matches createMachine/createStateConfig/createFSM by call name.",
   apply(sourceFile: SourceFile): TransformResult {
     const notes: string[] = [];
     let total = 0;
 
-    for (const configObj of findMachineConfigObjects(sourceFile)) {
+    const callNames = ['createMachine', 'createStateConfig', 'createFSM'];
+    for (const declaration of sourceFile.getImportDeclarations()) {
+      if (declaration.getModuleSpecifierValue() !== 'xstate/fsm') {
+        continue;
+      }
+      for (const specifier of declaration.getNamedImports()) {
+        if (specifier.getName() === 'createFSM') {
+          callNames.push(specifier.getAliasNode()?.getText() ?? 'createFSM');
+        }
+      }
+    }
+    for (const configObj of findMachineConfigObjects(sourceFile, callNames)) {
       total += walkStateNode(configObj, notes);
     }
 

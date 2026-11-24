@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { assert } from 'vitest';
 import {
   createMachine,
   createActor,
@@ -7,6 +8,7 @@ import {
   transition
 } from '../src/index.ts';
 import { trackEntries } from './utils.ts';
+import { restoreActor } from '../src/persist/index.ts';
 
 describe('final states', () => {
   it('status of a machine with a root state being final should be done', () => {
@@ -400,9 +402,7 @@ describe('final states', () => {
 
     expect(persistedSnapshot.output).toBe('persisted output');
 
-    const restoredActorRef = createActor(machine, {
-      snapshot: persistedSnapshot
-    }).start();
+    const restoredActorRef = restoreActor(machine, persistedSnapshot).start();
 
     expect(restoredActorRef.getSnapshot().output).toBe('persisted output');
   });
@@ -433,6 +433,34 @@ describe('final states', () => {
 
     expect(finalOutput).toHaveBeenCalledTimes(1);
     expect(actorRef.getSnapshot().output).toBe('final output');
+  });
+
+  it('captures machine output before completion exits update context', () => {
+    const machine = createMachine({
+      context: { count: 0 },
+      initial: 'working',
+      output: ({ context }) => context.count,
+      exit: ({ context }) => ({ context: { count: context.count + 100 } }),
+      states: {
+        working: {
+          exit: ({ context }) => ({ context: { count: context.count + 1 } }),
+          on: { FINISH: { target: 'done' } }
+        },
+        done: {
+          type: 'final',
+          exit: ({ context }) => ({ context: { count: context.count + 10 } })
+        }
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+    actorRef.send({ type: 'FINISH' });
+
+    expect(actorRef.getSnapshot()).toMatchObject({
+      status: 'done',
+      output: 1,
+      context: { count: 111 }
+    });
   });
 
   it('output mapper should receive self', () => {
@@ -1428,7 +1456,9 @@ describe('final states', () => {
 
     const actorRef = createActor(parent).start();
 
-    actorRef.getSnapshot().children.child.send({
+    const invokedChild = actorRef.getSnapshot().children.child;
+    assert.isDefined(invokedChild);
+    invokedChild.send({
       type: 'CANCEL'
     });
 
@@ -1471,7 +1501,9 @@ describe('final states', () => {
 
     const actorRef = createActor(parent).start();
 
-    actorRef.getSnapshot().children.child.send({
+    const invokedChild = actorRef.getSnapshot().children.child;
+    assert.isDefined(invokedChild);
+    invokedChild.send({
       type: 'CANCEL'
     });
 
@@ -1517,7 +1549,9 @@ describe('final states', () => {
 
     const actorRef = createActor(parent).start();
 
-    actorRef.getSnapshot().children.child.send({
+    const invokedChild = actorRef.getSnapshot().children.child;
+    assert.isDefined(invokedChild);
+    invokedChild.send({
       type: 'CANCEL'
     });
 

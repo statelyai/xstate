@@ -54,7 +54,7 @@ for (const dir of readdirSync(packagesDir)) {
     }
     if (name === 'dist' || name === 'docs' || binDirs.has(name)) continue;
     if (!existsSync(fullPath) || !statSync(fullPath).isDirectory()) continue;
-    if (!exportKeys.has(`./${name}`)) {
+    if (!exportKeys.has(`./${name}`) && !exportKeys.has(`./${name}/*`)) {
       errors.push(
         `${pkg.name}: "files" includes "${name}/" but "exports" has no "./${name}" entry`
       );

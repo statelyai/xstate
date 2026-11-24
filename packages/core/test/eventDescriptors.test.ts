@@ -33,10 +33,12 @@ describe('event descriptors', () => {
   });
 
   it('selects canonical actor events by actor ID', () => {
+    const job = createMachine({ type: 'final' });
     const machine = createMachine({
       initial: 'pending',
       states: {
         pending: {
+          invoke: { id: 'job', src: job },
           on: {
             'xstate.done.actor': {
               matches: { actorId: 'job' },
@@ -48,13 +50,6 @@ describe('event descriptors', () => {
       }
     });
     const actor = createActor(machine).start();
-
-    actor.send({
-      type: 'xstate.done.actor',
-      actorId: 'job',
-      sessionId: 'x:1',
-      output: undefined
-    } as any);
 
     expect(actor.getSnapshot().value).toBe('complete');
   });

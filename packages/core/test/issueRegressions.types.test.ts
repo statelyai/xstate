@@ -7,11 +7,14 @@ import {
   createActor,
   createAsyncLogic,
   createMachine,
+  createObservableLogic,
   setup,
   types,
   type ActorRefFrom,
-  type AnyActorLogic
+  type AnyActorLogic,
+  type ObservableSnapshot
 } from '../src/index.ts';
+import { restoreActor } from '../src/persist/index.ts';
 
 function expectType<T>(_v: T) {}
 
@@ -29,7 +32,7 @@ describe('types', () => {
     const actor = createActor(machine, { input: { id: 'a' } }).start();
     const persisted = actor.getPersistedSnapshot();
 
-    const restored = createActor(machine, { snapshot: persisted }).start();
+    const restored = restoreActor(machine, persisted).start();
     expect(restored.getSnapshot().context.id).toBe('a');
   });
 
@@ -244,5 +247,71 @@ describe('types', () => {
         }
       }
     });
+  });
+
+  it('#5880 onSnapshot types event.snapshot from the invoked source', () => {
+    const watchItems = createObservableLogic<string[], { topic: string }>({
+      run: () => ({ subscribe: () => ({ unsubscribe: () => {} }) })
+    });
+
+    const s = setup({ actors: { watchItems } });
+    s.createMachine({
+      invoke: s.createInvoke({
+        src: 'watchItems',
+        input: { topic: 'news' },
+        onSnapshot: ({ event }) => {
+          expectType<ObservableSnapshot<string[], { topic: string }>>(
+            event.snapshot
+          );
+          // @ts-expect-error - the snapshot is not `any`
+          const wrong: number = event.snapshot;
+          void wrong;
+        }
+      })
+    });
+
+    // A logic value as `src` still compiles and keeps an untyped snapshot
+    setup({ actors: { watchItems } }).createMachine({
+      invoke: {
+        src: watchItems,
+        input: { topic: 'news' },
+        onSnapshot: ({ event }) => {
+          void event.snapshot;
+        }
+      }
+    });
+
+    setup({ actors: { watchItems } }).createMachine({
+      invoke: {
+        src: ({ actors }) => actors.watchItems,
+        input: { topic: 'news' },
+        onSnapshot: ({ event }) => {
+          void event.snapshot;
+        }
+      }
+    });
+  });
+
+  it('#5900 a created invoke keeps the registered source name on `src`', () => {
+    const watchItems = createObservableLogic<string[], { topic: string }>({
+      run: () => ({ subscribe: () => ({ unsubscribe: () => {} }) })
+    });
+
+    const s = setup({ actors: { watchItems } });
+    const inv = s.createInvoke({
+      src: 'watchItems',
+      input: { topic: 'news' }
+    });
+
+    // The configuration is returned unchanged, so `src` is still the name.
+    expect(inv.src).toBe('watchItems');
+    expectType<'watchItems'>(inv.src);
+    // @ts-expect-error - `src` is the name, not actor logic
+    const logic: typeof watchItems = inv.src;
+    void logic;
+
+    // `input` stays tied to the registered actor.
+    // @ts-expect-error - `{ count: number }` is not the registered input
+    s.createInvoke({ src: 'watchItems', input: { count: 1 } });
   });
 });

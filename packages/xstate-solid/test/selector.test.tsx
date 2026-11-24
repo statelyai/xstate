@@ -1,5 +1,5 @@
-/* @jsxImportSource solid-js */
-import { createMemo, createSignal, from } from 'solid-js';
+/* @jsxImportSource @solidjs/web */
+import { createMemo, createSignal, flush, untrack } from 'solid-js';
 import { fireEvent, render, screen } from '@solidjs/testing-library';
 import {
   ActorRefFrom,
@@ -9,8 +9,7 @@ import {
 } from 'xstate';
 import { useActorRef, useMachine, fromActorRef } from '../src/index.ts';
 describe('usage of selectors with reactive service state', () => {
-  // TODO: rewrite this test to not use `from()`
-  it.skip('only rerenders for selected values', () => {
+  it('only recomputes for selected values', () => {
     const machine = createMachine({
       initial: 'active',
       context: {
@@ -30,26 +29,27 @@ describe('usage of selectors with reactive service state', () => {
       }
     });
 
-    let rerenders = 0;
+    let computations = 0;
 
     const App = () => {
       const service = useActorRef(machine);
-      const serviceState = from(service);
+      const snapshot = fromActorRef(service);
 
-      const selector = (state: SnapshotFrom<typeof machine> | undefined) =>
-        state?.context.count;
-      rerenders++;
+      const count = createMemo(() => {
+        computations++;
+        return snapshot().context.count;
+      });
 
       return (
         <div>
-          <div data-testid="count">{selector(serviceState())}</div>
+          <div data-testid="count">{count()}</div>
           <button
             data-testid="other"
-            onclick={() => service.send({ type: 'OTHER' })}
+            onClick={() => service.send({ type: 'OTHER' })}
           />
           <button
             data-testid="increment"
-            onclick={() => service.send({ type: 'INCREMENT' })}
+            onClick={() => service.send({ type: 'INCREMENT' })}
           />
         </div>
       );
@@ -61,23 +61,25 @@ describe('usage of selectors with reactive service state', () => {
     const incrementEl = screen.getByTestId('increment');
 
     fireEvent.click(incrementEl);
+    flush();
 
-    rerenders = 0;
+    computations = 0;
 
     fireEvent.click(otherButton);
     fireEvent.click(otherButton);
     fireEvent.click(otherButton);
     fireEvent.click(otherButton);
+    flush();
 
-    expect(rerenders).toEqual(0);
+    expect(computations).toEqual(0);
 
     fireEvent.click(incrementEl);
+    flush();
 
     expect(countButton.textContent).toBe('2');
   });
 
-  // TODO: rewrite this test to not use `from()`
-  it.skip('should work with a custom comparison function', () => {
+  it('should work with a custom comparison function', () => {
     const machine = createMachine({
       initial: 'active',
       context: {
@@ -95,25 +97,23 @@ describe('usage of selectors with reactive service state', () => {
 
     const App = () => {
       const service = useActorRef(machine);
-      const serviceState = from(service);
-      const name = createMemo(
-        () => (serviceState() as any)!.context.name,
-        serviceState(),
-        { equals: (a: any, b: any) => a.toUpperCase() === b.toUpperCase() }
-      );
+      const snapshot = fromActorRef(service);
+      const name = createMemo(() => (snapshot() as any).context.name, {
+        equals: (a: any, b: any) => a.toUpperCase() === b.toUpperCase()
+      });
 
       return (
         <div>
           <div data-testid="name">{name()}</div>
           <button
             data-testid="sendUpper"
-            onclick={() =>
+            onClick={() =>
               service.send({ type: 'CHANGE', value: 'DAVID' } as any)
             }
           />
           <button
             data-testid="sendOther"
-            onclick={() =>
+            onClick={() =>
               service.send({ type: 'CHANGE', value: 'other' } as any)
             }
           />
@@ -129,15 +129,18 @@ describe('usage of selectors with reactive service state', () => {
     expect(nameEl.textContent).toEqual('david');
 
     fireEvent.click(sendUpperButton);
+    flush();
 
     // unchanged due to comparison function
     expect(nameEl.textContent).toEqual('david');
 
     fireEvent.click(sendOtherButton);
+    flush();
 
     expect(nameEl.textContent).toEqual('other');
 
     fireEvent.click(sendUpperButton);
+    flush();
 
     expect(nameEl.textContent).toEqual('DAVID');
   });
@@ -169,7 +172,7 @@ describe('usage of selectors with reactive service state', () => {
 
     const App = () => {
       const [state] = useMachine(parentMachine);
-      const childActor = (state as any).context.childActor!;
+      const childActor = untrack(() => (state as any).context.childActor!);
       const childSnapshot = fromActorRef(childActor);
 
       return (
@@ -177,7 +180,7 @@ describe('usage of selectors with reactive service state', () => {
           <div data-testid="count">{selector(childSnapshot() as any)}</div>
 
           <button
-            onclick={() => childActor.send({ type: 'UPDATE_COUNT' })}
+            onClick={() => childActor.send({ type: 'UPDATE_COUNT' })}
             data-testid="button"
           />
         </div>
@@ -191,6 +194,7 @@ describe('usage of selectors with reactive service state', () => {
 
     expect(countEl.textContent).toEqual('0');
     fireEvent.click(buttonEl);
+    flush();
     expect(countEl.textContent).toEqual('1');
   });
 
@@ -233,6 +237,7 @@ describe('usage of selectors with reactive service state', () => {
 
     expect(container.textContent).toEqual('first 0');
     setProp('second');
+    flush();
     expect(container.textContent).toEqual('second 0');
   });
 
@@ -283,7 +288,7 @@ describe('usage of selectors with reactive service state', () => {
           </div>
           <button
             data-testid="change-actor"
-            onclick={() => send({ type: 'CHANGE' })}
+            onClick={() => send({ type: 'CHANGE' })}
           />
         </div>
       );
@@ -296,6 +301,7 @@ describe('usage of selectors with reactive service state', () => {
 
     expect(div.textContent).toEqual('1');
     fireEvent.click(button);
+    flush();
     expect(div.textContent).toEqual('0');
   });
 
@@ -333,7 +339,7 @@ describe('usage of selectors with reactive service state', () => {
       return (
         <div>
           <div data-testid="value">{value()}</div>
-          <button onclick={() => childActor().send({ type: 'INC' })} />
+          <button onClick={() => childActor().send({ type: 'INC' })} />
         </div>
       );
     };
@@ -345,8 +351,11 @@ describe('usage of selectors with reactive service state', () => {
 
     expect(valueEl.textContent).toEqual('first 0');
     setProp('second');
+    flush();
 
     fireEvent.click(buttonEl);
+
+    flush();
 
     expect(valueEl.textContent).toEqual('second 1');
   });

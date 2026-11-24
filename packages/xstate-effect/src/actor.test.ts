@@ -110,6 +110,31 @@ type DoneCounterSnapshot = CounterSnapshot & { status: 'done' };
 const isDone = (snapshot: CounterSnapshot): snapshot is DoneCounterSnapshot =>
   snapshot.status === 'done';
 
+const finishingMachine = createMachine({
+  schemas: {
+    events: { FINISH: types<{}>() },
+    emitted: { finishing: types<{}>(), finished: types<{}>() }
+  },
+  initial: 'active',
+  states: {
+    active: {
+      on: {
+        FINISH: (_args, enq) => {
+          enq.emit({ type: 'finishing' });
+          return { target: 'done' };
+        }
+      }
+    },
+    done: {
+      type: 'final',
+      entry: (_args, enq) => {
+        enq.emit({ type: 'finished' });
+      },
+      output: () => 'finished'
+    }
+  }
+});
+
 const emitterMachine = createMachine({
   initial: 'active',
   states: {
@@ -272,6 +297,40 @@ describe('emitted', () => {
 
     expect(collected).toEqual([{ type: 'pinged' }, { type: 'pinged' }]);
   });
+
+  it('streams the events of the transition that completes the actor', async () => {
+    const collected = await runScoped(
+      Effect.gen(function* () {
+        const actor = yield* createEffectActor(finishingMachine);
+        afterSubscribe(actor, () => {
+          actor.send({ type: 'FINISH' });
+        });
+
+        return yield* Stream.runCollect(emitted(actor));
+      })
+    );
+
+    expect(collected).toEqual([{ type: 'finishing' }, { type: 'finished' }]);
+  });
+});
+
+it('keeps the result when the scope closes during the final emitted events', async () => {
+  const scope = await Effect.runPromise(Scope.make());
+  const actor = await Effect.runPromise(
+    Scope.provide(createEffectActor(finishingMachine), scope)
+  );
+  const closed = new Promise<void>((resolve) => {
+    actor.on('finishing', () => {
+      Effect.runFork(Scope.close(scope, Exit.void)).addObserver(() =>
+        resolve()
+      );
+    });
+  });
+  actor.send({ type: 'FINISH' });
+  await closed;
+
+  expect(actor.getSnapshot().status).toBe('done');
+  expect(actor.getSnapshot().output).toBe('finished');
 });
 
 describe('waitFor', () => {
@@ -459,11 +518,23 @@ describe('inspect', () => {
     expect(events[0]).toMatchObject({ event: { type: 'INCREMENT' } });
   });
 
-  it('builds no inspection events without a subscriber', async () => {
+  it('attaches inspection only while an actor has subscribers', async () => {
     const actor = await runScoped(createEffectActor(counterMachine));
+    const first = vi.fn();
+    const second = vi.fn();
+    expect(actor.system._hasInspectionObservers?.()).toBe(false);
+
+    const firstSubscription = actor.inspect(first);
+    const secondSubscription = actor.inspect(second);
+    firstSubscription.unsubscribe();
     actor.send({ type: 'INCREMENT' });
     await until(() => actor.getSnapshot().context.count === 1);
 
+    expect(first).not.toHaveBeenCalled();
+    expect(second).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ type: '@xstate.transition' })
+    );
+    secondSubscription.unsubscribe();
     expect(actor.system._hasInspectionObservers?.()).toBe(false);
   });
 });

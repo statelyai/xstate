@@ -16,8 +16,9 @@ export type PersistedMachineSnapshot = {
   historyValue: Record<string, unknown>;
   timers: readonly unknown[];
   _nextActorId?: number;
-  _nextActorIds?: Record<string, number>;
-  _nextTimerId?: number;
+  nextActorIds?: Record<string, number>;
+  nextTimerId?: number;
+  nextTimerOccurrence?: number;
   stateInputs?: Record<string, Record<string, unknown>>;
   machine?: { id: string; version: string };
   [key: string]: unknown;

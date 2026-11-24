@@ -4,9 +4,9 @@ description: Every API change from v5 to v6, organized by area, with before-and-
 ---
 
 
-XState v6 is currently in alpha (`npm install xstate@alpha`). It is a major release that simplifies the authoring experience and unifies actions, guards, and transitions under a single **inline function** model. Most v5 concepts still exist - they are expressed differently.
+XState v6 is currently in beta (`npm install xstate@beta`). It is a major release that simplifies the authoring experience and unifies actions, guards, and transitions under a single **inline function** model. Most v5 concepts still exist - they are expressed differently.
 
-This guide is organized by area. Skim the **Quick reference** below, then jump to the sections relevant to your codebase. Upgrade one machine at a time and run its tests after each change. To install v6 next to v5 and to automate part of the migration, see [§27](#27-codemod-and-side-by-side-installs).
+This guide is organized by area. Skim the **Quick reference** below and read [§30](#30-runtime-behavior-changes), which lists changes that run without a type error or a thrown error, then jump to the sections relevant to your codebase. Upgrade one machine at a time and run its tests after each change. To install v6 next to v5 and to automate part of the migration, see [§27](#27-codemod-and-side-by-side-installs).
 
 ---
 
@@ -34,13 +34,18 @@ This guide is organized by area. Skim the **Quick reference** below, then jump t
 | `types: {} as { context: ..., events: ...}`             | `schemas: { context, events, ... }` (Zod / Standard Schema, or `types<T>()` for type-only)                                          |
 | `actor.send({ type: 'INC' })`                           | `actor.send(...)` keeps working; new typed `actor.trigger.INC()`                                                                    |
 | `@xstate/immer`                                         | removed - return updated `context` patches directly                                                                                 |
-| `@xstate/inspect`                                       | removed - use `inspect` option on `createActor`, `actor.subscribe`, or [`@statelyai/inspect`](https://github.com/statelyai/inspect) |
+| `@xstate/inspect`                                       | removed - use `inspect` option on `createActor`, `actor.subscribe`, or [`@statelyai/sdk/inspect`](migrate-inspector.md) |
 | `sendTo('child', ev)` with no running `child`           | dead letter with reason `'missingTarget'`; the sender stays `active` (§26)                                                          |
 | `tsTypes` (typegen)                                     | removed; declare types with `schemas` (§3)                                                                                          |
 | `machine.implementations`                               | `machine.sources`                                                                                                                   |
 | `snapshot._nodes`                                       | `snapshot.nodes`                                                                                                                    |
 | `systemId` (`createActor`, `invoke`, spawn options)     | `registryKey`; look up with `system.get(registryKey)`                                                                               |
 | `spawn('name')` in a `context` factory                  | `spawn(actors.name)`                                                                                                                |
+| `createMachine(config, implementations)`                | `setup({ ... })` or `machine.provide({ ... })`; a second argument is ignored at runtime (§4)                                        |
+| `on: { 'xstate.done.actor.job': ... }`                  | `on: { 'xstate.done.actor': { matches: { actorId: 'job' }, ... } }`; suffixed types never match ([Internal lifecycle events](#internal-lifecycle-events)) |
+| `(machine).checkout` state ids, `0.(machine).checkout` invoke ids | `checkout` (or `shop.checkout` with `id: 'shop'`), `checkout:0` ([Renamed members](#renamed-members-and-identifiers))     |
+| `@xstate.event`, `@xstate.snapshot`, `@xstate.action`, `@xstate.microstep` inspection events | `@xstate.actor` and `@xstate.transition` ([`@xstate/inspect` removed](#xstateinspect---removed)) |
+| React hooks recreate the actor when the machine changes | the first machine is used for the component's lifetime (§18)                                                                        |
 
 ---
 
@@ -74,12 +79,12 @@ Beyond simplifying the action/guard surface, v6 introduces a number of features 
 
 ## 1. Inline functions replace action creators
 
-This is the largest change. Action creators (`assign`, `raise`, `sendTo`, `emit`, `log`, `cancel`, `enqueueActions`, `spawnChild`, `stopChild`, `forwardTo`, `sendParent`) are **no longer exported**.
+This is the largest change. Action creators (`assign`, `raise`, `sendTo`, `emit`, `log`, `cancel`, `enqueueActions`, `spawnChild`, `stopChild`, `forwardTo`, `sendParent`) are no longer exported.
 
-In v6, every `entry`, `exit`, and transition handler is a **single function** that receives `(args, enq)` where `enq` is a queue of side effects. The function can also **return** an object that the engine applies after it runs:
+In v6, every `entry`, `exit`, and transition handler is a **single function** that receives `(args, enq)` where `enq` is a queue of side effects. The function can also return an object that the engine applies after it runs:
 
 - **Transition handlers** (`on`, `always`, `after`, `onTimeout`, `onDone`, `onError`) - may return a target, a new `context`, `reenter`, or `meta`.
-- **Entry / exit actions** - may return a new `context` (or `children`). They **cannot** return a `target`; entry/exit cannot transition.
+- **Entry / exit actions** - may return a new `context` (or `children`). They cannot return a `target`; entry/exit cannot transition.
 
 Returned `context` values are patches. XState merges a patch into the current context at the top level (`{ ...context, ...patch }`): omitted keys keep their current values, and a nested object in the patch replaces the current value of that key. If a transition targets a state with a narrower `schemas.context`, the patch type requires the keys needed to satisfy that state's context.
 
@@ -236,7 +241,7 @@ An **entry / exit action** may return:
 | `context`  | shallow context patch       |
 | `children` | replacement children record |
 
-Returning nothing (`undefined`) means "no changes". For transition handlers specifically, returning nothing without calling `enq` also means **the event is treated as unhandled at this state** - useful for inline guarding. A handler that calls `enq` is taken even when it returns nothing, so check the condition first:
+Returning nothing (`undefined`) means "no changes". For transition handlers specifically, returning nothing without calling `enq` also means the event is treated as unhandled at this state - useful for inline guarding. A handler that calls `enq` is taken even when it returns nothing, so check the condition first:
 
 ```ts
 // v6 - guard inline by returning undefined
@@ -288,6 +293,26 @@ on: {
   };
 }
 ```
+
+### Transitions inside parallel regions
+
+A transition whose targets stay inside one region of a parallel state exits
+and reenters that region only. In v5 the same transition, when it reentered
+its source or targeted a child state, exited the whole parallel state and
+reset every sibling region to its initial state. v6 leaves the siblings where
+they are. A transition declared on a sibling region for the same event still
+runs, because the two exit sets no longer overlap.
+
+```ts
+// Parallel state `p` with regions `a` and `b`.
+// Event `t`: `a` reenters itself; `b.b1` moves to `b.b2`.
+// v5 after `t`: { a: 'a1', b: 'b1' }: `b` was reset when `p` was exited.
+// v6 after `t`: { a: 'a1', b: 'b2' }: only `a` was exited.
+```
+
+Reset the sibling regions explicitly if the v5 behavior was intended: target
+the parallel state itself, or list a target in every region.
+`@xstate/scxml` keeps the SCXML exit semantics for SCXML sources.
 
 ---
 
@@ -486,7 +511,7 @@ If you omit `schemas.context`, the context type is inferred from the literal `co
 
 ### Typegen removed
 
-`tsTypes` and generated `*.typegen.ts` files are not supported in v6. Declare types with `schemas`. In development builds, `createMachine(...)` throws on a leftover `tsTypes` key with the message ``"tsTypes" (typegen) was removed. Declare contracts under `schemas` (or `setup({ schemas })`).``
+`tsTypes` and generated `*.typegen.ts` files are not supported in v6. Declare types with `schemas`. `createMachine(...)` throws on a leftover `tsTypes` key with the message ``"tsTypes" (typegen) was removed. Declare contracts under `schemas` (or `setup({ schemas })`).``
 
 ### Per-state context types
 
@@ -547,7 +572,7 @@ These inferred typestates work as follows. See [Typestates](typestates.md) for t
 
 <!-- setup state contracts from SetupStateSchema in packages/core/src/setup.ts -->
 
-`setup()` still exists in v6 and still accepts `actions`, `guards`, `actors`, and `delays` (merged into every machine created from it). What changed: `types` is replaced by `schemas`, and `setup()` gains a `states` key for declaring **state contracts**. A contract can provide state-level schemas plus structural metadata and defaults such as `type`, `initial`, `history`, `target`, `id`, and `route`. This types `createMachine` and `createStateConfig`, including the `initial: { target, input }` form and transitions targeting those states. Setups that declare only schemas remain permissive for compatibility.
+`setup()` still exists in v6 and still accepts `actions`, `guards`, `actors`, and `delays` (merged into every machine created from it). What changed: `types` is replaced by `schemas`, and `setup()` gains a `states` key for declaring **state contracts**. A contract can provide state-level schemas plus structural metadata and defaults such as `type`, `initial`, `history`, `target`, `id`, and `route`. This types `createMachine` and `createStateConfig`, including the `initial: { target, input }` form and transitions targeting those states. Setups that declare only schemas don't require state contracts, but unknown literal transition targets are still type errors.
 
 ```ts
 // v6 - setup with root schemas and state-level input schemas
@@ -573,7 +598,7 @@ const machine = s.createMachine({
   initial: { target: 'loading', input: { userId: 'u1' } },
   states: { loading },
   on: {
-    LOAD: '.loading'
+    LOAD: { target: '.loading', input: { userId: 'u1' } }
   }
 });
 ```
@@ -712,7 +737,7 @@ const fetchUser = createAsyncLogic({
 });
 ```
 
-`enq.step(key, exec)` records each step's outcome on the snapshot under `effects[key]`, so on rehydration the step is **not re-executed** - the previous result is replayed. This makes async logic durable across restarts.
+`enq.step(key, exec)` records each step's outcome on the snapshot under `effects[key]`, so on rehydration the step is not re-executed - the previous result is replayed. This makes async logic durable across restarts.
 
 When `timeout` elapses, the logic aborts and rejects with `TimeoutError` (also exported):
 
@@ -917,8 +942,8 @@ on: {
 
 ## 12. Internal events
 
-Events declared in `schemas.internalEvents` can be **raised** internally but
-are **rejected** by the public actor protocol. Wildcard patterns are supported.
+Events declared in `schemas.internalEvents` can be raised internally but
+are rejected by the public actor protocol. Wildcard patterns are supported.
 
 ```ts
 const machine = createMachine({
@@ -938,7 +963,7 @@ const machine = createMachine({
         START: (_, enq) => {
           enq.raise({ type: 'tick' });
         },
-        tick: 'done'
+        tick: { target: 'done' }
       }
     },
     done: {}
@@ -961,8 +986,8 @@ Raised, self-targeted and transition-handler event types include both schema
 maps. `actor.send(...)` and `actor.trigger` include only `schemas.events`.
 The top-level `internalEvents` descriptor list from the v6 alphas was removed.
 Move each listed event's schema from `schemas.events` to
-`schemas.internalEvents`. In development builds, a config with a top-level
-`internalEvents` key throws an error naming `schemas.internalEvents`.
+`schemas.internalEvents`. A config with a top-level `internalEvents` key
+throws an error naming `schemas.internalEvents`.
 
 ---
 
@@ -989,7 +1014,7 @@ states: {
 
 The function must resolve to a target - returning `undefined` throws "must resolve to a target".
 
-Choice states are entered automatically by routing **into** them. They cannot themselves declare `invoke`, `after`, `on`, or `entry`/`exit` (machine creation rejects these).
+Choice states are entered automatically by routing into them. They cannot themselves declare `invoke`, `after`, `on`, or `entry`/`exit` (machine creation rejects these).
 
 ---
 
@@ -1021,7 +1046,7 @@ State `timeout` and `createAsyncLogic({ timeout })` accept `number` (ms) or `str
 | Seconds           | `'5s'`, `'1.5s'`                                               | integer or decimal + `s` suffix |
 | ISO 8601 duration | `'PT5S'`, `'PT1M30S'`, `'PT2H'`, `'P1D'`, `'P1W'`, `'P1DT12H'` | always starts with `P`          |
 
-Plain `'5m'`, `'1h'`, `'1d'`, `'1w'` (without the `P`/`PT` prefix) are **not** accepted - use the ISO 8601 form for anything beyond seconds and milliseconds.
+Plain `'5m'`, `'1h'`, `'1d'`, `'1w'` (without the `P`/`PT` prefix) are not accepted - use the ISO 8601 form for anything beyond seconds and milliseconds.
 
 `after` delays accept the same duration formats. A string delay is resolved against the machine's named `delays` first; only strings that don't match a named delay are parsed as durations.
 
@@ -1053,13 +1078,18 @@ Transition arrays are not accepted by the authoring APIs. Use a single
 transition function to select among targets. Serialized transition arrays are
 still accepted by `machineFromJSON(...)`.
 
+A chain of eventless transitions that never settles ends the actor in v6. The
+actor processes at most 1000 microsteps per event and then fails with
+`InfiniteTransitionError`, so `snapshot.status` is `'error'`. v5 ran such a
+loop until the process ran out of memory.
+
 ---
 
 ## 16. Removed top-level exports
 
 <!-- exports removed from and added to packages/core/src/index.ts on the v6 branch (relative to main / v5) -->
 
-These exports have been **removed** from `xstate`:
+These exports have been removed from `xstate`:
 
 - Action creators (entire `actions.ts` module): `assign`, `raise`, `sendTo`, `sendParent`, `forwardTo`, `emit`, `log`, `cancel`, `enqueueActions`, `spawnChild`, `stopChild`, `stop`, plus their `*Action`/`*Params` types
 - Guard combinators and helpers: `and`, `or`, `not`, `stateIn`
@@ -1068,7 +1098,8 @@ These exports have been **removed** from `xstate`:
 - Promise actor logic surface: `fromPromise`, `PromiseActorLogic`, `PromiseActorRef`, `PromiseSnapshot`
 - Transition actor logic surface: `fromTransition`, `TransitionActorLogic`, `TransitionActorRef`, `TransitionSnapshot`
 - Inspection-event subtypes: `InspectedActionEvent`, `InspectedActorEvent`, `InspectedEventEvent`, `InspectedMicrostepEvent`, `InspectedSnapshotEvent` are gone. The remaining `InspectionEvent` type was reshaped: its `type` is now only `'@xstate.actor' | '@xstate.transition'` (a discriminated union of `ActorInspectionEvent` and `TransitionInspectionEvent`, both also exported).
-- The `state` actor option. Use `snapshot`: `createActor(machine, { snapshot: persisted })`. In development builds, passing `state` throws an error naming `snapshot`.
+- The `state` actor option (v5) and the `snapshot` actor option. Use `restoreActor(machine, persisted)` from `xstate/persist`. Passing either option throws an error naming `restoreActor`.
+- `machine.restoreSnapshot(...)`. Use `restoreActor(machine, persisted)` from `xstate/persist`.
 - The top-level `internalEvents` machine config key. Use `schemas.internalEvents`; see [Internal events](#12-internal-events).
 - The `devTools` actor option and the `xstate/dev`, `xstate/actions`, and `xstate/guards` subpath exports
 - v5 definition/config types: `AnyState`, `StateMachineDefinition`, `StateNodeDefinition`, `StatesConfig`, `MachineOptions`, and related internals. The config types `MachineConfig`, `StateNodeConfig`, `InvokeConfig`, and `TransitionConfigOrTarget` are re-exported with their **v6 shapes** - same names, different structure.
@@ -1085,7 +1116,7 @@ These exports have been **removed** from `xstate`:
 
 `SetupReturn`, the type returned by `setup(...)`, is still exported, but its type parameters changed, so a v5 `SetupReturn<TContext, TEvent, ...>` annotation no longer type-checks. Use `typeof yourSetup` to name the type of a specific setup.
 
-These exports have been **added**:
+These exports have been added:
 
 - `setup` (reshaped - see §4) and `createSystem` for typed system registries
 - Setup state contract types: `SetupStateSchema`, `SetupStateSchemas`, `SetupStateType`
@@ -1115,7 +1146,7 @@ See [compact finite state machines](fsm.md) for its exact supported surface.
 - The executable action types are now executable effect types: `ExecutableActionObject` is `ExecutableEffect`, `ExecutableActionsFrom` is `ExecutableEffectFrom`, `SpecialExecutableAction` is `SpecialExecutableEffect`, `ExecutableSpawnAction` is `SpawnExecutableEffect`, and `ToExecutableAction` is `ToExecutableEffect`. The new v6 types and helpers use the same naming, for example `BuiltInExecutableEffect` and `isBuiltInExecutableEffect`.
 - `snapshot._nodes` is now `snapshot.nodes`. It lists the active state nodes.
 - Implicit state ids no longer use the `(machine)` placeholder. A state's implicit id is its path from the root joined by `.`, prefixed by the machine `id` when the machine has one: `shop.checkout` for `id: 'shop'`, and `checkout` without an id (v5: `(machine).checkout`). `machine.id` and the root's id are `''` for a machine without an `id`, so `#` cannot reference that root; give the machine an `id` to target it. An explicit state `id` that equals another state's id throws.
-- Bare string transition values (`on: { GO: 'next' }`, `after: { 1000: 'idle' }`, `always: 'ready'`, `onDone: 'done'`) throw when the machine is created: `Transition for "GO" in state "idle" is the string "next". Use { target: 'next' }.` Write `{ target: 'next' }`; the `string-targets` codemod transform rewrites them. `initial` keeps its string form, and `xstate/fsm` still accepts string targets.
+- Bare string transition values (`on: { GO: 'next' }`, `after: { 1000: 'idle' }`, `always: 'ready'`, `onDone: 'done'`) throw when the machine is created: `Transition for "GO" in state "idle" is the string "next". Use { target: 'next' }.` Write `{ target: 'next' }`; the `string-targets` codemod transform rewrites them. `initial` keeps its string form. `xstate/fsm` also requires object targets for `on` and `always`.
 - `#` targets and `matches('#…')` resolve by exact id. v5 split the text after `#` at the first `.` and resolved the rest as a path below that id, so `#flow.review` meant "child `review` of the state with id `flow`". In v6, the whole string after `#` is the id: use the target state's own explicit `id`, or its full implicit id. This also applies to `@xstate.stateIn` guards in JSON. Dots in an explicit id are matched literally (`#checkout.v2` for `id: 'checkout.v2'`); v5 required `#checkout\\.v2`. An unresolvable target throws when the machine is created, and suggests the target's id when the old form resolves:
 
   ```ts
@@ -1135,7 +1166,7 @@ See [compact finite state machines](fsm.md) for its exact supported surface.
   The `report-id-path-targets` codemod transform lists `#a.b` targets and `matches('#a.b')` arguments it cannot confirm are whole state ids of the enclosing machine config.
 - State keys cannot contain an unescaped `.`. v5 accepted a key like `'foo.bar'` and targeted it as `'foo\\.bar'`; in v6, write the key itself escaped (`'foo\\.bar': {}`). The state value, implicit id (`foo\\.bar`) and persisted snapshots use that escaped key.
 - Implicit invoke ids are `<stateId>:<index>`, such as `checkout:0` or `shop.checkout:1` (v5: `0.(machine).checkout`). An invoke on the root is `:0`, or `shop:0` with a machine id. These ids key `snapshot.children`, completion events (`event.actorId`) and persisted children.
-- The `systemId` option is now `registryKey`, in `createActor(logic, { registryKey })`, `invoke: { registryKey }`, and `enq.spawn(logic, { registryKey })`. `actorRef.systemId` is now `actorRef.registryKey`. `system.get(registryKey)` looks the actor up (see §24). `systemId` is not accepted as an option.
+- The `systemId` option is now `registryKey`, in `createActor(logic, { registryKey })`, `invoke: { registryKey }`, and `enq.spawn(logic, { registryKey })`. `actorRef.systemId` is now `actorRef.registryKey`. `system.get(registryKey)` looks the actor up (see §24). Passing `systemId` throws.
 - The `spawn` function passed to a `context` factory accepts actor logic only. Replace `spawn('worker')` with `spawn(actors.worker)`, using the `actors` argument of the same factory.
 - The `createMachine` types do not accept transition arrays in `on` or `always`. Select among targets in one transition function (see §15). JSON configs passed to `machineFromJSON(...)` still accept transition arrays.
 - Actor `sessionId`s are unique across actor systems and have the form `<executionId>:<n>`, where `executionId` is random. v5 used `x:<n>`. Code that parsed or compared `sessionId`s across systems must not rely on the format.
@@ -1173,6 +1204,8 @@ If you want Immer-style drafts, call Immer's `produce` yourself inside the inlin
 
 ### `@xstate/inspect` - removed
 
+For a visual inspector, use `createInspector` from `@statelyai/sdk/inspect`. See [Migrate to SDK inspection](migrate-inspector.md) for installation and changes from `@statelyai/inspect`.
+
 The standalone inspector package and its `inspect()` entry point are gone. Inspection now flows through:
 
 - `actor.subscribe(observer)` - the snapshot stream
@@ -1200,16 +1233,28 @@ The granular v5 inspection-event subtypes (`@xstate.event`, `@xstate.snapshot`, 
 
 ### React (`@xstate/react`)
 
-In v6, `useActor` creates a fresh actor when the previous one has stopped:
+The hook signatures are unchanged:
 
 ```ts
-// API surface unchanged
 const [snapshot, send, actor] = useActor(machine, options);
 ```
 
-The hook signatures remained stable. Most application-level changes you make will be in the **machine** itself, not the hook.
+`useMachine`, `useActor` and `useActorRef` use the machine passed on the first render for the lifetime of the component, like a `useState` initializer. In v5, passing a machine with a different `config` on a later render stopped the actor and started a new one from its persisted snapshot. In v6, the later machine is ignored, and no error or warning is reported. A component that builds its machine from props, or wraps it in `useMemo` with dependencies, keeps running the first machine.
+
+- Pass values the actor needs at creation as `input`. The hooks read `input` once, when the actor is created; changing it on a later render does not update the running actor.
+- Pass implementations with `machine.provide({ ... })`. Provided implementations are picked up on every render.
+- Send an event to the actor when a prop changes after creation.
+- To restart the actor, or to switch to a different machine, change the component's `key`:
+
+```tsx
+<Editor key={mode} machine={mode === 'draft' ? draftMachine : reviewMachine} />
+```
+
+Creating the machine inside the component no longer resets state, so `useMemo` around `createMachine` is not needed. `useActor` creates a fresh actor when the previous one has stopped. `useMachine` is a deprecated alias of `useActor`.
 
 ### Vue / Svelte / Solid
+
+`@xstate/vue` requires Vue 3.2 or later. Actors created by `useActorRef`, `useActor` or `useMachine` stop when their owning effect scope is disposed. With VueUse's `createSharedComposable`, the actor stays active until the last consumer disposes. Startup still occurs when the first consumer mounts, so actors do not start during server rendering.
 
 Bindings updated to track the new `Snapshot` shape and `createActor` return type. No new hook signatures, but consuming components that referenced removed `xstate` exports (like `assign`) need to be migrated.
 
@@ -1234,33 +1279,35 @@ on: {
 
 ## 20. Persistence / rehydration
 
-Persisted snapshots round-trip through `JSON.stringify` and rehydrate via `createActor(machine, { snapshot })`. The internal shape changed, so v5 persisted snapshots are **not** binary-compatible with v6 - drain or migrate stored state during your rollout.
+Persisted snapshots round-trip through `JSON.stringify` and rehydrate via `restoreActor(machine, persisted)` from `xstate/persist`. The internal shape changed, so v5 persisted snapshots are not binary-compatible with v6 - drain or migrate stored state during your rollout.
 
 ```ts
+import { restoreActor } from 'xstate/persist';
+
 const snapshot = actor.getPersistedSnapshot();
 const json = JSON.stringify(snapshot);
 
 // later
 const restored = JSON.parse(json);
-const actor2 = createActor(machine, { snapshot: restored }).start();
+const actor2 = restoreActor(machine, restored).start();
 ```
 
 Child actors, async logic with effects, and listener-resume semantics are all part of the rehydrated surface.
 
 ### Persisted format
 
-`getPersistedSnapshot()` returns a JSON-shaped object, and `createActor(machine, { snapshot })` restores it leniently: the snapshot has no format version field, and XState reads the fields it recognizes. Snapshots persisted by v6 alphas restore without a migration step when the machine's states still resolve. Changes to your own states, context, and children are versioned with the machine `version` and migrated with `machineVersions()`, described below.
+`getPersistedSnapshot()` returns a JSON-shaped object, and `restoreActor(machine, persisted)` restores it leniently: the snapshot has no format version field, and XState reads the fields it recognizes. Snapshots persisted by v6 alphas do not restore unchanged: the beta changed the actor ref marker, the `timers` shape, the timer `startedAt` field (now `scheduledAt`) and several built-in event types. Discard alpha snapshots or convert them before restoring; see [Names changed during the v6 prereleases](#29-names-changed-during-the-v6-prereleases). Changes to your own states, context, and children are versioned with the machine `version` and migrated with `machineVersions()`, described below.
 
 The host serializes the payload. Development builds warn when `context`, `output`, `error`, or state input holds a value that does not survive a JSON round-trip: functions, symbols, `BigInt`, `Map`, `Set`, cycles, `NaN`, and `Infinity`. Persisting a snapshot whose `context` contains a circular reference throws an error that names the actor and the context path. See [Persistence](persistence.md) for the format rules.
 
-Actor refs in persisted `context` are stored as `{ "$actor": "<address>" }`. v5 stored them as `{ "xstate$$type": 1, "id": "<id>" }`; v6 does not read that shape, so convert those entries with [`machineVersions`](persistence.md#migrate-machine-versions) before restoring v5 snapshots.
+Actor refs in persisted `context` are stored as `{ "@actor": "<address>" }`. v5 stored them as `{ "xstate$$type": 1, "id": "<id>" }`; v6 does not read that shape, so convert those entries with [`machineVersions`](persistence.md#migrate-machine-versions) before restoring v5 snapshots.
 
 ### Snapshot versioning
 
 A machine may declare a `version`, which requires an `id`: `createMachine({ version: '1' })` is a type error and throws `Machine with version '1' must declare an id.` A versioned machine stamps every
 persisted snapshot with `machine: { id, version }` (which survives `JSON.stringify`), so
 a rollout can detect and migrate older snapshots instead of feeding them to an
-incompatible machine:
+incompatible machine. Persisted snapshots have no top-level `version` field:
 
 ```ts
 const machine = createMachine({
@@ -1272,9 +1319,10 @@ const machine = createMachine({
 
 const persisted = actor.getPersistedSnapshot();
 (persisted as any).machine; // { id: 'order', version: '1' }
+(persisted as any).version; // undefined
 ```
 
-Machines without a `version` produce snapshots with no `version` key.
+Machines without a `version` produce snapshots with no `machine` key.
 
 Pass `{ id, version, snapshotSchema, eventSchema }` to retain Standard Schema
 contracts for a historical version without retaining its old executable machine.
@@ -1284,7 +1332,7 @@ the corresponding schema. Targets must be backed by actual machines, which also
 remain supported directly as entries. A `'*'` handler may asynchronously handle
 unknown data.
 
-Machines expose `eventSchema` for public input validation. It rejects declared
+`eventSchema(machine)` returns a schema for public input validation. It rejects declared
 internal events and reserved runtime events, except explicitly configured public
 routes. This changes the alpha contract: use actual machines with
 `machineVersions().adaptEvents()` for internal/runtime histories, or provide a
@@ -1315,7 +1363,9 @@ contains its `id` (or `seq` for a delayed send without one; built-in `after` and
 wall-clock timestamps or native timeout handles. Timer runtimes implement
 `scheduleTimer(source, timer, delay)` / `cancelTimer(source, timer)` with a
 `TimerKey` (`{ id }`, `{ seq }` or a built-in timer's `{ event }`) and deliver
-`{ type: 'xstate.timer', ...timer }` to the source when due. Consuming that input
+`{ type: 'xstate.timer', ...timer }` to the source when due. Preserve the
+scheduling key's `occurrence` in that input; exclude it from logical cancellation
+lookup keys. Consuming that input
 removes the declaration and emits the real delivery effect.
 
 Final and explicitly stopped snapshots contain no pending timers; their
@@ -1577,8 +1627,8 @@ A failed child reaches its parent as an `xstate.error.actor` event with `actorId
 The `@xstate/codemod` package provides the `xstate-codemod` CLI. Review the changes with `--dry`, then run it again without `--dry` to write them:
 
 ```bash
-npx @xstate/codemod migrate "src/**/*.ts" --dry
-npx @xstate/codemod migrate "src/**/*.ts"
+npx @xstate/codemod@beta migrate "src/**/*.ts" --dry
+npx @xstate/codemod@beta migrate "src/**/*.ts"
 ```
 
 It runs these transforms in order. `--transform name,name` selects a subset.
@@ -1586,37 +1636,167 @@ It runs these transforms in order. `--transform name,name` selects a subset.
 | Transform             | Effect                                                                                                                                                                                                                                                                      |
 | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `rename-imports`      | Renames `interpret` to `createActor`, `Interpreter` to `Actor`, and `fromCallback`, `fromObservable`, and `fromEventObservable` to their `create*Logic` names, and the executable action types to their executable effect names, including usages. Import aliases are kept.                                                                  |
-| `string-targets`      | Wraps bare string transition values under `on`, `after`, `onDone`, `onError`, and `always` in `{ target: '...' }` inside `createMachine` and `createStateConfig` configs.                                                                                                   |
-| `types-to-schemas`    | Converts `types: {} as { ... }` to `schemas` with `types<T>()` entries. Events become a map only when they are written as an inline union literal.                                                                                                                         |
+| `string-targets`      | Wraps bare string transition values under `on`, `after`, `onDone`, `onError`, and `always` in `{ target: '...' }` inside `createMachine`, `createStateConfig`, and `createFSM` configs.                                                                                                   |
+| `types-to-schemas`    | Converts `types: {} as { ... }` and the per-key form `types: { context: {} as C, events: {} as E }` to `schemas` with `types<T>()` entries. Events become a map when they are written as a union of object literals with a string-literal `type`, inline or through type aliases declared in the same file. Other event types become `events: types<E>()`, which loads but does not type-check as a v6 event map, so the entry is reported as a manual site to rewrite as a map by hand. A `types` value in any other shape, such as a variable, is reported as a manual site. |
+| `lower-actions`       | Rewrites transition objects that have `actions` or `guard`, and transition arrays, as one transition function `(args, enq) => { ... }`; non-function `entry` and `exit` values as one function; and the action creators and guard combinators inside them (`assign`, `enqueueActions`, `raise`, `sendTo`, `sendParent`, `forwardTo`, `emit`, `log`, `cancel`, `stopChild`, `spawnChild`, `and`, `or`, `not`, `stateIn`) as `enq` calls, context patches and boolean expressions, following named implementations and module-level constants defined in the same file. Named actions and guards keep their v5 signatures; the generated code calls them as `enq(args.actions.name, args, params)` and `args.guards.name(args, params)`. A named `assign` action becomes a function that returns a context patch. Moves an object-literal second `createMachine` argument into the config, and rewrites `fromPromise(fn)` as `createAsyncLogic({ run: fn })` when `fn` does not read `system` or `emit`. Removes the `'xstate'` imports it leaves unused. A transition, `entry`, or `exit` value that contains anything it cannot rewrite, such as an `enqueueActions` callback that passes `enqueue` as a value or returns early, a guard or action defined in another file, or a named `assign` that `provide()` overrides, is left unchanged and reported by the transforms below. |
 | `report-removed-apis` | Reports, without rewriting, uses of `assign`, `raise`, `sendTo`, `sendParent`, `forwardTo`, `emit`, `log`, `cancel`, `spawnChild`, `stop`, `stopChild`, `enqueueActions`, `and`, `or`, `not`, `stateIn`, `fromPromise`, `fromTransition`, `toObserver`, `pathToStateValue`, and `SpecialTargets`, with a suggested replacement. |
 | `report-id-path-targets` | Reports, without rewriting, `#a.b` targets and `matches('#a.b')` or `stateIn('#a.b')` arguments that are not whole state ids of the machine config that contains them. References outside a `createMachine` or `createStateConfig` config are always reported. v6 resolves `#` targets by exact id only. |
+| `suffixed-lifecycle-events` | Rewrites `on` keys that use suffixed v5 lifecycle event types to the category type with `matches`: `'xstate.done.actor.job': { target: 'done' }` becomes `'xstate.done.actor': { matches: { actorId: 'job' }, target: 'done' }`, and the same for `xstate.error.actor.<id>`, `xstate.snapshot.<id>` and `xstate.done.state.<id>` (with `stateId`). A function transition moves under `to`. Reports `xstate.after.<delay>.<id>` keys, keys whose category type is already handled in the same `on`, transitions that are not object or function literals, and suffixed type strings elsewhere in the file, such as `event.type === 'xstate.done.actor.job'`. See [Internal lifecycle events](#internal-lifecycle-events). |
+| `report-inspection-events` | Reports, without rewriting, string literals naming v5 inspection event types: `@xstate.event`, `@xstate.snapshot`, `@xstate.action`, `@xstate.microstep`, and `@xstate.deadletter`. v6 emits only `@xstate.actor` and `@xstate.transition`, so comparisons against the old types never match; TypeScript reports them only when the handler is typed with `InspectionEvent`. Scans every file, including files that do not import `xstate`. |
+| `report-action-shapes` | Reports, without rewriting, `entry` and `exit` values that are not functions (strings, arrays, objects, identifiers, or calls such as `assign(...)`), and `actions`, `guard`, and `cond` keys on transition objects under `on`, `after`, `always`, `onDone`, `onError`, `onSnapshot`, or an object `initial`, including each element of a transition array, and the transition arrays themselves. v6 rejects these shapes: `entry` and `exit` take a single function `(args, enq) => { ... }`, and transitions queue effects on `enq` and return `{ target }` or `undefined` instead of listing `actions` and `guard`. |
+| `report-implementations` | Reports, without rewriting, a second argument to `createMachine(config, implementations)` that `lower-actions` did not move into the config, such as a variable. v6 ignores the second argument. |
 
-`string-targets` wraps string elements inside transition arrays but keeps the arrays. The v6 `createMachine` types reject transition arrays in `on` and `always` (for example, `on: { X: [ … ] }`), and no transform reports them. Find them by hand and replace each with one transition function (§15, §16).
+`string-targets` wraps string elements inside transition arrays but keeps the arrays. `lower-actions` rewrites a transition array as one function when any element has `actions` or `guard`; `report-action-shapes` reports the arrays that remain. The v6 `createMachine` types reject transition arrays in `on` and `always` (for example, `on: { X: [ … ] }`); replace each with one transition function (§15, §16).
 
-The codemod does not convert action creators or guard combinators. Rewrite each reported `assign`, `raise`, `sendTo`, or other action creator as an inline function by hand (§1, §2). The transforms read and write imports from `'xstate'` only.
+`lower-actions` converts the action creators and guard combinators it can resolve in the file. Rewrite the reported ones as inline functions by hand (§1, §2). The transforms read and write imports from `'xstate'` only.
+
+### Exit codes and JSON output
+
+`migrate` exits with one of these codes:
+
+| Code | Meaning |
+| --- | --- |
+| `0` | No manual migration is needed. |
+| `1` | Usage error, or the transformed output failed the syntax check and was not written. |
+| `2` | Manual migration is needed. At least one transform reported a site. |
+
+`--json` prints one JSON report to stdout instead of the text summary. `manualSites` lists each reported site:
+
+```json
+{
+  "filesChanged": 1,
+  "files": [{ "filePath": "...", "changed": true, "transforms": [{ "name": "...", "changed": true, "notes": [] }] }],
+  "manualSites": [{ "file": "...", "line": 12, "column": 7, "api": "assign", "hint": "...", "transform": "report-removed-apis" }]
+}
+```
+
+### Check behavior with `baseline` and `verify`
+
+<!-- commands, flags and report fields from packages/xstate-codemod/src/verify/cli.ts, run.ts, diff.ts and deltas.ts -->
+
+`baseline` and `verify` check that a migrated machine behaves like the v5 original. `baseline` loads the v5 module under XState v5, generates event sequences, and records a trace of each one. `verify` loads the migrated module under XState v6, replays the same sequences, and compares the traces step by step. The codemod package includes both XState versions and resolves `'xstate'` imports in the loaded file to the matching one, so the project can have either version installed.
+
+Record the baseline before `migrate` rewrites the file:
+
+```bash
+npx @xstate/codemod baseline src/checkout.ts --out .xstate-migrate/checkout.json
+npx @xstate/codemod migrate src/checkout.ts
+# fix the reported manual sites
+npx @xstate/codemod verify --baseline .xstate-migrate/checkout.json src/checkout.ts
+```
+
+When both versions exist as separate files, `verify v5-file v6-file` records the baseline and replays it in one run.
+
+The loaded module must export the machine. `--export name` selects an export. Otherwise the commands use the `default` export, then the first export that is actor logic. When the module exports more than one machine and `--export` is not passed, the baseline's `notes` and the text output name the exports and the one used.
+
+#### Sequences
+
+Sequences come from the v5 machine's shortest paths, its simple paths, and seeded random walks. Random walks also advance a simulated clock to the next pending timer, so they cover delayed transitions. `--walks` (default `25`), `--steps` (default `12`), and `--seed` (default `1`) control the walks. `--max-sequences` (default `200`) caps the total. Simple paths grow quickly with payload cases and parallel states; when `baseline` fails with `CHILD_TIMEOUT`, pass `--no-simple-paths` to skip them. The baseline stores the setting as `simplePaths: false` in `options`.
+
+While an actor runs, in both versions, `Date.now()` returns `1700000000000` plus the simulated clock's time, `performance.now()` returns the simulated clock's time, and `Math.random()` returns values from a generator seeded by `--seed` and the sequence index. A machine that stores these values in `context` records the same values under v5 and v6. `new Date()` without arguments still reads the real clock.
+
+Events are sent as `{ type }` unless an events file supplies payloads. Pass `--events events.json`, an object that maps each event type to a list of payloads:
+
+```json
+{ "ADD_ITEM": [{ "type": "ADD_ITEM", "sku": "A1" }, { "type": "ADD_ITEM", "sku": "B2" }] }
+```
+
+Event types without cases are listed in the report under `eventsWithoutCases`. When a guard throws because an event has no payload, the graph traversal that hit it is dropped and the event is left out of the random walks that reach it; each such case is listed under `generationErrors`. Add payload cases for those events to cover the transitions behind them. A graph traversal that hits its limit, usually because `context` changes on every step, is also listed there; random walks still cover those paths.
+
+#### Trace
+
+The baseline records, for the state after start and after each step:
+
+- `value`, `context`, `status`, `output`, and `error`
+- `processed`: every event the root actor processed during the step, in order, including raised, delayed, and done events
+- `children`: the live child actors, by id and source
+- `sent`: events sent to other actors, with the target id and delay
+- `emitted`: events emitted with `emit`
+- `actions`: custom actions run, by type and params
+
+Before comparison, events are normalized: suffixed v5 lifecycle event types such as `xstate.done.actor.<id>` become the v6 category types with their `actorId`, `stateId`, or `delay` fields, `xstate.init` is dropped, `sessionId` fields are removed, and generated child ids are replaced by `(anon)`. Functions and symbols in `context` and `output` are replaced by markers and counted under `nonSerializable`.
+
+`verify` compares every field except `actions` by default. `--compare +actions` adds it. Inline v6 actions have no stable type, so `actions` differ after most migrations. When both versions end a step with `status: 'error'`, only `status` and `error` are compared for that step, because a v6 errored snapshot has no `value`. For each sequence, the first mismatching field at a step is reported as one diff. An unclassified diff ends that sequence. A classified diff is recorded and the comparison continues, so an intentional difference cannot hide a later one.
+
+#### Stubs
+
+Invoked and spawned actors that are referenced by name are replaced by stubs. A stub defaults to `"pending"`, a promise that never settles. Pass `--stubs stubs.json` to script outcomes and delays:
+
+```json
+{
+  "actors": { "fetchUser": { "done": { "id": 1 } }, "saveOrder": { "error": "boom" }, "poll": "pending" },
+  "delays": { "RETRY": 100 }
+}
+```
+
+`done` resolves with the given output, and `error` rejects with the given value. `{}` resolves with `undefined`, and `{ "done": null }` resolves with `null`. `delays` sets named delays on both versions.
+
+A baseline records one outcome per actor. To cover both the `onDone` and `onError` paths, record a second baseline with a different `--stubs` file.
+
+#### Input
+
+Pass `--input input.json` when the machine reads `input`. The file's JSON value is passed as `createActor(logic, { input })` in both versions. `baseline` stores the input in the baseline file, and `verify --baseline` uses it unless `--input` is passed.
+
+When the machine errors at start, `baseline` and `verify` print `start: machine errored at start: <error>`, and `baseline --json` reports the message as `startError`. A machine that builds `context` from `input` errors this way when no input is passed.
+
+#### Results
+
+`verify` exits with one of these codes:
+
+| Code | Meaning |
+| --- | --- |
+| `0` | Equivalent. Every diff, if any, matched an intentional delta. |
+| `1` | Usage error. |
+| `3` | Diverged. At least one diff is `unclassified`. |
+| `4` | A module failed to load or run. `error` has the phase (`baseline` or `replay`), a code such as `EXPORT_NOT_FOUND`, and the message. |
+
+The default output is a summary and the first five unclassified diffs. `--json` prints the full report. Each entry in `diffs` has the sequence id, the step, the `field`, the v5 value as `expected`, the v6 value as `actual`, a `witness` (the events and clock advances that reproduce the step), and a `classification`. A `status` diff where either side errored also has a `detail` with the error message of each errored side.
+
+A diff that matches a known v6 change is classified with a rule instead of `unclassified`:
+
+| Rule | Diff |
+| --- | --- |
+| `anonymous-child-id` | Child or send-target ids that differ only by a generated suffix. |
+| `error-string-shape` | Error strings with the same message after the prefix is removed. |
+| `context-reference` | `context` that is equal after removing actor-reference keys (`@actor`). |
+| `done-event-session` | Processed events that are equal after dropping `sessionId`. |
+| `final-state-output` | `output` that is undefined in v5 and set in v6, because v6 uses a top-level final state's `output` when the root has none (see [Machine output](#machine-output)). |
+| `root-send-parent` | `status` and `error` where v5 errored with `Unable to send event to actor '#_parent'` and v6 did not, because v6 makes a send to a missing parent a dead letter (see [Sending to a missing target](#sending-to-a-missing-target)). Later fields of that step, such as `value`, can still differ. |
+
+Fix the v6 code for each unclassified diff. Do not edit the baseline.
+
+#### Limits
+
+- Actor logic written inline in `invoke.src` or `spawn` cannot be stubbed. It runs for real in both versions, and its source is listed under `unstubbed`.
+- Actions run for real. Side effects inside them, such as network requests or writes, happen during `baseline` and `verify`.
+- `actions` are not compared unless `--compare +actions` is passed. v6 records an `emit` as an action named after the emitted event, so `+actions` reports a diff on every emitting step.
+- Random walks advance the simulated clock to the next pending timer only. The v6 clock also fires timers scheduled during a jump and the v5 clock does not, so a longer jump would diverge on clock behavior alone.
+- An equivalent result covers the generated sequences only. Behavior that needs an event payload or actor outcome missing from the events and stubs files is not exercised.
+- A transition that reenters its own parallel region reports a `value` diff that is not classified. v5 reset the sibling regions and v6 leaves them in place (see "Transitions inside parallel regions"). Confirm that the v6 value is the intended one, or add explicit targets for the siblings.
+- A machine whose eventless transitions never settle makes `baseline` fail with `CHILD_CRASH` and an out-of-memory message, because v5 has no microstep limit. v6 ends the actor with `InfiniteTransitionError` instead. Fix the loop in the v5 machine before recording a baseline.
 
 ### Running v5 and v6 side by side
 
 Install v6 under an npm alias next to v5:
 
 ```bash
-npm install xstate-v6@npm:xstate@alpha
+npm install xstate-v6@npm:xstate@beta
 ```
 
-`package.json` then lists `"xstate-v6": "npm:xstate@^6.0.0-alpha.<n>"` next to `"xstate"`. Import each version by its package name:
+`package.json` then lists `"xstate-v6": "npm:xstate@^6.0.0-beta.<n>"` next to `"xstate"`. Import each version by its package name:
 
 ```ts
 import { createMachine as createV5Machine } from 'xstate';
 import { createMachine } from 'xstate-v6';
 ```
 
-Migrate one file at a time: run the codemod on it, finish the manual changes, then change its `'xstate'` imports to `'xstate-v6'`. When no v5 imports remain, remove the alias and install `xstate@alpha` as `xstate`.
+Migrate one file at a time: run the codemod on it, finish the manual changes, then change its `'xstate'` imports to `'xstate-v6'`. `verify` resolves `'xstate'`, `'xstate/*'`, `'xstate-v6'`, and `'xstate-v6/*'` imports in the migrated file to its own XState v6, so it works before or after the import change. When no v5 imports remain, remove the alias and install `xstate@beta` as `xstate`.
 
 ---
 
 ## 28. Leftover v5 keys
 
-In development builds, `createMachine(...)` and `setup(...).createMachine(...)` check hand-written configs for v5 keys that v6 would otherwise ignore or misread. Machines built with `machineFromJSON(...)` or `createMachineFromSCXML(...)` are not checked. Production builds skip the check, except for `cond`, `actions` and a `guard` that is not a function on a transition object. Without the check, a production build would misread those (a transition with `cond` would always be taken), so they throw in every build, with a shorter message.
+`createMachine(...)` and `setup(...).createMachine(...)` check hand-written configs for v5 keys that v6 would otherwise ignore or misread, and `createActor(...)` checks its options. The checks run in every build. Machines built with `machineFromJSON(...)` or `createMachineFromSCXML(...)` are not checked.
 
 These keys throw an error:
 
@@ -1629,17 +1809,29 @@ These keys throw an error:
 | `types` | machine config | `schemas` (or `setup({ schemas })`) |
 | `tsTypes` | machine config | `schemas` (typegen was removed) |
 | `schema` | machine config | `schemas` |
+| `services` | machine config | `actors` (or `setup({ actors })`) |
+| `activities` | machine config or state node | `invoke` |
+| `devTools` | machine config | the `inspect` option on `createActor(...)` |
+| second argument | `createMachine(config, implementations)` | `setup({ actions, guards, actors, delays })` or `machine.provide({ ... })` |
+| `systemId` | `createActor` options | `registryKey` |
+| `state` | `createActor` options | `restoreActor(logic, snapshot)` from `xstate/persist` |
+| `devTools` | `createActor` options | `inspect` |
+| `parent` | `createActor` options | `invoke`, `spawn` or `enq.spawn` |
+| `deferEvents`, `execute` | `createActor` options | removed |
 
-These keys log a warning:
+`createActor(...)` also throws on any option it does not read, and the message lists the supported options:
+
+```
+Unknown actor option "inptu". Supported options: clock, logger, syncSnapshot, id, registryKey, input, simulate, src, inspect, onRejectedEvent, onUnhandledEvent.
+```
+
+These keys change nothing in v6. Development builds log a warning:
 
 | v5 key | v6 replacement |
 | --- | --- |
-| `services` | `actors` (or `setup({ actors })`) |
-| `activities` | `invoke` |
 | `predictableActionArguments` | removed; effects always run in order |
 | `preserveActionOrder` | removed; effects always run in order |
 | `strict` | removed |
-| `devTools` | the `inspect` option on `createActor(...)` |
 
 ## 29. Names changed during the v6 prereleases
 
@@ -1654,7 +1846,7 @@ Code written against a v6 alpha uses names that changed before the beta. The old
 | `xstate.system.cancelEffect`, `xstate.logic.cleanup` effects | `@xstate.cancelEffect`, `@xstate.cleanup`                |
 | `xstate.logic.effect`, `xstate.log` system effects           | `@xstate.effect`, `@xstate.log`                          |
 | suffixed `xstate.done.actor.<id>` etc. descriptors           | category types with `matches` (see [Internal lifecycle events](#internal-lifecycle-events)) |
-| `{ xstate$type: 'actorRef', id, address, src }`              | `{ $actor: address }` (`SerializedActorRef`)             |
+| `{ xstate$type: 'actorRef', id, address, src }`              | `{ '@actor': address }` (`SerializedActorRef`; `$actor` in 6.0.0-beta.1) |
 | persisted timer `startedAt`                                  | `scheduledAt`                                            |
 | `snapshot.timers` record keyed by generated ids (`xstate.after.<delay>.<stateId>`, `xstate.timeout.state.<stateId>`, `xstate.timer.auto.<n>`) | list; built-in timers have no `id`, delayed sends without an `id` carry `seq` |
 | `scheduleTimer(source, id, delay)`, `cancelTimer(source, id)`, `{ type: 'xstate.timer', id }` | `scheduleTimer(source, timer, delay)`, `cancelTimer(source, timer)`, `{ type: 'xstate.timer', ...timer }` (`TimerKey`) |
@@ -1675,9 +1867,128 @@ The old persisted shapes are not read on restore. Convert or discard alpha snaps
 
 ---
 
+## 30. Runtime behavior changes
+
+The changes in this section compile without type errors. Most of them also run without a thrown error or a warning. Check each one against machines that use the feature.
+
+### Promises returned from actions
+
+A function queued with `enq(fn)` that returns a promise now has that promise observed. If it rejects, the error is handled like an error thrown by the action: the nearest state `onError` handles it, or the actor's status becomes `'error'`. In v5, the returned promise was ignored.
+
+An arrow function with an expression body returns its promise:
+
+```ts
+on: {
+  SAVE: (_, enq) => {
+    enq(() => api.track('save')); // returns the promise from api.track
+  }
+}
+```
+
+If `api.track` rejects, the actor errors. To keep a fire-and-forget call, catch the rejection in the action, or use a block body that returns nothing:
+
+```ts
+enq(() => {
+  api.track('save').catch(() => {});
+});
+```
+
+To handle the failure in the machine, add `onError` to the state, or run the call in a `createAsyncLogic` actor.
+
+### Parallel regions
+
+Some transitions in parallel states exit fewer states than in v5. Entry and exit actions and the resulting state value can differ for the same events.
+
+- A non-reentering transition defined on the parallel state whose targets all belong to one region limits exits to that region. In v5, sibling regions were also exited and reset to their initial states.
+- A transition from one region to a target in another exits and reenters their common parallel state. Untargeted regions restart at their initial states. See the [before-and-after examples](parallel-states.md#transitions-between-regions) for coordinating regions while preserving their active states.
+- A `reenter: true` transition defined on one region that targets its descendant reenters that region. Sibling regions stay active.
+- A transition from a final state yields to a conflicting transition from a sibling region that is still active.
+
+```ts
+const machine = createMachine({
+  id: 'p',
+  type: 'parallel',
+  on: {
+    ARCHIVE: { target: '#p.phase.archive' }
+  },
+  states: {
+    phase: { initial: 'inquiry', states: { inquiry: {}, archive: {} } },
+    mode: { initial: 'new', states: { new: {}, edit: {} } }
+  }
+});
+// v5: ARCHIVE from { phase: 'inquiry', mode: 'edit' } → { phase: 'archive', mode: 'new' }
+// v6: ARCHIVE from { phase: 'inquiry', mode: 'edit' } → { phase: 'archive', mode: 'edit' }
+```
+
+### Final states are inert
+
+A state with `type: 'final'` takes no transitions and does not start its invoked actors. This includes final states inside parallel regions. In v5, a final state inside a parallel region still took transitions and started its invoked actors. In development, `createMachine` warns when a final state declares `on`, `after` or `invoke`. Move those to a non-final state.
+
+### Completed children are removed
+
+A child actor is removed from `snapshot.children` after its `xstate.done.actor` or `xstate.error.actor` event is processed. It is also unregistered from the actor system. In v5, the child stayed in `snapshot.children` until the state that invoked it was exited or the child was stopped. Read the child's output or error from the event:
+
+```ts
+invoke: {
+  id: 'job',
+  src: 'job',
+  onDone: ({ event }) => ({ context: { result: event.output } })
+}
+```
+
+### Machine output from a final state
+
+When the root state does not define `output`, reaching a top-level final state sets `snapshot.output` to that final state's `output`. In v5, `snapshot.output` was `undefined` unless the root defined `output`.
+
+### Actor ids
+
+- The root actor's `id` is the machine `id` when the machine has one. In v5, the root actor's `id` was its `sessionId`, such as `x:0`, unless `createActor` received an `id` option.
+- A child spawned without an `id` from a registered source gets the id `<sourceKey>:<n>`, counted per parent, such as `worker:0`. A child spawned from inline logic without an `id` gets `x:<n>`.
+- Implicit state and invoke ids are listed in [Renamed members and identifiers](#renamed-members-and-identifiers).
+
+Logs, inspection consumers, and code that keys data by actor id see the new values.
+
+### Duplicate child ids
+
+Spawning or invoking a child with an explicit `id` that a running sibling already has errors the parent actor:
+
+```
+Cannot spawn child actor with id 'w': the id is already in use by another child of 'checkout'. Stop the existing child before reusing its id.
+```
+
+In v5, a second actor started with the same id. Stop the existing child before reusing its id, or give each child a distinct id.
+
+### Actors are single-use
+
+Calling `start()` after `stop()` throws in all builds:
+
+```
+Actor checkout was stopped and cannot be restarted. Create a new actor with createActor().
+```
+
+In v5, the call did nothing. Calling `start()` on a running, done, or errored actor is still a no-op. Create a new actor with `createActor()` instead of restarting a stopped one. This affects code that creates an actor once, starts it in a React effect, and stops it in the effect's cleanup: React Strict Mode runs the effect, the cleanup, and the effect again. The `@xstate/react` hooks handle this case.
+
+### Microstep limit
+
+The number of microsteps one event may take is unbounded by default, as in v5. In development builds, a macrostep that passes 1000 microsteps logs a warning once per machine. Set `createMachine({ options: { maxIterations } })` to turn a runaway cycle of eventless transitions or raised events into an `InfiniteTransitionError` instead of a hang.
+
+### Delay names
+
+An `after` key that is neither a declared delay name nor a valid duration errors the actor:
+
+```
+Invalid delay "retryDelya": not a configured delay name or a valid duration string (e.g. "500ms", "1.5s", "PT1M30S").
+```
+
+In v5, an undeclared delay name resolved to `undefined`, and the delayed transition fired immediately. When delays are declared in `setup({ delays })` or `createMachine({ delays })`, an undeclared name is also a type error.
+
+---
+
 ## Migration checklist
 
+- [ ] Record a behavior baseline for each machine file with `xstate-codemod baseline` (§27)
 - [ ] Run `xstate-codemod migrate --dry`, apply it, and migrate the APIs it reports by hand (§27)
+- [ ] Run `xstate-codemod verify --baseline` on each migrated file and fix every unclassified diff (§27)
 - [ ] Replace every `assign({...})` with an inline function returning a shallow `{ context: {...} }` patch
 - [ ] Replace every `raise`, `sendTo`, `sendParent`, `forwardTo`, `emit`, `log`, `cancel`, `spawnChild`, `stopChild` with the corresponding `enq.*` call
 - [ ] Replace `enqueueActions(...)` with a regular inline `(args, enq) => { ... }` function
@@ -1687,9 +1998,9 @@ The old persisted shapes are not read on restore. Convert or discard alpha snaps
 - [ ] Replace `fromPromise(...)` with `createAsyncLogic({ run: ... })`
 - [ ] Replace `types: {} as { ... }` with `schemas: { ... }` (Zod / Standard Schema)
 - [ ] If you used `events` as a **union**, restructure to a **map keyed by type**
-- [ ] Move implementations passed as the second argument of `createMachine(config, implementations)` (deprecated in v5) into `setup({ ... })`, the `createMachine({ ... })` config, or `machine.provide({ ... })` (§4). v6's `createMachine` takes one argument and ignores a second one at runtime
+- [ ] Move implementations passed as the second argument of `createMachine(config, implementations)` (deprecated in v5) into `setup({ ... })`, the `createMachine({ ... })` config, or `machine.provide({ ... })` (§4). v6's `createMachine` takes one argument and throws when it receives a second one
 - [ ] Audit `invoke.src` references - `src` may be a logic object, a registered name, or a resolver function
-- [ ] Drop dependencies on `@xstate/immer` and `@xstate/inspect`; update inspection to `actor.subscribe`, the `inspect` option, or `@statelyai/inspect`
+- [ ] Drop dependencies on `@xstate/immer` and `@xstate/inspect`; update inspection to `actor.subscribe`, the `inspect` option, or `@statelyai/sdk/inspect`
 - [ ] Remove imports of `GuardArgs`, `GuardPredicate`, `Inspected*Event`, `PromiseActorLogic`, and `fromPromise` (use `createAsyncLogic`), and update the type arguments of any `SetupReturn<...>` annotation (§16)
 - [ ] Drain/migrate any v5 persisted snapshots - the v6 snapshot shape is not binary-compatible
 - [ ] Check that persisted `context` holds only JSON values; development builds warn on functions, symbols, `BigInt`, `Map`, `Set`, cycles, `NaN`, and `Infinity`
@@ -1697,6 +2008,10 @@ The old persisted shapes are not read on restore. Convert or discard alpha snaps
 - [ ] Replace transition arrays in `on` and `always` with one transition function
 - [ ] Rename `machine.implementations` to `machine.sources` and `snapshot._nodes` to `snapshot.nodes`; replace `spawn('name')` in `context` factories with `spawn(actors.name)`
 - [ ] Check for optional children before `enq.sendTo`, or report `missingTarget` dead letters from `onRejectedEvent`
+- [ ] Replace suffixed lifecycle event types (`xstate.done.actor.<id>`, `xstate.after.<delay>.<id>`, `xstate.done.state.<id>`) in `on` keys and `event.type` checks with category types and `matches`
+- [ ] Update inspection consumers to `@xstate.actor` and `@xstate.transition`
+- [ ] Review React components that pass a different machine on later renders; use `input`, `machine.provide()`, or a `key` (§18)
+- [ ] Review each item in [§30](#30-runtime-behavior-changes): promises returned from actions, parallel regions, final states, completed children, final-state output, actor ids, duplicate child ids, restarting stopped actors, and delay names
 - [ ] Run `pnpm typecheck` and `pnpm test` to surface remaining issues
 
 ---
@@ -1758,7 +2073,7 @@ const machine = createMachine({
           enq.raise({ type: 'DONE' });
           return { context: { count: 0 } };
         },
-        DONE: 'finished'
+        DONE: { target: 'finished' }
       }
     },
     finished: { type: 'final' }

@@ -116,6 +116,8 @@ Use `setup(...).extend(...)` to build a more specific setup from a shared one, m
 
 <!-- runtime validation behavior from packages/core/src/setup.ts and packages/core/src/validation/index.ts -->
 
+> **Experimental:** `standardSchemaValidator()`, `ActorValidationError` and the other `xstate/validation` exports may change in a minor release.
+
 Schemas provide type inference by default. Install `standardSchemaValidator()` to check actor inputs, events, snapshots and outputs at runtime:
 
 ```ts
@@ -138,12 +140,14 @@ Validation can be installed, replaced or disabled by a derived setup. Installing
 
 Where a validation failure surfaces depends on which side of the delivery boundary produced the invalid value:
 
-- **Events arriving from outside the actor** — from `actor.send` or from another actor — are rejected at the boundary when their payload fails its schema, or when the event type is undeclared and `unknownEvents` is `'error'`. The event is never delivered: the actor does not transition, does not error, and no API throws. The rejection is reported to the `onRejectedEvent` dead-letter hook on `createActor` options and as a development-mode console warning. In pure `transition(...)` calls, the snapshot is returned unchanged together with a `@xstate.deadLetter` effect carrying the rejection.
-- **Values the actor produces itself** — input, context, output, emitted events and delayed raised events — error the actor when they fail their schema, and pure `transition(...)`/`initialTransition(...)` throw an `ActorValidationError`. These are machine bugs.
+- **Events arriving from outside the actor** (from `actor.send` or from another actor) are rejected at the boundary when their payload fails its schema, or when the event type is undeclared and `unknownEvents` is `'error'`. The event is never delivered: the actor does not transition, does not error, and no API throws. The rejection is reported to the `onRejectedEvent` dead-letter hook on `createActor` options and as a development-mode console warning. In pure `transition(...)` calls, the snapshot is returned unchanged together with a `@xstate.deadLetter` effect carrying the rejection.
+- **Values the actor produces itself** (input, context, output, emitted events and delayed raised events) error the actor when they fail their schema, and pure `transition(...)`/`initialTransition(...)` throw an `ActorValidationError`. These are machine bugs.
 
 ## Sources on the machine
 
 `actions`, `guards`, `actors` and `delays` can be declared directly on `createMachine(...)` instead of on `setup(...)`. Use `setup(...)` when several machines share the same sources or when state schemas are needed.
+
+When `setup(...).createMachine(...)` replaces a named action, guard, or actor from the setup, the replacement must satisfy that source's declared type, including action and guard parameters declared in schemas. The machine config can also declare new source names. A string-keyed dictionary must have a value type compatible with every existing source it could replace. Use named properties when different sources need different signatures.
 
 ```ts
 const machine = createMachine({
@@ -173,7 +177,7 @@ idle: {
 }
 ```
 
-Named actions and guards are plain functions called with only their params — nothing is injected. Pass values from `context` or the event explicitly. Declare param types on the function itself, or with `schemas.actions` and `schemas.guards` so the params are checked before the implementations exist:
+Named actions and guards are plain functions called with only their params. Nothing is injected. Pass values from `context` or the event explicitly. Declare param types on the function itself, or with `schemas.actions` and `schemas.guards` so the params are checked before the implementations exist:
 
 ```ts
 setup({

@@ -35,7 +35,7 @@ schemas: {
 
 There is no `guard` property. Conditions live inside the transition function, which returns `undefined` to reject the event. Check the condition before calling `enq`: a function that calls `enq` is taken even if it returns `undefined`. See [guards](guards.md).
 
-A targetless transition can update context and run effects without leaving the current state. Set `reenter: true` when a self-transition should run exit and entry behavior again.
+A targetless transition can update context and run effects without leaving the current state. It does not run exit or entry behavior, even with `reenter: true`. Specify a target and set `reenter: true` when a self-transition should run exit and entry behavior again.
 
 ```ts
 on: {
@@ -101,9 +101,13 @@ Transition functions must be synchronous. A transition function that returns a p
 
 `always` runs without an external event. `after` runs after a delay. `onDone`, `onError` and `onTimeout` handle actor outcomes.
 
+When an `after` timer, state timeout, or delayed `enq.raise(...)` becomes due, the delayed event is processed before `always` is reevaluated. Eventless transitions then settle before immediately raised events are processed. Timer bookkeeping does not itself run `always`: a delayed `enq.sendTo(...)` delivers its event without reevaluating eventless transitions in the sender. If the sender is also the recipient, it processes the delivered event and then reevaluates `always`.
+
+If an `always` condition depends only on context updated through transitions, it is reevaluated during those updates and cannot become enabled silently while the machine waits. This also applies to observable values whose updates reach the machine as events and update context. The timer ordering issue concerns conditions that read outside mutable values or depend on the current event. `always` does not poll outside values for changes.
+
 Use targetless transitions for edits that keep a form on the same step. Use re-entering transitions to restart a timer, subscription or invoked request.
 
-Put shared transitions on a parent state. A child can set an event to `undefined` to forbid that parent transition. Wildcards such as `pointer.*` match an event family when no exact transition matches.
+Put shared transitions on a parent state. Setting a child's event handler to `undefined` stops the search for that event along that branch. In a [parallel state](parallel-states.md), another active leaf can still select the parent transition. Wildcards such as `pointer.*` match an event family when no exact transition matches.
 
 ```ts
 on: {
@@ -166,7 +170,7 @@ if (isUnhandled(snapshot, result)) {
 }
 ```
 
-A running actor reports an unhandled event through the `onUnhandledEvent` option of `createActor(...)`. In the [inspection](inspection.md) stream, the `@xstate.transition` event for an unhandled event carries the unchanged snapshot reference. Development builds also log a warning once per event type per actor. Reserved lifecycle and timer events delivered by actors, and actor stop events, are not reported. Unhandled events sent through `actor.send(...)` or between actors are reported even when their names start with `xstate.`, including obsolete names such as `xstate.done.actor.save`.
+A running actor reports an unhandled event through the `onUnhandledEvent` option of `createActor(...)`. In the [inspection](inspection.md) stream, the `@xstate.transition` event for an unhandled event carries the unchanged snapshot reference. Development builds also log a warning once per event type per actor. Reserved lifecycle and timer events delivered by actors, and actor stop events, are not reported. Ordinary sends of reserved lifecycle events are rejected as [dead letters](systems.md#dead-letters). Other unhandled events are reported even when their names start with `xstate.`, including obsolete names such as `xstate.done.actor.save`.
 
 ## TypeScript
 

@@ -28,6 +28,23 @@ const machine = createMachine({
 
 Use an actor instead of an action when work is async, can be canceled, sends snapshots or affects the next state. Common examples are payment authorization and file uploads.
 
+## Invoke or spawn
+
+Invoking and [spawning](spawn.md) both create a child actor. They differ in who controls the child's lifetime.
+
+- **Invoke** ties the child to a state. Entering the state starts the child, exiting the state stops it, and `onDone` and `onError` transitions handle its completion.
+- **Spawn** creates a child whose lifetime you manage. `enq.spawn(...)` in a transition function, or `spawn` in a context initializer, starts the child. It runs until it completes, until `enq.stop(ref)` stops it, or until the parent stops. Exiting the state that spawned it does not stop it.
+
+| | Invoke | Spawn |
+| --- | --- | --- |
+| Lifetime | The invoking state: started on entry, stopped on exit | Until it completes, `enq.stop(ref)`, or the parent stops |
+| Declared in | `invoke` on a state node or the machine root | `enq.spawn(...)` in a transition function, or `spawn` in a context initializer |
+| How many | Fixed by the config | Any number, decided at runtime |
+| Completion handling | `onDone`, `onError`, `onSnapshot` transitions | `enq.subscribeTo(...)`, `enq.listen(...)` |
+| Persistence | Restored with the parent, including inline logic | Restored with the parent when the source is registered in `actors`; inline logic cannot be persisted |
+
+Invoke a payment actor for the `authorizing` state. Spawn one upload actor per selected file, one participant actor per person in a call, or one track actor per queued item in a media player.
+
 ## Invoke properties
 
 | Property | Description |
@@ -52,6 +69,14 @@ invoke: [
 ```
 
 An input mapper receives the parent machine's typed `context` and `event`, including when a registered actor accepts `unknown` or `any` input. Actors with a specific input type still check both static inputs and mapper return values.
+
+## Entry ordering
+
+Invoke input is evaluated after the invoking state's `entry` function returns and its context patch is applied. A patch returned by the transition into the state is also available to the input mapper.
+
+Invoke references are available in `entry` through `children`. You can send events to these references and enqueue listeners or subscriptions. The children initialize after `entry` returns, so their snapshots are not available during that entry function. Child startup remains deferred until the macrostep finishes, with listeners and subscriptions attached before the children start.
+
+If `entry` or an invoke input mapper throws, new actor allocations from the failed transition are discarded without starting them, including allocations from earlier parent or sibling entries and eventless microsteps. Retrying the state can reuse their ids and registry keys.
 
 ## Typed inline invokes
 
@@ -95,7 +120,7 @@ const machine = s.createMachine({
 
 Keep the helper call inline: its enclosing state supplies narrowed context, ancestor context, state input and transition targets. In this example, `context.userId` is `string` and `event.output` is `{ name: string }`.
 
-For an async `src`, `schemas.input` types the actor input, `schemas.output` checks the function's resolved value and types `onDone.event.output`, and `schemas.error` types `onError.event.error`. Omit the output schema to infer output from the async return value. The function receives `{ input, signal, self, system }` and the async enqueue object, including `emit` and `step`, just like `createAsyncLogic`. Its input comes from the invoke's static value or input mapper; parent context stays in the mapper and transition handlers.
+For an async `src`, `schemas.input` types the actor input, `schemas.output` checks the function's resolved value and types `onDone.event.output`, and `schemas.error` types `onError.event.error`. Omit the output schema to infer output from the async return value. The function receives `{ input, signal, self, system }` and the async enqueue object, including `emit` and `step`, as `createAsyncLogic` does. Its input comes from the invoke's static value or input mapper; parent context stays in the mapper and transition handlers.
 
 You can also pass an existing actor logic value, including machine and callback logic:
 
@@ -106,6 +131,14 @@ invoke: s.createInvoke({
   onDone: ({ event }) => ({ context: { name: event.output.name } })
 })
 ```
+
+A bare inline invoke such as `{ src: loadUserLogic, onDone }` cannot correlate
+that specific logic with its completion output. With no registered actor
+sources, its `onDone.event.output` is `unknown`, so TypeScript requires
+narrowing before it can be used. For a typed output, use
+`s.createInvoke({ src: loadUserLogic, onDone })` as above, or register the logic
+in `setup({ actors: { loadUserLogic } })` and invoke it with
+`src: 'loadUserLogic'`. Prefer one of these typed forms when generating code.
 
 For a logic value, its own schemas determine input, output, error and snapshot types. Declare schemas on that logic rather than repeating them on the invoke.
 
@@ -129,9 +162,9 @@ Invoked actors belong to the state that starts them:
 - leaving the state stops it
 - re-entering the state stops the old actor and starts a new one
 
-A state is re-entered by an external transition back to itself, or by a transition with `reenter: true`. A transition that stays inside the invoking state does not restart the child.
+A state is re-entered by an external transition back to itself, or by a targeted transition with `reenter: true`. A transition that stays inside the invoking state does not restart the child. Targetless transitions do not restart the child, even with `reenter: true`.
 
-Invoke on the machine root runs for the whole lifetime of the actor. Root invocations survive ordinary transitions between top-level states, and restart only on a root [transition](transitions.md) with `reenter: true`.
+Invoke on the machine root runs for the whole lifetime of the actor. Root invocations survive ordinary transitions between top-level states, and restart only on a root [transition](transitions.md) with an explicit target and `reenter: true`.
 
 ```ts
 const machine = createMachine({
@@ -198,6 +231,12 @@ invoke: {
 }
 ```
 
+With actors registered in `setup({ actors })`, `src: 'watchItems'` types
+`onSnapshot`'s `event.snapshot` as that actor's snapshot. A logic value or a
+resolver function as `src` (`src: ({ actors }) => actors.watchItems`) does not
+correlate the snapshot type; use `s.createInvoke({ src, onSnapshot })` for a
+typed snapshot there, or annotate the callback's `event` parameter.
+
 These are conveniences over lifecycle events. The child sends `xstate.done.actor`, `xstate.error.actor` and `xstate.snapshot.actor` events with an `actorId` payload; `onDone`, `onError` and `onSnapshot` set `matches: { actorId }` for you so each one only handles its own child. Handle the event directly when the transition belongs on an ancestor state:
 
 ```ts
@@ -207,6 +246,8 @@ on: {
 ```
 
 See [transitions](transitions.md) for `matches` and the full list of lifecycle events.
+
+The runtime delivers child completion, error, and snapshot events. Application sends of these event types are rejected as dead letters. To control when a child completes in a test, use [simulated child completion](testing.md#simulate-child-completion).
 
 ## Timing out an invocation
 
@@ -251,7 +292,7 @@ const paymentMachine = createMachine({
 
 ## Persistence
 
-Invoked children are persisted with the parent snapshot and restored by `createActor(machine, { snapshot })`. A child restored this way keeps its context but gets a new session.
+Invoked children are persisted with the parent snapshot and restored by `restoreActor(machine, persisted)` from `xstate/persist`. A child restored this way keeps its context but gets a new session.
 
 Register logic in `actors` and reference it by name when the persisted snapshot should stay readable and stable across refactors:
 
@@ -289,7 +330,31 @@ Invoke also is not the right tool when the child must outlive the state, or when
 
 Provide named actor logic through `setup({ actors })` or `createMachine({ actors })`. XState correlates `src` with `input`, so a static or mapped input is checked against that logic's input type, and `onDone` sees the output type of that logic.
 
-Declare child ids with `schemas.children` to type `children` and to check that each `id` receives compatible logic:
+For a literal invoke `id` and a named or inline actor source, XState infers the
+child reference in `snapshot.children`. The child may be absent when the invoke
+state is inactive, so check for `undefined` before sending an event:
+
+```ts
+import { createActor, setup, types } from 'xstate';
+
+const paymentMachine = setup({
+  schemas: { events: { retry: types<{}>() } }
+}).createMachine({ initial: 'idle', states: { idle: {} } });
+
+const parent = setup({ actors: { paymentMachine } }).createMachine({
+  invoke: { id: 'payment', src: 'paymentMachine' }
+});
+
+const payment = createActor(parent).getSnapshot().children.payment;
+payment?.send({ type: 'retry' });
+```
+
+Declare child ids with `schemas.children` when the child contract must also be
+available inside machine callbacks. This also checks that each declared `id`
+receives compatible logic. For dynamic IDs, keep the returned child reference
+from `enq.spawn(...)` in context instead of indexing `snapshot.children` with
+an arbitrary string. Spawned children have a separately managed lifetime; see
+[Spawn](spawn.md):
 
 ```ts
 setup({}).createMachine({
@@ -335,7 +400,7 @@ setup({
 });
 ```
 
-Without `schemas.children`, these events are not part of the event type. Declaring `schemas.events` is not required for the narrowing.
+Without `schemas.children`, these events are not part of the event type. Use `assertEvent(event, 'xstate.done.actor')` or `assertEvent(event, 'xstate.error.actor')` to narrow without declaring `schemas.events`. Narrowing with `if (event.type === ...)` also requires `schemas.events`; otherwise the event union includes `{ type: string }`, which can match the same event type.
 
 ## Invoke cheatsheet
 

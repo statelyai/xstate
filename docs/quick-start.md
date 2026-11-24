@@ -8,7 +8,7 @@ XState helps you model how software responds to events. This example models a me
 ## Install XState
 
 ```bash
-npm install xstate@alpha
+npm install xstate@beta
 ```
 
 ## Create a state machine

@@ -2,6 +2,7 @@ import express from 'express';
 import { createActor, type Snapshot } from 'xstate';
 import { machine } from './machine';
 import { createInspector } from '@statelyai/sdk';
+import { restoreActor } from 'xstate/persist';
 
 const inspector = process.env.INSPECT ? createInspector() : undefined;
 
@@ -36,8 +37,7 @@ app.post('/workflows/:workflowId', (req, res) => {
     return;
   }
 
-  const actor = createActor(machine, {
-    snapshot,
+  const actor = restoreActor(machine, snapshot, {
     inspect: inspector?.inspect
   }).start();
   actor.send(req.body);

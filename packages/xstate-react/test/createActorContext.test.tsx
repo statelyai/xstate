@@ -1,4 +1,6 @@
+import * as React from 'react';
 import {
+  createActor,
   createMachine,
   createAsyncLogic,
   Snapshot,
@@ -7,6 +9,7 @@ import {
 import { fireEvent, screen, render, waitFor } from '@testing-library/react';
 import { useSelector, createActorContext, shallowEqual } from '../src';
 import { z } from 'zod';
+import { restoreActor } from 'xstate/persist';
 
 describe('createActorContext', () => {
   it('should work with useSelector', () => {
@@ -395,7 +398,7 @@ describe('createActorContext', () => {
     expect(screen.getByTestId('count').textContent).toBe('2');
   });
 
-  it('options can be passed to the provider', () => {
+  it('a ready actor can be passed to the provider', () => {
     const machine = createMachine({
       initial: 'a',
       states: {
@@ -429,8 +432,13 @@ describe('createActorContext', () => {
     };
 
     const App = () => {
+      const [actor] = React.useState(() =>
+        persistedState
+          ? restoreActor(machine, persistedState)
+          : createActor(machine)
+      );
       return (
-        <SomeContext.Provider options={{ snapshot: persistedState }}>
+        <SomeContext.Provider actor={actor}>
           <Component />
         </SomeContext.Provider>
       );

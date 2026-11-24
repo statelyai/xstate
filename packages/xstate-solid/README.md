@@ -9,7 +9,7 @@ The [@xstate/solid package](https://github.com/statelyai/xstate/tree/main/packag
 1. Install `xstate` and `@xstate/solid`:
 
 ```bash
-npm i xstate @xstate/solid
+npm i xstate@beta @xstate/solid@beta
 ```
 
 2. Import the `useActor` hook:
@@ -35,7 +35,7 @@ export const Toggler = () => {
   const [snapshot, send] = useActor(toggleMachine);
 
   return (
-    <button onclick={() => send({ type: 'TOGGLE' })}>
+    <button onClick={() => send({ type: 'TOGGLE' })}>
       {snapshot.value === 'inactive'
         ? 'Click to activate'
         : 'Active! Click to deactivate'}
@@ -71,7 +71,7 @@ A SolidJS hook that subscribes to emitted changes from an existing [actor](https
 
 **Arguments**
 
-- `actorRef` - an actor object that contains `.send(...)` and `.subscribe(...)` methods. Allows [SolidJS Signal](https://www.solidjs.com/docs/latest/api#createsignal) (or function) to dynamically specify an actor.
+- `actorRef` - an actor object that contains `.send(...)` and `.subscribe(...)` methods. Allows a [Solid signal](https://docs.solidjs.com/reference/basic-reactivity/create-signal) (or function) to dynamically specify an actor.
 
 ```js
 const snapshot = fromActorRef(someSpawnedActor);
@@ -143,20 +143,22 @@ const Loader = () => {
 
 ## Persisted and Rehydrated State
 
-You can persist and rehydrate state with `useActor(...)` via `options.snapshot`:
+Restore an actor with `restoreActor(...)` from `xstate/persist` and pass it to `useActor(...)`:
 
 ```js
-// ...
+import { createActor } from 'xstate';
+import { restoreActor } from 'xstate/persist';
 
-// Get the persisted state config object from somewhere, e.g. localStorage
-const persistedSnapshot = JSON.parse(localStorage.getItem('some-persisted-state-key')) || someMachine.initialState;
+// Get the persisted snapshot from somewhere, e.g. localStorage
+const stored = localStorage.getItem('some-persisted-state-key');
 
 const App = () => {
-  const [snapshot, send] = useActor(someMachine, {
-    snapshot: persistedSnapshot
-  });
+  const actor = stored
+    ? restoreActor(someMachine, JSON.parse(stored))
+    : createActor(someMachine);
+  const [snapshot, send] = useActor(actor);
 
-  // snapshot will rehydrate the provided persisted snapshot, it won't be the machine's initial snapshot
+  // With a stored value, snapshot starts from the persisted snapshot instead of the machine's initial snapshot
 
   return (/* ... */)
 }
@@ -171,17 +173,17 @@ The `actorRef` created in `useActor(logic)` can be referenced as the third retur
 const [snapshot, send, actorRef] = useActor(someMachine);
 ```
 
-You can subscribe to that `actorRef`'s snapshot changes with the [`createEffect` hook](https://www.solidjs.com/docs/latest/api#createeffect):
+You can subscribe to that `actorRef`'s snapshot changes once the component has mounted, with [`onSettled`](https://docs.solidjs.com/reference/lifecycle/on-settled):
 
 ```js
 // ...
 
-createEffect(() => {
+onSettled(() => {
   const subscription = actorRef.subscribe((snapshot) => {
     // simple snapshot logging
     console.log(snapshot);
   });
 
-  onCleanup(() => subscription.unsubscribe());
-}); // note: service should never change
+  return () => subscription.unsubscribe();
+});
 ```

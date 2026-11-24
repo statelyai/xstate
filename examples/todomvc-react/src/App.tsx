@@ -2,19 +2,25 @@ import { Todos } from './Todos';
 import { createActorContext } from '@xstate/react';
 import { todosMachine } from './todosMachine';
 import { createInspector } from '@statelyai/sdk';
+import { createActor } from 'xstate';
+import { restoreActor } from 'xstate/persist';
 
 const inspector = createInspector();
 
 const persistedSnapshot = JSON.parse(localStorage.getItem('todos') || 'null');
 
-export const TodosContext = createActorContext(todosMachine, {
-  snapshot: persistedSnapshot ?? undefined,
-  inspect: inspector.inspect
-});
+export const TodosContext = createActorContext(todosMachine);
+
+// Created once at module load, so the provider keeps one actor.
+const todosActor = persistedSnapshot
+  ? restoreActor(todosMachine, persistedSnapshot, {
+      inspect: inspector.inspect
+    })
+  : createActor(todosMachine, { inspect: inspector.inspect });
 
 function App() {
   return (
-    <TodosContext.Provider>
+    <TodosContext.Provider actor={todosActor}>
       <Todos />
 
       <footer className="info">

@@ -17,7 +17,7 @@ const machine = createMachine({
     }
   }
 });`;
-    const { output, changed, notes } = applyTransform(
+    const { output, changed, notes, sites } = applyTransform(
       reportIdPathTargets,
       input,
       'src/machine.ts'
@@ -29,6 +29,16 @@ const machine = createMachine({
     expect(notes[0]).toMatch(/machine\.ts:6:\d+/);
     expect(notes[0]).toContain("'#flow.step.review'");
     expect(notes[0]).toContain('exact state id');
+    expect(sites).toEqual([
+      {
+        file: expect.stringMatching(/machine\.ts$/),
+        line: 6,
+        column: expect.any(Number),
+        api: '#flow.step.review',
+        hint: expect.stringContaining('exact state id')
+      }
+    ]);
+    expect(notes[0]).toContain(`:6:${sites[0].column} `);
   });
 
   it('does not report whole explicit or implicit ids', () => {

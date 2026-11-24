@@ -9,7 +9,7 @@ export function parseDurationToMilliseconds(
   }
 
   const secondsMatch = normalizedDuration.match(/^(\d*)(\.?)(\d*)s$/i);
-  if (secondsMatch) {
+  if (secondsMatch && (secondsMatch[1] || secondsMatch[3])) {
     const wholePart = secondsMatch[1] ? parseInt(secondsMatch[1], 10) : 0;
     const hasDecimal = !!secondsMatch[2];
     const fracPart = secondsMatch[3]

@@ -1,12 +1,13 @@
-import { SourceFile, SyntaxKind } from 'ts-morph';
-import type { Transform, TransformResult } from '../types.ts';
+import { Node, SourceFile, SyntaxKind } from 'ts-morph';
+import type { ManualSite, Transform, TransformResult } from '../types.ts';
 
 /**
  * v5 `'xstate'` exports that require structural rewrites in v6 and are too
  * risky to automate. Value is a one-line hint for the v6 replacement.
  */
 const REMOVED_APIS: Record<string, string> = {
-  assign: 'return a `{ context }` patch from the transition/action function',
+  assign:
+    'return a `{ context }` patch from the inline transition function. A named `assign` in `setup({ actions })` becomes a plain function returning the patch; call it from the transition and return its result (`enq(actions.x)` ignores return values).',
   raise: 'use `enq.raise(...)` inside an action',
   sendTo: 'use `enq.sendTo(...)` inside an action',
   sendParent: 'use `enq.sendTo(...)` with the parent ref inside an action',
@@ -42,6 +43,7 @@ export const reportRemovedApis: Transform = {
     'Detect (report only) usages of removed/restructured v5 xstate APIs (assign, raise, sendTo, emit, fromPromise, and/or/not, toObserver, SpecialTargets, etc.) that need manual migration.',
   apply(sourceFile: SourceFile): TransformResult {
     const notes: string[] = [];
+    const sites: ManualSite[] = [];
 
     const xstateImports = sourceFile
       .getImportDeclarations()
@@ -60,7 +62,7 @@ export const reportRemovedApis: Transform = {
     }
 
     if (tracked.size === 0) {
-      return { changed: false, notes };
+      return { changed: false, notes, sites };
     }
 
     const filePath = sourceFile.getFilePath();
@@ -73,8 +75,17 @@ export const reportRemovedApis: Transform = {
       if (!api) {
         continue;
       }
+      // Skip member names such as `enq.emit`; they are not the import.
+      const parent = ident.getParent();
+      if (
+        (Node.isPropertyAccessExpression(parent) ||
+          Node.isPropertyAssignment(parent)) &&
+        parent.getNameNode() === ident
+      ) {
+        continue;
+      }
       // Skip the import specifier declarations themselves.
-      const parentKind = ident.getParent()?.getKind();
+      const parentKind = parent?.getKind();
       if (
         parentKind === SyntaxKind.ImportSpecifier ||
         parentKind === SyntaxKind.ImportClause
@@ -82,12 +93,12 @@ export const reportRemovedApis: Transform = {
         continue;
       }
       const { line, column } = sourceFile.getLineAndColumnAtPos(ident.getPos());
-      notes.push(
-        `${filePath}:${line}:${column} — '${api}' → ${REMOVED_APIS[api]}`
-      );
+      const hint = REMOVED_APIS[api];
+      notes.push(`${filePath}:${line}:${column} — '${api}' → ${hint}`);
+      sites.push({ file: filePath, line, column, api, hint });
     }
 
     // Never mutates the file.
-    return { changed: false, notes };
+    return { changed: false, notes, sites };
   }
 };

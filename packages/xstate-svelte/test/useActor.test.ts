@@ -1,6 +1,8 @@
 import { fireEvent, render } from '@testing-library/svelte';
 import { createActor, createMachine } from 'xstate';
 import UseActor from './UseActor.svelte';
+import UseActorReady from './UseActorReady.svelte';
+import { restoreActor } from 'xstate/persist';
 import UseActorNonPersistentSubscription from './UseActorNonPersistentSubscription.svelte';
 import { fetchMachine } from './fetchMachine.ts';
 
@@ -28,6 +30,29 @@ const persistedFetchStateConfig = JSON.parse(
 );
 
 describe('useActor', () => {
+  it('uses a ready actor as is, starting it and stopping it on destroy', () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: { a: { on: { NEXT: { target: 'b' } } }, b: {} }
+    });
+    const source = createActor(machine).start();
+    source.send({ type: 'NEXT' });
+    const actor = restoreActor(machine, source.getPersistedSnapshot());
+    source.stop();
+    let received: unknown;
+
+    const { getByTestId, unmount } = render(UseActorReady, {
+      actor,
+      onActorRef: (actorRef: unknown) => (received = actorRef)
+    });
+    expect(received).toBe(actor);
+    expect(getByTestId('value').textContent).toBe('b');
+    expect(actor.getSnapshot().status).toBe('active');
+
+    unmount();
+    expect(actor.getSnapshot().status).toBe('stopped');
+  });
+
   it('should work with a component', async () => {
     const { getByText, findByText, getByTestId } = render(UseActor);
     const button = getByText('Fetch');

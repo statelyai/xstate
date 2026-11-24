@@ -7,13 +7,13 @@ Test the workflow with its real machine and provide local Effect services. Use `
 
 ## Acknowledging an event
 
-Import `sendAndAwait` from `@xstate/effect/test` when a test must know that one particular send was processed. The persistence example also uses it to checkpoint after each request.
+Import `sendAndAwait` from `@xstate/effect` when you need acknowledgment that one particular send was processed. The persistence example also uses it to checkpoint after each request.
 
-It returns that mailbox item's snapshot after publication and immediate effect scheduling. Ignored events succeed with an unchanged snapshot. Concurrent sends of the same object get independent receipts. An event that completes or errors the actor returns its terminal snapshot; use `join` for its outcome.
+It returns that mailbox item's snapshot after its transition is published and its immediate effects have run, including its child actors' handling of events it sent them, if those effects complete. Ignored events succeed with an unchanged snapshot. An event whose action fails also succeeds; the failure is processed afterwards, through `onError` or an error snapshot, unless the actor has stopped by then. Concurrent sends of the same object get independent receipts. An event that completes or errors the actor returns its terminal snapshot; use `join` for its outcome.
 
-Invalid and externally sent internal events fail with `EventRejectedError`. Stop, scope closure or completion before processing a queued send fails it with `ActorStoppedError`. Interrupting the waiter detaches the receipt without retracting the event. A reentrant observer stop can reject the currently processed receipt.
+Invalid and externally sent internal events fail with `EventRejectedError`. Stop, scope closure or completion before processing a queued send fails it with `ActorStoppedError`. Interrupting the waiter detaches the receipt without retracting the event. A reentrant listener or observer stop rejects the currently processed receipt only when the step leaves the actor active.
 
-This helper does not await invoked tasks, background actions, child replies, future timers or global quiescence. Keep `waitFor` or a domain-specific completion signal for those conditions.
+This helper does not await invoked tasks, background actions, child replies such as an invoked child's `onDone`, future timers or global quiescence. Keep `waitFor` or a domain-specific completion signal for those conditions.
 
 Existing `@xstate/test` SUT sessions accept async sends. Set their `send` function to an adapter that runs `sendAndAwait` and resolves to void, and `read` to the actor's snapshot projection. The package test suite exercises this through the real `testPaths` API.
 
@@ -185,13 +185,18 @@ For machine workflows, expected outcomes such as declined or expired can be fina
 
 ### Migrating error handlers
 
-Effect child error handlers now receive the Cause wrapper. Replace direct access such as `event.error.code` with inspection of `event.error.cause`.
+Effect child error handlers now receive `EffectFailure<E>`. Checks such as `event.error instanceof DigestMismatch` no longer match the original domain error. Replace these checks and direct property access with `Cause.findErrorOption(causeFromError(event.error))`, then inspect the returned failure.
+
+Import `causeFromError` from `@xstate/effect`. It returns an `EffectFailure`'s original Cause and wraps ordinary errors with `Cause.fail`. This also supports handlers receiving mixed error types. Its return type is `Cause.Cause<UnwrapEffectFailure<E>>`; an `unknown` input keeps the failure type `unknown`.
+
+`Cause.findErrorOption` returns `None` for a Cause containing only defects or interruption. Handle that case separately. `Cause.squash` may return a defect, so use `Cause.findErrorOption` when matching typed failures.
 
 <!-- example from examples/effect-workflows/src/failure-cause.ts -->
 
 ```ts
 import { Cause, Effect, Option } from 'effect';
 import {
+  causeFromError,
   createEffectActor,
   createEffectLogic,
   setupEffect,
@@ -207,7 +212,7 @@ const machine = setupEffect({ actors: { request } }).createMachine({
       invoke: {
         src: 'request',
         onError: ({ event }) => {
-          const failure = Cause.findErrorOption(event.error.cause);
+          const failure = Cause.findErrorOption(causeFromError(event.error));
           return {
             target: 'failed',
             context: {

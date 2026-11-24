@@ -1,4 +1,5 @@
 import isDevelopment from '#is-development';
+import { xstateError } from './xstateError.ts';
 import { getTimerKey } from './timerKey.ts';
 import {
   type ActorTermination,
@@ -14,7 +15,7 @@ export function assertSendToEvent(event: EventObject): void {
       isDevelopment
         ? // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
           `Only event objects may be used with sendTo; use sendTo({ type: "${event}" }) instead`
-        : `Only event objects may be used with sendTo`
+        : xstateError(70, event)
     );
   }
 }

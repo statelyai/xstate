@@ -9,6 +9,7 @@ import {
   isMachineSnapshot
 } from '../src';
 import { XSTATE_INIT } from '../src/constants';
+import { restoreActor } from '../src/persist/index.ts';
 // import removed: action events are unified under '@xstate.transition'
 
 function simplifyEvents(
@@ -115,17 +116,15 @@ describe('inspect', () => {
     original.stop();
     const events: InspectionEvent[] = [];
 
-    const restoredA = createActor(machine, {
-      snapshot,
+    const restoredA = restoreActor(machine, snapshot, {
       inspect: (event) => events.push(event)
     });
-    const restoredB = createActor(machine, {
-      snapshot,
+    const restoredB = restoreActor(machine, snapshot, {
       inspect: (event) => events.push(event)
     });
 
-    expect(restoredA.getSnapshot().children.child.sessionId).not.toBe(
-      restoredB.getSnapshot().children.child.sessionId
+    expect(restoredA.getSnapshot().children.child!.sessionId).not.toBe(
+      restoredB.getSnapshot().children.child!.sessionId
     );
     expect(
       new Set(
@@ -342,7 +341,7 @@ describe('inspect', () => {
     const actor = createActor(machine, {
       inspect: (event) => events.push(event)
     });
-    const parent = actor.getSnapshot().children.parent;
+    const parent = actor.getSnapshot().children.parent!;
     const child = parent.getSnapshot().children.child;
 
     actor.start();

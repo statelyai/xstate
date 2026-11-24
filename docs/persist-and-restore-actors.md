@@ -71,16 +71,21 @@ function loadSnapshot() {
 }
 ```
 
-> **Note:** A snapshot that cannot represent a state of the machine (not an object, no valid `value`, a `value` naming states the machine does not have, malformed children or timers, or a local child source that cannot be restored) restores to an actor whose snapshot has `status: 'error'` and an `InvalidSnapshotError` as `error`; `createActor(...)` does not throw. Unknown fields are ignored. Validating first lets you fall back to the initial state instead.
+> **Note:** A snapshot that cannot represent a state of the machine (not an object, no valid `value`, a `value` naming states the machine does not have, malformed children or timers, or a local child source that cannot be restored) restores to an actor whose snapshot has `status: 'error'` and an `InvalidSnapshotError` as `error`; `restoreActor(...)` does not throw. Unknown fields are ignored. Validating first lets you fall back to the initial state instead.
 
 ## 3. Restore on startup
 
-Pass the snapshot to `createActor(...)` with the `snapshot` option. When there is nothing to restore, the actor starts from its initial state.
+Pass the snapshot to `restoreActor(...)` from `xstate/persist`. When there is nothing to restore, create the actor with `createActor(...)` so it starts from its initial state.
 
 ```ts
-const checkout = createActor(checkoutMachine, {
-  snapshot: loadSnapshot()
-}).start();
+import { restoreActor } from 'xstate/persist';
+
+const persisted = loadSnapshot();
+const checkout = (
+  persisted
+    ? restoreActor(checkoutMachine, persisted)
+    : createActor(checkoutMachine)
+).start();
 
 const stopSaving = saveOnChange(checkout);
 ```
@@ -107,6 +112,10 @@ Two rules apply to either choice:
 ## On the server
 
 The same two calls work outside the browser: read a snapshot from your database instead of `localStorage`, and save it back after handling a request. A server actor usually lives for one request, so save once at the end rather than on every change. See [run backend workflows](backend-workflows.md).
+
+## Timers across shutdown
+
+Save a running actor before calling `stop()`. With the default clock, pending timers preserve their original deadlines, including downtime. An overdue timer is scheduled with zero delay after restoration. To exclude downtime, save an explicit paused state with the remaining duration. To restart a full delay, reenter the timed state after restoration. See [Persist timers](persistence.md#persist-timers) for runnable examples and custom clock limitations.
 
 ## What next?
 
