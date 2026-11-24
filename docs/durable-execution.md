@@ -446,6 +446,10 @@ entry: ({ context }, enq) => {
 }
 ```
 
+## Inspecting a running execution
+
+Pass the `inspect` option to observe initialization, or call `durable.inspect(observer)` to observe a running execution. A subscription receives future inspection events. It does not replay past actor announcements. Call `unsubscribe()` on the returned subscription to detach it.
+
 ## Checkpoints and placement
 
 `getPersistedSnapshot(snapshot)` embeds each child's persisted state: the

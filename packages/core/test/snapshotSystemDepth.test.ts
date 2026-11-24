@@ -1,11 +1,21 @@
 import { createActor, createMachine } from '../src/index.ts';
 import { createDurable } from '../src/durable/index.ts';
 import { withSystemInspector } from '../src/inspectionAmbient.ts';
+import type { InspectionEvent } from '../src/inspection.ts';
 import {
   adoptSystem,
   createSnapshotSystem,
   getSnapshotActorRef
 } from '../src/snapshotActorRef.ts';
+
+function inspectionFor(observer?: (event: InspectionEvent) => void) {
+  return {
+    attach: (system: ReturnType<typeof createSnapshotSystem>) => {
+      if (observer) system.inspect(observer);
+    },
+    isActive: () => observer !== undefined
+  };
+}
 
 // Number of own-property layers above Object.prototype that resolve lookups.
 function prototypeDepth(system: object): number {
@@ -80,7 +90,7 @@ describe('snapshot system views', () => {
     const observed = vi.fn();
     root.system.inspect(observed);
     let system = root.system;
-    withSystemInspector(observed, () => {
+    withSystemInspector(inspectionFor(observed), () => {
       for (let i = 0; i < 50; i++) {
         system = createSnapshotSystem(system, {});
       }
@@ -158,7 +168,7 @@ describe('forked execution systems', () => {
     root.system.onRejectedEvent(listener);
     const fork = createSnapshotSystem(root.system, {}, undefined, {
       runtime: undefined,
-      inspect: undefined
+      inspection: inspectionFor()
     });
     fork.deadLetter(undefined, root, { type: 'LOST' }, 'stopped');
     expect(listener).not.toHaveBeenCalled();
@@ -171,7 +181,7 @@ describe('forked execution systems', () => {
     const own = vi.fn();
     const fork = createSnapshotSystem(root.system, {}, undefined, {
       runtime: undefined,
-      inspect: own
+      inspection: inspectionFor(own)
     });
     fork._sendInspectionEvent({
       type: '@xstate.actor',
@@ -188,14 +198,14 @@ describe('forked execution systems', () => {
   it('installs a runtime on an adopted view without reaching the system it came from', () => {
     const live = createActor(createMachine({})).start();
     const view = createSnapshotSystem(live.system, {});
-    const owner = { runtime: undefined, inspect: undefined };
+    const owner = { runtime: undefined, inspection: inspectionFor() };
     expect(adoptSystem(view, owner)).toBe(true);
     const runtime = {};
     view.runtime = runtime;
     expect(view.runtime).toBe(runtime);
     expect(live.system.runtime).not.toBe(runtime);
-    expect(adoptSystem(view, { runtime: undefined, inspect: undefined })).toBe(
-      false
-    );
+    expect(
+      adoptSystem(view, { runtime: undefined, inspection: inspectionFor() })
+    ).toBe(false);
   });
 });

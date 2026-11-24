@@ -1,5 +1,5 @@
 import { createInitEvent } from './eventUtils';
-import { hasAmbientInspector } from './system';
+import { isAmbientInspectionActive } from './inspectionAmbient.ts';
 import {
   attachSnapshotActorRef,
   createInertActorScope,
@@ -173,7 +173,7 @@ function inspectPureTransition(
   snapshot: unknown,
   event: EventObject
 ): void {
-  if (!hasAmbientInspector()) {
+  if (!isAmbientInspectionActive()) {
     return;
   }
   const self = (actorScope as { self?: AnyActor }).self;

@@ -1,45 +1,62 @@
-import type { InspectionEvent } from './inspection.ts';
+import type { AnyActor } from './types.ts';
 
 /**
- * The ambiently installed system inspector. Set for the duration of a durable
- * execution's transitions (`createDurable(..., { inspect })`), it makes the
- * pure-transition machinery observable: freshly constructed runtime systems
- * attach it, and snapshot systems created while it is set forward inspection
- * to their base system instead of stubbing it out.
+ * The inspection of the durable execution whose transition is running. A
+ * durable execution installs it for the duration of each of its transitions:
+ *
+ * - Snapshot systems created while it is installed belong to the execution, so
+ *   they forward inspection to their base system instead of stubbing it out.
+ * - Runtime systems constructed while it is installed and active are handed
+ *   to `attach`, so creation-time inspection events (the root actor's own
+ *   registration, actors spawned during the first transition) can be observed.
+ * - `isActive` tells the pure-transition path whether the execution has
+ *   observers; when it has none, no inspection event is built.
+ *
+ * @internal
  */
-let ambientInspector: ((inspectionEvent: InspectionEvent) => void) | undefined;
+export interface AmbientInspection {
+  attach(system: AnyActor['system']): void;
+  isActive(): boolean;
+}
 
-/** @internal */
-export function hasAmbientInspector(): boolean {
-  return ambientInspector !== undefined;
+let ambientInspection: AmbientInspection | undefined;
+
+/**
+ * Whether the running durable execution has inspection observers.
+ *
+ * @internal
+ */
+export function isAmbientInspectionActive(): boolean {
+  return ambientInspection?.isActive() ?? false;
 }
 
 /** @internal */
-export function getAmbientInspector():
-  | ((inspectionEvent: InspectionEvent) => void)
-  | undefined {
-  return ambientInspector;
+export function attachAmbientInspector(system: AnyActor['system']): void {
+  if (ambientInspection?.isActive()) {
+    ambientInspection.attach(system);
+  }
+}
+
+/** @internal */
+export function getAmbientInspection(): AmbientInspection | undefined {
+  return ambientInspection;
 }
 
 /**
- * Runs `fn` with systems it creates wired to `inspect` from construction, so
- * creation-time inspection events (the root actor's own registration, actors
- * spawned during the first transition) are observed too.
+ * Runs `fn` as a transition of the durable execution that owns `inspection`,
+ * or outside any durable execution when `inspection` is `undefined`.
  *
  * @internal
  */
 export function withSystemInspector<T>(
-  inspect: ((inspectionEvent: InspectionEvent) => void) | undefined,
+  inspection: AmbientInspection | undefined,
   fn: () => T
 ): T {
-  if (!inspect) {
-    return fn();
-  }
-  const previous = ambientInspector;
-  ambientInspector = inspect;
+  const previous = ambientInspection;
+  ambientInspection = inspection;
   try {
     return fn();
   } finally {
-    ambientInspector = previous;
+    ambientInspection = previous;
   }
 }

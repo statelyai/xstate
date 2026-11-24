@@ -21,7 +21,7 @@ import { XSTATE_TIMER } from './constants.ts';
 import { getScheduledTimerKey, matchesTimerKey } from './timerKey.ts';
 import { toObserver } from './utils.ts';
 import { reportUnhandledError } from './reportUnhandledError.ts';
-import { getAmbientInspector } from './inspectionAmbient.ts';
+import { attachAmbientInspector } from './inspectionAmbient.ts';
 import { markSystemSnapshotDirty } from './snapshotActorRef.ts';
 import {
   createMissingAddressError,
@@ -133,10 +133,7 @@ export function withExecutionIdentity<T>(
 }
 
 /** @internal */
-export {
-  hasAmbientInspector,
-  withSystemInspector
-} from './inspectionAmbient.ts';
+export { withSystemInspector } from './inspectionAmbient.ts';
 
 /**
  * Derives the deterministic id prefix for a generated actor id from its actor
@@ -677,10 +674,7 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
     this.createActorRef = options.createActorRef;
     this.initializeActorRef = options.initializeActorRef;
     this.discardActorRef = options.discardActorRef;
-    const ambientInspector = getAmbientInspector();
-    if (ambientInspector) {
-      this.inspect(ambientInspector);
-    }
+    attachAmbientInspector(this);
     this._snapshot = {
       _scheduledTimers: emptyScheduledTimers,
       // System-level counters are process-local backstops; per-actor

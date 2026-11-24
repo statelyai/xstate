@@ -15,7 +15,9 @@ import { isRemoteActorRef } from '../remoteActorRef.ts';
 import { createStartEffect, createTimerEffect } from '../transitionActions.ts';
 import {
   adoptSystem,
+  getInspectionBaseSystem,
   getSnapshotActorRef,
+  peekSnapshotActorRef,
   withExecutionOwner
 } from '../snapshotActorRef.ts';
 import {
@@ -27,6 +29,8 @@ import {
   type ActorSystemRuntime
 } from '../system.ts';
 import type { InspectionEvent } from '../inspection.ts';
+import type { AmbientInspection } from '../inspectionAmbient.ts';
+import { reportUnhandledError } from '../reportUnhandledError.ts';
 import { initialTransition, transition } from '../transition.ts';
 import type {
   AnyActor,
@@ -42,6 +46,7 @@ import type {
   SerializedActorRef,
   Snapshot,
   SnapshotFrom,
+  Subscription,
   TimerKey
 } from '../types.ts';
 import { matchesTimerKey } from '../timerKey.ts';
@@ -325,6 +330,11 @@ export interface DurableExecution<TLogic extends AnyActorLogic> {
     snapshot: DurableSnapshot<TLogic>,
     effects: DurableEffect<ExecutableEffectFrom<TLogic>>[]
   ];
+  /**
+   * Observes subsequent transitions and newly announced actors until
+   * unsubscribed. Subscribing does not replay past actor announcements.
+   */
+  inspect(observer: (inspectionEvent: InspectionEvent) => void): Subscription;
   /**
    * Returns the actor reference behind a snapshot produced by this execution,
    * for addressing and inspection. `undefined` for snapshots this execution
@@ -708,25 +718,92 @@ export function createDurable<TLogic extends AnyActorLogic>(
     return undefined;
   }
 
-  const inspect = options?.inspect;
+  const inspectionObservers = new Set<
+    (inspectionEvent: InspectionEvent) => void
+  >();
+  if (options?.inspect) {
+    inspectionObservers.add(options.inspect);
+  }
+  const isInspected = () => inspectionObservers.size > 0;
 
-  // Runs a transition as this execution: views it derives belong to this
-  // execution, and its systems report to the execution's inspector.
-  const owner = { runtime: wrappedSystemRuntime, inspect };
-  function inExecution<T>(fn: () => T): T {
-    return withExecutionOwner(owner, () => withSystemInspector(inspect, fn));
+  function dispatchInspection(inspectionEvent: InspectionEvent): void {
+    for (const observer of Array.from(inspectionObservers)) {
+      try {
+        observer(inspectionEvent);
+      } catch (err) {
+        reportUnhandledError(err);
+      }
+    }
   }
 
-  // Attaches the execution's inspector to a system that does not have it
-  // yet. Systems constructed inside a transition get it at construction (the
-  // ambient inspector); this covers systems materialized outside that window
-  // — a snapshot's system first touched here, or a restored child's foreign
-  // system. Observer presence doubles as the dedup check: this execution is
-  // the only thing attaching observers to its systems.
-  function wireInspection(system: AnyActor['system']): void {
-    if (inspect && !system._hasInspectionObservers?.()) {
-      system.inspect(inspect);
+  // The runtime systems that hold this execution's inspection observers,
+  // each with the execution's subscription while it is inspected. Systems
+  // constructed inside a transition are attached at construction (the
+  // ambient inspection); visiting snapshots covers systems materialized
+  // outside that window — a snapshot's system first touched here, or a
+  // restored child's foreign system.
+  // Keep earlier systems eligible for inspection without retaining their snapshots.
+  type InspectionSystem = AnyActor['system'];
+  const executionSystems = new Set<WeakRef<InspectionSystem>>();
+  const subscriptions = new WeakMap<
+    InspectionSystem,
+    Subscription | undefined
+  >();
+  const untrackSystem = new FinalizationRegistry<WeakRef<InspectionSystem>>(
+    (ref) => executionSystems.delete(ref)
+  );
+
+  function wireInspection(system: InspectionSystem): void {
+    const baseSystem = getInspectionBaseSystem(system);
+    if (!subscriptions.has(baseSystem)) {
+      const ref = new WeakRef(baseSystem);
+      subscriptions.set(baseSystem, undefined);
+      executionSystems.add(ref);
+      untrackSystem.register(baseSystem, ref);
     }
+    if (isInspected() && !subscriptions.get(baseSystem)) {
+      subscriptions.set(baseSystem, baseSystem.inspect(dispatchInspection));
+    }
+  }
+
+  function startInspection(): void {
+    for (const ref of executionSystems) {
+      const system = ref.deref();
+      if (system) wireInspection(system);
+    }
+  }
+
+  function stopInspection(): void {
+    for (const ref of executionSystems) {
+      const system = ref.deref();
+      if (system) {
+        subscriptions.get(system)?.unsubscribe();
+        subscriptions.set(system, undefined);
+      }
+    }
+  }
+
+  const ambientInspection: AmbientInspection = {
+    attach: wireInspection,
+    isActive: isInspected
+  };
+
+  const owner = {
+    runtime: wrappedSystemRuntime,
+    inspection: ambientInspection
+  };
+  function inExecution<T>(fn: () => T): T {
+    return withExecutionOwner(owner, () =>
+      withSystemInspector(ambientInspection, fn)
+    );
+  }
+
+  const seenSnapshots = new WeakSet<object>();
+  function markSnapshotSeen<TSnapshot>(snapshot: TSnapshot): TSnapshot {
+    if (typeof snapshot === 'object' && snapshot !== null) {
+      seenSnapshots.add(snapshot);
+    }
+    return snapshot;
   }
 
   function installSystemRuntime<TSnapshot>(
@@ -743,38 +820,25 @@ export function createDurable<TLogic extends AnyActorLogic>(
         observedRoots.add(root);
       }
     }
-    if (wrappedSystemRuntime || inspect) {
-      const ref = getSnapshotActorRef(snapshot as Snapshot<unknown>)?.actor;
-      const systems = new Set<AnyActor['system']>();
-      const visit = (actor: AnyActor) => {
-        if (!systems.has(actor.system)) {
-          systems.add(actor.system);
-          if (adoptSystem(actor.system, owner)) {
-            if (wrappedSystemRuntime) {
-              actor.system.runtime = wrappedSystemRuntime;
-            }
-            wireInspection(actor.system);
+    const ref = (
+      wrappedSystemRuntime || isInspected()
+        ? getSnapshotActorRef(snapshot as Snapshot<unknown>)
+        : peekSnapshotActorRef(snapshot as Snapshot<unknown>)
+    )?.actor;
+    const systems = new Set<AnyActor['system']>();
+    const visit = (actor: AnyActor) => {
+      if (!systems.has(actor.system)) {
+        systems.add(actor.system);
+        if (adoptSystem(actor.system, owner)) {
+          if (wrappedSystemRuntime) {
+            actor.system.runtime = wrappedSystemRuntime;
           }
+          wireInspection(actor.system);
         }
-        if (recursive) {
-          const children = (
-            actor.getSnapshot() as {
-              children?: Record<string, AnyActor | undefined>;
-            }
-          ).children;
-          for (const child of Object.values(children ?? {})) {
-            if (child) {
-              visit(child);
-            }
-          }
-        }
-      };
-      if (ref) {
-        visit(ref);
       }
-      if (!recursive || !ref) {
+      if (recursive) {
         const children = (
-          snapshot as {
+          actor.getSnapshot() as {
             children?: Record<string, AnyActor | undefined>;
           }
         ).children;
@@ -782,6 +846,21 @@ export function createDurable<TLogic extends AnyActorLogic>(
           if (child) {
             visit(child);
           }
+        }
+      }
+    };
+    if (ref) {
+      visit(ref);
+    }
+    if (!recursive || !ref) {
+      const children = (
+        snapshot as {
+          children?: Record<string, AnyActor | undefined>;
+        }
+      ).children;
+      for (const child of Object.values(children ?? {})) {
+        if (child) {
+          visit(child);
         }
       }
     }
@@ -887,6 +966,7 @@ export function createDurable<TLogic extends AnyActorLogic>(
           };
         })
       );
+      markSnapshotSeen(snapshot);
       for (const { event, source } of checkpoint?.inbox ?? []) {
         const child = lifecycleChild(snapshot, event);
         if (child === null) {
@@ -950,18 +1030,51 @@ export function createDurable<TLogic extends AnyActorLogic>(
           initialTransition(logic, ...args)
         )
       );
-      return [installSystemRuntime(snapshot), tagEffects(effects)];
+      return [
+        markSnapshotSeen(installSystemRuntime(snapshot)),
+        tagEffects(effects)
+      ];
     },
     transition(snapshot, event) {
+      markSnapshotSeen(snapshot);
       const [nextSnapshot, effects] = inExecution(() =>
         withExecutionIdentity(executionIdentity, () =>
           transition(logic, snapshot, event)
         )
       );
-      return [installSystemRuntime(nextSnapshot), tagEffects(effects)];
+      return [
+        markSnapshotSeen(installSystemRuntime(nextSnapshot)),
+        tagEffects(effects)
+      ];
+    },
+    inspect(observer) {
+      const entry = (inspectionEvent: InspectionEvent) =>
+        observer(inspectionEvent);
+      const wasInspected = isInspected();
+      inspectionObservers.add(entry);
+      if (!wasInspected) {
+        startInspection();
+      }
+      return {
+        unsubscribe: () => {
+          if (inspectionObservers.delete(entry) && !isInspected()) {
+            stopInspection();
+          }
+        }
+      };
     },
     getActorRef(snapshot, address) {
+      if (
+        typeof snapshot !== 'object' ||
+        snapshot === null ||
+        !seenSnapshots.has(snapshot)
+      ) {
+        return undefined;
+      }
       const root = getSnapshotActorRef(snapshot as Snapshot<unknown>)?.actor;
+      if (root && adoptSystem(root.system, owner)) {
+        wireInspection(root.system);
+      }
       if (!root || address === undefined) {
         return root;
       }
