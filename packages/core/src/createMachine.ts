@@ -3,6 +3,8 @@ import { diagnoseAuthorConfig } from './devDiagnostics.ts';
 import { xstateError } from './xstateError.ts';
 import { StandardSchemaV1 } from './schema.types.ts';
 import { StateMachine } from './StateMachine.ts';
+import type { IsNever } from './typeUtils.ts';
+import type { SystemRegistry } from './types.ts';
 import type { Spawner } from './spawn.ts';
 import type { ActorLogicValidator } from './validation.types.ts';
 import {
@@ -150,7 +152,11 @@ export function createMachine<
   TDelays extends string,
   TTag extends StandardSchemaV1.InferOutput<TTagSchema> & string,
   _TInput,
-  const TSS extends StateSchema
+  const TSS extends StateSchema,
+  const TRejectionSchemaMap extends Record<string, StandardSchemaV1> = Record<
+    string,
+    StandardSchemaV1
+  >
 >(
   config: TSS &
     ValidateDelayReferences<TSS> &
@@ -194,7 +200,12 @@ export function createMachine<
       TActionMap,
       TActorMap,
       TGuardMap,
-      TDelayMap
+      TDelayMap,
+      IsNever<InferOutput<TContextSchema, MachineContext>> extends true
+        ? false
+        : true,
+      SystemRegistry,
+      TRejectionSchemaMap
     > & {
       schemas: { context: TContextSchema; children?: TChildrenSchemaMap };
     } & ValidateTopLevelFinalOutputs<
@@ -226,7 +237,7 @@ export function createMachine<
       SchemaOrConfigOutput<TOutputSchema, TSS>,
       WithDefault<InferEvents<TEmittedSchemaMap>, AnyEventObject>,
       InferOutput<TMetaSchema, MetaObject>, // TMeta
-      TSS, // TStateSchema
+      TSS & { schemas: { rejections: TRejectionSchemaMap } }, // TStateSchema
       TActionMap,
       TActorMap,
       TGuardMap,
@@ -268,7 +279,11 @@ export function createMachine<
   TTag extends StandardSchemaV1.InferOutput<TTagSchema> & string =
     StandardSchemaV1.InferOutput<TTagSchema> & string,
   _TInput = unknown,
-  const TSS extends StateSchema = StateSchema
+  const TSS extends StateSchema = StateSchema,
+  const TRejectionSchemaMap extends Record<string, StandardSchemaV1> = Record<
+    string,
+    StandardSchemaV1
+  >
 >(
   config: TSS &
     ValidateDelayReferences<TSS> &
@@ -314,7 +329,9 @@ export function createMachine<
         TActorMap,
         TGuardMap,
         TDelayMap,
-        false
+        false,
+        SystemRegistry,
+        TRejectionSchemaMap
       >,
       'context'
     > & {
@@ -374,7 +391,7 @@ export function createMachine<
       SchemaOrConfigOutput<TOutputSchema, TSS>,
       WithDefault<InferEvents<TEmittedSchemaMap>, AnyEventObject>,
       InferOutput<TMetaSchema, MetaObject>, // TMeta
-      TSS, // TStateSchema
+      TSS & { schemas: { rejections: TRejectionSchemaMap } }, // TStateSchema
       TActionMap,
       TActorMap,
       TGuardMap,

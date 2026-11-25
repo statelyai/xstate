@@ -1,8 +1,10 @@
 import isDevelopment from '#is-development';
-import { hasAmbientInspector } from './inspectionAmbient.ts';
+import {
+  getAmbientInspection,
+  type AmbientInspection
+} from './inspectionAmbient.ts';
 import { xstateError } from './xstateError.ts';
 import type { ActorSystemRuntime } from './system.ts';
-import type { InspectionEvent } from './inspection.ts';
 import type { AnyActor, Snapshot } from './types.ts';
 
 /** Snapshot-scoped actor identity and system view. @internal */
@@ -27,7 +29,7 @@ const snapshotSystemViews = new WeakMap<
   {
     executionSystem: AnyActor['system'];
     rootSystem: AnyActor['system'];
-    forwardInspection: boolean;
+    inspection: AmbientInspection | undefined;
   }
 >();
 // Facilities owned by the execution rather than by one snapshot's view. A view
@@ -44,7 +46,7 @@ const executionFacilities = [
 /** A durable execution, as the owner of the views its transitions create. @internal */
 export interface ExecutionOwner {
   runtime: Partial<ActorSystemRuntime> | undefined;
-  inspect: ((inspectionEvent: InspectionEvent) => void) | undefined;
+  inspection: AmbientInspection;
 }
 const executionOwners = new WeakMap<AnyActor['system'], ExecutionOwner>();
 let ambientExecutionOwner: ExecutionOwner | undefined;
@@ -132,9 +134,10 @@ export function createSnapshotSystem(
   const forks =
     owner !== undefined && executionOwners.get(baseExecutionSystem) !== owner;
   // A view an execution owns reports to that execution's inspector.
-  const forwardInspection = owner
-    ? !!owner.inspect
-    : hasAmbientInspector() && (baseView?.forwardInspection ?? true);
+  const ambient = getAmbientInspection();
+  const inspection =
+    owner?.inspection ??
+    (ambient && (baseView ? baseView.inspection : ambient));
   const registeredActors = copyRegisteredActors(baseSystem, baseState);
   const keyedActors = new Map<PropertyKey, AnyActor | undefined>(
     baseState?.keyedActors ?? getKeyedActors(baseSystem)
@@ -142,7 +145,13 @@ export function createSnapshotSystem(
   const reverseKeyedActors = new WeakMap<AnyActor, PropertyKey>();
   // The view's execution system; adoption can make the view its own.
   const execution = () => snapshotSystemViews.get(system)!.executionSystem;
-  const forwards = () => snapshotSystemViews.get(system)!.forwardInspection;
+  const forwards = () => {
+    const inspection = snapshotSystemViews.get(system)!.inspection;
+    return (
+      inspection !== undefined &&
+      (getAmbientInspection() !== inspection || inspection.isActive())
+    );
+  };
   const system: AnyActor['system'] = Object.assign(
     Object.create(baseExecutionSystem),
     {
@@ -226,8 +235,11 @@ export function createSnapshotSystem(
   snapshotSystemViews.set(system, {
     executionSystem,
     rootSystem,
-    forwardInspection
+    inspection
   });
+  if (forks) {
+    owner.inspection.attach(system);
+  }
 
   for (const [registryKey, actor] of keyedActors) {
     if (!actor) {
@@ -250,6 +262,13 @@ export function createSnapshotSystem(
   }
 
   return system;
+}
+
+/** Returns the system that owns a snapshot view's observers. @internal */
+export function getInspectionBaseSystem(
+  system: AnyActor['system']
+): AnyActor['system'] {
+  return snapshotSystemViews.get(system)?.executionSystem ?? system;
 }
 
 /**
@@ -277,9 +296,6 @@ function forkFacilities(
     });
   }
   executionOwners.set(system, owner);
-  if (owner.inspect) {
-    system.inspect(owner.inspect);
-  }
 }
 
 /**
@@ -298,7 +314,7 @@ export function adoptSystem(
   const current = executionOwners.get(view?.executionSystem ?? system);
   if (current === owner) {
     if (view) {
-      view.forwardInspection = !!owner.inspect;
+      view.inspection = owner.inspection;
     }
     return true;
   }
@@ -312,7 +328,8 @@ export function adoptSystem(
   }
   forkFacilities(system, view.executionSystem, owner);
   view.executionSystem = system;
-  view.forwardInspection = !!owner.inspect;
+  view.inspection = owner.inspection;
+  owner.inspection.attach(system);
   return true;
 }
 

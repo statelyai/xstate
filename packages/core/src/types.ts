@@ -1,3 +1,4 @@
+import type { Reject, RejectionResult, TransitionCheck } from './rejections.ts';
 import type { SendableEventFromMachine } from './eventTypes.ts';
 import type {
   MachineSnapshot,
@@ -649,7 +650,8 @@ export type TransitionConfigFunction<
   TMeta extends MetaObject,
   TInput = undefined,
   _TCtx extends MachineContext = [TContext] extends [never] ? any : TContext,
-  TChildren extends Record<string, AnyActorRef | undefined> = {}
+  TChildren extends Record<string, AnyActorRef | undefined> = {},
+  TRejection extends EventObject = EventObject
 > = (
   args: TransitionFunctionArgs<
     _TCtx,
@@ -661,7 +663,7 @@ export type TransitionConfigFunction<
     TDelayMap,
     TChildren,
     TEmitted
-  > & { input: TInput },
+  > & { input: TInput; reject: Reject<TRejection> },
   enq: EnqueueObject<
     TEvent,
     TEmitted,
@@ -669,13 +671,17 @@ export type TransitionConfigFunction<
     Compute<CallbackActors<TActorMap>>,
     TChildren
   >
-) => {
-  target?: TransitionTargetString | TransitionTargetString[];
-  context?: TransitionContextPatch<_TCtx>;
-  reenter?: boolean;
-  meta?: TMeta;
-  input?: Record<string, unknown>;
-} | void;
+) =>
+  | {
+      reject?: never;
+      target?: TransitionTargetString | TransitionTargetString[];
+      context?: TransitionContextPatch<_TCtx>;
+      reenter?: boolean;
+      meta?: TMeta;
+      input?: Record<string, unknown>;
+    }
+  | RejectionResult<TRejection>
+  | void;
 
 // The compact callback projection must retain a machine's public send protocol.
 // A string-literal key (not a `unique symbol`) on purpose: an unexported
@@ -1183,9 +1189,10 @@ export type AnyStateNode =
 
 type LoosenMachineSnapshot<TSnapshot> =
   TSnapshot extends MachineSnapshot<any, any, any, any, any, any, any, any>
-    ? Omit<TSnapshot, 'matches' | 'can'> & {
+    ? Omit<TSnapshot, 'matches' | 'can' | 'check'> & {
         matches(partialStateValue: StateValue): boolean;
         can(event: any): boolean;
+        check(event: any): TransitionCheck<EventObject>;
       }
     : never;
 
@@ -1237,6 +1244,11 @@ export interface AnyStateMachine extends AnyActorLogic {
   ): AnyTransitionDefinition[];
   /** @internal */
   _canTransition(snapshot: AnyMachineSnapshot, event: any): boolean;
+  /** @internal */
+  _checkTransition(
+    snapshot: AnyMachineSnapshot,
+    event: any
+  ): TransitionCheck<EventObject>;
   getStateNodeById(stateId: string): AnyStateNode;
   getPersistedSnapshot(snapshot: any, options?: unknown): Snapshot<unknown>;
 }

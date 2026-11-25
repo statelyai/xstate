@@ -1,6 +1,6 @@
 import { Cause, Effect, Exit, Fiber, Schema, Scope } from 'effect';
 import { testPaths } from '@xstate/test';
-import { createMachine, setup } from 'xstate';
+import { createMachine, setup, types } from 'xstate';
 import { standardSchemaValidator } from 'xstate/validation';
 import {
   ActorStoppedError,
@@ -40,6 +40,32 @@ it('acknowledges ignored events and each send of the same object independently',
       expect(snapshots.map((snapshot) => snapshot.context.count)).toEqual([
         1, 2, 3, 4, 5, 6, 7, 8, 9, 10
       ]);
+    })
+  );
+});
+
+it('acknowledges delivery when the transition rejects the event', async () => {
+  const machine = createMachine({
+    schemas: { rejections: { blocked: types<void>() } },
+    context: { count: 0 },
+    initial: 'idle',
+    on: { INC: ({ context }) => ({ context: { count: context.count + 1 } }) },
+    states: {
+      idle: { on: { INC: ({ reject }) => reject([{ type: 'blocked' }]) } }
+    }
+  });
+  await scoped(
+    Effect.gen(function* () {
+      const actor = yield* createEffectActor(machine);
+      const event = { type: 'INC' };
+      const snapshot = yield* sendAndAwait(actor, event);
+
+      expect(snapshot.status).toBe('active');
+      expect(snapshot.context.count).toBe(0);
+      expect(snapshot.check(event)).toMatchObject({
+        status: 'rejected',
+        rejections: [{ reasons: [{ type: 'blocked' }] }]
+      });
     })
   );
 });

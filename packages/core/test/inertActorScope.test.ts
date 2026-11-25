@@ -53,7 +53,11 @@ describe('inert actor scopes', () => {
     const derived = createInertActorScope(machine, first, undefined, source);
     const inspected: InspectionEvent[] = [];
     withSystemInspector(
-      (event) => inspected.push(event),
+      {
+        attach: (system) =>
+          system.inspect((event: InspectionEvent) => inspected.push(event)),
+        isActive: () => true
+      },
       () => {
         void derived.self;
       }

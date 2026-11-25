@@ -22,7 +22,7 @@ import {
   SnapshotFrom
 } from './types.ts';
 import { lazyActorScope } from './actorScope.ts';
-import { hasAmbientInspector } from './inspectionAmbient.ts';
+import { isAmbientInspectionActive } from './inspectionAmbient.ts';
 
 /** @internal */
 export function setInertActorScopeSnapshot<T>(
@@ -269,7 +269,7 @@ function createIdentityScope<T extends AnyActorLogic>(
       Object.defineProperty(actor, '_snapshot', {
         configurable: true,
         enumerable: true,
-        ...(hasAmbientInspector()
+        ...(isAmbientInspectionActive()
           ? { writable: true, value: cell.snapshot?.deref() }
           : { get: () => cell.snapshot?.deref(), set: setSnapshot })
       });

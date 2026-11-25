@@ -118,7 +118,9 @@ export class EffectActor<TLogic extends AnyActorLogic> implements ActorRef<
       MailboxItem<EventFromLogic<TLogic>, SnapshotFrom<TLogic>>
     >,
     private readonly _stopExecution: () => void,
-    private readonly _inspectors: Set<(event: InspectionEvent) => void>
+    private readonly _inspect: (
+      observer: (event: InspectionEvent) => void
+    ) => Subscription
   ) {
     this._root = root;
     this.id = root.id;
@@ -305,8 +307,8 @@ export class EffectActor<TLogic extends AnyActorLogic> implements ActorRef<
   }
 
   /**
-   * Observes the inspection events of this actor and its children: every
-   * actor creation and transition of the execution.
+   * Observes subsequent transitions and newly announced actors. Actors
+   * that already exist are not announced again.
    */
   inspect(
     observer: Observer<InspectionEvent> | ((event: InspectionEvent) => void)
@@ -315,12 +317,7 @@ export class EffectActor<TLogic extends AnyActorLogic> implements ActorRef<
       typeof observer === 'function'
         ? observer
         : (event: InspectionEvent) => observer.next?.(event);
-    this._inspectors.add(handler);
-    return {
-      unsubscribe: () => {
-        this._inspectors.delete(handler);
-      }
-    };
+    return this._inspect(handler);
   }
 
   [symbolObservable]() {
