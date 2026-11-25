@@ -64,6 +64,9 @@ Pass `availability: 'always'` to keep every tool registered.
 Custom tools can send several events and wait for a state:
 
 ```ts
+// Replace the registration above, which already owns `get_state`.
+registration.unregister();
+
 const webMCP = createWebMCP(actor, {
   events: [],
   tools: ({ tool }) => ({

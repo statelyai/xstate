@@ -229,19 +229,26 @@ describe('machine tools', () => {
   it('unregisters event tools and settles waitFor when the actor stops', async () => {
     const actor = createActor(checkoutMachine).start();
     const modelContext = createMockModelContext();
+    let waiting!: () => void;
+    const waitStarted = new Promise<void>((resolve) => (waiting = resolve));
     const webMCP = createWebMCP(actor, {
       events: '*',
       tools: ({ tool }) => ({
         awaitOrder: tool({
           description: 'Wait for the order.',
           execute: (_input, { waitFor }) =>
-            waitFor((s) => s.matches('confirmed'))
+            waitFor((s) => {
+              waiting();
+              return s.matches('confirmed');
+            })
         })
       })
     });
     await webMCP.register({ modelContext }).ready;
 
     const call = modelContext.executeTool('awaitOrder');
+    // Stop only once the wait is pending, so completion has to settle it.
+    await waitStarted;
     actor.stop();
 
     await expect(call).rejects.toThrow(/stopped/);
