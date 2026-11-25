@@ -124,6 +124,8 @@ The loader rejects unknown structural keys, string transition shorthand, missing
 
 JSON action lists execute in order. Later expressions observe context assigned by earlier actions. Assignments merge context shallowly; explicitly spread nested objects to preserve their other properties. Custom action implementations receive only their declared `params`, run as effects, and their return values are ignored. Use `@xstate.assign` to update context.
 
+When a JSON transition declares both `context` and `actions`, the actions read the explicit context values before applying their own updates. If an action writes the same key, its value takes precedence.
+
 JSON `schemas` describe data; they do not automatically validate it. Supply runtime Standard Schemas through `sources.schemas` and an actor logic validator through `sources.validator`, as with `setup({ schemas, validator })`. Restored code evaluators receive those runtime sources, including actions, guards, actors, and delays.
 
 ## Rejection branches
