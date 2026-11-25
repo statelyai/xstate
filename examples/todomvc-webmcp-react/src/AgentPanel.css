@@ -1,0 +1,48 @@
+.agent-panel {
+  box-sizing: border-box;
+  max-width: 550px;
+  margin: 40px auto;
+  padding: 16px;
+  background: #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  font:
+    14px/1.4 system-ui,
+    sans-serif;
+  color: #333;
+}
+
+.agent-panel h2 {
+  margin: 0 0 8px;
+  font-size: 16px;
+}
+
+.agent-panel select,
+.agent-panel textarea,
+.agent-panel button {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 8px 0;
+  font: inherit;
+}
+
+.agent-panel textarea {
+  min-height: 64px;
+  font-family: ui-monospace, monospace;
+}
+
+.agent-panel button {
+  padding: 6px;
+  cursor: pointer;
+}
+
+.agent-panel pre {
+  overflow-x: auto;
+  padding: 8px;
+  background: #f5f5f5;
+  font-size: 12px;
+}
+
+.agent-description {
+  font-style: italic;
+}

@@ -498,6 +498,38 @@ const donutStore = createStore({
 });
 ```
 
+## WebMCP
+
+Use [`@xstate/webmcp`](https://github.com/statelyai/xstate/tree/main/packages/xstate-webmcp) to expose store events as [WebMCP](https://webmachinelearning.github.io/webmcp/) tools for browser agents. Each exposed event needs a schema with a description in `schemas.events`:
+
+```ts
+import { createStore } from '@xstate/store';
+import { createWebMCP } from '@xstate/webmcp';
+import { z } from 'zod';
+
+const flavorStore = createStore({
+  schemas: {
+    events: {
+      changeFlavor: z
+        .object({ flavor: z.string() })
+        .describe('Change the favorite donut flavor.')
+    }
+  },
+  context: { favoriteFlavor: 'chocolate' },
+  on: {
+    changeFlavor: (context, event) => ({
+      ...context,
+      favoriteFlavor: event.flavor
+    })
+  }
+});
+
+// Registers the `changeFlavor` and `get_state` tools
+const registration = createWebMCP(flavorStore, {
+  events: ['changeFlavor']
+}).register();
+```
+
 ## Effects and Side Effects
 
 You can enqueue effects in state transitions using the `enqueue` argument:
