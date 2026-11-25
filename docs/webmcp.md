@@ -74,7 +74,10 @@ const webMCP = createWebMCP(quickCheckoutActor, {
     quickCheckout: tool({
       description: 'Add the given items and start checkout.',
       input: z.object({ skus: z.array(z.string()).min(1) }),
-      async execute({ skus }, { send, waitFor }) {
+      async execute({ skus }, { send, getSnapshot, waitFor }) {
+        if (!getSnapshot().matches('shopping')) {
+          throw new Error('Checkout has already started.');
+        }
         for (const sku of skus) {
           send({ type: 'cart.add', sku });
         }
