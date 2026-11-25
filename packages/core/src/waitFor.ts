@@ -86,10 +86,20 @@ export function waitFor<TActorRef extends AnyActorRef>(
       }
     };
 
+    function rejectWithDisposal(err: unknown) {
+      dispose();
+      // oxlint-disable-next-line typescript/prefer-promise-reject-errors
+      rej(err);
+    }
+
     function checkEmitted(emitted: SnapshotFrom<TActorRef>) {
-      if (predicate(emitted)) {
-        dispose();
-        res(emitted);
+      try {
+        if (predicate(emitted)) {
+          dispose();
+          res(emitted);
+        }
+      } catch (error) {
+        rejectWithDisposal(error);
       }
     }
 
@@ -120,11 +130,7 @@ export function waitFor<TActorRef extends AnyActorRef>(
 
     sub = actorRef.subscribe({
       next: checkEmitted,
-      error: (err) => {
-        dispose();
-        // oxlint-disable-next-line typescript/prefer-promise-reject-errors
-        rej(err);
-      },
+      error: rejectWithDisposal,
       complete: () => {
         dispose();
         rej(

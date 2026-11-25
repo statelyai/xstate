@@ -20,6 +20,17 @@ describe('types', () => {
       useActorRef(machine, { input: { id: 'a' } });
       useMachine(machine, { input: { id: 'a' } });
 
+      const [derived, sendDerived, derivedRef] = useActor(() =>
+        createActor(machine, { input: { id: 'a' } })
+      );
+      derived.context;
+      sendDerived({ type: 'any' });
+      derivedRef().getSnapshot();
+      useActorRef(() => createActor(machine, { input: { id: 'a' } }))().send({
+        type: 'any'
+      });
+      useMachine(() => createActor(machine, { input: { id: 'a' } }))[2]();
+
       const snapshot = createActor(machine, {
         input: { id: 'a' }
       }).getPersistedSnapshot();

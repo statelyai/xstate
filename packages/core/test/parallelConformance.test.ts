@@ -61,10 +61,7 @@ describe('parallel state conformance', () => {
     expect(actor.getSnapshot().context.count).toBe(1);
   });
 
-  // Bug 3 — #4793: after a cross-region transition, subsequent events in
-  // sibling regions are dropped. Final states are inert, so the transition
-  // lives on a non-final state of the region.
-  it('sibling region events should still be handled after a cross-region transition', () => {
+  it('coordinates parallel regions with raised events without resetting them', () => {
     const machine = createMachine({
       id: 'question-flow',
       type: 'parallel',
@@ -72,7 +69,11 @@ describe('parallel state conformance', () => {
         value1: {
           initial: 'x',
           states: {
-            x: { on: { NEXT: { target: '#question-flow.value2.shown' } } },
+            x: {
+              on: {
+                NEXT: (_, enq) => enq.raise({ type: 'SHOW_SECOND' })
+              }
+            },
             done: { type: 'final' }
           }
         },
@@ -80,15 +81,19 @@ describe('parallel state conformance', () => {
           id: 'value2',
           initial: 'hidden',
           states: {
-            shown: { on: { NEXT: { target: '#question-flow.value3.shown' } } },
-            hidden: {}
+            shown: {
+              on: {
+                CONTINUE: (_, enq) => enq.raise({ type: 'SHOW_THIRD' })
+              }
+            },
+            hidden: { on: { SHOW_SECOND: { target: 'shown' } } }
           }
         },
         value3: {
           id: 'value3',
           initial: 'hidden',
           states: {
-            hidden: {},
+            hidden: { on: { SHOW_THIRD: { target: 'shown' } } },
             shown: { type: 'final' }
           }
         }
@@ -104,9 +109,7 @@ describe('parallel state conformance', () => {
       value3: 'hidden'
     });
 
-    actor.send({ type: 'NEXT' });
-    // A cross-region transition only exits the region containing its
-    // targets, so value2 stays 'shown' while value3 advances.
+    actor.send({ type: 'CONTINUE' });
     expect(actor.getSnapshot().value).toEqual({
       value1: 'x',
       value2: 'shown',

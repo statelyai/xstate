@@ -1,6 +1,6 @@
 // Packed-package consumer check.
 //
-// Packs `xstate`, `@xstate/react` and `@xstate/effect` with `pnpm pack`, unpacks the real
+// Packs XState packages with `pnpm pack`, unpacks the real
 // tarballs into a fresh consumer project (no workspace links), then:
 //   - verifies every file referenced by `main`/`module`/`types`/`exports`
 //     is present in the tarball,
@@ -52,7 +52,8 @@ const compilers = ['typescript', '@typescript/native'].map((name) => {
 const PACKAGES = [
   { name: 'xstate', dir: 'core' },
   { name: '@xstate/react', dir: 'xstate-react' },
-  { name: '@xstate/effect', dir: 'xstate-effect' }
+  { name: '@xstate/effect', dir: 'xstate-effect' },
+  { name: '@xstate/test', dir: 'xstate-test' }
 ];
 
 const results = [];
@@ -455,6 +456,30 @@ const { createAsyncLogic } = require('xstate/actors');
 const { useActorRef } = require('@xstate/react');`)
   );
 
+  writeFileSync(
+    join(consumer, 'test-paths.mts'),
+    `import { createMachine, types } from 'xstate';
+import { replayTest, testPaths, type TestFixture, type TestGenerator } from '@xstate/test/paths';
+
+const machine = createMachine({
+  schemas: { events: { APPROVE: types<{ requestId: string }>() } },
+  initial: 'pending',
+  states: {
+    pending: { on: { APPROVE: { target: 'approved' } } },
+    approved: { type: 'final' }
+  }
+});
+
+const approvals: TestGenerator<{ requestId: string }> = () => ({ requestId: '1' });
+await testPaths(machine, {
+  events: { APPROVE: approvals },
+  cover: { requirements: { approved: ({ event }) => event.requestId === '1' } }
+});
+export const replay = (fixture: TestFixture) =>
+  replayTest(machine, fixture, { expect: 'pass' });
+`
+  );
+
   const configs = {
     bundler: {
       module: 'ESNext',
@@ -512,7 +537,7 @@ const { useActorRef } = require('@xstate/react');`)
                 lib: ['ES2022', 'DOM'],
                 outDir: `out-${label}`
               },
-              files
+              files: [...files, 'test-paths.mts']
             })
           );
           run(
@@ -568,6 +593,81 @@ const { useActorRef } = require('@xstate/react');`)
   });
   step('node esm.mjs', () => run(process.execPath, ['esm.mjs'], consumer));
   step('node cjs.cjs', () => run(process.execPath, ['cjs.cjs'], consumer));
+  step('packed @xstate/test/paths runs without fast-check', () => {
+    writeFileSync(
+      join(consumer, 'test-paths.mjs'),
+      `import assert from 'node:assert/strict';
+import { createRequire } from 'node:module';
+import { createMachine } from 'xstate';
+import { getPathsFromEvents } from 'xstate/graph';
+import {
+  ModelTestFailureError,
+  replayTest,
+  serializeTestTrace,
+  testPaths
+} from '@xstate/test/paths';
+
+const require = createRequire(import.meta.resolve('@xstate/test/paths'));
+assert.throws(() => require.resolve('fast-check'), { code: 'MODULE_NOT_FOUND' });
+
+const machine = createMachine({
+  initial: 'pending',
+  states: {
+    pending: {
+      on: {
+        APPROVE: { target: 'approved' },
+        CANCEL: { target: 'cancelled' }
+      }
+    },
+    approved: { type: 'final' },
+    cancelled: { type: 'final' }
+  }
+});
+const events = {
+  APPROVE: () => ({}),
+  CANCEL: { sample: () => ({}) }
+};
+for (const pathGenerator of ['shortest', 'simple']) {
+  const { results } = await testPaths(machine, { events, pathGenerator });
+  assert.equal(results.length, 2);
+}
+const { results: covering } = await testPaths(machine, {
+  events,
+  cover: {
+    requirements: {
+      approval: ({ event }) => event.type === 'APPROVE',
+      cancellation: ({ event }) => event.type === 'CANCEL'
+    }
+  }
+});
+assert.deepEqual(covering.map(({ path }) => path.state.value).sort(), ['approved', 'cancelled']);
+
+const paths = getPathsFromEvents(machine, [{ type: 'APPROVE' }]);
+const sent = [];
+const { results: precomputed } = await testPaths(machine, {
+  paths,
+  sut: { create: () => ({ send: (event) => sent.push(event.type) }) }
+});
+assert.equal(precomputed.length, 1);
+assert.deepEqual(sent, ['APPROVE']);
+
+const states = {
+  approved: () => { throw new Error('approval regression'); }
+};
+let fixture;
+await assert.rejects(testPaths(machine, { paths, states }), (error) => {
+  assert.ok(error instanceof ModelTestFailureError);
+  assert.ok(error.fixture);
+  assert.ok(serializeTestTrace(error.trace));
+  fixture = JSON.parse(JSON.stringify(error.fixture));
+  return true;
+});
+await assert.rejects(replayTest(machine, fixture, { states }), ModelTestFailureError);
+assert.equal((await replayTest(machine, fixture, { expect: 'pass' })).finalSnapshot.value, 'approved');
+`
+    );
+    run(process.execPath, ['test-paths.mjs'], consumer);
+  });
   step('README quick start runs with the packed package', () => {
     const source = `${readmeExample}
 if (toggleActor.getSnapshot().value !== 'inactive' || toggleActor.getSnapshot().context.count !== 1) {

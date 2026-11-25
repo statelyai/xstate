@@ -1,3 +1,4 @@
+import { reject } from './rejections.ts';
 import { cloneJSON } from './serialize';
 import {
   Action,
@@ -109,7 +110,8 @@ export interface InvokeJSON {
 }
 
 /** @public */
-export interface TransitionJSON {
+interface AcceptedTransitionJSON {
+  reject?: never;
   target?: string | string[];
   matches?: Record<string, unknown>;
   context?: MachineContext;
@@ -120,6 +122,22 @@ export interface TransitionJSON {
   meta?: MetaObject;
   input?: unknown;
 }
+
+/** @public */
+export type TransitionJSON =
+  | AcceptedTransitionJSON
+  | {
+      reject: readonly [AnyEventObject, ...AnyEventObject[]];
+      matches?: Record<string, unknown>;
+      guard?: ConditionJSON;
+      description?: string;
+      meta?: MetaObject;
+      target?: never;
+      context?: never;
+      actions?: never;
+      input?: never;
+      reenter?: never;
+    };
 
 type TransitionConfigJSON = TransitionJSON | ResolvableJSON;
 
@@ -402,6 +420,7 @@ function createExpressionResolver(
       actors: x.actors,
       guards: x.guards,
       delays: x.delays,
+      reject: x.reject,
       ...extra
     };
   }
@@ -471,6 +490,7 @@ function validateChoiceConfig(choice: StateNodeJSON['choice'], path: string) {
 }
 
 const transitionJSONKeys = [
+  'reject',
   'target',
   'matches',
   'context',
@@ -668,6 +688,21 @@ function assertMachineJSON(
         );
       }
       assertKnownKeys(t, transitionJSONKeys, transitionPath);
+      if (t.reject !== undefined) {
+        reject(t.reject);
+        if (
+          t.target !== undefined ||
+          t.context !== undefined ||
+          t.actions !== undefined ||
+          t.input !== undefined ||
+          t.reenter !== undefined
+        ) {
+          throw new Error(
+            `Rejecting transition at ${transitionPath} cannot have target, context, actions, input, or reenter.`
+          );
+        }
+        assertResolvable(t.reject, `${transitionPath}.reject`);
+      }
       assertCondition(t.guard, `${transitionPath}.guard`);
       assertActions(t.actions, `${transitionPath}.actions`);
       assertResolvable(t.context, `${transitionPath}.context`);
@@ -746,7 +781,10 @@ function assertMachineJSON(
           Number.isNaN(Number(delay)) &&
           parseDelayToMilliseconds(delay) === undefined &&
           !json.delays?.[delay] &&
-          !resolvedSources.delays[delay]
+          !resolvedSources.delays[delay] &&
+          json.delays?.[delay] !== 0 &&
+          (json.delays?.[delay] !== undefined ||
+            resolvedSources.delays[delay] !== 0)
         ) {
           throw new Error(`Missing delay source "${delay}"`);
         }
@@ -1084,6 +1122,27 @@ export function machineFromJSON(
             makeScope(x, { enq }),
             transitionPath
           );
+      }
+      if (item.reject !== undefined) {
+        return {
+          description: item.description,
+          meta: item.meta,
+          matches: item.matches,
+          guard: resolveCondition(
+            item.guard,
+            'guard',
+            `${transitionPath}.guard`
+          ),
+          to: (x: any) =>
+            reject(
+              resolveValue(
+                item.reject,
+                'transition',
+                makeScope(x),
+                `${transitionPath}.reject`
+              )
+            )
+        };
       }
       const context = item.context
         ? (x: any) =>

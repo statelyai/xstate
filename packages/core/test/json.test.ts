@@ -1417,9 +1417,15 @@ describe('json', () => {
     expect(actor.getSnapshot().value).toBe('done');
   });
 
-  it('validates JSON Schema-shaped action, guard, and actor source schemas', () => {
+  it('validates JSON Schema-shaped action, guard, actor, and rejection schemas', () => {
     expectSchemaValid({
       schemas: {
+        rejections: {
+          blocked: {
+            type: 'object',
+            properties: { count: { type: 'number' } }
+          }
+        },
         actions: {
           track: {
             params: {
@@ -1470,6 +1476,18 @@ describe('json', () => {
   });
 
   it('rejects invalid serializable machine schema shapes', () => {
+    expectSchemaInvalid({ schemas: { rejections: { blocked: 42 } } });
+    expectSchemaInvalid({
+      schemas: {
+        rejections: {
+          blocked: {
+            type: 'object',
+            properties: { type: { type: 'string' } }
+          }
+        }
+      }
+    });
+
     expectSchemaInvalid({
       initial: 'on',
       states: {

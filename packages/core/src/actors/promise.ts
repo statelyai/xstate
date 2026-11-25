@@ -459,6 +459,13 @@ export function createAsyncLogic<
         const controller = new AbortController();
         const timeout = config.timeout;
         const timeoutMs = parseDelayToMilliseconds(timeout);
+        if (timeout !== undefined && timeoutMs === undefined) {
+          sendSelf({
+            type: XSTATE_ASYNC_REJECT,
+            data: new Error('Unable to resolve async actor timeout.')
+          });
+          return;
+        }
         const timeoutId =
           timeoutMs === undefined
             ? undefined
@@ -563,7 +570,14 @@ export function createAsyncLogic<
     }
   }) as unknown as AsyncActorLogic<TOutput, TInput, TEmitted> & { id?: string };
   Object.defineProperty(logic, systemLogicMetadata, {
-    value: { kind: 'async', timeout: config.timeout }
+    value: {
+      kind: 'async',
+      timeout: config.timeout,
+      simulationCompletionEvent: (data: unknown) => ({
+        type: XSTATE_ASYNC_RESOLVE,
+        data
+      })
+    }
   });
   return logic;
 }

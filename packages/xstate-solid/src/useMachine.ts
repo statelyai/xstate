@@ -1,5 +1,9 @@
+import type { Accessor } from 'solid-js';
 import type {
   Actor,
+  ActorRefFrom,
+  EventFromLogic,
+  SnapshotFrom,
   ActorOptions,
   AnyStateMachine,
   ConditionalRequired,
@@ -15,6 +19,13 @@ import { useActor } from './useActor.ts';
  * @public
  */
 export function useMachine<TMachine extends AnyStateMachine>(
+  actor: () => Actor<TMachine>
+): [
+  SnapshotFrom<TMachine>,
+  (event: EventFromLogic<TMachine>) => void,
+  Accessor<ActorRefFrom<TMachine>>
+];
+export function useMachine<TMachine extends AnyStateMachine>(
   actor: Actor<TMachine>
 ): ReturnType<typeof useActor<TMachine>>;
 export function useMachine<TMachine extends AnyStateMachine>(
@@ -25,7 +36,10 @@ export function useMachine<TMachine extends AnyStateMachine>(
   >
 ): ReturnType<typeof useActor<TMachine>>;
 export function useMachine(
-  machine: AnyStateMachine | Actor<AnyStateMachine>,
+  machine:
+    | AnyStateMachine
+    | Actor<AnyStateMachine>
+    | (() => Actor<AnyStateMachine>),
   options?: ActorOptions<AnyStateMachine>
 ) {
   return (useActor as any)(machine, options);

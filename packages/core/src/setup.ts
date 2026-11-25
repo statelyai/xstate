@@ -1,3 +1,8 @@
+import type {
+  Reject,
+  RejectionResult,
+  RejectionsFromConfig
+} from './rejections.ts';
 import isDevelopment from '#is-development';
 import { diagnoseAuthorConfig, diagnoseSetupConfig } from './devDiagnostics.ts';
 import { xstateError } from './xstateError.ts';
@@ -35,6 +40,7 @@ import {
   MachineContext,
   ProvidedActor,
   RoutableStateId,
+  RouteEvent,
   StateSchema,
   StateValue,
   StateValueFromStateSchema,
@@ -184,6 +190,7 @@ type MergedSetupSchemas<TBaseSchemas, TExtendSchemas> = {
   [K in keyof TBaseSchemas | keyof TExtendSchemas]: K extends
     | 'events'
     | 'emitted'
+    | 'rejections'
     | 'children'
     | 'actions'
     | 'guards'
@@ -315,49 +322,88 @@ type ExtendValidatorConfig<TExtension> = [TExtension] extends [
   ? { validator?: never }
   : { validator: TExtension };
 
-// An extension may add sources freely, but a source that reuses a base name
-// replaces it at runtime, so it must satisfy the base contract, the same rule
-// `machine.provide(...)` applies.
-type ExtendOverrideContracts<
+type SourceName<TKey> = TKey extends number ? `${TKey}` : TKey;
+
+type NormalizeSourceNames<TSources> = {
+  [K in keyof TSources as SourceName<K>]: TSources[K];
+};
+
+type SourceIndexKeys<TKey extends PropertyKey> = TKey extends unknown
+  ? {} extends Record<TKey, unknown>
+    ? TKey
+    : never
+  : never;
+
+// TypeScript checks named properties against each other but does not check
+// index signatures against optional named properties.
+type CheckIndexedSourceOverrides<TOverrides, TContracts> = {
+  [K in keyof TContracts & keyof TOverrides as K extends SourceIndexKeys<
+    keyof TOverrides
+  >
+    ? TOverrides[K] extends TContracts[K]
+      ? never
+      : K
+    : never]: never;
+};
+
+type CheckSourceOverrides<TOverrides, TContracts> = Record<string, unknown> &
+  Partial<TContracts> &
+  CheckIndexedSourceOverrides<TOverrides, TContracts>;
+
+type ActorOverride<TBase, TOverride> = [TBase] extends [AnyActorLogic]
+  ? [TOverride] extends [AnyActorLogic]
+    ? CompatibleProvidedActorSource<TBase, TOverride>
+    : never
+  : never;
+
+type ActorOverrideContracts<
+  TBase,
+  TOverrides,
+  TNormalizedOverrides = NormalizeSourceNames<TOverrides>
+> = {
+  [K in keyof TOverrides]: SourceName<K> extends keyof TBase
+    ? ActorOverride<TBase[SourceName<K>], TOverrides[K]>
+    : TOverrides[K];
+} & CheckIndexedSourceOverrides<
+  TNormalizedOverrides,
+  {
+    [K in keyof TBase & keyof TNormalizedOverrides]: ActorOverride<
+      TBase[K],
+      TNormalizedOverrides[K]
+    >;
+  }
+>;
+
+// A source that reuses a base name replaces it at runtime, so it must
+// satisfy the base contract, the same rule `machine.provide(...)` applies.
+type SourceOverrideContracts<
   TBaseActionMap,
   TBaseActorMap,
   TBaseGuardMap,
-  TExtendActionMap,
-  TExtendActorMap,
-  TExtendGuardMap
+  TOverrideActionMap,
+  TOverrideActorMap,
+  TOverrideGuardMap
 > = {
-  actions?: {
-    [K in keyof NoInfer<TExtendActionMap> &
-      keyof TBaseActionMap]?: ProvidedActionContracts<TBaseActionMap>[K];
-  };
-  guards?: {
-    [K in keyof NoInfer<TExtendGuardMap> &
-      keyof TBaseGuardMap]?: TBaseGuardMap[K];
-  };
-  // Mapped over the extension's own keys, like `provide()`'s actor check, so
-  // an incompatible actor becomes `never` under its own name and the error is
-  // reported there.
-  actors?: {
-    [K in keyof NoInfer<TExtendActorMap>]: K extends keyof TBaseActorMap
-      ? TBaseActorMap[K] extends AnyActorLogic
-        ? NoInfer<TExtendActorMap>[K] extends AnyActorLogic
-          ? CompatibleProvidedActorSource<
-              TBaseActorMap[K],
-              NoInfer<TExtendActorMap>[K]
-            >
-          : never
-        : never
-      : NoInfer<TExtendActorMap>[K];
-  };
+  actions?: CheckSourceOverrides<
+    NormalizeSourceNames<NoInfer<TOverrideActionMap>>,
+    ProvidedActionContracts<NormalizeSourceNames<TBaseActionMap>>
+  >;
+  guards?: CheckSourceOverrides<
+    NormalizeSourceNames<NoInfer<TOverrideGuardMap>>,
+    NormalizeSourceNames<TBaseGuardMap>
+  >;
+  actors?: ActorOverrideContracts<
+    NormalizeSourceNames<TBaseActorMap>,
+    NoInfer<TOverrideActorMap>
+  >;
 };
-
 type SetupExtensionConfig<
   TBaseSchemas,
   TBaseStates,
   TBaseValidator,
-  TBaseActionMap,
+  TBaseActionMap extends Sources['actions'],
   TBaseActorMap,
-  TBaseGuardMap,
+  TBaseGuardMap extends Sources['guards'],
   TExtendSchemas extends SetupSchemas,
   TExtendStates extends Record<string, SetupStateSchema>,
   TExtendActionMap extends Sources['actions'],
@@ -385,10 +431,10 @@ type SetupExtensionConfig<
       NoInfer<MergedSetupSchemas<TBaseSchemas, TExtendSchemas>>
     >;
 } & ExtendValidatorConfig<TExtendValidator> &
-  ExtendOverrideContracts<
-    TBaseActionMap,
+  SourceOverrideContracts<
+    SetupActions<TBaseSchemas, TBaseActionMap>,
     TBaseActorMap,
-    TBaseGuardMap,
+    SetupGuards<TBaseSchemas, TBaseGuardMap>,
     TExtendActionMap,
     TExtendActorMap,
     TExtendGuardMap
@@ -416,7 +462,8 @@ type InlineMachineSchemas<
   TMetaSchema,
   TTransitionMetaSchema,
   TTagSchema,
-  TChildrenSchemaMap
+  TChildrenSchemaMap,
+  TRejectionSchemaMap
 > = {
   context?: TContextSchema;
   events?: TEventSchemaMap;
@@ -430,6 +477,7 @@ type InlineMachineSchemas<
   transitionMeta?: TTransitionMetaSchema;
   tags?: TTagSchema;
   children?: TChildrenSchemaMap;
+  rejections?: TRejectionSchemaMap;
 };
 
 type MachineConfigStates<TConfig> = TConfig extends {
@@ -565,11 +613,20 @@ type SetupSchema<
 
 type SetupSchemaMap<
   TSchemas,
-  TKey extends 'events' | 'internalEvents' | 'emitted' | 'children'
+  TKey extends
+    | 'events'
+    | 'internalEvents'
+    | 'emitted'
+    | 'children'
+    | 'rejections'
 > = TKey extends keyof TSchemas
-  ? TSchemas[TKey] extends Record<string, StandardSchemaV1>
-    ? TSchemas[TKey]
-    : never
+  ? TKey extends 'rejections'
+    ? NonNullable<TSchemas[TKey]> extends Record<string, StandardSchemaV1>
+      ? NonNullable<TSchemas[TKey]>
+      : never
+    : TSchemas[TKey] extends Record<string, StandardSchemaV1>
+      ? TSchemas[TKey]
+      : never
   : never;
 
 type SetupActionSchemaMap<TSchemas> = 'actions' extends keyof TSchemas
@@ -588,7 +645,7 @@ type SetupOrConfigSchema<
   TSchemas,
   TKey extends Exclude<
     keyof SetupSchemas,
-    'events' | 'actions' | 'guards' | 'emitted' | 'children'
+    'events' | 'actions' | 'guards' | 'emitted' | 'children' | 'rejections'
   >,
   TConfigSchema extends StandardSchemaV1
 > = [SetupSchema<TSchemas, TKey>] extends [never]
@@ -597,11 +654,41 @@ type SetupOrConfigSchema<
 
 type SetupOrConfigSchemaMap<
   TSchemas,
-  TKey extends 'events' | 'internalEvents' | 'emitted' | 'children',
+  TKey extends
+    | 'events'
+    | 'internalEvents'
+    | 'emitted'
+    | 'children'
+    | 'rejections',
   TConfigSchemaMap extends Record<string, StandardSchemaV1>
 > = [SetupSchemaMap<TSchemas, TKey>] extends [never]
   ? TConfigSchemaMap
   : SetupSchemaMap<TSchemas, TKey>;
+
+type SetupRejectionSchemas<
+  TSchemas,
+  TConfigSchemaMap extends Record<string, StandardSchemaV1>
+> = [SetupSchemaMap<TSchemas, 'rejections'>] extends [never]
+  ? TConfigSchemaMap
+  : [TConfigSchemaMap] extends [never]
+    ? SetupSchemaMap<TSchemas, 'rejections'>
+    : MergeRecord<TConfigSchemaMap, SetupSchemaMap<TSchemas, 'rejections'>>;
+
+type SetupRejections<
+  TSchemas,
+  TConfigSchemaMap extends Record<string, StandardSchemaV1>
+> = RejectionsFromConfig<{
+  schemas: { rejections: SetupRejectionSchemas<TSchemas, TConfigSchemaMap> };
+}>;
+
+// Callbacks see merged schemas, while the config declares only its own entries.
+type WithInlineRejectionSchemas<TConfig, TRejectionSchemaMap> = {
+  [K in keyof TConfig]: K extends 'schemas'
+    ? Omit<NonNullable<TConfig[K]>, 'rejections'> & {
+        rejections?: TRejectionSchemaMap;
+      }
+    : TConfig[K];
+};
 
 type SetupStateKeys<TStateSchemas extends Record<string, SetupStateSchema>> =
   keyof TStateSchemas & string;
@@ -1466,7 +1553,8 @@ type SetupStateNodeConfig<
   TSetupActorMap,
   SetupGuards<TSchemas, TSetupGuardMap>,
   TSetupDelayMap,
-  TSystemRegistry
+  TSystemRegistry,
+  RejectionsFromConfig<{ schemas: TSchemas }>
 >;
 
 type SetupContext<TSchemas, TContextSchema extends StandardSchemaV1> = Cast<
@@ -1668,6 +1756,57 @@ type MergeSourceMaps<
   TBase extends Record<string, unknown>,
   TExtension extends Record<string, unknown>
 > = Compute<TBase & TExtension>;
+
+type MergeSetupExtensionRejections<
+  TBase extends SetupSchemas,
+  TExtension extends SetupSchemas
+> = 'rejections' extends keyof TExtension
+  ? {} extends Pick<TExtension, 'rejections'>
+    ? 'rejections' extends keyof TBase
+      ? {} extends Pick<TBase, 'rejections'>
+        ? {
+            rejections?:
+              | NonNullable<TBase['rejections']>
+              | MergeRecord<
+                  NonNullable<TBase['rejections']>,
+                  NonNullable<TExtension['rejections']>
+                >;
+          }
+        : {
+            rejections:
+              | NonNullable<TBase['rejections']>
+              | MergeRecord<
+                  NonNullable<TBase['rejections']>,
+                  NonNullable<TExtension['rejections']>
+                >;
+          }
+      : { rejections?: NonNullable<TExtension['rejections']> }
+    : 'rejections' extends keyof TBase
+      ? {} extends Pick<TBase, 'rejections'>
+        ? {
+            rejections:
+              | NonNullable<TExtension['rejections']>
+              | MergeRecord<
+                  NonNullable<TBase['rejections']>,
+                  NonNullable<TExtension['rejections']>
+                >;
+          }
+        : {
+            rejections: MergeRecord<
+              NonNullable<TBase['rejections']>,
+              NonNullable<TExtension['rejections']>
+            >;
+          }
+      : { rejections: NonNullable<TExtension['rejections']> }
+  : Pick<TBase, Extract<'rejections', keyof TBase>>;
+
+type MergeSetupExtensionSchemas<
+  TBase extends SetupSchemas,
+  TExtension extends SetupSchemas
+> = Compute<
+  Omit<TBase & TExtension, 'rejections'> &
+    MergeSetupExtensionRejections<TBase, TExtension>
+>;
 
 type MergeSetupStateSchemaField<
   TBase extends SetupStateSchema,
@@ -2932,6 +3071,7 @@ type SetupMachineConfigBase<
   TTransitionMetaSchema extends StandardSchemaV1,
   TTagSchema extends StandardSchemaV1,
   TChildrenSchemaMap extends Record<string, StandardSchemaV1>,
+  TRejectionSchemaMap extends Record<string, StandardSchemaV1>,
   TContext extends MachineContext,
   TEvent extends EventObject,
   TChildren extends Record<string, AnyActorRef | undefined>,
@@ -2951,28 +3091,36 @@ type SetupMachineConfigBase<
   TRootActorMap extends Sources['actors'] = TActorMap,
   TRootGuardMap extends Sources['guards'] = TGuardMap
 > = Omit<
-  Next_MachineConfig<
-    SetupOrConfigSchema<TSchemas, 'context', TContextSchema>,
-    SetupOrConfigSchemaMap<TSchemas, 'events', TEventSchemaMap>,
-    SetupOrConfigSchemaMap<TSchemas, 'internalEvents', TInternalEventSchemaMap>,
-    SetupOrConfigSchemaMap<TSchemas, 'emitted', TEmittedSchemaMap>,
-    SetupOrConfigSchema<TSchemas, 'input', TInputSchema>,
-    SetupOrConfigSchema<TSchemas, 'output', TOutputSchema>,
-    SetupOrConfigSchema<TSchemas, 'meta', TMetaSchema>,
-    SetupOrConfigSchema<TSchemas, 'transitionMeta', TTransitionMetaSchema>,
-    SetupOrConfigSchema<TSchemas, 'tags', TTagSchema>,
-    SetupOrConfigSchemaMap<TSchemas, 'children', TChildrenSchemaMap>,
-    TContext,
-    TEvent,
-    TChildren,
-    TDelays,
-    TTag,
-    TActionMap,
-    TActorMap,
-    TGuardMap,
-    TDelayMap,
-    TContextRequired,
-    TSystemRegistry
+  WithInlineRejectionSchemas<
+    Next_MachineConfig<
+      SetupOrConfigSchema<TSchemas, 'context', TContextSchema>,
+      SetupOrConfigSchemaMap<TSchemas, 'events', TEventSchemaMap>,
+      SetupOrConfigSchemaMap<
+        TSchemas,
+        'internalEvents',
+        TInternalEventSchemaMap
+      >,
+      SetupOrConfigSchemaMap<TSchemas, 'emitted', TEmittedSchemaMap>,
+      SetupOrConfigSchema<TSchemas, 'input', TInputSchema>,
+      SetupOrConfigSchema<TSchemas, 'output', TOutputSchema>,
+      SetupOrConfigSchema<TSchemas, 'meta', TMetaSchema>,
+      SetupOrConfigSchema<TSchemas, 'transitionMeta', TTransitionMetaSchema>,
+      SetupOrConfigSchema<TSchemas, 'tags', TTagSchema>,
+      SetupOrConfigSchemaMap<TSchemas, 'children', TChildrenSchemaMap>,
+      TContext,
+      TEvent,
+      TChildren,
+      TDelays,
+      TTag,
+      TActionMap,
+      TActorMap,
+      TGuardMap,
+      TDelayMap,
+      TContextRequired,
+      TSystemRegistry,
+      SetupRejectionSchemas<TSchemas, TRejectionSchemaMap>
+    >,
+    TRejectionSchemaMap
   >,
   | 'states'
   | 'initial'
@@ -3021,7 +3169,11 @@ type SetupMachineConfigBase<
     TActorMap,
     TGuardMap,
     TDelayMap,
-    TSystemRegistry
+    TSystemRegistry,
+    undefined,
+    SetupStateTarget<UncheckedSetupStateSchemas>,
+    KnownSetupStateTarget<UncheckedSetupStateSchemas>,
+    SetupRejections<TSchemas, TRejectionSchemaMap>
   >;
   always?: StateTransitionConfigOrTarget<
     UncheckedSetupStateSchemas,
@@ -3036,7 +3188,12 @@ type SetupMachineConfigBase<
     TActorMap,
     TGuardMap,
     TDelayMap,
-    TSystemRegistry
+    TSystemRegistry,
+    undefined,
+    SetupStateTarget<UncheckedSetupStateSchemas>,
+    KnownSetupStateTarget<UncheckedSetupStateSchemas>,
+    OutputArg<TEvent>['output'],
+    SetupRejections<TSchemas, TRejectionSchemaMap>
   >;
   invoke?: SingleOrArray<
     SetupInvokeConfig<
@@ -3052,7 +3209,8 @@ type SetupMachineConfigBase<
       TGuardMap,
       TDelayMap,
       TSystemRegistry,
-      SetupInput<TSchemas, TInputSchema>
+      SetupInput<TSchemas, TInputSchema>,
+      SetupRejections<TSchemas, TRejectionSchemaMap>
     >
   >;
   states?: StatesWithInput<
@@ -3073,7 +3231,8 @@ type SetupMachineConfigBase<
     TGuardMap,
     TDelayMap,
     TSystemRegistry,
-    TStateKeys
+    TStateKeys,
+    SetupRejections<TSchemas, TRejectionSchemaMap>
   >;
 };
 
@@ -3092,6 +3251,7 @@ type SetupMachineConfig<
   TTransitionMetaSchema extends StandardSchemaV1,
   TTagSchema extends StandardSchemaV1,
   TChildrenSchemaMap extends Record<string, StandardSchemaV1>,
+  TRejectionSchemaMap extends Record<string, StandardSchemaV1>,
   TContext extends MachineContext,
   TEvent extends EventObject,
   TChildren extends Record<string, AnyActorRef | undefined>,
@@ -3127,6 +3287,7 @@ type SetupMachineConfig<
           TTransitionMetaSchema,
           TTagSchema,
           TChildrenSchemaMap,
+          TRejectionSchemaMap,
           TContext,
           TEvent,
           TChildren,
@@ -3172,7 +3333,8 @@ type SetupMachineConfig<
           TSystemRegistry,
           undefined,
           RootSetupStateTarget<TStateSchemas>,
-          RootSetupStateTarget<TStateSchemas>
+          RootSetupStateTarget<TStateSchemas>,
+          SetupRejections<TSchemas, TRejectionSchemaMap>
         >;
         always?: StateTransitionConfigOrTarget<
           TStateSchemas,
@@ -3190,7 +3352,9 @@ type SetupMachineConfig<
           TSystemRegistry,
           undefined,
           RootSetupStateTarget<TStateSchemas>,
-          RootSetupStateTarget<TStateSchemas>
+          RootSetupStateTarget<TStateSchemas>,
+          OutputArg<TEvent>['output'],
+          SetupRejections<TSchemas, TRejectionSchemaMap>
         >;
         invoke?: SingleOrArray<
           SetupInvokeConfig<
@@ -3206,7 +3370,8 @@ type SetupMachineConfig<
             TGuardMap,
             TDelayMap,
             TSystemRegistry,
-            SetupInput<TSchemas, TInputSchema>
+            SetupInput<TSchemas, TInputSchema>,
+            SetupRejections<TSchemas, TRejectionSchemaMap>
           >
         >;
         states?: StatesWithInput<
@@ -3227,7 +3392,8 @@ type SetupMachineConfig<
           TGuardMap,
           TDelayMap,
           TSystemRegistry,
-          TStateKeys
+          TStateKeys,
+          SetupRejections<TSchemas, TRejectionSchemaMap>
         >;
       }
     : SetupMachineConfigBase<
@@ -3244,6 +3410,7 @@ type SetupMachineConfig<
         TTransitionMetaSchema,
         TTagSchema,
         TChildrenSchemaMap,
+        TRejectionSchemaMap,
         TContext,
         TEvent,
         TChildren,
@@ -3283,7 +3450,8 @@ type StatesWithInput<
   TGuardMap extends Sources['guards'],
   TDelayMap extends Sources['delays'],
   TSystemRegistry extends SystemRegistry,
-  TStateKeys extends string = SetupStateKey<TStateSchemas>
+  TStateKeys extends string = SetupStateKey<TStateSchemas>,
+  TRejection extends EventObject = EventObject
 > = {
   [K in TStateKeys]?: StateNodeConfigWithNestedInput<
     StateSchemasWithKeys<TRootStateSchemas, TStateKeys>,
@@ -3302,7 +3470,8 @@ type StatesWithInput<
     TActorMap,
     TGuardMap,
     TDelayMap,
-    TSystemRegistry
+    TSystemRegistry,
+    TRejection
   >;
 };
 
@@ -3324,7 +3493,8 @@ type StateNodeConfigWithNestedInputBase<
   TActorMap extends Sources['actors'],
   TGuardMap extends Sources['guards'],
   TDelayMap extends Sources['delays'],
-  TSystemRegistry extends SystemRegistry
+  TSystemRegistry extends SystemRegistry,
+  TRejection extends EventObject = EventObject
 > = WithNestedStates<
   DistributiveOmit<
     Next_StateNodeConfig<
@@ -3344,7 +3514,8 @@ type StateNodeConfigWithNestedInputBase<
       Record<string, unknown>,
       TSystemRegistry,
       StateCompletionOutput<TStateSchema>,
-      TTransitionMeta
+      TTransitionMeta,
+      TRejection
     >,
     | 'on'
     | 'always'
@@ -3388,7 +3559,14 @@ type StateNodeConfigWithNestedInputBase<
       TGuardMap,
       TDelayMap,
       TSystemRegistry,
-      StateInput<TStateSchema>
+      StateInput<TStateSchema>,
+      SetupStateTarget<
+        SetupStateTransitionSchemas<TSiblingStateSchemas, TStateSchema>
+      >,
+      KnownSetupStateTarget<
+        SetupStateTransitionSchemas<TSiblingStateSchemas, TStateSchema>
+      >,
+      TRejection
     >;
     always?: StateTransitionConfigOrTarget<
       SetupStateTransitionSchemas<TSiblingStateSchemas, TStateSchema>,
@@ -3404,7 +3582,15 @@ type StateNodeConfigWithNestedInputBase<
       TGuardMap,
       TDelayMap,
       TSystemRegistry,
-      StateInput<TStateSchema>
+      StateInput<TStateSchema>,
+      SetupStateTarget<
+        SetupStateTransitionSchemas<TSiblingStateSchemas, TStateSchema>
+      >,
+      KnownSetupStateTarget<
+        SetupStateTransitionSchemas<TSiblingStateSchemas, TStateSchema>
+      >,
+      OutputArg<TEvent>['output'],
+      TRejection
     >;
     invoke?: SingleOrArray<
       SetupInvokeConfig<
@@ -3420,7 +3606,8 @@ type StateNodeConfigWithNestedInputBase<
         TGuardMap,
         TDelayMap,
         TSystemRegistry,
-        StateInput<TStateSchema>
+        StateInput<TStateSchema>,
+        TRejection
       >
     >;
     onDone?: StateTransitionConfigOrTarget<
@@ -3437,7 +3624,15 @@ type StateNodeConfigWithNestedInputBase<
       TGuardMap,
       TDelayMap,
       TSystemRegistry,
-      StateInput<TStateSchema>
+      StateInput<TStateSchema>,
+      SetupStateTarget<
+        SetupStateTransitionSchemas<TSiblingStateSchemas, TStateSchema>
+      >,
+      KnownSetupStateTarget<
+        SetupStateTransitionSchemas<TSiblingStateSchemas, TStateSchema>
+      >,
+      OutputArg<DoneStateEvent<StateCompletionOutput<TStateSchema>>>['output'],
+      TRejection
     >;
     onError?: StateTransitionConfigOrTarget<
       SetupStateTransitionSchemas<TSiblingStateSchemas, TStateSchema>,
@@ -3453,7 +3648,15 @@ type StateNodeConfigWithNestedInputBase<
       TGuardMap,
       TDelayMap,
       TSystemRegistry,
-      StateInput<TStateSchema>
+      StateInput<TStateSchema>,
+      SetupStateTarget<
+        SetupStateTransitionSchemas<TSiblingStateSchemas, TStateSchema>
+      >,
+      KnownSetupStateTarget<
+        SetupStateTransitionSchemas<TSiblingStateSchemas, TStateSchema>
+      >,
+      OutputArg<ErrorEvent>['output'],
+      TRejection
     >;
     onTimeout?: StateTransitionConfigOrTarget<
       SetupStateTransitionSchemas<TSiblingStateSchemas, TStateSchema>,
@@ -3469,7 +3672,15 @@ type StateNodeConfigWithNestedInputBase<
       TGuardMap,
       TDelayMap,
       TSystemRegistry,
-      StateInput<TStateSchema>
+      StateInput<TStateSchema>,
+      SetupStateTarget<
+        SetupStateTransitionSchemas<TSiblingStateSchemas, TStateSchema>
+      >,
+      KnownSetupStateTarget<
+        SetupStateTransitionSchemas<TSiblingStateSchemas, TStateSchema>
+      >,
+      OutputArg<TimeoutEvent>['output'],
+      TRejection
     >;
     after?: {
       [K in
@@ -3489,7 +3700,15 @@ type StateNodeConfigWithNestedInputBase<
         TGuardMap,
         TDelayMap,
         TSystemRegistry,
-        StateInput<TStateSchema>
+        StateInput<TStateSchema>,
+        SetupStateTarget<
+          SetupStateTransitionSchemas<TSiblingStateSchemas, TStateSchema>
+        >,
+        KnownSetupStateTarget<
+          SetupStateTransitionSchemas<TSiblingStateSchemas, TStateSchema>
+        >,
+        OutputArg<AfterEvent>['output'],
+        TRejection
       >;
     };
   },
@@ -3522,7 +3741,9 @@ type StateNodeConfigWithNestedInputBase<
         TActorMap,
         TGuardMap,
         TDelayMap,
-        TSystemRegistry
+        TSystemRegistry,
+        SetupStateKey<TStateSchema['states']>,
+        TRejection
       >
     : {
         [K in string]?: StateNodeConfigWithNestedInput<
@@ -3542,7 +3763,8 @@ type StateNodeConfigWithNestedInputBase<
           TActorMap,
           TGuardMap,
           TDelayMap,
-          TSystemRegistry
+          TSystemRegistry,
+          TRejection
         >;
       }
 >;
@@ -3564,7 +3786,8 @@ type StateNodeConfigWithNestedInput<
   TActorMap extends Sources['actors'],
   TGuardMap extends Sources['guards'],
   TDelayMap extends Sources['delays'],
-  TSystemRegistry extends SystemRegistry
+  TSystemRegistry extends SystemRegistry,
+  TRejection extends EventObject = EventObject
 > = SetupStateNodeContract<
   TStateSchema,
   StateNodeConfigWithNestedInputBase<
@@ -3584,7 +3807,8 @@ type StateNodeConfigWithNestedInput<
     TActorMap,
     TGuardMap,
     TDelayMap,
-    TSystemRegistry
+    TSystemRegistry,
+    TRejection
   >,
   TContext,
   TEvent,
@@ -3606,7 +3830,8 @@ type StateTransitions<
   TSystemRegistry extends SystemRegistry,
   TInput = undefined,
   TTarget extends string = SetupStateTarget<TStateSchemas>,
-  TKnownTarget extends string = KnownSetupStateTarget<TStateSchemas>
+  TKnownTarget extends string = KnownSetupStateTarget<TStateSchemas>,
+  TRejection extends EventObject = EventObject
 > = {
   [K in EventDescriptor<TEvent>]?: StateTransitionConfigOrTarget<
     TStateSchemas,
@@ -3624,7 +3849,9 @@ type StateTransitions<
     TSystemRegistry,
     TInput,
     TTarget,
-    TKnownTarget
+    TKnownTarget,
+    OutputArg<ExtractEvent<TEvent, K>>['output'],
+    TRejection
   >;
 } & (string extends TEvent['type']
   ? unknown
@@ -3648,7 +3875,9 @@ type StateTransitions<
         TSystemRegistry,
         TInput,
         TTarget,
-        TKnownTarget
+        TKnownTarget,
+        OutputArg<ReservedEventFromDescriptor<K>>['output'],
+        TRejection
       >;
     });
 
@@ -3662,7 +3891,10 @@ type InvokeDoneEvent<TInvoke> = TInvoke extends {
     infer _TActorMap,
     infer _TGuardMap,
     infer _TDelayMap,
-    infer _TMeta
+    infer _TMeta,
+    infer _TInput,
+    infer _TChildren,
+    infer _TRejection
   >;
 }
   ? Cast<TDoneEvent, EventObject>
@@ -3681,7 +3913,8 @@ type PlainSetupInvokeConfig<
   TGuardMap extends Sources['guards'],
   TDelayMap extends Sources['delays'],
   TSystemRegistry extends SystemRegistry,
-  TStateInput = undefined
+  TStateInput = undefined,
+  TRejection extends EventObject = EventObject
 > =
   Next_InvokeConfig<
     TContext,
@@ -3694,7 +3927,8 @@ type PlainSetupInvokeConfig<
     TDelayMap,
     TMeta,
     TSystemRegistry,
-    TStateInput
+    TStateInput,
+    TRejection
   > extends infer TInvoke
     ? TInvoke extends any
       ? DistributiveOmit<
@@ -3745,7 +3979,12 @@ type PlainSetupInvokeConfig<
                   TActorMap,
                   TGuardMap,
                   TDelayMap,
-                  TSystemRegistry
+                  TSystemRegistry,
+                  undefined,
+                  SetupStateTarget<TStateSchemas>,
+                  KnownSetupStateTarget<TStateSchemas>,
+                  OutputArg<InvokeDoneEvent<TInvoke>>['output'],
+                  TRejection
                 >
             : never;
           onError?: StateTransitionConfigOrTarget<
@@ -3761,7 +4000,12 @@ type PlainSetupInvokeConfig<
             TActorMap,
             TGuardMap,
             TDelayMap,
-            TSystemRegistry
+            TSystemRegistry,
+            undefined,
+            SetupStateTarget<TStateSchemas>,
+            KnownSetupStateTarget<TStateSchemas>,
+            OutputArg<InvokeErrorEvent<TInvoke, TActorMap>>['output'],
+            TRejection
           >;
           onSnapshot?: StateTransitionConfigOrTarget<
             TStateSchemas,
@@ -3776,7 +4020,12 @@ type PlainSetupInvokeConfig<
             TActorMap,
             TGuardMap,
             TDelayMap,
-            TSystemRegistry
+            TSystemRegistry,
+            undefined,
+            SetupStateTarget<TStateSchemas>,
+            KnownSetupStateTarget<TStateSchemas>,
+            OutputArg<SnapshotEvent<any>>['output'],
+            TRejection
           >;
           onTimeout?: StateTransitionConfigOrTarget<
             TStateSchemas,
@@ -3791,7 +4040,12 @@ type PlainSetupInvokeConfig<
             TActorMap,
             TGuardMap,
             TDelayMap,
-            TSystemRegistry
+            TSystemRegistry,
+            undefined,
+            SetupStateTarget<TStateSchemas>,
+            KnownSetupStateTarget<TStateSchemas>,
+            OutputArg<TEvent>['output'],
+            TRejection
           >;
         }
       : never
@@ -3810,9 +4064,10 @@ export interface CreatedInvoke<
   TContextShape,
   TStateSchemas extends Record<string, SetupStateSchema>,
   TStateInput,
-  TConfig = unknown
+  TConfig = unknown,
+  TSrc = NoInfer<TLogic>
 > {
-  src: NoInfer<TLogic>;
+  src: TSrc;
   readonly [createdInvoke]: {
     context: TContext;
     contextShape: TContextShape;
@@ -3946,7 +4201,8 @@ export type CreateInvokeConfig<
   TGuardMap extends Sources['guards'],
   TDelayMap extends Sources['delays'],
   TSystemRegistry extends SystemRegistry,
-  TStateInput = undefined
+  TStateInput = undefined,
+  TRejection extends EventObject = EventObject
 > = CreatedInvokeId<NoInfer<TLogic>, TChildren> &
   CreatedInvokeInput<
     TLogic,
@@ -3965,7 +4221,8 @@ export type CreateInvokeConfig<
       TMeta,
       TSystemRegistry,
       DoneActorEvent<OutputFrom<NoInfer<TLogic>>>,
-      ErrorActorEvent<ErrorFrom<NoInfer<TLogic>>>
+      ErrorActorEvent<ErrorFrom<NoInfer<TLogic>>>,
+      TRejection
     >,
     'id' | 'onDone' | 'onError' | 'onSnapshot' | 'onTimeout'
   > & {
@@ -3984,7 +4241,12 @@ export type CreateInvokeConfig<
       TActorMap,
       TGuardMap,
       TDelayMap,
-      TSystemRegistry
+      TSystemRegistry,
+      undefined,
+      SetupStateTarget<TStateSchemas>,
+      KnownSetupStateTarget<TStateSchemas>,
+      OutputArg<DoneActorEvent<OutputFrom<NoInfer<TLogic>>>>['output'],
+      TRejection
     >;
     onError?: StateTransitionConfigOrTarget<
       TStateSchemas,
@@ -3999,7 +4261,12 @@ export type CreateInvokeConfig<
       TActorMap,
       TGuardMap,
       TDelayMap,
-      TSystemRegistry
+      TSystemRegistry,
+      undefined,
+      SetupStateTarget<TStateSchemas>,
+      KnownSetupStateTarget<TStateSchemas>,
+      OutputArg<ErrorActorEvent<ErrorFrom<NoInfer<TLogic>>>>['output'],
+      TRejection
     >;
     onSnapshot?: StateTransitionConfigOrTarget<
       TStateSchemas,
@@ -4014,7 +4281,12 @@ export type CreateInvokeConfig<
       TActorMap,
       TGuardMap,
       TDelayMap,
-      TSystemRegistry
+      TSystemRegistry,
+      undefined,
+      SetupStateTarget<TStateSchemas>,
+      KnownSetupStateTarget<TStateSchemas>,
+      OutputArg<SnapshotEvent<SnapshotFrom<NoInfer<TLogic>>>>['output'],
+      TRejection
     >;
     onTimeout?: StateTransitionConfigOrTarget<
       TStateSchemas,
@@ -4029,7 +4301,12 @@ export type CreateInvokeConfig<
       TActorMap,
       TGuardMap,
       TDelayMap,
-      TSystemRegistry
+      TSystemRegistry,
+      undefined,
+      SetupStateTarget<TStateSchemas>,
+      KnownSetupStateTarget<TStateSchemas>,
+      OutputArg<ActorTimeoutEvent>['output'],
+      TRejection
     >;
   };
 
@@ -4058,7 +4335,8 @@ export type CreateAsyncInvokeConfig<
   TGuardMap extends Sources['guards'],
   TDelayMap extends Sources['delays'],
   TSystemRegistry extends SystemRegistry,
-  TStateInput = undefined
+  TStateInput = undefined,
+  TRejection extends EventObject = EventObject
 > = CreatedInvokeId<
   AsyncActorLogic<
     NoInfer<TOutput>,
@@ -4086,7 +4364,14 @@ export type CreateAsyncInvokeConfig<
       TGuardMap,
       TDelayMap,
       TMeta,
-      TSystemRegistry
+      TSystemRegistry,
+      [keyof TActorMap & string] extends [never]
+        ? DoneActorEvent<any>
+        : DoneActorEvent<OutputFrom<TActorMap[keyof TActorMap & string]>>,
+      [keyof TActorMap & string] extends [never]
+        ? ErrorActorEvent<any>
+        : ErrorActorEvent<ErrorFrom<TActorMap[keyof TActorMap & string]>>,
+      TRejection
     >,
     'id' | 'onDone' | 'onError' | 'onSnapshot' | 'onTimeout'
   > & {
@@ -4122,7 +4407,8 @@ export type CreateAsyncInvokeConfig<
       undefined,
       SetupStateTarget<TStateSchemas>,
       KnownSetupStateTarget<TStateSchemas>,
-      NoInfer<TOutput>
+      NoInfer<TOutput>,
+      TRejection
     >;
     onError?: NoInfer<
       StateTransitionConfigOrTarget<
@@ -4140,7 +4426,16 @@ export type CreateAsyncInvokeConfig<
         TActorMap,
         TGuardMap,
         TDelayMap,
-        TSystemRegistry
+        TSystemRegistry,
+        undefined,
+        SetupStateTarget<TStateSchemas>,
+        KnownSetupStateTarget<TStateSchemas>,
+        OutputArg<
+          ErrorActorEvent<
+            NoInfer<AsyncInvokeSchemaOutput<TErrorSchema, unknown>>
+          >
+        >['output'],
+        TRejection
       >
     >;
     onSnapshot?: NoInfer<
@@ -4163,7 +4458,22 @@ export type CreateAsyncInvokeConfig<
         TActorMap,
         TGuardMap,
         TDelayMap,
-        TSystemRegistry
+        TSystemRegistry,
+        undefined,
+        SetupStateTarget<TStateSchemas>,
+        KnownSetupStateTarget<TStateSchemas>,
+        OutputArg<
+          SnapshotEvent<
+            AsyncSnapshot<
+              TOutput,
+              NoInfer<
+                AsyncInvokeSchemaOutput<TInputSchema, NonReducibleUnknown>
+              >,
+              NoInfer<AsyncInvokeSchemaOutput<TErrorSchema, unknown>>
+            >
+          >
+        >['output'],
+        TRejection
       >
     >;
     onTimeout?: StateTransitionConfigOrTarget<
@@ -4179,7 +4489,12 @@ export type CreateAsyncInvokeConfig<
       TActorMap,
       TGuardMap,
       TDelayMap,
-      TSystemRegistry
+      TSystemRegistry,
+      undefined,
+      SetupStateTarget<TStateSchemas>,
+      KnownSetupStateTarget<TStateSchemas>,
+      OutputArg<ActorTimeoutEvent>['output'],
+      TRejection
     >;
   };
 
@@ -4196,7 +4511,8 @@ type SetupInvokeConfig<
   TGuardMap extends Sources['guards'],
   TDelayMap extends Sources['delays'],
   TSystemRegistry extends SystemRegistry,
-  TStateInput = undefined
+  TStateInput = undefined,
+  TRejection extends EventObject = EventObject
 > =
   | (PlainSetupInvokeConfig<
       TStateSchemas,
@@ -4211,7 +4527,8 @@ type SetupInvokeConfig<
       TGuardMap,
       TDelayMap,
       TSystemRegistry,
-      TStateInput
+      TStateInput,
+      TRejection
     > & { readonly [createdInvoke]?: never })
   | {
       readonly [createdInvoke]: {
@@ -4252,7 +4569,8 @@ type StateTransitionConfigOrTarget<
   TInput = undefined,
   TTarget extends string = SetupStateTarget<TStateSchemas>,
   TKnownTarget extends string = KnownSetupStateTarget<TStateSchemas>,
-  TOutput = OutputArg<TExpressionEvent>['output']
+  TOutput = OutputArg<TExpressionEvent>['output'],
+  TRejection extends EventObject = EventObject
 > =
   | undefined
   | StateTransitionObjectConfig<
@@ -4289,7 +4607,8 @@ type StateTransitionConfigOrTarget<
       TInput,
       TTarget,
       TKnownTarget,
-      TOutput
+      TOutput,
+      TRejection
     >;
 
 type StateTransitionObjectConfig<
@@ -4491,7 +4810,8 @@ type StateTransitionFunction<
   TInput = undefined,
   TTarget extends string = SetupStateTarget<TStateSchemas>,
   TKnownTarget extends string = KnownSetupStateTarget<TStateSchemas>,
-  TOutput = OutputArg<TExpressionEvent>['output']
+  TOutput = OutputArg<TExpressionEvent>['output'],
+  TRejection extends EventObject = EventObject
 > = (
   args: {
     context: TContext;
@@ -4520,6 +4840,7 @@ type StateTransitionFunction<
     guards: TGuardMap;
     delays: TDelayMap;
     input: TInput;
+    reject: Reject<TRejection>;
   },
   enq: EnqueueObject<
     TEvent,
@@ -4528,23 +4849,26 @@ type StateTransitionFunction<
     Compute<CallbackActors<TActorMap>>,
     TChildren
   >
-) => StateTransitionResult<
-  TStateSchemas,
-  TContext,
-  TContextShape,
-  TMeta,
-  TExpressionEvent,
-  TEmitted,
-  TChildren,
-  TActionMap,
-  TActorMap,
-  TGuardMap,
-  TDelayMap,
-  TSystemRegistry,
-  false,
-  TTarget,
-  TKnownTarget
-> | void;
+) =>
+  | (StateTransitionResult<
+      TStateSchemas,
+      TContext,
+      TContextShape,
+      TMeta,
+      TExpressionEvent,
+      TEmitted,
+      TChildren,
+      TActionMap,
+      TActorMap,
+      TGuardMap,
+      TDelayMap,
+      TSystemRegistry,
+      false,
+      TTarget,
+      TKnownTarget
+    > & { reject?: never })
+  | void
+  | RejectionResult<TRejection>;
 
 type StateTransitionResult<
   TStateSchemas extends Record<string, SetupStateSchema>,
@@ -4777,7 +5101,7 @@ export interface SetupReturn<
     >
   ): SetupReturn<
     MergeSetupStateSchemas<TStates, TExtendStates>,
-    MergeSourceMaps<TSchemas, TExtendSchemas>,
+    MergeSetupExtensionSchemas<TSchemas, TExtendSchemas>,
     MergeSourceMaps<TSetupActionMap, TExtendActionMap>,
     MergeSourceMaps<TSetupActorMap, TExtendActorMap>,
     MergeSourceMaps<TSetupGuardMap, TExtendGuardMap>,
@@ -4816,7 +5140,8 @@ export interface SetupReturn<
         SetupGuards<TSchemas, TSetupGuardMap>,
         TSetupDelayMap,
         TSystemRegistry,
-        TStateInput
+        TStateInput,
+        RejectionsFromConfig<{ schemas: TSchemas }>
       >,
     ...check: unknown extends TConfig
       ? []
@@ -4843,7 +5168,8 @@ export interface SetupReturn<
                 SetupGuards<TSchemas, TSetupGuardMap>,
                 TSetupDelayMap,
                 TSystemRegistry,
-                TStateInput
+                TStateInput,
+                RejectionsFromConfig<{ schemas: TSchemas }>
               >
             > &
               ValidateSystemInvoke<
@@ -4904,7 +5230,8 @@ export interface SetupReturn<
         SetupGuards<TSchemas, TSetupGuardMap>,
         TSetupDelayMap,
         TSystemRegistry,
-        TStateInput
+        TStateInput,
+        RejectionsFromConfig<{ schemas: TSchemas }>
       > & { schemas: { output: TOutputSchema } },
     ...check: unknown extends TConfig
       ? []
@@ -4931,7 +5258,8 @@ export interface SetupReturn<
                 SetupGuards<TSchemas, TSetupGuardMap>,
                 TSetupDelayMap,
                 TSystemRegistry,
-                TStateInput
+                TStateInput,
+                RejectionsFromConfig<{ schemas: TSchemas }>
               >
             > &
               ValidateSystemInvoke<
@@ -4963,6 +5291,80 @@ export interface SetupReturn<
     CreatedInvokeValidationConfig<TConfig>
   >;
 
+  /** Creates an invoke from a registered actor source. */
+  createInvoke<
+    TSrc extends keyof TSetupActorMap & string,
+    TContext extends SetupContext<TSchemas, StandardSchemaV1> = SetupContext<
+      TSchemas,
+      StandardSchemaV1
+    >,
+    TContextShape = SetupContextShape<TSchemas, StandardSchemaV1, TContext>,
+    TStateSchemas extends Record<string, SetupStateSchema> = TStates,
+    TStateInput = undefined,
+    const TConfig = unknown
+  >(
+    config: TConfig &
+      Omit<
+        CreateInvokeConfig<
+          TSetupActorMap[TSrc],
+          TStateSchemas,
+          TContext,
+          TContextShape,
+          SetupEvents<TSchemas, Record<string, StandardSchemaV1>>,
+          SetupEmitted<TSchemas, Record<string, StandardSchemaV1>>,
+          SetupChildren<TSchemas, Record<string, StandardSchemaV1>>,
+          SetupTransitionMeta<TSchemas, StandardSchemaV1, StandardSchemaV1>,
+          SetupActions<TSchemas, TSetupActionMap>,
+          TSetupActorMap,
+          SetupGuards<TSchemas, TSetupGuardMap>,
+          TSetupDelayMap,
+          TSystemRegistry,
+          TStateInput
+        >,
+        'src'
+      > & { src: TSrc },
+    ...check: unknown extends TConfig
+      ? []
+      : [TConfig] extends [
+            NoInfer<
+              Omit<
+                CreateInvokeConfig<
+                  TSetupActorMap[TSrc],
+                  TStateSchemas,
+                  TContext,
+                  TContextShape,
+                  SetupEvents<TSchemas, Record<string, StandardSchemaV1>>,
+                  SetupEmitted<TSchemas, Record<string, StandardSchemaV1>>,
+                  SetupChildren<TSchemas, Record<string, StandardSchemaV1>>,
+                  SetupTransitionMeta<
+                    TSchemas,
+                    StandardSchemaV1,
+                    StandardSchemaV1
+                  >,
+                  SetupActions<TSchemas, TSetupActionMap>,
+                  TSetupActorMap,
+                  SetupGuards<TSchemas, TSetupGuardMap>,
+                  TSetupDelayMap,
+                  TSystemRegistry,
+                  TStateInput
+                >,
+                'src'
+              > & { src: TSrc }
+            > &
+              ValidateSystemInvoke<TConfig, TSystemRegistry, TSetupActorMap>
+          ]
+        ? []
+        : [invalidConfig: never]
+  ): CreatedInvoke<
+    TSetupActorMap[TSrc],
+    TContext,
+    TContextShape,
+    TStateSchemas,
+    TStateInput,
+    CreatedInvokeValidationConfig<TConfig>,
+    TSrc
+  >;
+
   /** Creates an invoke from actor logic with its existing source types. */
   createInvoke<
     TLogic extends AnyActorLogic,
@@ -4987,7 +5389,8 @@ export interface SetupReturn<
         SetupGuards<TSchemas, TSetupGuardMap>,
         TSetupDelayMap,
         TSystemRegistry,
-        TStateInput
+        TStateInput,
+        RejectionsFromConfig<{ schemas: TSchemas }>
       >,
     ...check: unknown extends TConfig
       ? []
@@ -5011,7 +5414,8 @@ export interface SetupReturn<
                 SetupGuards<TSchemas, TSetupGuardMap>,
                 TSetupDelayMap,
                 TSystemRegistry,
-                TStateInput
+                TStateInput,
+                RejectionsFromConfig<{ schemas: TSchemas }>
               >
             > &
               ValidateSystemInvoke<TConfig, TSystemRegistry, TSetupActorMap>
@@ -5048,6 +5452,7 @@ export interface SetupReturn<
       string,
       StandardSchemaV1
     >,
+    const TInlineSchemas extends SetupSchemas = {},
     const TActionSchemaMap extends ActionSchemas = {},
     const TGuardSchemaMap extends GuardSchemas = {},
     _TEvent extends EventObject = EventObject,
@@ -5077,6 +5482,7 @@ export interface SetupReturn<
       TTransitionMetaSchema,
       TTagSchema,
       TChildrenSchemaMap,
+      SetupSchemaMap<TInlineSchemas, 'rejections'>,
       SetupContext<TSchemas, TContextSchema>,
       | SetupEvents<TSchemas, TEventSchemaMap, TInternalEventSchemaMap>
       | ChildCompletionEvents<
@@ -5124,6 +5530,7 @@ export interface SetupReturn<
       TTransitionMetaSchema,
       TTagSchema,
       TChildrenSchemaMap,
+      SetupSchemaMap<TInlineSchemas, 'rejections'>,
       SetupContext<TSchemas, TContextSchema>,
       | SetupEvents<TSchemas, TEventSchemaMap, TInternalEventSchemaMap>
       | ChildCompletionEvents<
@@ -5160,7 +5567,7 @@ export interface SetupReturn<
     >
   >(
     config: {
-      schemas?: {
+      schemas?: TInlineSchemas & {
         events?: TEventSchemaMap;
         internalEvents?: TInternalEventSchemaMap;
         context?: TContextSchema;
@@ -5174,29 +5581,38 @@ export interface SetupReturn<
         tags?: TTagSchema;
         children?: TChildrenSchemaMap;
       } & ([TValidator] extends [ActorLogicValidator]
-        ? ValidateSetupSchemas<
-            InlineMachineSchemas<
-              TContextSchema,
-              TEventSchemaMap,
-              TInternalEventSchemaMap,
-              TEmittedSchemaMap,
-              TActionSchemaMap,
-              TGuardSchemaMap,
-              TInputSchema,
-              TOutputSchema,
-              TMetaSchema,
-              TTransitionMetaSchema,
-              TTagSchema,
-              TChildrenSchemaMap
+          ? ValidateSetupSchemas<
+              InlineMachineSchemas<
+                TContextSchema,
+                TEventSchemaMap,
+                TInternalEventSchemaMap,
+                TEmittedSchemaMap,
+                TActionSchemaMap,
+                TGuardSchemaMap,
+                TInputSchema,
+                TOutputSchema,
+                TMetaSchema,
+                TTransitionMetaSchema,
+                TTagSchema,
+                TChildrenSchemaMap,
+                SetupSchemaMap<TInlineSchemas, 'rejections'>
+              >
             >
-          >
-        : unknown);
+          : unknown);
       actions?: TActionMap;
       actors?: TActorMap;
       guards?: TGuardMap;
       delays?: TDelayMap;
       states?: Record<TStateKeys, unknown>;
     } & TConfig &
+      SourceOverrideContracts<
+        SetupActions<TSchemas, TSetupActionMap>,
+        TSetupActorMap,
+        SetupGuards<TSchemas, TSetupGuardMap>,
+        TActionMap,
+        TActorMap,
+        TGuardMap
+      > &
       RuntimeValidationConstraint<
         NoInfer<MachineConfigSchemas<TConfig>>,
         NoInfer<MachineConfigStates<TConfig>>,
@@ -5237,10 +5653,7 @@ export interface SetupReturn<
             RoutableStateId<SetupMachineStateSchema<TConfig, TStates>>
           ] extends [never]
             ? never
-            : {
-                type: 'xstate.route';
-                to: RoutableStateId<SetupMachineStateSchema<TConfig, TStates>>;
-              }),
+            : RouteEvent<`${RoutableStateId<SetupMachineStateSchema<TConfig, TStates>>}`>),
         Cast<
           MergeChildren<SetupChildren<TSchemas, TChildrenSchemaMap>, TActor> &
             InferredInvokeChildren<
@@ -5592,7 +6005,7 @@ export const setup = function setupImplementation<
         mergeSetupConfigs(config, extension as AnySetupConfig) as any
       ) as unknown as SetupReturn<
         MergeSetupStateSchemas<TStates, TExtendStates>,
-        MergeSourceMaps<TSchemas, TExtendSchemas>,
+        MergeSetupExtensionSchemas<TSchemas, TExtendSchemas>,
         MergeSourceMaps<TActionMap, TExtendActionMap>,
         MergeSourceMaps<TActorMap, TExtendActorMap>,
         MergeSourceMaps<TGuardMap, TExtendGuardMap>,
@@ -5851,6 +6264,7 @@ function mergeSchemas(
     actions: mergeMaps(left?.actions, right?.actions),
     guards: mergeMaps(left?.guards, right?.guards),
     emitted: mergeMaps(left?.emitted, right?.emitted),
+    rejections: mergeMaps(left?.rejections, right?.rejections),
     children: mergeMaps(left?.children, right?.children)
   };
 }

@@ -1,3 +1,9 @@
+import { selectNonConflictingTransitions } from './stateUtils.ts';
+import {
+  isRejection,
+  type TransitionCheck,
+  type TransitionRejection
+} from './rejections.ts';
 import isDevelopment from '#is-development';
 import { xstateError } from './xstateError.ts';
 import { createActor } from './createActor.ts';
@@ -32,7 +38,7 @@ import {
   isStateId,
   macrostep,
   resolveStateValue,
-  transitionNode,
+  selectEventTransitions,
   type TransitionSelectionResults
 } from './stateUtils.ts';
 import {
@@ -926,19 +932,22 @@ export class StateMachine<
     >,
     event: TEvent,
     actorScope: AnyActorScope,
-    selectionResults?: TransitionSelectionResults
+    selectionResults: TransitionSelectionResults = new Map(),
+    includeRejections = false
   ): Array<AnyTransitionDefinition> {
     this._microstepHooks?.begin(actorScope.self);
-    return (
-      transitionNode(
-        this.root,
-        snapshot.value,
-        snapshot,
-        event,
-        actorScope,
-        selectionResults
-      ) || []
+    const transitions = selectEventTransitions(
+      this.root,
+      snapshot,
+      event,
+      actorScope,
+      selectionResults
     );
+    return includeRejections
+      ? transitions
+      : transitions.filter(
+          (t) => !isRejection(selectionResults.get(t)?.result)
+        );
   }
 
   public isInternalEventType(eventType: string): boolean {
@@ -962,49 +971,62 @@ export class StateMachine<
    * @internal
    */
   public _canTransition(snapshot: AnyMachineSnapshot, event: TEvent): boolean {
-    if (snapshot.status !== 'active') {
-      return false;
-    }
-    const emptyActorScope = getEmptyCanActorScope();
-    const transitionData = this.getTransitionData(
-      snapshot as any,
+    const { status } = this._checkTransition(snapshot, event);
+    return status === 'accepted' || status === 'partial';
+  }
+
+  /** @internal */
+  public _checkTransition(
+    snapshot: AnyMachineSnapshot,
+    event: TEvent
+  ): TransitionCheck<EventObject> {
+    if (snapshot.status !== 'active') return { status: 'unhandled' };
+    const scope = getEmptyCanActorScope();
+    const selections: TransitionSelectionResults = new Map();
+    const transitions = selectNonConflictingTransitions(
+      this.getTransitionData(snapshot as any, event, scope, selections, true),
+      snapshot,
       event,
-      emptyActorScope
+      scope,
+      selections
     );
-
-    if (!transitionData?.length) {
-      return false;
-    }
-
-    // Check that at least one transition is not forbidden
-    for (const transition of transitionData) {
-      if (transition.target !== undefined) {
-        return true;
+    const rejections: TransitionRejection<EventObject>[] = [];
+    let accepted = false;
+    for (const transition of transitions) {
+      const selection = selections.get(transition);
+      if (isRejection(selection?.result)) {
+        rejections.push({
+          source: transition.source.id,
+          reasons: selection.result.reject
+        });
+        continue;
       }
-
-      const res = getTransitionResult(
-        transition,
-        snapshot,
-        event,
-        emptyActorScope,
-        { resolveActions: false }
-      );
       if (
-        res.targets?.length ||
-        res.context ||
-        hasEffect(
-          transition,
-          snapshot.context,
-          event,
-          snapshot,
-          emptyActorScope
-        )
+        transition.target !== undefined ||
+        (selection?.reusable && selection.enabled)
       ) {
-        return true;
+        accepted = true;
+        continue;
       }
+      const result = getTransitionResult(transition, snapshot, event, scope, {
+        resolveActions: false,
+        selectionResult: selection
+      });
+      if (
+        result.targets?.length ||
+        result.context ||
+        (!selection?.reusable &&
+          hasEffect(transition, snapshot.context, event, snapshot, scope))
+      )
+        accepted = true;
     }
-
-    return false;
+    const [first, ...rest] = rejections;
+    if (first)
+      return {
+        status: accepted ? 'partial' : 'rejected',
+        rejections: [first, ...rest]
+      };
+    return { status: accepted ? 'accepted' : 'unhandled' };
   }
 
   /**

@@ -2663,6 +2663,35 @@ describe('transition function', () => {
     ]);
   });
 
+  it('initialTransition: invoke input and child snapshot include the entry patch', () => {
+    const child = createMachine({
+      schemas: { input: z.object({ consent: z.string() }) },
+      context: ({ input }) => input
+    });
+    let entryRef;
+    const machine = createMachine({
+      context: { consent: 'unset' },
+      entry: ({ children }) => {
+        entryRef = children.child;
+        return { context: { consent: 'patched' } };
+      },
+      invoke: {
+        id: 'child',
+        src: child,
+        input: ({ context }) => ({ consent: context.consent })
+      }
+    });
+    const [snapshot, effects] = initialTransition(machine);
+    const [spawn] = effects.filter(isEffect(XSTATE_SPAWN));
+
+    expect(spawn.input).toEqual({ consent: 'patched' });
+    expect(spawn.actor).toBe(entryRef);
+    expect(snapshot.children.child).toBe(entryRef);
+    expect(snapshot.children.child!.getSnapshot().context).toEqual({
+      consent: 'patched'
+    });
+  });
+
   it('initialTransition: invoke start is deferred to the end, after entry actions', () => {
     const machine = createMachine({
       invoke: {

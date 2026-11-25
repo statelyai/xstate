@@ -7,7 +7,7 @@ description: Run XState logic in a Solid component with useActor and useActorRef
 npm install xstate@alpha @xstate/solid@alpha
 ```
 
-`@xstate/solid` provides four primitives: `useActor(...)`, `useActorRef(...)`, `fromActorRef(...)` and `useMachine(...)`. They require Solid 1.6 or later.
+`@xstate/solid` provides four primitives: `useActor(...)`, `useActorRef(...)`, `fromActorRef(...)` and `useMachine(...)`. They require Solid 2.0.1 or later.
 
 ```tsx
 import { Show } from 'solid-js';
@@ -62,37 +62,65 @@ The snapshot is read directly, as in `snapshot.context.volume` or `snapshot.matc
 
 ## Options
 
-The second argument is the same [actor options](../create-actor.md) object accepted by `createActor(...)`: `input`, `snapshot`, `id`, `registryKey`, `clock`, `logger`, `inspect`. It is required when the logic requires input.
+The second argument is the same [actor options](../create-actor.md) object accepted by `createActor(...)`: `input`, `id`, `registryKey`, `clock`, `logger`, `inspect`. It is required when the logic requires input. To resume a persisted actor, pass an actor created with `restoreActor(...)` from `xstate/persist` instead of the logic; see [Input and restored snapshots](input-and-snapshots.md).
 
 ```ts
-const [snapshot, send] = useActor(uploadMachine, {
-  input: { fileId: props.fileId },
-  registryKey: 'upload'
-});
+const [snapshot, send] = useActor(uploadMachine, { registryKey: 'upload' });
 ```
 
-Options are read once, when the component runs. Changing the values later does not restart the actor. Send an event instead, or recreate the component with a `<Show keyed>` or `<Key>` boundary.
+Options are read once, when the actor is created.
+
+## Deriving the actor
+
+When the actor depends on props or async data, pass a function that creates it. The hook reads it in a tracked scope, the way a memo does, and owns every actor it returns: when the function returns a new actor, the old one is stopped and the new one started, and the snapshot follows the current actor.
+
+```tsx
+function Upload(props: { fileId: string }) {
+  const [snapshot, send, actorRef] = useActor(() =>
+    createActor(uploadMachine, { input: { fileId: props.fileId } })
+  );
+  // actorRef is an accessor here: actorRef()
+}
+```
+
+A new `fileId` starts a fresh actor with fresh state. To keep the state and react to the change, create the actor without the prop and send an event instead.
+
+To follow an actor without owning it, such as one from props or context, use [`fromActorRef(...)`](selectors.md).
 
 ## Lifecycle
 
-The actor is created when the component function runs, started in `onMount`, and stopped in `onCleanup`.
+The actor is created when the hook runs, started once the owner settles, and stopped when the owner is cleaned up. A derived actor is also stopped when it is replaced.
 
 - The initial snapshot is readable before mount, so the first render is never empty.
 - Events sent before mount are queued in the actor's mailbox and processed once it starts.
 - On cleanup the actor is stopped: invoked children stop, delayed transitions are cancelled and further events are ignored.
+- Like any Solid 2 write, a transition reaches the snapshot when Solid flushes, on the next microtask. A read right after `send(...)` outside a reactive scope still sees the previous snapshot; call `flush()` from `solid-js` first when you need it immediately, as in a test.
 
 State does not survive unmount. Persist the snapshot if the actor should resume later. See [Input and restored snapshots](input-and-snapshots.md).
 
 ## useActorRef
 
-`useActorRef(logic, options?)` returns only the actor, with the same lifecycle and no reactive snapshot.
+`useActorRef(logic, options?)` returns only the actor, with the same lifecycle and no reactive snapshot. Given a function, it returns an accessor of the current actor.
 
 ```tsx
-const actorRef = useActorRef(checkoutMachine, { input: { cartId: props.cartId } });
+const actorRef = useActorRef(() =>
+  createActor(checkoutMachine, { input: { cartId: props.cartId } })
+);
 const snapshot = fromActorRef(actorRef);
 ```
 
-Unlike the Vue package, there is no observer or listener argument. Call `actorRef.subscribe(...)` yourself and unsubscribe in `onCleanup(...)`, or use [`fromActorRef(...)`](selectors.md).
+Unlike the Vue package, there is no observer or listener argument. Subscribe to each actor returned by the accessor in an effect, or use [`fromActorRef(...)`](selectors.md).
+
+```tsx
+import { createEffect } from 'solid-js';
+
+createEffect(actorRef, (actor) => {
+  const subscription = actor.subscribe((snapshot) => {
+    // Handle the current actor's snapshot.
+  });
+  return () => subscription.unsubscribe();
+});
+```
 
 ## useMachine
 
@@ -115,7 +143,9 @@ function Total(props: { actorRef: ActorRefFrom<typeof checkoutMachine> }) {
 
 ```ts
 const [snapshot, send, actorRef] = useActor(logic, options);
+const [snapshot, send, actorRef] = useActor(() => createActor(logic, options)); // actorRef is an Accessor
 const actorRef = useActorRef(logic, options);
+const actorRef = useActorRef(() => createActor(logic, options)); // Accessor
 const snapshot = fromActorRef(actorRef); // Accessor
 const [snapshot, send, actorRef] = useMachine(machine, options); // alias
 ```

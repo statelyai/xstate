@@ -21,7 +21,7 @@ import { XSTATE_TIMER } from './constants.ts';
 import { getScheduledTimerKey, matchesTimerKey } from './timerKey.ts';
 import { toObserver } from './utils.ts';
 import { reportUnhandledError } from './reportUnhandledError.ts';
-import { getAmbientInspector } from './inspectionAmbient.ts';
+import { attachAmbientInspector } from './inspectionAmbient.ts';
 import { markSystemSnapshotDirty } from './snapshotActorRef.ts';
 import {
   createMissingAddressError,
@@ -133,10 +133,7 @@ export function withExecutionIdentity<T>(
 }
 
 /** @internal */
-export {
-  hasAmbientInspector,
-  withSystemInspector
-} from './inspectionAmbient.ts';
+export { withSystemInspector } from './inspectionAmbient.ts';
 
 /**
  * Derives the deterministic id prefix for a generated actor id from its actor
@@ -474,6 +471,10 @@ export interface ActorSystem<
     logic: AnyActorLogic,
     options: InternalActorOptions<AnyActorLogic>
   ): AnyActor;
+  /** @internal Completes an invoke reference reserved before parent entry. */
+  initializeActorRef(actor: AnyActor, input: unknown): void;
+  /** @internal Discards an allocation whose creation effects will not run. */
+  discardActorRef(actor: AnyActor): void;
   /** @internal */
   children: Map<string, AnyActor>;
   /** @internal Avoids materializing the registered-actor map. */
@@ -612,6 +613,8 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
   public _clock: Clock;
   public _logger: (...args: any[]) => void;
   public createActorRef: ActorSystem<T>['createActorRef'];
+  public initializeActorRef: ActorSystem<T>['initializeActorRef'];
+  public discardActorRef: ActorSystem<T>['discardActorRef'];
 
   public get children(): Map<string, AnyActor> {
     const children = (this._children ??= new Map());
@@ -662,15 +665,16 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
       clock: Clock;
       logger: (...args: any[]) => void;
       createActorRef: ActorSystem<T>['createActorRef'];
+      initializeActorRef: ActorSystem<T>['initializeActorRef'];
+      discardActorRef: ActorSystem<T>['discardActorRef'];
     }
   ) {
     this._clock = options.clock;
     this._logger = options.logger;
     this.createActorRef = options.createActorRef;
-    const ambientInspector = getAmbientInspector();
-    if (ambientInspector) {
-      this.inspect(ambientInspector);
-    }
+    this.initializeActorRef = options.initializeActorRef;
+    this.discardActorRef = options.discardActorRef;
+    attachAmbientInspector(this);
     this._snapshot = {
       _scheduledTimers: emptyScheduledTimers,
       // System-level counters are process-local backstops; per-actor
@@ -1189,6 +1193,8 @@ export function createRuntimeSystem<T extends ActorSystemInfo>(
     clock: Clock;
     logger: (...args: any[]) => void;
     createActorRef: ActorSystem<T>['createActorRef'];
+    initializeActorRef: ActorSystem<T>['initializeActorRef'];
+    discardActorRef: ActorSystem<T>['discardActorRef'];
   }
 ): ActorSystem<T> {
   return new RuntimeSystem(rootActor, options);

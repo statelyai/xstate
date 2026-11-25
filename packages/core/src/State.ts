@@ -1,3 +1,4 @@
+import type { TransitionCheck, RejectionsFromConfig } from './rejections.ts';
 import { getTimerStart } from './timerClock.ts';
 import { getScheduledTimerKey, getTimerKey } from './timerKey.ts';
 import isDevelopment from '#is-development';
@@ -401,6 +402,9 @@ interface MachineSnapshotBase<
    */
   can: (event: TEvent) => boolean;
 
+  /** Checks event acceptance without executing effects. */
+  check: (event: TEvent) => TransitionCheck<RejectionsFromConfig<TStateSchema>>;
+
   getMeta: () => Record<
     StateId<TStateSchema> & string,
     TMeta | undefined // States might not have meta defined
@@ -596,6 +600,13 @@ const machineSnapshotCan = function can(
   return this.machine?._canTransition(this, event) ?? false;
 };
 
+const machineSnapshotCheck = function check(
+  this: AnyMachineSnapshot,
+  event: EventObject
+) {
+  return this.machine?._checkTransition(this, event) ?? { status: 'unhandled' };
+};
+
 const machineSnapshotToJSON = function toJSON(this: AnyMachineSnapshot) {
   const {
     nodes,
@@ -609,6 +620,7 @@ const machineSnapshotToJSON = function toJSON(this: AnyMachineSnapshot) {
     getInputs,
     toJSON,
     can,
+    check,
     hasTag,
     matches,
     ...jsonValues
@@ -688,6 +700,7 @@ export function createMachineSnapshot<
     matches: machineSnapshotMatches as never,
     hasTag: machineSnapshotHasTag,
     can: machineSnapshotCan,
+    check: machineSnapshotCheck as never,
     getMeta: machineSnapshotGetMeta,
     getInputs: machineSnapshotGetInputs,
     toJSON: machineSnapshotToJSON
@@ -730,6 +743,7 @@ export function cloneMachineSnapshot<TState extends AnyMachineSnapshot>(
       matches: machineSnapshotMatches as never,
       hasTag: machineSnapshotHasTag,
       can: machineSnapshotCan,
+      check: machineSnapshotCheck as never,
       getMeta: machineSnapshotGetMeta,
       getInputs: machineSnapshotGetInputs,
       toJSON: machineSnapshotToJSON
@@ -800,6 +814,7 @@ export function getPersistedSnapshot<
     timers,
     context,
     can,
+    check,
     hasTag,
     matches,
     getMeta,
@@ -823,6 +838,10 @@ export function getPersistedSnapshot<
 
   const childrenJson: Record<string, unknown> = {};
   const timersJson: unknown[] = [];
+  const snapshotActor = getSnapshotActorRef(snapshot)?.actor;
+  // Invocation identity is needed only when restoring a simulation.
+  const persistInvocation =
+    snapshotActor && 'simulate' in snapshotActor && !!snapshotActor.simulate;
 
   const embedChildren =
     (options as { embedChildren?: boolean } | undefined)?.embedChildren !==
@@ -876,12 +895,14 @@ export function getPersistedSnapshot<
             incarnation: isRemoteActorRef(child) ? child.sessionId : undefined
           }),
       ...(invoked ? {} : { src: child.src }),
+      ...(persistInvocation && embed && !invoked && child._invoked === true
+        ? { invoked: true }
+        : {}),
       registryKey: child.registryKey,
       syncSnapshot: child._syncSnapshot
     };
   }
 
-  const snapshotActor = getSnapshotActorRef(snapshot)?.actor;
   // Only the wall clock is stamped into persisted timers: a custom clock's
   // readings (a simulated clock, a monotonic counter) are meaningless in any
   // other process, and restoring them under the wall clock would fire every

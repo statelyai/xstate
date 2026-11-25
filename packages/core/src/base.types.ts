@@ -57,6 +57,7 @@ export type SetupSchemas = {
   actions?: ActionSchemas | undefined;
   guards?: GuardSchemas | undefined;
   emitted?: Record<string, StandardSchemaV1> | undefined;
+  rejections?: Record<string, StandardSchemaV1> | undefined;
   input?: StandardSchemaV1 | undefined;
   output?: StandardSchemaV1 | undefined;
   meta?: StandardSchemaV1 | undefined;

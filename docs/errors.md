@@ -112,7 +112,7 @@ A state's `entry` or `exit` is an array, a string, or another non-function value
 
 ```text
 The "{key}" actor option was removed. ...
-Unknown actor option "{key}". Supported options: clock, logger, syncSnapshot, id, registryKey, input, src, inspect, onRejectedEvent, onUnhandledEvent.
+Unknown actor option "{key}". Supported options: clock, logger, syncSnapshot, id, registryKey, input, simulate, src, inspect, onRejectedEvent, onUnhandledEvent.
 ```
 
 Values: the option name.
@@ -810,3 +810,43 @@ Actor terminated without satisfying predicate
 ```
 
 The actor passed to `waitFor(...)` stopped or finished before the predicate returned `true`. Check the predicate against the actor's final snapshot.
+
+## E77
+
+```text
+Actor "{parentId}" has no active invoked child with id "{childId}".
+```
+
+Values: the child ID and the parent actor ID.
+
+`actor.simulate.childDone(...)` requires a running invocation on the parent. Check that the actor is started and the invocation is active.
+
+## E78
+
+```text
+Cannot simulate completion while child actor "{childId}" is processing an event.
+```
+
+Value: the child ID.
+
+Call `actor.simulate.childDone(...)` after the child finishes starting or processing the current event.
+
+## E79
+
+```text
+Simulated completion did not finish child actor "{childId}".
+```
+
+Value: the child ID.
+
+The child logic did not produce a terminal result. Check whether a custom validator rejects the completion event.
+
+## E80
+
+```text
+Lifecycle event "{eventType}" was not delivered to actor "{targetId}" because it did not originate from the runtime.
+```
+
+Values: the event type and target actor ID.
+
+Send an application event, or use [simulated child completion](testing.md#simulate-child-completion) in a test.

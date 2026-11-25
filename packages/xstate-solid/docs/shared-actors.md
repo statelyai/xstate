@@ -9,35 +9,35 @@ Create the actor once in a provider component, then share the reference with Sol
 
 ```tsx
 // checkoutContext.tsx
-import { createContext, useContext, type ParentProps } from 'solid-js';
+import {
+  createContext,
+  useContext,
+  type Accessor,
+  type ParentProps
+} from 'solid-js';
 import { useActorRef } from '@xstate/solid';
-import type { ActorRefFrom } from 'xstate';
+import { createActor, type ActorRefFrom } from 'xstate';
 import { checkoutMachine } from './checkoutMachine';
 
-const CheckoutContext = createContext<ActorRefFrom<typeof checkoutMachine>>();
+const CheckoutContext =
+  createContext<Accessor<ActorRefFrom<typeof checkoutMachine>>>();
 
 export function CheckoutProvider(props: ParentProps<{ cartId: string }>) {
-  const actorRef = useActorRef(checkoutMachine, {
-    input: { cartId: props.cartId }
-  });
-
-  return (
-    <CheckoutContext.Provider value={actorRef}>
-      {props.children}
-    </CheckoutContext.Provider>
+  const actorRef = useActorRef(() =>
+    createActor(checkoutMachine, { input: { cartId: props.cartId } })
   );
+
+  return <CheckoutContext value={actorRef}>{props.children}</CheckoutContext>;
 }
 
 export function useCheckout() {
-  const actorRef = useContext(CheckoutContext);
-  if (!actorRef) throw new Error('useCheckout must be used inside CheckoutProvider');
-  return actorRef;
+  return useContext(CheckoutContext);
 }
 ```
 
-`createContext<T>()` without a default value gives `useContext(...)` the type `T | undefined`. Throwing in the hook narrows it once, so no consumer needs a non-null assertion.
+In Solid 2 the context is its own provider component. `createContext<T>()` without a default value gives `useContext(...)` the type `T`, and it throws when no provider is mounted, so no consumer needs a non-null assertion.
 
-`useActorRef(...)` is the right primitive here: the provider renders no snapshot data, so it should not depend on the actor's transitions.
+`useActorRef(...)` is the right primitive here: the provider renders no snapshot data, so it should not depend on the actor's transitions. Given a function, it returns an accessor; a new `cartId` creates a new actor, and descendants reading through `fromActorRef(...)` follow it.
 
 ## Read it in a descendant
 
@@ -55,7 +55,7 @@ export function PayButton() {
     <>
       <output>{snapshot().context.total}</output>
       <Show when={canPay()}>
-        <button onClick={() => checkoutRef.send({ type: 'pay' })}>Pay</button>
+        <button onClick={() => checkoutRef().send({ type: 'pay' })}>Pay</button>
       </Show>
     </>
   );

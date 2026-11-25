@@ -1,4 +1,5 @@
 import isDevelopment from '#is-development';
+import type { InternalActorOptions } from './createActor.ts';
 import { xstateError } from './xstateError.ts';
 import { publishEmittedEvent } from './runtimeHelpers.ts';
 import { assertSendToEvent, builtInActions } from './actions.ts';
@@ -436,6 +437,39 @@ function getTransitionActionRecord(
   return undefined;
 }
 
+/** @internal Creates a child and commits its allocation only on success. */
+export function createChildActorRef(
+  actorScope: AnyActorScope,
+  logic: AnyActorLogic,
+  options: InternalActorOptions<AnyActorLogic>,
+  localAllocation?: SpawnAllocation
+): AnyActor {
+  const allocation = spawnAllocations.get(actorScope) ?? localAllocation;
+  try {
+    const actor = actorScope.system.createActorRef(logic, options);
+    allocation?.actors.push(actor);
+    return actor;
+  } catch (error) {
+    if (options.id !== undefined) allocation?.explicitIds.delete(options.id);
+    throw error;
+  }
+}
+
+/** @internal Discards allocations from an aborted transition. */
+export function discardSpawnedActors(actorScope: AnyActorScope): void {
+  const actors = spawnAllocations.get(actorScope)?.actors.splice(0) ?? [];
+  for (const actor of actors) {
+    actorScope.system.discardActorRef(actor);
+    recordStoppedChild(actorScope, actor);
+  }
+}
+
+/** @internal Releases tracking refs after successful macrostep calculation. */
+export function completeSpawnAllocation(actorScope: AnyActorScope): void {
+  const allocation = spawnAllocations.get(actorScope);
+  if (allocation) allocation.actors.length = 0;
+}
+
 function pushSpawnedChild(
   actions: any[],
   actor: AnyActor,
@@ -456,6 +490,7 @@ function pushSpawnedChild(
  * microsteps of the same event.
  */
 interface SpawnAllocation {
+  actors: AnyActor[];
   counters: Map<string, number>;
   /** Explicit child ids claimed by spawns/invokes of this transition. */
   explicitIds: Set<string>;
@@ -466,6 +501,7 @@ interface SpawnAllocation {
 const spawnAllocations = new WeakMap<object, SpawnAllocation>();
 
 const createSpawnAllocation = (): SpawnAllocation => ({
+  actors: [],
   counters: new Map(),
   explicitIds: new Set(),
   stoppedIds: new Set()
@@ -500,21 +536,10 @@ function getWorkingSnapshotOf(actorScope: AnyActorScope):
   )._snapshot;
 }
 
-function getRegisteredActors(
-  actorScope: AnyActorScope
-): Record<string, AnyActorLogic> | undefined {
-  return (
-    actorScope.self as {
-      logic?: { sources?: { actors?: Record<string, AnyActorLogic> } };
-    }
-  ).logic?.sources?.actors;
-}
-
 function resolveTransitionSpawnSource(
-  actorScope: AnyActorScope,
+  registeredActors: Record<string, AnyActorLogic> | undefined,
   source: string | AnyActorLogic
 ): { logic: AnyActorLogic; src: string | undefined } {
-  const registeredActors = getRegisteredActors(actorScope);
   if (typeof source === 'string') {
     const logic = registeredActors?.[source];
     if (!logic) {
@@ -743,8 +768,17 @@ export function createTransitionEnqueue(
   actorScope: AnyActorScope,
   actions: any[],
   internalEvents: EventObject[],
-  actorSubscriptions = false,
-  createActors = true
+  {
+    registeredActors,
+    actorSubscriptions = false,
+    createActors = true,
+    onRefProducingCall
+  }: {
+    registeredActors?: Record<string, AnyActorLogic>;
+    actorSubscriptions?: boolean;
+    createActors?: boolean;
+    onRefProducingCall?: () => void;
+  } = {}
 ) {
   // Paths that never begin a transaction keep a per-enqueue scope.
   const localAllocation =
@@ -779,8 +813,12 @@ export function createTransitionEnqueue(
       }
     },
     spawn: (source: string | AnyActorLogic, options?: any) => {
-      const { logic, src } = resolveTransitionSpawnSource(actorScope, source);
+      const { logic, src } = resolveTransitionSpawnSource(
+        registeredActors,
+        source
+      );
       if (!createActors) {
+        onRefProducingCall?.();
         // Speculative evaluation creates no actor and allocates no id: return
         // an inert ref with the id this spawn would get.
         const prefix = getActorIdPrefix(src ?? logic);
@@ -810,12 +848,17 @@ export function createTransitionEnqueue(
         assertChildIdFree(actorScope, id, localAllocation);
         counters = reserveChildId(actorScope, id, localAllocation);
       }
-      const actor = actorScope.system.createActorRef(logic, {
-        ...options,
-        ...(src !== undefined && { src }),
-        id,
-        parent: actorScope.self
-      });
+      const actor = createChildActorRef(
+        actorScope,
+        logic,
+        {
+          ...options,
+          ...(src !== undefined && { src }),
+          id,
+          parent: actorScope.self
+        },
+        localAllocation
+      );
       pushSpawnedChild(actions, actor, id, counters);
       return actor;
     },
@@ -852,6 +895,7 @@ export function createTransitionEnqueue(
     Object.assign(props, {
       listen: (actor: any, eventType: string, mapper: any) => {
         if (!createActors) {
+          onRefProducingCall?.();
           return { id: undefined } as unknown as AnyActor;
         }
         const input: ListenerInput<any, any> = {
@@ -859,7 +903,7 @@ export function createTransitionEnqueue(
           eventType,
           mapper
         };
-        const listenerActor = actorScope.system.createActorRef(listenerLogic, {
+        const listenerActor = createChildActorRef(actorScope, listenerLogic, {
           input,
           parent: actorScope.self
         });
@@ -872,6 +916,7 @@ export function createTransitionEnqueue(
       },
       subscribeTo: (actor: any, mappers: any) => {
         if (!createActors) {
+          onRefProducingCall?.();
           return { id: undefined } as unknown as AnyActor;
         }
         const normalizedMappers: SubscriptionMappers<any, any, any> =
@@ -881,7 +926,8 @@ export function createTransitionEnqueue(
           actor,
           mappers: normalizedMappers
         };
-        const subscriptionActor = actorScope.system.createActorRef(
+        const subscriptionActor = createChildActorRef(
+          actorScope,
           subscriptionLogic,
           {
             input,

@@ -11,7 +11,7 @@ const machine = createMachine({
   initial: 'home',
   states: {
     home: { id: 'home', route: {} },
-    checkout: { id: 'checkout', route: {} },
+    checkout: { id: 'checkout', route: true },
     receipt: { id: 'receipt', route: ({ context }) => context.paid }
   }
 });
@@ -25,7 +25,7 @@ Two things are required: an explicit `id` and a `route`. A state with `route: {}
 
 ## Route as a guard
 
-The `route` value is either a config object or a transition-style function that acts as both guard and resolver.
+Use `route: true` or a config object for an unconditional route. For a conditional route, use a transition-style function that acts as both guard and resolver.
 
 - returning `undefined` or `false` blocks the route
 - returning `true` allows it
@@ -55,6 +55,20 @@ review: {
 }
 ```
 
+## Raise a route from a transition
+
+A transition function can call `enq.raise` to queue a route event for the same machine.
+
+```ts
+on: {
+  NEXT: (_, enq) => {
+    enq.raise({ type: 'xstate.route', to: '#checkout' });
+  }
+}
+```
+
+Use a `#`-prefixed explicit state ID. The actor resolves raised route destinations at runtime.
+
 ## Nested and parallel targets
 
 Routes work anywhere in the tree. Routing to a deeply nested state enters all of its ancestors:
@@ -78,7 +92,7 @@ Use route states for:
 
 ## TypeScript
 
-Route events are strongly typed. The `to` field only accepts `#id` strings for states that declare both an `id` and a `route`. A plain state key, the machine's own id, and a name that does not exist are all type errors. `machine.root.on['xstate.route']` is defined whenever the machine contains at least one route.
+For `actor.send`, the `to` field only accepts `#id` strings for states that declare both an `id` and a `route`. A plain state key, the machine's own id, and a name that does not exist are all type errors. `machine.root.on['xstate.route']` is defined whenever the machine contains at least one route.
 
 Inside a route function, `context`, `event` and `guards` are inferred from the machine's schemas. When a machine is built from JSON with `machineFromJSON`, a route may reference a guard by name; an unimplemented name errors the actor at route time with `Guard 'isReady' is not implemented in machine 'flow'`.
 

@@ -1,6 +1,7 @@
+import { reject, isRejection, assertRejectionResult } from './rejections.ts';
 import isDevelopment from '#is-development';
 import { xstateError } from './xstateError.ts';
-import { MachineSnapshot, cloneMachineSnapshot } from './State.ts';
+import { cloneMachineSnapshot } from './State.ts';
 import type { StateNode } from './StateNode.ts';
 import {
   createAfterEvent,
@@ -66,6 +67,9 @@ import {
   createTransitionEnqueue,
   createSendToEffect,
   deriveDeferredStarts,
+  discardSpawnedActors,
+  createChildActorRef,
+  completeSpawnAllocation,
   mergeContextPatch,
   resolveActionsWithContext
 } from './transitionActions.ts';
@@ -926,92 +930,57 @@ export type TransitionSelectionResults = Map<
   TransitionSelectionResult
 >;
 
-export function transitionNode<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(
-  stateNode: AnyStateNode,
-  stateValue: StateValue,
-  snapshot: MachineSnapshot<
-    TContext,
-    TEvent,
-    any,
-    any,
-    any,
-    any,
-    any,
-    any // TStateSchema
-  >,
-  event: TEvent,
+export function selectEventTransitions(
+  root: AnyStateNode,
+  snapshot: AnyMachineSnapshot,
+  event: AnyEventObject,
   actorScope: AnyActorScope,
   selectionResults?: TransitionSelectionResults
-): Array<TransitionDefinition<TContext, TEvent>> | undefined {
-  // leaf node
-  if (typeof stateValue === 'string') {
-    const childStateNode = getStateNode(stateNode, stateValue);
-    const next = childStateNode.next(
-      snapshot,
-      event,
-      actorScope,
-      selectionResults
-    );
+): AnyTransitionDefinition[] {
+  const transitions: AnyTransitionDefinition[] = [];
+  let checked: Set<AnyStateNode> | undefined;
 
-    if (!next || !next.length) {
-      return stateNode.next(snapshot, event, actorScope, selectionResults);
-    }
-
-    return next;
-  }
-
-  const subStateKeys = Object.keys(stateValue);
-  const subStateKey = subStateKeys[0];
-
-  if (subStateKeys.length === 1) {
-    const childStateNode = getStateNode(stateNode, subStateKey);
-    const next = transitionNode(
-      childStateNode,
-      stateValue[subStateKey]!,
-      snapshot,
-      event,
-      actorScope,
-      selectionResults
-    );
-
-    if (!next || !next.length) {
-      return stateNode.next(snapshot, event, actorScope, selectionResults);
-    }
-
-    return next;
-  }
-
-  const allInnerTransitions: Array<TransitionDefinition<TContext, TEvent>> = [];
-
-  for (const subStateKey of subStateKeys) {
-    const subStateValue = stateValue[subStateKey];
-
-    if (!subStateValue) {
-      continue;
-    }
-
-    const subStateNode = getStateNode(stateNode, subStateKey);
-    const innerTransitions = transitionNode(
-      subStateNode,
-      subStateValue,
-      snapshot,
-      event,
-      actorScope,
-      selectionResults
-    );
-    if (innerTransitions) {
-      allInnerTransitions.push(...innerTransitions);
+  function selectFromLeaf(leaf: AnyStateNode) {
+    // A previous leaf already selected at a shared ancestor or searched
+    // above it. In either case, there is no need to evaluate it again.
+    for (
+      let node: AnyStateNode | undefined = leaf;
+      node && !checked?.has(node);
+      node = node.parent
+    ) {
+      checked?.add(node);
+      const selected = node.next(snapshot, event, actorScope, selectionResults);
+      if (selected?.length) {
+        transitions.push(...selected);
+        break;
+      }
     }
   }
 
-  if (!allInnerTransitions.length) {
-    return stateNode.next(snapshot, event, actorScope, selectionResults);
+  function visit(node: AnyStateNode, value: StateValue) {
+    if (typeof value === 'string') {
+      selectFromLeaf(getStateNode(node, value));
+      return;
+    }
+
+    const keys = Object.keys(value);
+    if (keys.length === 0) {
+      selectFromLeaf(node);
+      return;
+    }
+    if (keys.length > 1) {
+      checked ??= new Set();
+      keys.sort(
+        (a, b) => getStateNode(node, a).order - getStateNode(node, b).order
+      );
+    }
+    for (const key of keys) {
+      visit(getStateNode(node, key), value[key]!);
+    }
   }
 
-  return allInnerTransitions;
+  visit(root, snapshot.value);
+  return transitions;
 }
 
 function isDescendant(
@@ -1056,6 +1025,27 @@ function hasIntersection<T>(s1: Iterable<T>, s2: Iterable<T>): boolean {
     }
   }
   return false;
+}
+
+export function selectNonConflictingTransitions(
+  transitions: AnyTransitionDefinition[],
+  snapshot: AnyMachineSnapshot,
+  event: EventObject,
+  actorScope: AnyActorScope,
+  selectionResults: TransitionSelectionResults
+): AnyTransitionDefinition[] {
+  return removeConflictingTransitions(
+    transitions,
+    new Set(snapshot.nodes),
+    snapshot,
+    createTransitionResultResolver(
+      snapshot,
+      event,
+      actorScope,
+      false,
+      selectionResults
+    )
+  );
 }
 
 function removeConflictingTransitions(
@@ -1153,10 +1143,9 @@ function createTransitionResultResolver(
 
 function getEffectiveTargetStates(
   transition: Pick<AnyTransitionDefinition, 'target' | 'source'>,
-  snapshot: AnyMachineSnapshot,
+  historyValue: HistoryValue,
   resolveTransition: TransitionResultResolver
 ): Array<AnyStateNode> {
-  const historyValue = snapshot.historyValue;
   const { targets } = resolveTransition(transition);
   if (!targets) {
     return [];
@@ -1173,7 +1162,7 @@ function getEffectiveTargetStates(
       } else {
         for (const node of getEffectiveTargetStates(
           resolveHistoryDefaultTransition(targetNode),
-          snapshot,
+          historyValue,
           resolveTransition
         )) {
           targetSet.add(node);
@@ -1218,7 +1207,7 @@ function getTransitionDomain(
 ): AnyStateNode | undefined {
   const targetStates = getEffectiveTargetStates(
     transition,
-    snapshot,
+    snapshot.historyValue,
     resolveTransition
   );
 
@@ -1270,13 +1259,21 @@ function getTransitionDomain(
       : narrowParallelDomain(transition.source, targetStates);
   }
 
-  const [head, ...tail] = targetStates.concat(transition.source);
+  const sourceAndTargets = targetStates.concat(transition.source);
+  const [head, ...tail] = sourceAndTargets;
   // Find the least common ancestor (LCA) of the source and effective targets.
   for (const ancestor of getProperAncestors(head, undefined)) {
     if (tail.every((sn) => isDescendant(sn, ancestor))) {
-      // A cross-region transition (source in one parallel region, targets in
-      // another) only exits the region containing its targets; the source
-      // region and other sibling regions stay put unless it reenters.
+      if (
+        ancestor.type === 'parallel' &&
+        narrowParallelDomain(ancestor, sourceAndTargets) === ancestor
+      ) {
+        // SCXML includes the parallel state in the exit set when a transition
+        // crosses its regions.
+        return getProperAncestors(ancestor, undefined).find(
+          (parent) => parent.type === 'compound'
+        );
+      }
       return reenter ? ancestor : narrowParallelDomain(ancestor, targetStates);
     }
   }
@@ -1449,7 +1446,10 @@ function microstep(
         actorScope,
         actions,
         internalEvents,
-        true
+        {
+          registeredActors: currentSnapshot.machine.sources.actors,
+          actorSubscriptions: true
+        }
       );
 
       const args = isLazyActorScope(actorScope)
@@ -1483,19 +1483,21 @@ function microstep(
             input,
             stateNode
           };
-      let res;
       try {
-        res = transitionFn(args, enqueue);
+        const res = transitionFn(args, enqueue);
+        assertSyncTransitionResult(res, event, stateNode.id, kind);
+
+        if (res?.context !== undefined) {
+          updatedContext = mergeContextPatch(context, res.context);
+        }
+
+        return [actions, updatedContext, internalEvents, res?.children];
+      } catch (error) {
+        discardSpawnedActors(actorScope);
+        throw error;
       } finally {
         closeTransitionEnqueue(enqueue);
       }
-      assertSyncTransitionResult(res, event, stateNode.id, kind);
-
-      if (res?.context !== undefined) {
-        updatedContext = mergeContextPatch(context, res.context);
-      }
-
-      return [actions, updatedContext, internalEvents, res?.children];
     };
 
     let nextState = currentSnapshot;
@@ -1821,7 +1823,7 @@ function microstep(
         }
         const targetStates = getEffectiveTargetStates(
           transition,
-          currentSnapshot,
+          historyValue,
           getCurrentTransitionResult
         );
         for (const s of targetStates) {
@@ -1887,80 +1889,77 @@ function microstep(
 
         // Final states are inert, so (as in SCXML) their invocations never
         // start.
-        let invoked = false;
-        for (const invokeDef of stateNodeToEnter.type === 'final'
-          ? []
-          : stateNodeToEnter.invoke) {
-          invoked = true;
-
-          let src = invokeDef.logic;
-          if (typeof src === 'function') {
-            src = src({
-              actors: currentSnapshot.machine.sources.actors,
-              context: nextState.context,
-              event,
-              self: actorScope.self
-            });
-          }
-
-          const logic =
-            typeof src === 'string'
-              ? currentSnapshot.machine.sources.actors[src]
-              : src;
-
-          if (!logic) {
-            throw new Error(
-              isDevelopment
-                ? `Actor logic '${typeof src === 'string' ? src : 'inline'}' not implemented in ${describeMachine(currentSnapshot.machine.id)}`
-                : xstateError(15, typeof src === 'string' ? src : 'inline')
-            );
-          }
-
-          const input =
-            typeof invokeDef.input === 'function'
-              ? invokeDef.input({
-                  self: actorScope.self,
-                  context: nextState.context,
-                  event,
-                  input: stateInputMap[stateNodeToEnter.id],
-                  output: getEventOutput(event)
-                })
-              : invokeDef.input;
-
-          assertChildIdFree(actorScope, invokeDef.id);
-          const actor = actorScope.system.createActorRef(logic, {
-            ...invokeDef,
-            // A `src` function may return a registered key, which persists.
-            src: typeof src === 'string' ? src : undefined,
-            input,
-            parent: actorScope.self,
-            syncSnapshot: !!invokeDef.onSnapshot
-          });
-          // Persistence restores a source-less child through its invoke
-          // definition only when the invoke created it.
-          (actor as { _invoked?: boolean })._invoked = true;
-
-          actions.push({
-            action: builtInActions['@xstate.spawn'],
-            args: [actor]
-          });
-
-          if (invokeDef.id) {
-            children = { ...children, [invokeDef.id]: actor };
-          }
-        }
-
-        if (invoked) {
-          nextState = cloneMachineSnapshot(nextState, { children });
-        }
-        let context = nextState.context;
-        let contextChangedByEntry = false;
-
+        const pendingInvokes: Array<{
+          actor: AnyActor;
+          input: (typeof stateNodeToEnter.invoke)[number]['input'];
+        }> = [];
         const stateInput = stateInputMap[stateNodeToEnter.id];
+        try {
+          for (const invokeDef of stateNodeToEnter.type === 'final'
+            ? []
+            : stateNodeToEnter.invoke) {
+            let src = invokeDef.logic;
+            if (typeof src === 'function') {
+              src = src({
+                actors: currentSnapshot.machine.sources.actors,
+                context: nextState.context,
+                event,
+                self: actorScope.self
+              });
+            }
 
-        if (stateNodeToEnter.entry) {
-          const [resultActions, nextContext, nextInternalEvents, nextChildren] =
-            getStateActionsAndContext(
+            const logic =
+              typeof src === 'string'
+                ? currentSnapshot.machine.sources.actors[src]
+                : src;
+
+            if (!logic) {
+              throw new Error(
+                isDevelopment
+                  ? `Actor logic '${typeof src === 'string' ? src : 'inline'}' not implemented in ${describeMachine(currentSnapshot.machine.id)}`
+                  : xstateError(15, typeof src === 'string' ? src : 'inline')
+              );
+            }
+
+            assertChildIdFree(actorScope, invokeDef.id);
+            const actor = createChildActorRef(actorScope, logic, {
+              ...invokeDef,
+              // A `src` function may return a registered key, which persists.
+              src: typeof src === 'string' ? src : undefined,
+              input: undefined,
+              _deferInitialization: true,
+              parent: actorScope.self,
+              syncSnapshot: !!invokeDef.onSnapshot
+            });
+            // Persistence restores a source-less child through its invoke
+            // definition only when the invoke created it.
+            (actor as { _invoked?: boolean })._invoked = true;
+
+            pendingInvokes.push({ actor, input: invokeDef.input });
+
+            actions.push({
+              action: builtInActions['@xstate.spawn'],
+              args: [actor]
+            });
+
+            if (invokeDef.id) {
+              children = { ...children, [invokeDef.id]: actor };
+            }
+          }
+
+          if (pendingInvokes.length) {
+            nextState = cloneMachineSnapshot(nextState, { children });
+          }
+          let context = nextState.context;
+          let contextChangedByEntry = false;
+
+          if (stateNodeToEnter.entry) {
+            const [
+              resultActions,
+              nextContext,
+              nextInternalEvents,
+              nextChildren
+            ] = getStateActionsAndContext(
               stateNodeToEnter.entry,
               context,
               children,
@@ -1968,23 +1967,44 @@ function microstep(
               'entry',
               stateNodeToEnter
             );
-          actions.push(...resultActions);
-          if (nextInternalEvents?.length) {
-            internalQueue.push(...nextInternalEvents);
+            actions.push(...resultActions);
+            if (nextInternalEvents?.length) {
+              internalQueue.push(...nextInternalEvents);
+            }
+            if (nextContext) {
+              context = nextContext;
+              contextChangedByEntry = true;
+            }
+            if (nextChildren) {
+              nextState = cloneMachineSnapshot(nextState, {
+                children: nextChildren
+              });
+            }
           }
-          if (nextContext) {
-            context = nextContext;
-            contextChangedByEntry = true;
-          }
-          if (nextChildren) {
-            nextState = cloneMachineSnapshot(nextState, {
-              children: nextChildren
-            });
-          }
-        }
 
-        if (contextChangedByEntry) {
-          nextState = cloneMachineSnapshot(nextState, { context });
+          if (contextChangedByEntry) {
+            nextState = cloneMachineSnapshot(nextState, { context });
+          }
+
+          // Entry can address reserved refs. Initialize them only after its
+          // context patch, before resolving the queued sends and listeners.
+          for (const { actor, input } of pendingInvokes) {
+            actorScope.system.initializeActorRef(
+              actor,
+              typeof input === 'function'
+                ? input({
+                    self: actorScope.self,
+                    context: nextState.context,
+                    event,
+                    input: stateInput,
+                    output: getEventOutput(event)
+                  })
+                : input
+            );
+          }
+        } catch (error) {
+          discardSpawnedActors(actorScope);
+          throw error;
         }
 
         if (statesForDefaultEntry.has(stateNodeToEnter)) {
@@ -2313,6 +2333,7 @@ export function getTransitionResult(
             actors: snapshot.machine.sources.actors,
             guards: snapshot.machine.sources.guards,
             delays: snapshot.machine.sources.delays,
+            reject,
             input: getStateInput(snapshot, transition.source.id)
           },
           actorScope
@@ -2330,12 +2351,14 @@ export function getTransitionResult(
           actors: snapshot.machine.sources.actors,
           guards: snapshot.machine.sources.guards,
           delays: snapshot.machine.sources.delays,
+          reject,
           input: getStateInput(snapshot, transition.source.id)
         });
 
   if (transition.to) {
     const actions: AnyAction[] = [];
     const internalEvents: EventObject[] = [];
+    let attemptedRefProducingEffect = false;
     let res;
     if (
       options?.selectionResult?.reusable &&
@@ -2348,8 +2371,14 @@ export function getTransitionResult(
         actorScope,
         actions,
         internalEvents,
-        true,
-        options?.resolveActions ?? true
+        {
+          registeredActors: snapshot.machine.sources.actors,
+          actorSubscriptions: true,
+          createActors: options?.resolveActions ?? true,
+          onRefProducingCall: () => {
+            attemptedRefProducingEffect = true;
+          }
+        }
       );
       const speculativeSelection =
         options?.resolveActions === false
@@ -2372,6 +2401,26 @@ export function getTransitionResult(
         speculativeSelection?.close();
         closeTransitionEnqueue(enqueue);
       }
+    }
+
+    if (isRejection(res)) {
+      assertRejectionResult(res, snapshot.machine.schemas?.rejections);
+      if (
+        actions.length ||
+        internalEvents.length ||
+        attemptedRefProducingEffect
+      ) {
+        throw new Error(
+          'A rejecting transition cannot enqueue effects. Check rejection conditions before calling enq.'
+        );
+      }
+      return {
+        targets: undefined,
+        context: undefined,
+        actions: undefined,
+        internalEvents: undefined,
+        input: undefined
+      };
     }
 
     const targets = res?.target
@@ -2573,6 +2622,7 @@ export function macrostep(
       }
     }
 
+    completeSpawnAllocation(actorScope);
     return { snapshot: nextSnapshot, microsteps };
   }
 
@@ -2660,7 +2710,10 @@ export function macrostep(
       selectionResults
     );
 
-    if (isErr && !transitions.length) {
+    const rejected = [...selectionResults.values()].some((result) =>
+      isRejection(result.result)
+    );
+    if (isErr && !transitions.length && !rejected) {
       if (
         currentEvent.type === 'xstate.error.actor' &&
         !matchesActorSession(
@@ -2681,7 +2734,7 @@ export function macrostep(
       removeTerminatedChild(currentEvent);
       return completeMacrostep();
     }
-    handled = transitions.length > 0;
+    handled = transitions.length > 0 || rejected;
     const step = microstep(
       transitions,
       snapshot,
@@ -2931,6 +2984,7 @@ function evaluateTransitionFunction(
           actors: sources.actors,
           guards: sources.guards,
           delays: sources.delays,
+          reject,
           input: getStateInput(snapshot, sourceId)
         },
         actorScope
@@ -2946,6 +3000,15 @@ function evaluateTransitionFunction(
     selection.close();
   }
   assertSyncTransitionResult(res, event, sourceId);
+
+  if (isRejection(res)) {
+    assertRejectionResult(res, snapshot.machine.schemas?.rejections);
+    if (selection.operations.length || selection.frame.requiresReevaluation) {
+      throw new Error(
+        'A rejecting transition cannot enqueue effects. Check rejection conditions before calling enq.'
+      );
+    }
+  }
 
   if (selection.frame.requiresReevaluation) {
     return { enabled: true, result: undefined, reusable: false };
@@ -3002,8 +3065,11 @@ function selectEventlessTransitions(
   selectionResults?: TransitionSelectionResults
 ) {
   snapshot.machine._microstepHooks?.begin(actorScope.self);
+  selectionResults ??= new Map();
   const enabledTransitionSet: Set<AnyTransitionDefinition> = new Set();
-  const atomicStates = snapshot.nodes.filter(isAtomicStateNode);
+  const atomicStates = snapshot.nodes
+    .filter(isAtomicStateNode)
+    .sort((a, b) => a.order - b.order);
 
   for (const atomicStateNode of atomicStates) {
     loop: for (
@@ -3025,7 +3091,9 @@ function selectEventlessTransitions(
             selectionResults
           )
         ) {
-          enabledTransitionSet.add(transition);
+          const result = selectionResults?.get(transition);
+          if (!isRejection(result?.result))
+            enabledTransitionSet.add(transition);
           break loop;
         }
       }

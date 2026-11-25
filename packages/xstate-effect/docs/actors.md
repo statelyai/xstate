@@ -7,7 +7,8 @@ description: Create actors whose lifetime and dependencies belong to an Effect a
 
 The actor processes events through one FIFO mailbox. Events sent by a child
 keep their send order, including when each send runs in a separate promise
-continuation while the parent executes transition effects.
+continuation while the parent executes transition effects. Under continuous
+traffic, the loop periodically yields so timers and other Effects can run.
 
 Observers see each step in the order that `createActor` uses. The events that
 the transition emits come first. Then an active step gives `next`, a `done`

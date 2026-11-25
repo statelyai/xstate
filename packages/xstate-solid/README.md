@@ -35,7 +35,7 @@ export const Toggler = () => {
   const [snapshot, send] = useActor(toggleMachine);
 
   return (
-    <button onclick={() => send({ type: 'TOGGLE' })}>
+    <button onClick={() => send({ type: 'TOGGLE' })}>
       {snapshot.value === 'inactive'
         ? 'Click to activate'
         : 'Active! Click to deactivate'}
@@ -71,7 +71,7 @@ A SolidJS hook that subscribes to emitted changes from an existing [actor](https
 
 **Arguments**
 
-- `actorRef` - an actor object that contains `.send(...)` and `.subscribe(...)` methods. Allows [SolidJS Signal](https://www.solidjs.com/docs/latest/api#createsignal) (or function) to dynamically specify an actor.
+- `actorRef` - an actor object that contains `.send(...)` and `.subscribe(...)` methods. Allows a [Solid signal](https://docs.solidjs.com/reference/basic-reactivity/create-signal) (or function) to dynamically specify an actor.
 
 ```js
 const snapshot = fromActorRef(someSpawnedActor);
@@ -173,17 +173,17 @@ The `actorRef` created in `useActor(logic)` can be referenced as the third retur
 const [snapshot, send, actorRef] = useActor(someMachine);
 ```
 
-You can subscribe to that `actorRef`'s snapshot changes with the [`createEffect` hook](https://www.solidjs.com/docs/latest/api#createeffect):
+You can subscribe to that `actorRef`'s snapshot changes once the component has mounted, with [`onSettled`](https://docs.solidjs.com/reference/lifecycle/on-settled):
 
 ```js
 // ...
 
-createEffect(() => {
+onSettled(() => {
   const subscription = actorRef.subscribe((snapshot) => {
     // simple snapshot logging
     console.log(snapshot);
   });
 
-  onCleanup(() => subscription.unsubscribe());
-}); // note: service should never change
+  return () => subscription.unsubscribe();
+});
 ```

@@ -24,6 +24,18 @@ test('plays and pauses', async () => {
 
 `render(...)` takes a function returning JSX, which gives the component its own reactive root and cleanup. Use `waitFor(...)` or `findBy...` for anything that settles asynchronously, such as an invoked request.
 
+Solid 2 applies updates on the next microtask, so the DOM shows a transition after Solid flushes. For a synchronous assertion right after an event, call `flush()` from `solid-js` first:
+
+```tsx
+import { flush } from 'solid-js';
+
+fireEvent.click(screen.getByText('Play'));
+flush();
+expect(screen.getByTestId('status').textContent).toBe('playing');
+```
+
+`flush()` is a no-op inside `onSettled` or an effect callback, where a flush is already running. Defer the read with `queueMicrotask(...)` there.
+
 Because the snapshot is a store, a test can also count evaluations inside a memo and assert that an unrelated transition does not re-run it.
 
 ## Replace real work with fake actor logic

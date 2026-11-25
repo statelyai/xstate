@@ -1,11 +1,12 @@
 {
   "name": "@xstate/test",
-  "version": "2.0.0-beta.1",
+  "version": "2.0.0-beta.3",
   "description": "Model-based and property-based testing for XState, built on fast-check",
   "type": "module",
   "sideEffects": false,
   "exports": {
     ".": "./dist/xstate-test.js",
+    "./paths": "./dist/xstate-test-paths.js",
     "./schema": "./dist/xstate-test-schema.js",
     "./vitest": "./dist/xstate-test-vitest.js",
     "./playwright": "./dist/xstate-test-playwright.js",
@@ -41,6 +42,7 @@
     "umdName": "XStateTest",
     "entrypoints": [
       "./index.ts",
+      "./paths.ts",
       "./effect-schema.ts",
       "./schema.ts",
       "./playwright.ts",
@@ -48,6 +50,9 @@
     ]
   },
   "peerDependenciesMeta": {
+    "fast-check": {
+      "optional": true
+    },
     "effect": {
       "optional": true
     },

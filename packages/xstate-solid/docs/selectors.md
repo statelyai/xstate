@@ -27,11 +27,11 @@ return <output>{total()}</output>;
 
 The returned accessor's value is deeply reactive. Only the paths that changed notify their readers, so `snapshot().context.progress` re-runs on progress updates and `snapshot().value` does not.
 
-Read plain objects and arrays through the accessor to track changes. Class instances and other non-plain values are not deeply reactive. You can call snapshot methods such as `matches(...)`, `hasTag(...)` and `can(...)` as usual.
+Read plain objects and arrays through the accessor to track changes. Actor refs and the machine are served as the real objects, and `Map`, `Set`, `Date` and other built-ins are stored as they are; their slots still notify when the value is replaced. Other class instances in `context` are wrapped like any Solid store value, so their getters track; pass a class to `markRaw` from `solid-js` to keep its instances as they are. You can call snapshot methods such as `matches(...)`, `hasTag(...)` and `can(...)` as usual.
 
 `useActor(...)` returns a reactive snapshot as its first tuple member.
 
-<!-- observation semantics from ../src/fromActorRef.ts and ../src/createImmutable.ts -->
+<!-- observation semantics from ../src/fromActorRef.ts -->
 When an actor fails, the accessor updates to its error snapshot. Read `snapshot().status` and `snapshot().error` to render the failure; the adapter does not throw it into an error boundary.
 
 ## Change detection
@@ -52,7 +52,6 @@ const summary = createMemo(
     step: snapshot().value,
     itemCount: snapshot().context.items.length
   }),
-  undefined,
   { equals: (a, b) => a.step === b.step && a.itemCount === b.itemCount }
 );
 ```
@@ -63,7 +62,7 @@ Read a child from `snapshot().children` and pass it to `fromActorRef(...)`.
 
 ```tsx
 function UploadProgress(props: { parentRef: ActorRefFrom<typeof uploadMachine> }) {
-  const parent = fromActorRef(props.parentRef);
+  const parent = fromActorRef(() => props.parentRef);
   const uploadRef = createMemo(() => parent().children.upload);
   const upload = fromActorRef(uploadRef);
 

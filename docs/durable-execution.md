@@ -50,6 +50,8 @@ replaces local delivery completely; call `deliverEvent(source, target, event)`
 for co-located targets instead of `target.send(event)`, which re-enters the
 runtime.
 
+Pass co-located lifecycle notifications to `deliverEvent` without cloning them. To deliver a verified lifecycle notification from a remote runtime, pass the parent's current remote child handle as the source. If the handle has an incarnation token, the notification's session ID must match it.
+
 The primary durable unit for async work is the actor itself: a developer
 writes a normal promise (`fromPromise`, `createAsyncLogic`) and invokes it;
 the `runLogic` operation hands the host the whole body as one journal
@@ -443,6 +445,10 @@ entry: ({ context }, enq) => {
   enq(notifyApprover, context.orderId);
 }
 ```
+
+## Inspecting a running execution
+
+Pass the `inspect` option to observe initialization, or call `durable.inspect(observer)` to observe a running execution. A subscription receives future inspection events. It does not replay past actor announcements. Call `unsubscribe()` on the returned subscription to detach it.
 
 ## Checkpoints and placement
 

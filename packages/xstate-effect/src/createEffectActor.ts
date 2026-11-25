@@ -17,7 +17,6 @@ import {
   type AnyActorLogic,
   type AnyEventObject,
   type EventFromLogic,
-  type InspectionEvent,
   type InputFrom,
   type RestorablePersistedSnapshotFor,
   type RequiredActorOptionsKeys,
@@ -40,6 +39,8 @@ import { EventRejectedError } from './errors.ts';
 
 const XSTATE_TIMER = 'xstate.timer';
 const XSTATE_INIT = 'xstate.init';
+const EVENT_LOOP_SLICE_MS = 10;
+const MAX_STEPS_PER_SLICE = 500;
 
 /**
  * Options for {@link createEffectActor}.
@@ -145,8 +146,6 @@ export function createEffectActor<TLogic extends AnyActorLogic>(
         return `${source.sessionId}:${JSON.stringify(key)}`;
       };
 
-      const inspectors = new Set<(event: InspectionEvent) => void>();
-      let rootAnnounced = false;
       const clock = Context.get(context, Clock.Clock);
       const durable = createDurable(
         logic,
@@ -255,23 +254,7 @@ export function createEffectActor<TLogic extends AnyActorLogic>(
         },
         {
           // A live actor needs one FIFO for child events, sends and timers.
-          captureRootEvents: false,
-          inspect: (event) => {
-            // The pure step scope re-materializes the root ref per step and
-            // announces it again; observers should see the root once.
-            if (
-              event.type === '@xstate.actor' &&
-              (event.actorRef as AnyActor).address === durable.rootAddress
-            ) {
-              if (rootAnnounced) {
-                return;
-              }
-              rootAnnounced = true;
-            }
-            for (const inspector of inspectors) {
-              safeCall(inspector, event);
-            }
-          }
+          captureRootEvents: false
         }
       );
 
@@ -350,16 +333,22 @@ export function createEffectActor<TLogic extends AnyActorLogic>(
       // Restored children are created by the snapshot, not spawned through
       // the adapter; they find this host through their parent chain.
       bindEffectHost(root, host);
-      // The root exists from here on; later announcements are step
-      // re-materializations, not new actors.
-      rootAnnounced = true;
       const actor = new EffectActor(
         logic,
         root!,
         snapshot,
         mailbox,
         stop,
-        inspectors
+        (observer) =>
+          durable.inspect((event) => {
+            // Snapshot steps recreate the root ref without creating a new actor.
+            if (
+              event.type !== '@xstate.actor' ||
+              (event.actorRef as AnyActor).address !== durable.rootAddress
+            ) {
+              safeCall(observer, event);
+            }
+          })
       );
       bindEffectHost(actor, host);
 
@@ -381,15 +370,22 @@ export function createEffectActor<TLogic extends AnyActorLogic>(
           snapshot,
           effects: executeEffects(effects)
         });
+        let sliceStartedAt: number | undefined;
+        let stepsSinceYield = 0;
         while (
           (snapshot as Snapshot<unknown>).status === 'active' &&
           !stopped
         ) {
+          if (Queue.sizeUnsafe(mailbox) === 0) {
+            sliceStartedAt = undefined;
+            stepsSinceYield = 0;
+          }
           delivered = undefined;
           const received = yield* Effect.promise(() =>
             durable.waitForEvent().catch(() => undefined)
           );
           if (received === undefined || stopped) break;
+          sliceStartedAt ??= performance.now();
           const item: MailboxItem<
             EventFromLogic<TLogic>,
             SnapshotFrom<TLogic>
@@ -451,6 +447,18 @@ export function createEffectActor<TLogic extends AnyActorLogic>(
                   })
                 : undefined
           });
+          stepsSinceYield++;
+          // Some hosts only advance their monotonic clock after I/O.
+          if (
+            !stopped &&
+            (snapshot as Snapshot<unknown>).status === 'active' &&
+            (stepsSinceYield >= MAX_STEPS_PER_SLICE ||
+              performance.now() - sliceStartedAt >= EVENT_LOOP_SLICE_MS)
+          ) {
+            yield* Effect.yieldNow;
+            sliceStartedAt = undefined;
+            stepsSinceYield = 0;
+          }
         }
         if (!stopped) {
           if ((snapshot as Snapshot<unknown>).status !== 'active') {

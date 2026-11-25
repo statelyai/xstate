@@ -54,6 +54,7 @@ export { assertEvent } from './assert.ts';
 export {
   Actor,
   createActor,
+  type ActorSimulation,
   type RequiredActorOptionsKeys as RequiredActorOptionsKeys,
   type RequiredActorOptionsFor
 } from './createActor.ts';
@@ -217,3 +218,11 @@ export {
   terminateActor
 } from './runtimeHelpers.ts';
 export { waitFor } from './waitFor.ts';
+
+export type {
+  Reject,
+  RejectionResult,
+  RejectionFrom,
+  TransitionCheck,
+  TransitionRejection
+} from './rejections.ts';

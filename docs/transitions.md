@@ -33,7 +33,7 @@ schemas: {
 }
 ```
 
-There is no `guard` property. Conditions live inside the transition function, which returns `undefined` to reject the event. Check the condition before calling `enq`: a function that calls `enq` is taken even if it returns `undefined`. See [guards](guards.md).
+There is no `guard` property. Conditions live inside the transition function, which returns `undefined` to decline the event and allow parent fallback. Return `reject([...])` to consume the event with typed reasons. See [rejections](rejections.md). Check the condition before calling `enq`: a function that calls `enq` is taken even if it returns `undefined`. See [guards](guards.md).
 
 A targetless transition can update context and run effects without leaving the current state. It does not run exit or entry behavior, even with `reenter: true`. Specify a target and set `reenter: true` when a self-transition should run exit and entry behavior again.
 
@@ -107,7 +107,7 @@ If an `always` condition depends only on context updated through transitions, it
 
 Use targetless transitions for edits that keep a form on the same step. Use re-entering transitions to restart a timer, subscription or invoked request.
 
-Put shared transitions on a parent state. A child can set an event to `undefined` to forbid that parent transition. Wildcards such as `pointer.*` match an event family when no exact transition matches.
+Put shared transitions on a parent state. Setting a child's event handler to `undefined` stops the search for that event along that branch. In a [parallel state](parallel-states.md), another active leaf can still select the parent transition. Wildcards such as `pointer.*` match an event family when no exact transition matches.
 
 ```ts
 on: {
@@ -170,7 +170,7 @@ if (isUnhandled(snapshot, result)) {
 }
 ```
 
-A running actor reports an unhandled event through the `onUnhandledEvent` option of `createActor(...)`. In the [inspection](inspection.md) stream, the `@xstate.transition` event for an unhandled event carries the unchanged snapshot reference. Development builds also log a warning once per event type per actor. Reserved lifecycle and timer events delivered by actors, and actor stop events, are not reported. Unhandled events sent through `actor.send(...)` or between actors are reported even when their names start with `xstate.`, including obsolete names such as `xstate.done.actor.save`.
+A running actor reports an unhandled event through the `onUnhandledEvent` option of `createActor(...)`. In the [inspection](inspection.md) stream, the `@xstate.transition` event for an unhandled event carries the unchanged snapshot reference. Development builds also log a warning once per event type per actor. Reserved lifecycle and timer events delivered by actors, and actor stop events, are not reported. Ordinary sends of reserved lifecycle events are rejected as [dead letters](systems.md#dead-letters). Other unhandled events are reported even when their names start with `xstate.`, including obsolete names such as `xstate.done.actor.save`.
 
 ## TypeScript
 

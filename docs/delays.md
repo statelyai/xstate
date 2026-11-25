@@ -41,7 +41,7 @@ The delay above is 300ms. It is computed once on each entry to `waiting`; later 
 
 ## Duration formats
 
-A delay is a number of milliseconds, or a duration string: `'250ms'`, `'5s'`, `'1.5s'`, or an ISO 8601 duration such as `'PT1M30S'`, `'PT2H'` or `'P1D'`. Plain `'5m'` and `'1h'` are not accepted.
+A delay is a number of milliseconds, or a duration string: `'250ms'`, `'5s'`, `'1.5s'`, or an ISO 8601 duration such as `'PT1M30S'`, `'PT2H'` or `'P1D'`. Plain `'5m'` and `'1h'` are not accepted. A seconds duration must contain a number: bare `'s'` and `'.s'` are invalid, not zero-delay timers.
 
 ```ts
 loading: { after: { '5s': { target: 'timedOut' } } }

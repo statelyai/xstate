@@ -147,6 +147,8 @@ Where a validation failure surfaces depends on which side of the delivery bounda
 
 `actions`, `guards`, `actors` and `delays` can be declared directly on `createMachine(...)` instead of on `setup(...)`. Use `setup(...)` when several machines share the same sources or when state schemas are needed.
 
+When `setup(...).createMachine(...)` replaces a named action, guard, or actor from the setup, the replacement must satisfy that source's declared type, including action and guard parameters declared in schemas. The machine config can also declare new source names. A string-keyed dictionary must have a value type compatible with every existing source it could replace. Use named properties when different sources need different signatures.
+
 ```ts
 const machine = createMachine({
   actions: { notify: (params: { msg: string }) => toast(params.msg) },

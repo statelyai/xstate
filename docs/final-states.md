@@ -74,6 +74,10 @@ output: ({ output }) => `checkout: ${output}` // 'checkout: paid'
 
 A static root `output` replaces the final state's output; with neither, `snapshot.output` is `undefined`. Output is resolved once and is preserved by [`getPersistedSnapshot()`](persistence.md).
 
+The machine resolves output before running the exit functions of states that are still active at completion, including the root. Context updates from those exits appear in `snapshot.context` after output has been captured. The completed machine stops processing internal events, including events raised during those exits.
+
+Use the `output` mapper to calculate a return value from context. Apply any context updates that contribute to the output in the transition to the final state or in that state's `entry`.
+
 ## Parallel completion
 
 A [parallel](parallel-states.md) state completes only when every region has reached a final state. Its done event carries an object of region outputs keyed by region name.

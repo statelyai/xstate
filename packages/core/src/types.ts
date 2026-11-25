@@ -1,3 +1,4 @@
+import type { Reject, RejectionResult, TransitionCheck } from './rejections.ts';
 import type { SendableEventFromMachine } from './eventTypes.ts';
 import type {
   MachineSnapshot,
@@ -649,7 +650,8 @@ export type TransitionConfigFunction<
   TMeta extends MetaObject,
   TInput = undefined,
   _TCtx extends MachineContext = [TContext] extends [never] ? any : TContext,
-  TChildren extends Record<string, AnyActorRef | undefined> = {}
+  TChildren extends Record<string, AnyActorRef | undefined> = {},
+  TRejection extends EventObject = EventObject
 > = (
   args: TransitionFunctionArgs<
     _TCtx,
@@ -661,7 +663,7 @@ export type TransitionConfigFunction<
     TDelayMap,
     TChildren,
     TEmitted
-  > & { input: TInput },
+  > & { input: TInput; reject: Reject<TRejection> },
   enq: EnqueueObject<
     TEvent,
     TEmitted,
@@ -669,13 +671,17 @@ export type TransitionConfigFunction<
     Compute<CallbackActors<TActorMap>>,
     TChildren
   >
-) => {
-  target?: TransitionTargetString | TransitionTargetString[];
-  context?: TransitionContextPatch<_TCtx>;
-  reenter?: boolean;
-  meta?: TMeta;
-  input?: Record<string, unknown>;
-} | void;
+) =>
+  | {
+      reject?: never;
+      target?: TransitionTargetString | TransitionTargetString[];
+      context?: TransitionContextPatch<_TCtx>;
+      reenter?: boolean;
+      meta?: TMeta;
+      input?: Record<string, unknown>;
+    }
+  | RejectionResult<TRejection>
+  | void;
 
 // The compact callback projection must retain a machine's public send protocol.
 // A string-literal key (not a `unique symbol`) on purpose: an unexported
@@ -1183,9 +1189,10 @@ export type AnyStateNode =
 
 type LoosenMachineSnapshot<TSnapshot> =
   TSnapshot extends MachineSnapshot<any, any, any, any, any, any, any, any>
-    ? Omit<TSnapshot, 'matches' | 'can'> & {
+    ? Omit<TSnapshot, 'matches' | 'can' | 'check'> & {
         matches(partialStateValue: StateValue): boolean;
         can(event: any): boolean;
+        check(event: any): TransitionCheck<EventObject>;
       }
     : never;
 
@@ -1237,6 +1244,11 @@ export interface AnyStateMachine extends AnyActorLogic {
   ): AnyTransitionDefinition[];
   /** @internal */
   _canTransition(snapshot: AnyMachineSnapshot, event: any): boolean;
+  /** @internal */
+  _checkTransition(
+    snapshot: AnyMachineSnapshot,
+    event: any
+  ): TransitionCheck<EventObject>;
   getStateNodeById(stateId: string): AnyStateNode;
   getPersistedSnapshot(snapshot: any, options?: unknown): Snapshot<unknown>;
 }
@@ -1924,6 +1936,8 @@ export type PersistedActorRef = {
   address?: string;
   /** The registered source key the child is restored from. */
   src: string;
+  /** Whether an embedded child was created by an invocation. */
+  invoked?: true;
   registryKey?: string;
   syncSnapshot?: boolean;
 } & (
@@ -2027,6 +2041,9 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
   registryKey?: string;
   /** The input data to pass to the actor. */
   input?: InputFrom<TLogic>;
+
+  /** Enables simulated completion of invoked children. Invocations start normally. */
+  simulate?: boolean;
 
   /** The source actor logic. */
   src?: string | AnyActorLogic;
@@ -3166,7 +3183,17 @@ export type StateIdReference<TSchema extends StateSchema> =
     ? `#${string}`
     : `#${Exclude<StateId<TSchema>, ''> & string}`;
 
-/** @public */
+/** @public An event that navigates to a state with an explicit ID and a route. */
+export type RouteEvent<TTarget extends string = `#${string}`> = {
+  type: 'xstate.route';
+  to: TTarget & `#${string}`;
+};
+
+/**
+ * @public
+ * Use a template literal around this type in inferred machine return types so
+ * declaration emit writes the ID union without repeating the state schema.
+ */
 export type RoutableStateId<TSchema extends StateSchema> =
   | (TSchema extends { route: any; id: string } ? `#${TSchema['id']}` : never)
   | (TSchema['states'] extends Record<string, any>
@@ -3527,7 +3554,16 @@ export type EnqueueObject<
    * timer by its {@link TimerKey} (e.g. an `after` timer by its event).
    */
   cancel: (timer: string | TimerKey) => void;
-  raise: (ev: TEvent, options?: { id?: string; delay?: number }) => void;
+  raise: (
+    ev:
+      | TEvent
+      | (EventObject extends TEvent
+          ? RouteEvent
+          : 'xstate.route' extends TEvent['type']
+            ? never
+            : RouteEvent),
+    options?: { id?: string; delay?: number }
+  ) => void;
   /**
    * Spawns a child actor from a registered source key or logic. Without an
    * explicit `id`, the child gets a deterministic src-keyed id (`worker:0`,

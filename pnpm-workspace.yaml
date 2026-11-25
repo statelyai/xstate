@@ -44,6 +44,18 @@ minimumReleaseAgeExclude:
   - svelte-check@4.7.6
   - effect@4.0.0-beta.106 || 4.0.0
   - '@effect/atom-react@4.0.0'
+  # Solid 2.0.3 and compiler 2.0.2 (2026-11-19) for @xstate/solid; drop once they age past the window.
+  - 'solid-js@2.0.3'
+  - '@solidjs/signals@2.0.3'
+  - '@solidjs/web@2.0.3'
+  - '@solidjs/vite-plugin@3.0.1'
+  - '@solidjs/compiler@2.0.2'
+  - '@solidjs/compiler-darwin-arm64@2.0.2'
+  - '@solidjs/compiler-darwin-x64@2.0.2'
+  - '@solidjs/compiler-linux-arm64-gnu@2.0.2'
+  - '@solidjs/compiler-linux-x64-gnu@2.0.2'
+  - '@solidjs/compiler-wasm32-wasi@2.0.2'
+  - '@solidjs/compiler-win32-x64-msvc@2.0.2'
 
 overrides:
   # Supported by svelte-preprocess 6; replace its retained legacy optional peer.

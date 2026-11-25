@@ -11,6 +11,7 @@ afterEach(async () => {
 const FIXTURES = [
   'narrowed-context',
   'strict-targets',
+  'route-targets',
   'registered-child-parent',
   'created-invoke',
   'state-config-actors',
@@ -108,6 +109,9 @@ describe.each(FIXTURES)(
     it('emits without diagnostics', () => {
       expect(formatDiagnostics(diagnostics)).toBe('');
       expect(declaration).toBeDefined();
+      if (name === 'route-targets') {
+        expect(declaration).not.toContain('RoutableStateId<');
+      }
       if (name === 'registered-child-parent') {
         expect(Buffer.byteLength(declaration!)).toBeLessThan(500_000);
         expect(declaration!.match(/readonly c0: \{/g)).toHaveLength(1);

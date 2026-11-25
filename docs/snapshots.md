@@ -81,7 +81,7 @@ const snapshot = await waitFor(actor, (snapshot) => snapshot.hasTag('loaded'), {
 });
 ```
 
-The promise also rejects if the actor errors, or if it terminates without ever satisfying the predicate. Use `waitFor(...)` in a test or a request handler that must block until the machine reaches a state.
+The promise also rejects if the actor errors, if it terminates without ever satisfying the predicate, or if the predicate throws. A thrown predicate value becomes the rejection reason, and the wait releases its timeout, actor subscription, and abort listener. Use `waitFor(...)` in a test or a request handler that must block until the machine reaches a state.
 
 To wait for completion instead of a specific state, use [`toPromise(actor)`](utilities.md), which resolves with the actor's [output](input-output.md) and rejects on error.
 

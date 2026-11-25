@@ -2,6 +2,7 @@
 export declare const createdInvokeConfig: unique symbol;
 
 import { SetupStateSchemas, StandardSchemaV1 } from './schema.types.ts';
+import type { RejectionsFromConfig } from './rejections.ts';
 import type {
   ActionSchemas,
   GuardSchemas,
@@ -333,7 +334,11 @@ type MachineSchemas<
   TMetaSchema extends StandardSchemaV1,
   TTransitionMetaSchema extends StandardSchemaV1,
   TTagSchema extends StandardSchemaV1,
-  TChildrenSchemaMap extends Record<string, StandardSchemaV1>
+  TChildrenSchemaMap extends Record<string, StandardSchemaV1>,
+  TRejectionSchemaMap extends Record<string, StandardSchemaV1> = Record<
+    string,
+    StandardSchemaV1
+  >
 > = {
   events?: TEventSchemaMap;
   internalEvents?: TInternalEventSchemaMap;
@@ -341,6 +346,7 @@ type MachineSchemas<
   guards?: GuardSchemas;
   context?: TContextSchema;
   emitted?: TEmittedSchemaMap;
+  rejections?: TRejectionSchemaMap;
   input?: TInputSchema;
   output?: TOutputSchema;
   meta?: TMetaSchema;
@@ -396,7 +402,11 @@ export type Next_MachineConfig<
   TContextRequired extends boolean = IsNever<TContext> extends true
     ? false
     : true,
-  TSystemRegistry extends SystemRegistry = SystemRegistry
+  TSystemRegistry extends SystemRegistry = SystemRegistry,
+  TRejectionSchemaMap extends Record<string, StandardSchemaV1> = Record<
+    string,
+    StandardSchemaV1
+  >
 > = (DistributiveOmit<
   Next_StateNodeConfig<
     TContext,
@@ -419,6 +429,11 @@ export type Next_MachineConfig<
       StandardSchemaV1 extends TTransitionMetaSchema
         ? InferOutput<TMetaSchema, MetaObject>
         : InferOutput<TTransitionMetaSchema, MetaObject>
+    >,
+    DoNotInfer<
+      RejectionsFromConfig<{
+        schemas: { rejections: TRejectionSchemaMap };
+      }>
     >
   >,
   'output' | 'schemas'
@@ -440,7 +455,8 @@ export type Next_MachineConfig<
     TMetaSchema,
     TTransitionMetaSchema,
     TTagSchema,
-    TChildrenSchemaMap
+    TChildrenSchemaMap,
+    TRejectionSchemaMap
   >;
   actions?: TActionMap;
   guards?: TGuardMap & GuardSourceMap<TContext, TEvent>;
@@ -638,7 +654,8 @@ type InlineInvokeOnDone<
   TGuardMap extends Sources['guards'],
   TDelayMap extends Sources['delays'],
   TMeta extends MetaObject,
-  TChildren extends Record<string, AnyActorRef | undefined>
+  TChildren extends Record<string, AnyActorRef | undefined>,
+  TRejection extends EventObject = EventObject
 > = [keyof TActorMap & string] extends [never]
   ? Next_TransitionConfigOrTarget<
       TContext,
@@ -651,7 +668,8 @@ type InlineInvokeOnDone<
       TDelayMap,
       TMeta,
       undefined,
-      TChildren
+      TChildren,
+      TRejection
     >
   : string extends keyof TActorMap
     ? Next_TransitionConfigOrTarget<
@@ -665,7 +683,8 @@ type InlineInvokeOnDone<
         TDelayMap,
         TMeta,
         undefined,
-        TChildren
+        TChildren,
+        TRejection
       >
     :
         | undefined
@@ -695,7 +714,8 @@ type InlineChildInvokeConfig<
   TDelayMap extends Sources['delays'],
   TMeta extends MetaObject,
   TSystemRegistry extends SystemRegistry,
-  TInput = undefined
+  TInput = undefined,
+  TRejection extends EventObject = EventObject
 > = Values<{
   [K in keyof TChildren & string]: Omit<
     Next_InvokeConfigBase<
@@ -708,7 +728,14 @@ type InlineChildInvokeConfig<
       TGuardMap,
       TDelayMap,
       TMeta,
-      TSystemRegistry
+      TSystemRegistry,
+      [keyof TActorMap & string] extends [never]
+        ? DoneActorEvent<any>
+        : DoneActorEvent<OutputFrom<TActorMap[keyof TActorMap & string]>>,
+      [keyof TActorMap & string] extends [never]
+        ? ErrorActorEvent<any>
+        : ErrorActorEvent<ErrorFrom<TActorMap[keyof TActorMap & string]>>,
+      TRejection
     >,
     'onDone'
   > & {
@@ -721,7 +748,8 @@ type InlineChildInvokeConfig<
       TGuardMap,
       TDelayMap,
       TMeta,
-      TChildren
+      TChildren,
+      TRejection
     >;
     id: K;
     src: LogicForChildRef<TChildren[K]>;
@@ -744,7 +772,8 @@ type InlineInvokeConfig<
   TDelayMap extends Sources['delays'],
   TMeta extends MetaObject,
   TSystemRegistry extends SystemRegistry,
-  TInput = undefined
+  TInput = undefined,
+  TRejection extends EventObject = EventObject
 > =
   HasExplicitChildren<TChildren> extends true
     ? InlineChildInvokeConfig<
@@ -758,7 +787,8 @@ type InlineInvokeConfig<
         TDelayMap,
         TMeta,
         TSystemRegistry,
-        TInput
+        TInput,
+        TRejection
       >
     : Omit<
         Next_InvokeConfigBase<
@@ -771,7 +801,14 @@ type InlineInvokeConfig<
           TGuardMap,
           TDelayMap,
           TMeta,
-          TSystemRegistry
+          TSystemRegistry,
+          [keyof TActorMap & string] extends [never]
+            ? DoneActorEvent<any>
+            : DoneActorEvent<OutputFrom<TActorMap[keyof TActorMap & string]>>,
+          [keyof TActorMap & string] extends [never]
+            ? ErrorActorEvent<any>
+            : ErrorActorEvent<ErrorFrom<TActorMap[keyof TActorMap & string]>>,
+          TRejection
         >,
         'onDone'
       > & {
@@ -784,7 +821,8 @@ type InlineInvokeConfig<
           TGuardMap,
           TDelayMap,
           TMeta,
-          TChildren
+          TChildren,
+          TRejection
         >;
         src: AnyActorLogic;
         input?:
@@ -823,7 +861,8 @@ export type Next_InvokeConfig<
   TDelayMap extends Sources['delays'],
   TMeta extends MetaObject,
   TSystemRegistry extends SystemRegistry = SystemRegistry,
-  TInput = undefined
+  TInput = undefined,
+  TRejection extends EventObject = EventObject
 > = string extends keyof TActorMap
   ? // No registered actor sources (permissive map): `src`/`input` cannot be
     // correlated. A mapped type over `string` would also defer resolution and
@@ -840,7 +879,8 @@ export type Next_InvokeConfig<
         TDelayMap,
         TMeta,
         TSystemRegistry,
-        TInput
+        TInput,
+        TRejection
       >
     : Next_InvokeConfigBase<
         TContext,
@@ -852,7 +892,14 @@ export type Next_InvokeConfig<
         TGuardMap,
         TDelayMap,
         TMeta,
-        TSystemRegistry
+        TSystemRegistry,
+        [keyof TActorMap & string] extends [never]
+          ? DoneActorEvent<any>
+          : DoneActorEvent<OutputFrom<TActorMap[keyof TActorMap & string]>>,
+        [keyof TActorMap & string] extends [never]
+          ? ErrorActorEvent<any>
+          : ErrorActorEvent<ErrorFrom<TActorMap[keyof TActorMap & string]>>,
+        TRejection
       > & {
         src:
           | string
@@ -886,7 +933,8 @@ export type Next_InvokeConfig<
             TMeta,
             TSystemRegistry,
             DoneActorEvent<OutputFrom<TActorMap[K]>>,
-            ErrorActorEvent<ErrorFrom<TActorMap[K]>>
+            ErrorActorEvent<ErrorFrom<TActorMap[K]>>,
+            TRejection
           > & {
             id?: ChildIdForLogic<TActorMap[K], TChildren>;
             input?:
@@ -927,7 +975,8 @@ export type Next_InvokeConfig<
           TDelayMap,
           TMeta,
           TSystemRegistry,
-          TInput
+          TInput,
+          TRejection
         >;
 
 export interface Next_InvokeConfigBase<
@@ -946,7 +995,8 @@ export interface Next_InvokeConfigBase<
     : DoneActorEvent<OutputFrom<TActorMap[keyof TActorMap & string]>>,
   TErrorEvent extends EventObject = [keyof TActorMap & string] extends [never]
     ? ErrorActorEvent<any>
-    : ErrorActorEvent<ErrorFrom<TActorMap[keyof TActorMap & string]>>
+    : ErrorActorEvent<ErrorFrom<TActorMap[keyof TActorMap & string]>>,
+  TRejection extends EventObject = EventObject
 > {
   id?: string;
   registryKey?: keyof TSystemRegistry & string;
@@ -961,7 +1011,8 @@ export interface Next_InvokeConfigBase<
     TDelayMap,
     TMeta,
     undefined,
-    TChildren
+    TChildren,
+    TRejection
   >;
   onError?: Next_TransitionConfigOrTarget<
     TContext,
@@ -974,7 +1025,8 @@ export interface Next_InvokeConfigBase<
     TDelayMap,
     TMeta,
     undefined,
-    TChildren
+    TChildren,
+    TRejection
   >;
   onSnapshot?: Next_TransitionConfigOrTarget<
     TContext,
@@ -987,7 +1039,8 @@ export interface Next_InvokeConfigBase<
     TDelayMap,
     TMeta,
     undefined,
-    TChildren
+    TChildren,
+    TRejection
   >;
   /**
    * The duration (in ms) after which this invocation will time out if it has
@@ -1012,7 +1065,8 @@ export interface Next_InvokeConfigBase<
     TDelayMap,
     TMeta,
     undefined,
-    TChildren
+    TChildren,
+    TRejection
   >;
 }
 
@@ -1092,27 +1146,29 @@ type Next_ChoiceArgs<
   TGuardMap extends Sources['guards'],
   TDelayMap extends Sources['delays'],
   _TCtx extends MachineContext = [TContext] extends [never] ? any : TContext
-> = Parameters<
-  TransitionConfigFunction<
-    TContext,
-    TCurrentEvent,
-    TEvent,
-    TEmitted,
-    TActionMap,
-    TActorMap,
-    TGuardMap,
-    TDelayMap,
-    MetaObject,
-    undefined, // TInput
-    _TCtx
-  >
->[0];
+> = Omit<
+  Parameters<
+    TransitionConfigFunction<
+      TContext,
+      TCurrentEvent,
+      TEvent,
+      TEmitted,
+      TActionMap,
+      TActorMap,
+      TGuardMap,
+      TDelayMap,
+      MetaObject,
+      undefined, // TInput
+      _TCtx
+    >
+  >[0],
+  'reject'
+>;
 
 /**
- * Route config: either a static config object, or a transition-style function
- * that acts as the route's guard and resolver — returning `undefined`/`false`
- * blocks the route; returning `true` or a config object allows it (optionally
- * updating `context` and providing `input`/`reenter`/`meta`).
+ * Use `true` or a static config object to enable a route unconditionally.
+ * A transition-style function can block the route by returning `undefined` or
+ * `false`, or allow it by returning `true` or a config object.
  *
  * Guard objects/strings on routes are only produced by the JSON layer
  * (`machineFromJSON`) — authoring uses the function form.
@@ -1127,6 +1183,7 @@ type Next_RouteConfig<
   TGuardMap extends Sources['guards'],
   TDelayMap extends Sources['delays']
 > =
+  | true
   | {
       description?: string;
       reenter?: boolean;
@@ -1201,7 +1258,8 @@ export type Next_StateNodeConfig<
   TInputMap extends Record<string, unknown> = Record<string, unknown>,
   TSystemRegistry extends SystemRegistry = SystemRegistry,
   TChildOutput = unknown,
-  TTransitionMeta extends MetaObject = TStateMeta
+  TTransitionMeta extends MetaObject = TStateMeta,
+  TRejection extends EventObject = EventObject
 > =
   | Next_RegularStateNodeConfig<
       TContext,
@@ -1220,7 +1278,8 @@ export type Next_StateNodeConfig<
       TInput,
       TInputMap,
       TSystemRegistry,
-      TChildOutput
+      TChildOutput,
+      TRejection
     >
   | Next_ChoiceStateNodeConfig<
       TContext,
@@ -1314,7 +1373,8 @@ export interface Next_RegularStateNodeConfig<
   TInput = Record<string, unknown> | undefined,
   TInputMap extends Record<string, unknown> = Record<string, unknown>,
   TSystemRegistry extends SystemRegistry = SystemRegistry,
-  TChildOutput = unknown
+  TChildOutput = unknown,
+  TRejection extends EventObject = EventObject
 > {
   schemas?: SetupStateSchemas;
   /** The initial state transition. */
@@ -1369,7 +1429,8 @@ export interface Next_RegularStateNodeConfig<
       TInputMap,
       TSystemRegistry,
       TChildOutput,
-      TTransitionMeta
+      TTransitionMeta,
+      TRejection
     >;
   };
   /**
@@ -1388,7 +1449,8 @@ export interface Next_RegularStateNodeConfig<
       TDelayMap,
       TTransitionMeta,
       TSystemRegistry,
-      TInput
+      TInput,
+      TRejection
     >
   >;
   /** The mapping of event types to their potential transition(s). */
@@ -1404,7 +1466,8 @@ export interface Next_RegularStateNodeConfig<
       TDelayMap,
       TTransitionMeta,
       TInput,
-      TChildren
+      TChildren,
+      TRejection
     >;
   } & (string extends TEvent['type']
     ? unknown
@@ -1423,7 +1486,8 @@ export interface Next_RegularStateNodeConfig<
           TDelayMap,
           TTransitionMeta,
           TInput,
-          TChildren
+          TChildren,
+          TRejection
         >;
       });
   /**
@@ -1482,7 +1546,8 @@ export interface Next_RegularStateNodeConfig<
     TDelayMap,
     TTransitionMeta,
     undefined,
-    TChildren
+    TChildren,
+    TRejection
   >;
   /**
    * The transition to take when an `xstate.error.*` event is raised while this
@@ -1499,7 +1564,8 @@ export interface Next_RegularStateNodeConfig<
     TDelayMap,
     TTransitionMeta,
     undefined,
-    TChildren
+    TChildren,
+    TRejection
   >;
   /**
    * The mapping (or array) of delays (in milliseconds) to their potential
@@ -1531,7 +1597,8 @@ export interface Next_RegularStateNodeConfig<
           TTransitionMeta,
           TInput,
           [TContext] extends [never] ? any : TContext,
-          TChildren
+          TChildren,
+          TRejection
         >;
   };
 
@@ -1565,7 +1632,8 @@ export interface Next_RegularStateNodeConfig<
     TDelayMap,
     TTransitionMeta,
     TInput,
-    TChildren
+    TChildren,
+    TRejection
   >;
 
   /**
@@ -1583,7 +1651,8 @@ export interface Next_RegularStateNodeConfig<
     TDelayMap,
     TTransitionMeta,
     undefined,
-    TChildren
+    TChildren,
+    TRejection
   >;
   choice?: never;
   /**
@@ -1668,7 +1737,8 @@ export type Next_TransitionConfigOrTarget<
   TDelayMap extends Sources['delays'],
   TMeta extends MetaObject,
   TInput = undefined,
-  TChildren extends Record<string, AnyActorRef | undefined> = {}
+  TChildren extends Record<string, AnyActorRef | undefined> = {},
+  TRejection extends EventObject = EventObject
 > =
   | undefined
   | Next_StaticTransitionConfig<
@@ -1696,7 +1766,8 @@ export type Next_TransitionConfigOrTarget<
         TMeta,
         TInput,
         [TContext] extends [never] ? any : TContext,
-        TChildren
+        TChildren,
+        TRejection
       >;
       context?:
         | TransitionContextPatch<TContext>
@@ -1730,7 +1801,8 @@ export type Next_TransitionConfigOrTarget<
       TMeta,
       TInput,
       [TContext] extends [never] ? any : TContext,
-      TChildren
+      TChildren,
+      TRejection
     >;
 
 export type WithDefault<T, Default> = IsNever<T> extends true ? Default : T;

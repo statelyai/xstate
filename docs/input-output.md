@@ -33,6 +33,8 @@ const machine = createMachine({
 
 Read output from a completed snapshot or an invocation's done event.
 
+The output mapper reads context before the machine runs its [completion exits](final-states.md#completing-the-machine).
+
 Input configures one actor instance. Output reports its final result.
 
 - An invoice actor can receive a currency and line items as input, then output the calculated total.

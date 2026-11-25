@@ -285,6 +285,7 @@ const ACTOR_OPTIONS = new Set([
   'id',
   'registryKey',
   'input',
+  'simulate',
   'src',
   'inspect',
   'onRejectedEvent',
