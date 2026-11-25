@@ -67,7 +67,8 @@ Custom tools can send several events and wait for a state:
 // Replace the registration above, which already owns `get_state`.
 registration.unregister();
 
-const webMCP = createWebMCP(actor, {
+const quickCheckoutActor = createActor(checkoutMachine).start();
+const webMCP = createWebMCP(quickCheckoutActor, {
   events: [],
   tools: ({ tool }) => ({
     quickCheckout: tool({

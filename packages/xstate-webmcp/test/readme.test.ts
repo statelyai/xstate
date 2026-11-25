@@ -72,6 +72,15 @@ describe('README examples', () => {
     expect(todoStore.getSnapshot().context.todos).toEqual([
       { id: 0, title: 'Buy milk' }
     ]);
+
+    // Ids are not reused after a removal.
+    await modelContext.executeTool('todo_add', { title: 'Walk dog' });
+    await modelContext.executeTool('todo_remove', { id: 0 });
+    await modelContext.executeTool('todo_add', { title: 'Call mom' });
+    await modelContext.executeTool('todo_remove', { id: 2 });
+    expect(todoStore.getSnapshot().context.todos).toEqual([
+      { id: 1, title: 'Walk dog' }
+    ]);
   });
 
   it('overrides', () => {
