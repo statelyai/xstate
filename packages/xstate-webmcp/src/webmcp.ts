@@ -8,6 +8,7 @@ import {
   getInputJSONSchema,
   type JSONSchema,
   type StandardSchemaV1,
+  validateEventPayload,
   validateInput
 } from './schema.ts';
 
@@ -66,7 +67,8 @@ export interface WebMCPTarget {
   getSnapshot: () => any;
   subscribe: (
     next: (snapshot: any) => void,
-    error?: (error: any) => void
+    error?: (error: any) => void,
+    complete?: () => void
   ) => TargetSubscription;
 }
 
@@ -286,17 +288,25 @@ function getTransitionDescription(
     return undefined;
   }
 
-  for (const node of machine.idMap.values()) {
-    const description = node.transitions
-      ?.get(eventType)
-      ?.find((transition) => transition.description)?.description;
+  // Exact transitions first, then matching wildcards, most specific first.
+  const candidates: Array<{ rank: number; description: string }> = [];
 
-    if (description) {
-      return description;
+  for (const node of machine.idMap.values()) {
+    for (const [descriptor, transitions] of node.transitions ?? []) {
+      const description = transitions.find(
+        (transition) => transition.description
+      )?.description;
+
+      if (description && matchesEventDescriptor(eventType, descriptor)) {
+        candidates.push({
+          rank: descriptor === eventType ? Infinity : descriptor.length,
+          description
+        });
+      }
     }
   }
 
-  return undefined;
+  return candidates.sort((a, b) => b.rank - a.rank)[0]?.description;
 }
 
 function defaultOutput(snapshot: {
@@ -367,7 +377,15 @@ function waitForSnapshot<TSnapshot>(
     const check = (
       snapshot: TSnapshot & { status?: string; error?: unknown }
     ) => {
-      if (predicate(snapshot)) {
+      let matches: boolean;
+      try {
+        matches = predicate(snapshot);
+      } catch (error) {
+        finish(() => reject(toError(error)));
+        return;
+      }
+
+      if (matches) {
         finish(() => resolve(snapshot));
       } else if (snapshot.status === 'error') {
         finish(() => reject(toError(snapshot.error)));
@@ -398,7 +416,14 @@ function waitForSnapshot<TSnapshot>(
 
     const subscription = target.subscribe(
       (snapshot) => check(snapshot),
-      (error) => finish(() => reject(toError(error)))
+      (error) => finish(() => reject(toError(error))),
+      // A stopped actor completes without publishing its final snapshot.
+      () => {
+        check(target.getSnapshot());
+        finish(() =>
+          reject(new Error('The target stopped before the condition was met.'))
+        );
+      }
     );
     subscriptionRef.current = subscription;
 
@@ -544,8 +569,11 @@ export function createWebMCP<TTarget extends WebMCPTarget>(
         description,
         inputSchema,
         ...(override.annotations ? { annotations: override.annotations } : {}),
-        async execute(input) {
-          const payload = await validateInput(schema, name, input);
+        async execute(input, executeOptions) {
+          const signal = executeOptions?.signal;
+          signal?.throwIfAborted();
+          const payload = await validateEventPayload(schema, name, input);
+          signal?.throwIfAborted();
           const event = { ...payload, type: eventType };
           const snapshot = target.getSnapshot();
 
@@ -626,8 +654,10 @@ export function createWebMCP<TTarget extends WebMCPTarget>(
         inputSchema,
         ...(config.annotations ? { annotations: config.annotations } : {}),
         async execute(input, executeOptions) {
-          const value = await validateInput(config.input, name, input);
           const signal = executeOptions?.signal ?? new AbortController().signal;
+          signal.throwIfAborted();
+          const value = await validateInput(config.input, name, input);
+          signal.throwIfAborted();
 
           return config.execute(value as never, {
             target,
@@ -671,13 +701,19 @@ export function createWebMCP<TTarget extends WebMCPTarget>(
         controllers.set(tool, controller);
 
         return Promise.resolve()
-          .then(() =>
-            modelContext.registerTool(tool, {
-              signal: controller.signal,
-              ...(exposedTo ? { exposedTo } : {})
-            })
-          )
-          .catch((error) => {
+          .then(() => {
+            // A state change or `unregister()` superseded this registration.
+            if (!controller.signal.aborted) {
+              return modelContext.registerTool(tool, {
+                signal: controller.signal,
+                ...(exposedTo ? { exposedTo } : {})
+              });
+            }
+          })
+          .catch((error: unknown) => {
+            if (controller.signal.aborted) {
+              return;
+            }
             if (controllers.get(tool) === controller) {
               controllers.delete(tool);
             }
@@ -728,12 +764,19 @@ export function createWebMCP<TTarget extends WebMCPTarget>(
 
       signal?.addEventListener('abort', unregister, { once: true });
 
+      // Registration is all or nothing: if a tool fails to register, remove
+      // the others so a retry does not collide with them.
       const ready = Promise.all(getAvailableTools().map(registerTool)).then(
-        () => {}
+        () => {},
+        (error: unknown) => {
+          unregister();
+          throw error;
+        }
       );
 
       if (tracksState) {
-        subscription = target.subscribe(sync, () => sync(target.getSnapshot()));
+        const syncCurrent = () => sync(target.getSnapshot());
+        subscription = target.subscribe(sync, syncCurrent, syncCurrent);
       }
 
       return {

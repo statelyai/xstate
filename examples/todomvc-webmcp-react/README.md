@@ -33,6 +33,6 @@ runs `src/webmcp.test.ts`, which calls the tools through `createMockModelContext
 
 ## Notes
 
-Built against the XState v6 beta in this repo (`xstate: workspace:*`), not a published release. Zod 4 is a dependency because `@xstate/webmcp` converts event schemas to JSON Schema through [Standard JSON Schema](https://standardschema.dev/json-schema).
+Built against the XState v6 beta in this repo (`xstate: workspace:*`), not a published release. Zod 4 is a dependency because `@xstate/webmcp` converts event schemas to JSON Schema through [Standard JSON Schema](https://standardschema.dev/json-schema). `todomvc-app-css` and `todomvc-common` provide the standard TodoMVC markup styles, and `classnames` builds the conditional `className` values that markup expects.
 
 This is an implementation of [TodoMVC](https://todomvc.com/).

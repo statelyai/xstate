@@ -31,8 +31,12 @@ export function createMockModelContext(): MockModelContext {
   return {
     tools,
     registerTool(tool: WebMCPTool, options?: WebMCPRegisterToolOptions) {
+      // Like the browser, reject registration with an already-aborted signal.
       if (options?.signal?.aborted) {
-        return Promise.resolve();
+        const reason: unknown = options.signal.reason;
+        return Promise.reject(
+          reason instanceof Error ? reason : new Error(String(reason))
+        );
       }
 
       if (tools.has(tool.name)) {

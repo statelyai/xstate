@@ -530,6 +530,8 @@ const registration = createWebMCP(flavorStore, {
 }).register();
 ```
 
+In a browser without WebMCP, `registration.status` is `'unsupported'` and no tools are registered.
+
 ## Effects and Side Effects
 
 You can enqueue effects in state transitions using the `enqueue` argument:

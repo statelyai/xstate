@@ -15,15 +15,14 @@ const todoStore = createStore({
         .describe('Remove a todo item by id.')
     }
   },
-  context: { todos: [] as { id: number; title: string }[] },
+  context: { nextId: 0, todos: [] as { id: number; title: string }[] },
   on: {
     'todo.add': (context, event) => ({
-      todos: [
-        ...context.todos,
-        { id: context.todos.length, title: event.title }
-      ]
+      nextId: context.nextId + 1,
+      todos: [...context.todos, { id: context.nextId, title: event.title }]
     }),
     'todo.remove': (context, event) => ({
+      ...context,
       todos: context.todos.filter((todo) => todo.id !== event.id)
     })
   }

@@ -124,13 +124,14 @@ export class WebMCPInputError extends Error {
   }
 }
 
+/** Validates tool input and returns the schema output unchanged. */
 export async function validateInput(
   schema: StandardSchemaV1 | undefined,
   toolName: string,
   input: unknown
-): Promise<Record<string, unknown>> {
+): Promise<unknown> {
   if (!schema) {
-    return (input ?? {}) as Record<string, unknown>;
+    return input ?? {};
   }
 
   const result = schema['~standard'].validate(input ?? {});
@@ -140,13 +141,20 @@ export async function validateInput(
     throw new WebMCPInputError(toolName, validated.issues);
   }
 
-  if (
-    !validated.value ||
-    typeof validated.value !== 'object' ||
-    Array.isArray(validated.value)
-  ) {
+  return validated.value;
+}
+
+/** Validates an event payload, which must be an object to spread into the event. */
+export async function validateEventPayload(
+  schema: StandardSchemaV1 | undefined,
+  toolName: string,
+  input: unknown
+): Promise<Record<string, unknown>> {
+  const value = await validateInput(schema, toolName, input);
+
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
     throw new WebMCPInputError(toolName, [{ message: 'Expected an object.' }]);
   }
 
-  return validated.value as Record<string, unknown>;
+  return value as Record<string, unknown>;
 }

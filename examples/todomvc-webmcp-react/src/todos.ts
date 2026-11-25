@@ -17,7 +17,9 @@ export const webMCP = createTodosWebMCP(todosActor);
 // Without native WebMCP support, register with an in-page model context so
 // the agent panel can call the same tools.
 export const modelContext =
-  'modelContext' in document ? undefined : createMockModelContext();
+  'modelContext' in document || 'modelContext' in navigator
+    ? undefined
+    : createMockModelContext();
 
 const registration = webMCP.register({ modelContext });
 

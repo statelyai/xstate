@@ -225,6 +225,51 @@ describe('store tools', () => {
     );
   });
 
+  it('passes transformed custom tool input through unchanged', async () => {
+    const webMCP = createWebMCP(createTodoStore(), {
+      events: [],
+      stateTool: false,
+      tools: ({ tool }) => ({
+        shout: tool({
+          description: 'Shout a word.',
+          input: z
+            .object({ word: z.string() })
+            .transform(({ word }) => word.toUpperCase()),
+          execute: async (word) => word
+        })
+      })
+    });
+
+    await expect(webMCP.tools[0].execute({ word: 'hi' })).resolves.toBe('HI');
+  });
+
+  it('rejects waitFor when the predicate throws', async () => {
+    const store = createTodoStore();
+    const webMCP = createWebMCP(store, {
+      events: [],
+      stateTool: false,
+      tools: ({ tool }) => ({
+        broken: tool({
+          description: 'Wait with a broken predicate.',
+          execute: (_input, { send, waitFor }) => {
+            const waiting = waitFor((s) => {
+              if (s.context.todos.length > 0) {
+                throw new Error('Predicate failed');
+              }
+              return false;
+            });
+            send({ type: 'todo.add', title: 'Buy milk' });
+            return waiting;
+          }
+        })
+      })
+    });
+
+    await expect(webMCP.tools[0].execute({})).rejects.toThrow(
+      'Predicate failed'
+    );
+  });
+
   it('runs custom tools with typed input and waitFor', async () => {
     const store = createTodoStore();
     const modelContext = createMockModelContext();
@@ -395,5 +440,100 @@ describe('registration', () => {
         modelContext
       }).ready
     ).rejects.toThrow(/already registered/);
+  });
+
+  it('removes the registered tools when ready rejects', async () => {
+    const modelContext = createMockModelContext();
+    await modelContext.registerTool({
+      name: 'get_state',
+      description: 'Taken.',
+      inputSchema: {},
+      execute: async () => null
+    });
+    const registration = createWebMCP(createTodoStore(), {
+      events: 'todo.add'
+    }).register({ modelContext });
+
+    await expect(registration.ready).rejects.toThrow(/already registered/);
+    expect(registration.status).toBe('unregistered');
+    expect(modelContext.getToolNames()).toEqual(['get_state']);
+  });
+});
+
+describe('cancellation', () => {
+  function createGatedStore() {
+    let open!: () => void;
+    const gate = new Promise<void>((resolve) => (open = resolve));
+    const schema = z
+      .object({ title: z.string() })
+      .refine(async () => {
+        await gate;
+        return true;
+      })
+      .describe('Add a todo item.');
+    const store = createStore({
+      schemas: { events: { 'todo.add': schema } },
+      context: { titles: [] as string[] },
+      on: {
+        'todo.add': (context, event) => ({
+          titles: [...context.titles, event.title]
+        })
+      }
+    });
+    return { store, schema, open };
+  }
+
+  it('does not send when the call aborts during validation', async () => {
+    const { store, open } = createGatedStore();
+    const webMCP = createWebMCP(store, { events: 'todo.add' });
+    const controller = new AbortController();
+
+    const call = webMCP.tools[0].execute(
+      { title: 'Buy milk' },
+      { signal: controller.signal }
+    );
+    controller.abort();
+    open();
+
+    await expect(call).rejects.toThrow(/aborted/);
+    expect(store.getSnapshot().context.titles).toEqual([]);
+  });
+
+  it('does not run a custom tool when the call aborts during validation', async () => {
+    const { store, schema, open } = createGatedStore();
+    const execute = vi.fn();
+    const webMCP = createWebMCP(store, {
+      events: [],
+      stateTool: false,
+      tools: ({ tool }) => ({
+        add: tool({
+          description: 'Add a todo item.',
+          input: schema,
+          execute
+        })
+      })
+    });
+    const controller = new AbortController();
+
+    const call = webMCP.tools[0].execute(
+      { title: 'Buy milk' },
+      { signal: controller.signal }
+    );
+    controller.abort();
+    open();
+
+    await expect(call).rejects.toThrow(/aborted/);
+    expect(execute).not.toHaveBeenCalled();
+  });
+
+  it('rejects an already aborted call', async () => {
+    const webMCP = createWebMCP(createTodoStore(), { events: 'todo.add' });
+
+    await expect(
+      webMCP.tools[0].execute(
+        { title: 'Buy milk' },
+        { signal: AbortSignal.abort() }
+      )
+    ).rejects.toThrow(/aborted/);
   });
 });

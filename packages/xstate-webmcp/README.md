@@ -30,12 +30,14 @@ const todoStore = createStore({
         .describe('Remove a todo item by id.')
     }
   },
-  context: { todos: [] as { id: number; title: string }[] },
+  context: { nextId: 0, todos: [] as { id: number; title: string }[] },
   on: {
     'todo.add': (context, event) => ({
-      todos: [...context.todos, { id: context.todos.length, title: event.title }]
+      nextId: context.nextId + 1,
+      todos: [...context.todos, { id: context.nextId, title: event.title }]
     }),
     'todo.remove': (context, event) => ({
+      ...context,
       todos: context.todos.filter((todo) => todo.id !== event.id)
     })
   }
@@ -63,7 +65,7 @@ Wildcards expand to one tool per event. They are never registered as tool names.
 Every exposed event needs an event schema in `schemas.events`. The schema validates tool input and becomes the tool's `inputSchema`.
 
 - Schemas that implement [Standard JSON Schema](https://standardschema.dev/json-schema) (Zod 4, Valibot, ArkType) convert automatically. For other schemas, pass a `toJSONSchema` option.
-- The tool description comes from the schema description. For machines, a transition `description` is used when the schema has none. An event with neither throws an error when you call `createWebMCP`.
+- The tool description comes from the schema description. For machines, a transition `description` is used when the schema has none: first a transition for the exact event, then the most specific matching wildcard transition, such as `pointer.*`. An event with neither throws an error when you call `createWebMCP`.
 - Input that fails the schema rejects the tool call with a `WebMCPInputError`, and no event is sent.
 
 ### Tool names
@@ -175,7 +177,7 @@ Pass `availability: 'always'` to keep every event tool registered. The `snapshot
 Use `tools` to define tools that send several events, run async logic, or wait for a state. The `tool` helper infers the input type from `input` and types `send`, `getSnapshot`, and `waitFor` from the actor or store:
 
 ```ts
-createWebMCP(actor, {
+const webMCP = createWebMCP(actor, {
   events: [],
   tools: ({ tool }) => ({
     quickCheckout: tool({
@@ -193,6 +195,8 @@ createWebMCP(actor, {
     })
   })
 });
+
+webMCP.register();
 ```
 
 The second argument of `execute` contains:
@@ -206,6 +210,8 @@ The second argument of `execute` contains:
 | `target`      | The actor or store.                                                                                                                            |
 
 Custom tools are always registered, whatever the current state.
+
+If the agent cancels a call before input validation finishes, the tool rejects without sending an event or running `execute`. After `execute` starts, cancellation is cooperative: check `signal` or pass it to async work.
 
 ## Registration
 
@@ -228,7 +234,7 @@ controller.abort(); // or registration.unregister()
 | `exposedTo`    | Origins the tools are exposed to.                                                                |
 | `onError`      | Called when a later registration fails, such as after a state change. Defaults to `reportError`. |
 
-When no model context exists, `status` is `'unsupported'` and nothing is registered. `ready` rejects if any initial registration fails, for example because another script registered a tool with the same name.
+When no model context exists, `status` is `'unsupported'` and nothing is registered. `ready` rejects if any initial registration fails, for example because another script registered a tool with the same name. The tools that did register are then removed and `status` becomes `'unregistered'`, so you can call `register()` again.
 
 ## Using the tools without WebMCP
 

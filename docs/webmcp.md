@@ -49,7 +49,7 @@ const registration = createWebMCP(actor, { events: '*' }).register();
 
 The `events` option lists the events agents can send. It accepts exact event types, trailing wildcards such as `'cart.*'`, and `'*'`.
 
-When a schema has no description, the transition's `description` is used instead. Tool names replace `.` in event types with `_`, so `cart.add` becomes the `cart_add` tool. Pass a `toolName` function to change this mapping.
+When a schema has no description, the transition's `description` is used instead, including a matching wildcard transition such as `cart.*`. Tool names replace `.` in event types with `_`, so `cart.add` becomes the `cart_add` tool. Pass a `toolName` function to change this mapping.
 
 ## Tools follow the current state
 
@@ -64,7 +64,7 @@ Pass `availability: 'always'` to keep every tool registered.
 Custom tools can send several events and wait for a state:
 
 ```ts
-createWebMCP(actor, {
+const webMCP = createWebMCP(actor, {
   events: [],
   tools: ({ tool }) => ({
     quickCheckout: tool({
@@ -81,6 +81,8 @@ createWebMCP(actor, {
     })
   })
 });
+
+webMCP.register();
 ```
 
 `send` and `waitFor` are typed from the actor, and `execute` input is typed from `input`.

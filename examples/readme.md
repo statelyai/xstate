@@ -58,6 +58,7 @@ Features per example. `—` means not used or not determined.
 | tiles                           | React          | yes    | —        | —      | —     | —      | —           | —     | yes |
 | timer                           | React          | —      | —        | yes    | —     | —      | —           | —     | yes |
 | todomvc-react                   | React          | —      | —        | —      | —     | —      | yes         | —     | yes |
+| todomvc-webmcp-react            | React          | —      | —        | —      | —     | —      | —           | —     | yes |
 | toggle                          | Vanilla + Vite | —      | —        | —      | —     | —      | —           | —     | yes |
 | trivia-game-example             | React          | yes    | —        | yes    | —     | —      | —           | —     | yes |
 | workflow-media-scanner          | Node           | —      | —        | yes    | —     | —      | —           | —     | no  |

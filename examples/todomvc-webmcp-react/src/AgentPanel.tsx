@@ -35,7 +35,11 @@ export function AgentPanel({
           ? 'This browser has no WebMCP support, so the tools are registered with an in-page model context. Call them below.'
           : 'Registered with document.modelContext. Ask your browser agent to manage the todos.'}
       </p>
-      <select value={name} onChange={(ev) => setName(ev.target.value)}>
+      <select
+        aria-label="Tool"
+        value={name}
+        onChange={(ev) => setName(ev.target.value)}
+      >
         {webMCP.tools.map((t) => (
           <option key={t.name} value={t.name}>
             {t.name}

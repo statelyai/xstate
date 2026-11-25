@@ -225,4 +225,74 @@ describe('machine tools', () => {
 
     await expect(webMCP.tools[0].execute({})).rejects.toThrow('Payment failed');
   });
+
+  it('unregisters event tools and settles waitFor when the actor stops', async () => {
+    const actor = createActor(checkoutMachine).start();
+    const modelContext = createMockModelContext();
+    const webMCP = createWebMCP(actor, {
+      events: '*',
+      tools: ({ tool }) => ({
+        awaitOrder: tool({
+          description: 'Wait for the order.',
+          execute: (_input, { waitFor }) =>
+            waitFor((s) => s.matches('confirmed'))
+        })
+      })
+    });
+    await webMCP.register({ modelContext }).ready;
+
+    const call = modelContext.executeTool('awaitOrder');
+    actor.stop();
+
+    await expect(call).rejects.toThrow(/stopped/);
+    expect(modelContext.getToolNames().sort()).toEqual([
+      'awaitOrder',
+      'get_state'
+    ]);
+  });
+
+  it('skips registrations that a state change superseded', async () => {
+    const actor = createActor(checkoutMachine).start();
+    const modelContext = createMockModelContext();
+    const registration = createWebMCP(actor, { events: '*' }).register({
+      modelContext
+    });
+    actor.send({ type: 'cart.add', sku: 'a' });
+    actor.send({ type: 'checkout.start' });
+
+    await expect(registration.ready).resolves.toBeUndefined();
+    await Promise.resolve();
+    expect(modelContext.getToolNames().sort()).toEqual([
+      'cancel',
+      'checkout_confirm',
+      'get_state'
+    ]);
+  });
+
+  it('uses the most specific wildcard transition description', () => {
+    const machine = createMachine({
+      schemas: {
+        events: {
+          'pointer.move': z.object({ x: z.number() }),
+          'pointer.up': z.object({})
+        }
+      },
+      on: {
+        '*': { description: 'Handle any event.', to: () => ({}) },
+        'pointer.*': { description: 'Track the pointer.', to: () => ({}) },
+        'pointer.up': { description: 'Release the pointer.', to: () => ({}) }
+      }
+    });
+    const webMCP = createWebMCP(createActor(machine).start(), {
+      events: 'pointer.*',
+      stateTool: false
+    });
+
+    expect(
+      webMCP.tools.map(({ name, description }) => ({ name, description }))
+    ).toEqual([
+      { name: 'pointer_move', description: 'Track the pointer.' },
+      { name: 'pointer_up', description: 'Release the pointer.' }
+    ]);
+  });
 });

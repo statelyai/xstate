@@ -33,10 +33,12 @@ export function App() {
     return () => window.removeEventListener('hashchange', onHashChange);
   }, [send]);
 
-  // Agents can change the filter too; keep the URL in sync.
+  // Agents can change the filter too; keep the URL in sync. Compare with the
+  // actor's current filter, which the hash effect above may have just set.
   useEffect(() => {
-    if (readHashFilter() !== filter) {
-      window.location.hash = filter === 'all' ? '/' : `/${filter}`;
+    const current = todosActor.getSnapshot().context.filter;
+    if (readHashFilter() !== current) {
+      window.location.hash = current === 'all' ? '/' : `/${current}`;
     }
   }, [filter]);
 
@@ -99,6 +101,7 @@ export function App() {
                       <input
                         className="toggle"
                         type="checkbox"
+                        aria-label={todo.title}
                         checked={todo.completed}
                         onChange={(ev) =>
                           send({
