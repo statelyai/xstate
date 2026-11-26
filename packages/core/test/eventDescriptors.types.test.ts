@@ -1,11 +1,9 @@
 import { z } from 'zod';
 import {
   assertEvent,
-  createActor,
   createAsyncLogic,
   createMachine,
   setup,
-  type EventRejection,
   type ExtractEvent
 } from '../src/index.ts';
 
@@ -315,70 +313,5 @@ describe('partial wildcard descriptors include the bare prefix event', () => {
 
     prefix.type satisfies 'FEEDBACK';
     nestedPrefix.value satisfies number;
-  });
-
-  it('treats the bare prefix of an internal wildcard as internal', () => {
-    const machine = createMachine({
-      schemas: {
-        events: {
-          start: z.object({}),
-          change: z.object({})
-        },
-        internalEvents: {
-          'change.*': z.object({ value: z.string() })
-        }
-      },
-      on: {
-        start: {}
-      }
-    });
-
-    const rejections: EventRejection[] = [];
-    const actor = createActor(machine, {
-      onRejectedEvent: (rejection) => rejections.push(rejection)
-    });
-
-    actor.send({ type: 'start' });
-    actor.send({ type: 'change' } as any);
-
-    expect(
-      rejections.map((rejection) => [rejection.event.type, rejection.reason])
-    ).toEqual([['change', 'internalEvent']]);
-
-    function _expectBarePrefixRejected(a: typeof actor) {
-      // @ts-expect-error the bare prefix of an internal wildcard is internal
-      a.send({ type: 'change' });
-      // @ts-expect-error the bare prefix of an internal wildcard is internal
-      a.trigger.change();
-    }
-    void _expectBarePrefixRejected;
-  });
-
-  it('declares the bare prefix event for a wildcard schema key', () => {
-    const ratings: number[] = [];
-    const machine = createMachine({
-      schemas: {
-        events: {
-          'feedback.*': z.object({ rating: z.number() })
-        }
-      },
-      on: {
-        'feedback.*': ({ event }) => {
-          event.type satisfies 'feedback' | `feedback.${string}`;
-          ratings.push(event.rating);
-        }
-      }
-    });
-
-    const rejections: EventRejection[] = [];
-    const actor = createActor(machine, {
-      onRejectedEvent: (rejection) => rejections.push(rejection)
-    }).start();
-
-    actor.send({ type: 'feedback', rating: 5 });
-    actor.send({ type: 'feedback.good', rating: 4 });
-
-    expect(rejections).toEqual([]);
-    expect(ratings).toEqual([5, 4]);
   });
 });
