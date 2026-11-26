@@ -127,7 +127,7 @@ export type InferInternalEvents<
 type EventTypeFromSchemaKey<TKey extends string> = TKey extends '*'
   ? string
   : TKey extends `${infer TLeading}.*`
-    ? `${TLeading}.${string}`
+    ? TLeading | `${TLeading}.${string}`
     : TKey;
 
 /**

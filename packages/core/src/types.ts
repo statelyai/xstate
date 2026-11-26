@@ -807,7 +807,7 @@ export type NormalizeDescriptor<TDescriptor extends string> =
   TDescriptor extends '*'
     ? string
     : TDescriptor extends `${infer TLeading}.*`
-      ? `${TLeading}.${string}`
+      ? TLeading | `${TLeading}.${string}`
       : TDescriptor;
 
 /** @public */
