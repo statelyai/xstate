@@ -489,25 +489,37 @@ const m = setup({
   context: { n: 0 },
   on: { GO: { actions: ['inc', { type: 'set', params: { n: 2 } }] } }
 });`);
-      expect(output).toContain(
-        `inc: ({ context }) => ({ n: context.n + 1, label: 'x' }),`
-      );
-      expect(output).toContain(
-        `set: ({ event }, params) => ({ n: params.n ?? event.n }),`
-      );
+      expect(output).not.toContain(`inc: ({ context })`);
+      expect(output).not.toContain(`set: ({ event }`);
       expect(output).toContain(
         `mixed: (args, params) => ({ n: ((_, params) => params.n)(args, params) })`
       );
       expect(output).toContain(`GO: (args) => {
     let context = args.context;
     let patch = {};
-    patch = { ...patch, ...args.actions.inc(args) };
+    patch = { ...patch, ...(({ context }) => ({ n: context.n + 1, label: 'x' }))(args) };
     context = { ...args.context, ...patch };
-    patch = { ...patch, ...args.actions.set({ ...args, context }, { n: 2 }) };
+    patch = { ...patch, ...(({ event }, params) => ({ n: params.n ?? event.n }))({ ...args, context }, { n: 2 }) };
     context = { ...args.context, ...patch };
     return { context: patch };
   }`);
       expect(output).toContain(`import { setup } from 'xstate';`);
+    });
+
+    it('inlines a named assign whose name is also a transition key', () => {
+      const { output } = lower(`import { setup, assign } from 'xstate';
+const m = setup({
+  actions: {
+    add: assign(({ context, event }) => ({ count: context.count + event.by }))
+  }
+}).createMachine({
+  context: { count: 0 },
+  on: { add: { actions: 'add' } }
+});`);
+      expect(output).not.toContain('add: ({ context, event })');
+      expect(output).toContain(
+        'return { context: (({ context, event }) => ({ count: context.count + event.by }))(args) };'
+      );
     });
 
     it('resolves shorthand implementations declared in the file', () => {
@@ -916,8 +928,8 @@ const m = setup({ actions: { reset: assign(initial) } }).createMachine({
   on: { GO: { actions: assign(initial) }, R: { actions: 'reset' } }
 });`);
       expect(output).toContain('return { context: initial };');
-      expect(output).toContain('reset: () => initial');
-      expect(output).toContain('return { context: args.actions.reset(args) };');
+      expect(output).not.toContain('reset: () => initial');
+      expect(output).toContain('return { context: (() => initial)(args) };');
     });
 
     it('treats a named action bound to a const assign like a named assign', () => {
@@ -927,7 +939,9 @@ const m = setup({ actions: { init, again: init as any } }).createMachine({
   on: { GO: { actions: 'init' } }
 });`);
       expect(output).toContain('const init = ({ event }) => ({ n: event.n });');
-      expect(output).toContain('return { context: args.actions.init(args) };');
+      expect(output).toContain(
+        'return { context: (({ event }) => ({ n: event.n }))(args) };'
+      );
       expect(output).toContain("import { setup } from 'xstate';");
     });
   });
@@ -1000,7 +1014,7 @@ const m = setup({ actions: { inc: assign({ n: 1 }), other: assign({ n: 2 }) } })
 export const custom = m.provide({ actions: { inc: assign({ n: 5 }) } });`);
       expect(output).toContain('inc: assign({ n: 1 })');
       expect(output).toContain("GO: { actions: 'inc' }");
-      expect(output).toContain('other: () => ({ n: 2 })');
+      expect(output).toContain('return { context: (() => ({ n: 2 }))(args) };');
       expect(notes.join('\n')).toContain("'inc' is overridden through provide");
     });
   });

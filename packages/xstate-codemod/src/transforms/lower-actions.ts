@@ -570,6 +570,11 @@ function hasOtherReferences(
   const replaced = (node: Node) =>
     (node.getStart() >= def.getStart() && node.getEnd() <= def.getEnd()) ||
     edits.some((e) => node.getStart() >= e.start && node.getEnd() <= e.end);
+  // A non-computed property name is a key, not a reference to the action.
+  const isPropertyName = (node: Node) => {
+    const parent = node.getParent();
+    return Node.isPropertyAssignment(parent) && parent.getNameNode() === node;
+  };
   return (
     sourceFile.forEachDescendant((node) => {
       const matches =
@@ -579,7 +584,9 @@ function hasOtherReferences(
         (Node.isIdentifier(node) && node.getText() === name) ||
         (Node.isPropertyAccessExpression(node) &&
           resolveStringConstant(node) === name);
-      return matches && !replaced(node) ? true : undefined;
+      return matches && !isPropertyName(node) && !replaced(node)
+        ? true
+        : undefined;
     }) ?? false
   );
 }
