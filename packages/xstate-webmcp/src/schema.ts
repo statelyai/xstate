@@ -59,9 +59,7 @@ interface StandardJSONSchema extends StandardSchemaV1 {
   };
 }
 
-export function isPromiseLike<T>(
-  value: T | PromiseLike<T>
-): value is PromiseLike<T> {
+function isPromiseLike<T>(value: T | PromiseLike<T>): value is PromiseLike<T> {
   return !!value && typeof (value as { then?: unknown }).then === 'function';
 }
 
