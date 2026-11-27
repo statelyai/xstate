@@ -33,6 +33,8 @@ History state "player.hist" must declare a non-empty `target`.
 
 > **Warning:** The default target is used whenever nothing has been recorded, including an internal self-transition to `.hist` before the parent has ever been exited. A history state does not keep the currently active child.
 
+The parent's initial transition runs when the parent is entered by default. For example, if its `initial` target is the history state, the initial transition runs before the history default.
+
 ## Shallow and deep
 
 History is shallow by default. A shallow history state records only the direct children of its parent that were active; their own descendants restart at their `initial` states.

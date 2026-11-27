@@ -50,6 +50,8 @@ on: {
 
 A `#` target names one state by its id. The text after `#` is matched exactly against the state ids and is never split into a path. A state's id is its explicit `id`, or else its implicit id: the path from the root joined by `.`, prefixed by the machine `id` when there is one.
 
+When a descendant targets the machine root by id without `reenter: true`, the root remains active and its invocations keep running. The root's initial transition resets its descendants and supplies `initial.input` to the new states. Use `reenter: true` to run the root's exit and entry effects and restart its invocations.
+
 ```ts
 const machine = createMachine({
   id: 'shop',
