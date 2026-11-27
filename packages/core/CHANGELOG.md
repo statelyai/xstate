@@ -1,5 +1,52 @@
 # xstate
 
+## 6.0.0-beta.6
+
+### Minor Changes
+
+- c67e53a: Add a `generate` option to `xstate test` to sample event payloads and one startup input from JSON Schemas embedded in a machine definition. Set a seed to reproduce sampling or supply explicit cases for individual event types.
+  
+  Effect Schema string generators honor Unicode code point bounds. Generators report an error when a refinement rejects 1,000 consecutive candidates.
+- 7ff5654: Add `durable.inspect(observer)` to subscribe to inspection after creating a durable execution. Subscribing does not replay past actor announcements.
+- fde9eff: Add typed transition rejections with `schemas.rejections`, `reject([...])`, and `snapshot.check(event)`. Checks return acceptance status and rejection reasons without executing effects. Parallel regions can partially accept an event. JSON definitions support guarded `reject` branches.
+  
+  ```ts
+  on: {
+    submit: ({ context, reject }) => {
+      if (!context.email) {
+        return reject([{ type: 'email.required' }]);
+      }
+      return { target: 'submitting' };
+    }
+  }
+  ```
+- 2df08f5: Enable `actor.simulate.childDone({ id, output })` with `createActor(machine, { simulate: true })`. Tests can finish an invoked child with a chosen output and still exercise child cleanup, the terminal snapshot, and the parent's `onDone` transition.
+  
+  Reject application sends of reserved lifecycle notifications. Host runtimes should pass co-located notifications through `deliverEvent` without cloning them and supply the current remote child as the source for verified remote notifications.
+
+### Patch Changes
+
+- 6b8dce9: Check that named action, guard, and actor overrides in `setup(...).createMachine(...)` satisfy their original setup types.
+- 10b3679: In `setup()`, an invoke's `onSnapshot` callback now types `event.snapshot` from the registered actor when `src` is its name:
+  
+  ```ts
+  const watchItems = createObservableLogic<string[], { topic: string }>({
+    /* ... */
+  });
+  
+  setup({ actors: { watchItems } }).createMachine({
+    invoke: {
+      src: 'watchItems',
+      input: { topic: 'news' },
+      onSnapshot: ({ event }) => {
+        event.snapshot; // ObservableSnapshot<string[], { topic: string }>
+      }
+    }
+  });
+  ```
+  
+  Previously `event.snapshot` was `any`, while `onDone` and `onError` were already typed from the registered actor.
+
 ## 6.0.0-beta.5
 
 ### Patch Changes
