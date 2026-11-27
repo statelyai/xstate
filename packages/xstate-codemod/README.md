@@ -11,3 +11,5 @@ The transforms rename imports, wrap string targets, convert inline `types` decla
 The codemod supports named, namespace and type-only imports. It checks transformed syntax before saving. Run your application's typecheck and tests after migration, and review any reported manual migration steps.
 
 The `string-targets` transform also wraps inline `xstate/fsm` targets in `on` and `always`, including `setup(...).createFSM` and aliased `createFSM` imports. It preserves string `initial` values. Review separately stored configurations and string-returning transition functions manually.
+
+The `lower-actions` transform inlines supported named `assign` actions as context patches at their call sites. It reports assignments that require manual migration, including assignments with params, shared const definitions, or variables that would resolve to a different binding after inlining. It leaves those sites unchanged and exits with code 2.

@@ -1025,6 +1025,16 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
     if (override) {
       return override(source, target, event);
     }
+    // Let the sender finish before its parent can stop and replace it.
+    if (
+      source &&
+      target === source._parent &&
+      '_deferDelivery' in source &&
+      typeof source._deferDelivery === 'function'
+    ) {
+      source._deferDelivery(() => this._deliver(source, target, event));
+      return;
+    }
     this._deliver(source, target, event);
   }
 

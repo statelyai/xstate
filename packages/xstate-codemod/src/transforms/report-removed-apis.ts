@@ -7,7 +7,7 @@ import type { ManualSite, Transform, TransformResult } from '../types.ts';
  */
 const REMOVED_APIS: Record<string, string> = {
   assign:
-    'return a `{ context }` patch from the inline transition function. A named `assign` in `setup({ actions })` becomes a plain function returning the patch; call it from the transition and return its result (`enq(actions.x)` ignores return values).',
+    'return a `{ context }` patch from the inline transition function. Inline a named assignment at its call sites, or make it a typed params-only function returning `{ context: patch }` and return that result from the transition (`enq(actions.x)` ignores return values).',
   raise: 'use `enq.raise(...)` inside an action',
   sendTo: 'use `enq.sendTo(...)` inside an action',
   sendParent: 'use `enq.sendTo(...)` with the parent ref inside an action',
@@ -23,7 +23,8 @@ const REMOVED_APIS: Record<string, string> = {
   and: 'inline the guard as `(...) => a(...) && b(...)`',
   or: 'inline the guard as `(...) => a(...) || b(...)`',
   not: 'inline the guard as `(...) => !a(...)`',
-  stateIn: 'use `self.getSnapshot().matches(...)`',
+  stateIn:
+    'use `matchesState(pattern, value)` with the transition arguments; convert `#id` to the state path',
   fromPromise: 'use `createAsyncLogic(...)`',
   fromTransition: 'use `createStepLogic({ context, run })`',
   toObserver: 'pass an observer object or callback directly',

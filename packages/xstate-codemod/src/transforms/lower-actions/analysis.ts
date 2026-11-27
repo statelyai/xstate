@@ -266,34 +266,49 @@ function isReferenceIdentifier(id: Node): boolean {
   return true;
 }
 
-/**
- * Names in `names` that `node` references while declared outside it (or not
- * at all, such as globals). Generated bindings with these names would capture
- * those references.
- */
-export function outerReferences(node: Node, names: Set<string>): Set<string> {
-  const found = new Set<string>();
+/** The symbol referenced by an identifier, including shorthand object values. */
+export function valueSymbol(id: Node) {
+  const parent = id.getParent();
+  return Node.isShorthandPropertyAssignment(parent) &&
+    parent.getNameNode() === id
+    ? id
+        .getProject()
+        .getTypeChecker()
+        .compilerObject.getShorthandAssignmentValueSymbol(parent.compilerNode)
+    : id.getSymbol()?.compilerSymbol;
+}
+
+/** Value references that resolve outside `node`, including global names. */
+export function* outerValueReferences(node: Node, names?: Set<string>) {
+  const sourceFile = node.getSourceFile().compilerNode;
   const start = node.getPos();
   const end = node.getEnd();
-  for (const id of node.getDescendantsOfKind(SyntaxKind.Identifier)) {
-    const text = id.getText();
-    if (!names.has(text) || !isReferenceIdentifier(id)) continue;
-    const parent = id.getParent();
-    const symbol = Node.isShorthandPropertyAssignment(parent)
-      ? id
-          .getProject()
-          .getTypeChecker()
-          .compilerObject.getShorthandAssignmentValueSymbol(parent.compilerNode)
-      : id.getSymbol()?.compilerSymbol;
+  const identifiers = Node.isIdentifier(node)
+    ? [node]
+    : node.getDescendantsOfKind(SyntaxKind.Identifier);
+  for (const id of identifiers) {
+    const name = id.compilerNode.text;
+    if ((names && !names.has(name)) || !isReferenceIdentifier(id)) continue;
+    const symbol = valueSymbol(id);
     const decls = symbol?.declarations ?? [];
     if (
       !decls.length ||
-      decls.some((decl) => decl.pos < start || decl.end > end)
+      decls.some(
+        (decl) =>
+          decl.getSourceFile() !== sourceFile ||
+          decl.pos < start ||
+          decl.end > end
+      )
     ) {
-      found.add(text);
+      yield { name, symbol };
     }
   }
-  return found;
+}
+
+export function outerReferences(node: Node, names: Set<string>): Set<string> {
+  return new Set(
+    Array.from(outerValueReferences(node, names), (ref) => ref.name)
+  );
 }
 
 /** Key of an implementation map entry, resolving `[Enum.X]` computed keys. */
@@ -377,15 +392,7 @@ export function nonModuleReferences(node: Node): string[] {
   const found = new Set<string>();
   const start = node.getPos();
   const end = node.getEnd();
-  for (const id of node.getDescendantsOfKind(SyntaxKind.Identifier)) {
-    if (!isReferenceIdentifier(id)) continue;
-    const parent = id.getParent();
-    const symbol = Node.isShorthandPropertyAssignment(parent)
-      ? id
-          .getProject()
-          .getTypeChecker()
-          .compilerObject.getShorthandAssignmentValueSymbol(parent.compilerNode)
-      : id.getSymbol()?.compilerSymbol;
+  for (const { name, symbol } of outerValueReferences(node)) {
     for (const decl of symbol?.declarations ?? []) {
       if (decl.pos >= start && decl.end <= end) continue;
       if (decl.getSourceFile() !== node.getSourceFile().compilerNode) continue;
@@ -397,7 +404,7 @@ export function nonModuleReferences(node: Node): string[] {
           ts.isClassLike(scope) ||
           ts.isModuleBlock(scope)
         ) {
-          found.add(id.getText());
+          found.add(name);
           break;
         }
         scope = scope.parent;

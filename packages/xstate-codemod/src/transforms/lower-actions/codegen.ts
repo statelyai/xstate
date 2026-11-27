@@ -7,12 +7,14 @@ import {
   isFunctionLike,
   nonModuleReferences,
   outerReferences,
+  outerValueReferences,
   Skip,
   resolveConstAction,
   resolveIdentifier,
   resolveStringConstant,
   skip,
   unwrap,
+  valueSymbol,
   xstateCallee
 } from './analysis.ts';
 
@@ -45,18 +47,6 @@ function indentOf(node: Node): string {
   const text = node.getSourceFile().getFullText();
   const lineStart = text.lastIndexOf('\n', node.getStart() - 1) + 1;
   return /^[ \t]*/.exec(text.slice(lineStart))![0];
-}
-
-/** The symbol a (possibly shorthand-property) identifier refers to. */
-function valueSymbol(id: Node) {
-  const parent = id.getParent();
-  if (Node.isShorthandPropertyAssignment(parent)) {
-    return id
-      .getProject()
-      .getTypeChecker()
-      .compilerObject.getShorthandAssignmentValueSymbol(parent.compilerNode);
-  }
-  return id.getSymbol()?.compilerSymbol;
 }
 
 /** `node`'s text with non-overlapping descendant ranges replaced. */
@@ -106,8 +96,6 @@ const TRANSITION_KEYS = new Set([
 export interface FileContext {
   xs: Map<string, string>;
   impls: Implementations;
-  /** Named `assign` definitions whose call sites were rewritten. */
-  assignDefs: Set<ImplDef>;
   /** Module-level action consts that must not be lowered (some use is not). */
   disabledConsts: Set<Node>;
 }
@@ -267,6 +255,8 @@ class FunctionBuilder {
   inline: boolean;
   /** Identifier renames applied to source text this builder copies. */
   private renames: Array<{ node: Node; text: string }> = [];
+  /** Call sites of named actions being expanded around the current action. */
+  private inlineSites: Node[] = [];
 
   /** Source text of `node`, with active renames applied. */
   t(node: Node): string {
@@ -426,8 +416,7 @@ class FunctionBuilder {
   }
 
   /** Throws unless a named definition can be inlined at a call site. */
-  private inlineCheck(def: ImplDef, name: string) {
-    const expr = def.expr!;
+  private inlineCheck(def: ImplDef, name: string, expr = def.expr!) {
     const local = nonModuleReferences(expr);
     if (local.length) {
       skip(
@@ -503,10 +492,10 @@ class FunctionBuilder {
   private action(node: Node, br: Branch, contextIsFinal: boolean): void {
     const value = unwrap(node);
     const ref = Node.isIdentifier(value) ? undefined : nameRef(value);
-    if (ref) return this.namedAction(ref, undefined, br);
+    if (ref) return this.namedAction(ref, undefined, br, value);
     if (Node.isObjectLiteralExpression(value)) {
       const { ref, params } = typeAndParams(value, 'action');
-      return this.namedAction(ref, params, br);
+      return this.namedAction(ref, params, br, value);
     }
     if (Node.isIdentifier(value)) {
       const named = resolveStringConstant(value);
@@ -514,7 +503,8 @@ class FunctionBuilder {
         return this.namedAction(
           { name: named, access: access(named) },
           undefined,
-          br
+          br,
+          value
         );
       }
       const constAction = resolveConstAction(value, this.ctx.xs);
@@ -916,7 +906,8 @@ class FunctionBuilder {
   private namedAction(
     ref: NameRef,
     params: Node | undefined,
-    br: Branch
+    br: Branch,
+    site: Node
   ): void {
     const { name } = ref;
     const def = this.ctx.impls.actions.get(name);
@@ -926,9 +917,11 @@ class FunctionBuilder {
       this.inlinedDefs.add(def);
       const saved = this.paramsText;
       this.paramsText = params ? this.dynamic(params, br) : undefined;
+      this.inlineSites.push(site);
       try {
         return this.action(def.expr!, br, false);
       } finally {
+        this.inlineSites.pop();
         this.paramsText = saved;
       }
     }
@@ -937,14 +930,72 @@ class FunctionBuilder {
       return br.push(`enq(args.actions${ref.access}, ${br.argsObj()}${p});`);
     }
     if (def.kind === 'assign') {
-      const argsText = mentionsSpawn(def.assignArg!)
-        ? spawnArgs(br)
-        : br.argsObj();
-      const p = params ? `, ${this.dynamic(params, br, argsText)}` : '';
-      this.ctx.assignDefs.add(def);
-      return br.pushPatch({
-        expr: `args.actions${ref.access}(${argsText}${p})`
-      });
+      const arg = unwrap(def.assignArg!);
+      const safeValue = (node: Node) =>
+        !isFunctionLike(unwrap(node)) || !!inlineable(unwrap(node));
+      const safe = Node.isObjectLiteralExpression(arg)
+        ? arg
+            .getProperties()
+            .every((property) =>
+              Node.isPropertyAssignment(property)
+                ? safeValue(property.getInitializer()!)
+                : Node.isShorthandPropertyAssignment(property)
+            )
+        : (isFunctionLike(arg) && !!inlineable(arg)) ||
+          (Node.isIdentifier(arg) && isPlainObjectConst(arg));
+      if (params || def.constDecl || !safe) {
+        return skip(
+          `named assign '${name}' needs manual migration to a context patch`
+        );
+      }
+      if (
+        Node.isObjectLiteralExpression(arg) &&
+        arg.getProperties().some((property) => {
+          const value = Node.isPropertyAssignment(property)
+            ? property.getInitializer()
+            : Node.isShorthandPropertyAssignment(property)
+              ? property.getNameNode()
+              : undefined;
+          return (
+            value &&
+            !isFunctionLike(unwrap(value)) &&
+            !outerValueReferences(value).next().done
+          );
+        })
+      ) {
+        return skip(
+          `named assign '${name}' captures a construction-time value and needs manual migration`
+        );
+      }
+      this.inlineCheck(def, name, arg);
+      const checker = arg.getProject().getTypeChecker().compilerObject;
+      const sites = [...this.inlineSites, site];
+      for (const ref of outerValueReferences(arg)) {
+        // Enqueue snapshots and captured child refs can introduce these names.
+        if (/^(?:contextBefore\d*|child\d+)$/.test(ref.name)) {
+          return skip(
+            `'${name}' references outer '${ref.name}', which the generated function could shadow`
+          );
+        }
+        if (
+          sites.some(
+            (destination) =>
+              checker.resolveName(
+                ref.name,
+                destination.compilerNode,
+                ts.SymbolFlags.Value | ts.SymbolFlags.Alias,
+                false
+              ) !== ref.symbol
+          )
+        ) {
+          return skip(
+            `'${name}' would read a different '${ref.name}' at the action call site`
+          );
+        }
+      }
+      this.assign(arg, br);
+      this.inlinedDefs.add(def);
+      return;
     }
     return skip(`action '${name}' is not a plain function or assign`);
   }

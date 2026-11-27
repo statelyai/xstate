@@ -239,6 +239,9 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
     item: ActorMailboxEvent<EventFromLogic<TLogic>>
   ) => void;
   private mailbox?: Mailbox<ActorMailboxEvent<EventFromLogic<TLogic>>>;
+  private _processingMailbox?: Mailbox<
+    ActorMailboxEvent<EventFromLogic<TLogic>>
+  >;
   private _mailboxStarted = false;
 
   private observers?: Set<Observer<SnapshotFrom<TLogic>>>;
@@ -1104,11 +1107,14 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
 
   private _process(item: ActorMailboxEvent<EventFromLogic<TLogic>>) {
     const inTransition = this._inTransition;
+    const processingMailbox = this._processingMailbox;
+    this._processingMailbox = this.mailbox;
     this._inTransition = true;
     try {
       this._processEvent(item);
     } finally {
       this._inTransition = inTransition;
+      this._processingMailbox = processingMailbox;
     }
   }
 
@@ -1504,6 +1510,16 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
 
     this._processingStatus = ProcessingStatus.Stopped;
     this.system._unregister(this);
+  }
+
+  /** @internal */
+  public _deferDelivery(fn: () => void): void {
+    const mailbox = this._processingMailbox ?? this.mailbox;
+    if (mailbox) {
+      mailbox.defer(fn);
+    } else {
+      fn();
+    }
   }
 
   /** @internal */
