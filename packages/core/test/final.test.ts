@@ -4,6 +4,7 @@ import {
   createMachine,
   createActor,
   createCallbackLogic,
+  getMicrosteps,
   initialTransition,
   transition
 } from '../src/index.ts';
@@ -1737,5 +1738,134 @@ describe('final states', () => {
     } finally {
       warn.mockRestore();
     }
+  });
+});
+
+describe('eventless transitions around final states', () => {
+  it('ignores the final child transition and still delivers the parent done event', () => {
+    const finalTransition = vi.fn(() => ({ target: 'active' }));
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const machine = createMachine({
+        initial: 'parent',
+        states: {
+          parent: {
+            initial: 'active',
+            states: {
+              active: { on: { GO: { target: 'finished' } } },
+              finished: {
+                type: 'final',
+                always: finalTransition
+              }
+            },
+            onDone: { target: 'next' }
+          },
+          next: {}
+        }
+      });
+
+      const [initial] = initialTransition(machine);
+      const steps = getMicrosteps(machine, initial, { type: 'GO' }).map(
+        ([snapshot]) => snapshot.value
+      );
+
+      expect.soft(steps.at(-1)).toBe('next');
+      expect.soft(steps).toEqual([{ parent: 'finished' }, 'next']);
+      expect.soft(finalTransition).not.toHaveBeenCalled();
+      expect(warn).toHaveBeenCalledWith(
+        expect.stringContaining('is final and declares "always"')
+      );
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it('still selects a compound ancestor transition from an active final child', () => {
+    const machine = createMachine({
+      initial: 'parent',
+      states: {
+        parent: {
+          initial: 'active',
+          states: {
+            active: { on: { GO: { target: 'finished' } } },
+            finished: { type: 'final' }
+          },
+          always: ({ event }) =>
+            event.type === 'GO' ? { target: 'escaped' } : undefined,
+          onDone: { target: 'next' }
+        },
+        escaped: {},
+        next: {}
+      }
+    });
+
+    const [initial] = initialTransition(machine);
+    const steps = getMicrosteps(machine, initial, { type: 'GO' });
+    expect(steps.slice(0, 2).map(([snapshot]) => snapshot.value)).toEqual([
+      { parent: 'finished' },
+      'escaped'
+    ]);
+    expect(steps.at(-1)?.[0].value).toBe('escaped');
+  });
+
+  it('still selects an active sibling region transition after another region finishes', () => {
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        left: {
+          initial: 'active',
+          states: {
+            active: { on: { GO: { target: 'finished' } } },
+            finished: { type: 'final' }
+          }
+        },
+        right: {
+          initial: 'waiting',
+          states: {
+            waiting: {
+              always: ({ event }) =>
+                event.type === 'GO' ? { target: 'ready' } : undefined
+            },
+            ready: {}
+          }
+        }
+      }
+    });
+
+    const [initial] = initialTransition(machine);
+    const steps = getMicrosteps(machine, initial, { type: 'GO' });
+    expect(steps.at(-1)?.[0].value).toEqual({
+      left: 'finished',
+      right: 'ready'
+    });
+  });
+
+  it('keeps root completion, with the final entry before its output', () => {
+    const execution: string[] = [];
+    const machine = createMachine({
+      initial: 'start',
+      states: {
+        start: { on: { GO: { target: 'finished' } } },
+        finished: {
+          type: 'final',
+          entry: () => {
+            execution.push('entry');
+          },
+          output: () => {
+            execution.push('output');
+            return 'complete';
+          }
+        }
+      },
+      output: ({ output }) => output
+    });
+    const actor = createActor(machine).start();
+    actor.send({ type: 'GO' });
+    expect(actor.getSnapshot()).toMatchObject({
+      status: 'done',
+      value: 'finished',
+      output: 'complete'
+    });
+    expect(execution).toEqual(['entry', 'output']);
   });
 });

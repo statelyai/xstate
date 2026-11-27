@@ -125,7 +125,7 @@ invoke: {
 
 When a machine completes, exit actions run in reverse document order, every child actor is stopped, and every pending [timer](timeouts.md) is canceled. Events sent afterwards are ignored with a warning.
 
-Final states are inert everywhere, including final regions of a parallel state: they take no transitions and start no invoked actors, and declaring `on`, `after` or `invoke` on one warns in development. Use final states when a checkout is confirmed, a file has been uploaded and scanned, or a multi-step form has been submitted.
+Final states are inert everywhere, including final regions of a parallel state: they take no transitions and start no invoked actors, and declaring `on`, `after`, `always` or `invoke` on one warns in development. Use final states when a checkout is confirmed, a file has been uploaded and scanned, or a multi-step form has been submitted.
 
 ## TypeScript
 

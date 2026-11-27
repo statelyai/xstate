@@ -281,7 +281,7 @@ export class StateNode<
     this.transitions = formatTransitions(this) as typeof this.transitions;
     if (this.type === 'choice') {
       this.always = formatChoiceTransitions(this) as typeof this.always;
-    } else if (this.config.always) {
+    } else if (this.type !== 'final' && this.config.always) {
       this.always = mapTransitionConfigs(
         this,
         'always',
@@ -416,10 +416,10 @@ function validateStateNodeConfig(stateNode: AnyStateNode) {
   }
 }
 
-const FINAL_STATE_IGNORED_KEYS = ['invoke', 'on', 'after'] as const;
+const FINAL_STATE_IGNORED_KEYS = ['invoke', 'on', 'after', 'always'] as const;
 
 /**
- * Final states are inert: their `invoke`, `on` and `after` never run. Warn
+ * Final states are inert: their `invoke`, `on`, `after` and `always` never run. Warn
  * instead of silently ignoring them.
  */
 function warnOnFinalStateBehavior(stateNode: AnyStateNode): void {
