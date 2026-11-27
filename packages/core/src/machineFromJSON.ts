@@ -1084,9 +1084,12 @@ export function machineFromJSON(
         `${actionPath}.actions.${action.type}`,
         stack.concat(action.type)
       );
-      if (result.context) context = result.context;
+      if (result.context) {
+        context ??= {};
+        Object.assign(context, result.context);
+      }
     }
-    return { context: context ? { ...x.context, ...context } : undefined };
+    return { context };
   }
 
   function iterActions(actions: ActionJSON | ActionJSON[], path: string) {
@@ -1170,7 +1173,7 @@ export function machineFromJSON(
         to: dynamic
           ? (x: any, enq: any) => {
               const resolvedContext = context?.(x);
-              const result = item.actions?.length
+              const actionContext = item.actions?.length
                 ? executeActions(
                     item.actions,
                     resolvedContext
@@ -1178,11 +1181,13 @@ export function machineFromJSON(
                       : x,
                     enq,
                     `${transitionPath}.actions`
-                  )
+                  ).context
                 : undefined;
               return {
                 target: item.target,
-                context: result?.context ?? resolvedContext,
+                context: actionContext
+                  ? { ...resolvedContext, ...actionContext }
+                  : resolvedContext,
                 reenter: item.reenter
               };
             }

@@ -1250,6 +1250,120 @@ describe('json', () => {
     expect(seen).toEqual([3, 3]);
   });
 
+  it('preserves exit context when a transition assigns context', () => {
+    const actor = createActor(
+      machineFromJSON({
+        context: { exited: false, transitioned: false },
+        initial: 'active',
+        states: {
+          active: {
+            exit: [{ type: '@xstate.assign', context: { exited: true } }],
+            on: {
+              NEXT: {
+                target: 'done',
+                actions: [
+                  { type: '@xstate.assign', context: { transitioned: true } }
+                ]
+              }
+            }
+          },
+          done: {}
+        }
+      })
+    ).start();
+
+    actor.send({ type: 'NEXT' });
+
+    expect(actor.getSnapshot().context).toEqual({
+      exited: true,
+      transitioned: true
+    });
+  });
+
+  it('preserves context assigned by transitions in parallel regions', () => {
+    const actor = createActor(
+      machineFromJSON({
+        type: 'parallel',
+        context: { left: false, right: false },
+        states: {
+          left: {
+            on: {
+              UPDATE: {
+                actions: [{ type: '@xstate.assign', context: { left: true } }]
+              }
+            }
+          },
+          right: {
+            on: {
+              UPDATE: {
+                actions: [{ type: '@xstate.assign', context: { right: true } }]
+              }
+            }
+          }
+        }
+      })
+    ).start();
+
+    actor.send({ type: 'UPDATE' });
+
+    expect(actor.getSnapshot().context).toEqual({ left: true, right: true });
+  });
+
+  it('composes explicit transition context with ordered action writes', () => {
+    const actor = createActor(
+      machineFromJSON(
+        {
+          '@exprLang': 'js',
+          context: { exited: false, count: 0 },
+          actions: {
+            double: {
+              type: '@xstate.assign',
+              context: { count: { '@expr': 'context.count * 2' } }
+            }
+          },
+          initial: 'active',
+          states: {
+            active: {
+              exit: [{ type: '@xstate.assign', context: { exited: true } }],
+              on: {
+                NEXT: {
+                  target: 'done',
+                  context: { count: 2, explicit: true },
+                  actions: [
+                    {
+                      type: '@xstate.assign',
+                      context: {
+                        count: { '@expr': 'context.count + 1' },
+                        direct: true
+                      }
+                    },
+                    { type: 'double' },
+                    {
+                      '@expr':
+                        '({ context: { count: context.count + 1, evaluated: context.direct } })'
+                    }
+                  ]
+                }
+              }
+            },
+            done: {}
+          }
+        },
+        { evaluators: { js: jsEvaluator } }
+      )
+    ).start();
+
+    actor.send({ type: 'NEXT' });
+
+    expect(actor.getSnapshot().context).toEqual({
+      exited: true,
+      count: 7,
+      explicit: true,
+      direct: true,
+      evaluated: true
+    });
+  });
+
   it('rejects circular declarative named actions', () => {
     expect(() =>
       machineFromJSON({
