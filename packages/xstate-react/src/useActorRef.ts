@@ -50,7 +50,10 @@ export function useIdleActorRef<TLogic extends AnyActorLogic>(
   const [actorRef, setActorRef] = useState(() => {
     return isActor(logicOrActor)
       ? (logicOrActor as Actor<TLogic>)
-      : createActor(ownLogic(logicOrActor), options as ActorOptions<TLogic>);
+      : createActor(
+          ownLogic(logicOrActor),
+          options as ActorOptions<TLogic> & RequiredActorOptionsFor<TLogic>
+        );
   });
   // An object whose identity changes only when React Fast Refresh re-renders
   // this component. Fast Refresh ignores dependency lists while it applies an
@@ -86,7 +89,12 @@ export function useIdleActorRef<TLogic extends AnyActorLogic>(
     if (isDevelopment && refreshed) {
       const nextLogic = ownLogic(logic);
       if (!hotSwapActorLogic(actorRef, nextLogic as any as AnyStateMachine)) {
-        setActorRef(createActor(nextLogic, options as ActorOptions<TLogic>));
+        setActorRef(
+          createActor(
+            nextLogic,
+            options as ActorOptions<TLogic> & RequiredActorOptionsFor<TLogic>
+          )
+        );
       }
     }
   });

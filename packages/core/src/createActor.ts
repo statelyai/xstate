@@ -1631,7 +1631,7 @@ export type RequiredActorOptionsFor<TLogic extends AnyActorLogic> = [
   RequiredActorOptionsKeys<TLogic>
 ] extends [never]
   ? {}
-  : { [K in RequiredActorOptionsKeys<TLogic>]: unknown };
+  : { [K in RequiredActorOptionsKeys<TLogic>]: InputFrom<TLogic> };
 
 /** Options accepted by {@link createActor}. */
 type CreateActorOptionsArgs<TLogic extends AnyActorLogic> = [
