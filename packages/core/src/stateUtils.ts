@@ -286,7 +286,7 @@ export function isInFinalState(
     );
   }
 
-  return stateNode.type === 'final';
+  return stateNode.type === 'final' && stateNodeSet.has(stateNode);
 }
 
 export const isStateId = (str: string) => str[0] === STATE_IDENTIFIER;
