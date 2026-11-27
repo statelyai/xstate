@@ -4,10 +4,13 @@ import {
   createActor,
   createCallbackLogic,
   createMachine,
+  createObservableLogic,
   setup,
   types,
   type ActorRefFrom,
-  type InspectionEvent
+  type EventObject,
+  type InspectionEvent,
+  type Observer
 } from 'xstate';
 import { restoreActor } from 'xstate/persist';
 import { createEffectActor, sendAndAwait } from './index.ts';
@@ -158,6 +161,159 @@ describe.each(['createActor', 'createEffectActor'] as const)(
         );
       }
     });
+
+    it.each([
+      { outcome: 'failure', notification: 'xstate.error.actor' },
+      { outcome: 'stream update', notification: 'xstate.snapshot.actor' }
+    ])(
+      'ignores a queued $outcome from the replaced invocation',
+      async ({ outcome, notification }) => {
+        const observers: Observer<string>[] = [];
+        const worker = createObservableLogic<string, undefined>(() => ({
+          subscribe(
+            observer: Observer<string> | ((value: string) => void),
+            error?: (error: unknown) => void,
+            complete?: () => void
+          ) {
+            observers.push(
+              typeof observer === 'function'
+                ? { next: observer, error, complete }
+                : observer
+            );
+            return { unsubscribe() {} };
+          }
+        }));
+        const report = (observer: Observer<string>, value: string) => {
+          if (outcome === 'failure') {
+            observer.error?.(new Error(value));
+          } else {
+            observer.next?.(value);
+          }
+        };
+
+        let queueRace: () => void = () => {
+          throw new Error('Expected the parent to be running');
+        };
+        const parent = setup({ actors: { worker } });
+        const machine = parent.createMachine({
+          id: 'stream-parent',
+          schemas: {
+            events: {
+              RACE: types<void>(),
+              RESTART: types<void>(),
+              SYNC: types<void>()
+            }
+          },
+          context: { updates: [] as string[], failure: undefined as unknown },
+          initial: 'working',
+          on: { SYNC: {} },
+          states: {
+            working: {
+              invoke: parent.createInvoke({
+                id: 'worker',
+                src: 'worker',
+                onSnapshot: ({ context, event }) => {
+                  const value = event.snapshot.context;
+                  if (value !== undefined) {
+                    return {
+                      context: { updates: [...context.updates, value] }
+                    };
+                  }
+                },
+                onError: ({ event }) => ({
+                  target: 'failed',
+                  context: { failure: event.error }
+                })
+              }),
+              on: {
+                RACE: (_, enq) => enq(queueRace),
+                RESTART: { target: 'working', reenter: true }
+              }
+            },
+            failed: {}
+          }
+        });
+        const order: EventObject[] = [];
+        const inspect = (event: InspectionEvent) => {
+          if (
+            event.type === '@xstate.transition' &&
+            'id' in event.actorRef &&
+            event.actorRef.id === 'stream-parent'
+          ) {
+            order.push(event.event);
+          }
+        };
+
+        const exercise = Effect.fn(function* (
+          actor: ActorRefFrom<typeof machine>,
+          send: (type: 'RACE' | 'SYNC') => Effect.Effect<unknown, unknown>
+        ) {
+          yield* send('SYNC');
+          const original = actor.getSnapshot().children.worker!;
+          expect(original.sessionId).toBeDefined();
+          expect(observers).toHaveLength(1);
+          queueRace = () => {
+            actor.send({ type: 'RESTART' });
+            report(observers[0], 'old');
+          };
+
+          yield* send('RACE');
+          yield* send('SYNC');
+          const restart = order.findIndex((event) => event.type === 'RESTART');
+          expect(restart).toBeGreaterThanOrEqual(0);
+          expect(order.slice(restart + 1)).toContainEqual(
+            expect.objectContaining({
+              type: notification,
+              sessionId: original.sessionId,
+              ...(outcome === 'failure'
+                ? { error: new Error('old') }
+                : { snapshot: expect.objectContaining({ context: 'old' }) })
+            })
+          );
+          const snapshot = actor.getSnapshot();
+          expect(snapshot.value).toBe('working');
+          expect(snapshot.context).toEqual({ updates: [], failure: undefined });
+          expect(snapshot.children.worker).not.toBe(original);
+          expect(snapshot.children.worker?.getSnapshot().status).toBe('active');
+          expect(observers).toHaveLength(2);
+
+          report(observers[1], 'new');
+          yield* send('SYNC');
+          const latest = actor.getSnapshot();
+          if (outcome === 'failure') {
+            expect(latest.value).toBe('failed');
+            expect(latest.context.failure).toEqual(new Error('new'));
+          } else {
+            expect(latest.value).toBe('working');
+            expect(latest.context.updates).toEqual(['new']);
+          }
+        });
+
+        if (host === 'createActor') {
+          const actor = createActor(machine, { inspect }).start();
+          try {
+            await Effect.runPromise(
+              exercise(actor, (type) => Effect.sync(() => actor.send({ type })))
+            );
+          } finally {
+            actor.stop();
+          }
+        } else {
+          await Effect.runPromise(
+            Effect.scoped(
+              Effect.gen(function* () {
+                const actor = yield* createEffectActor(machine);
+                const subscription = actor.inspect(inspect);
+                yield* Effect.addFinalizer(() =>
+                  Effect.sync(() => subscription.unsubscribe())
+                );
+                yield* exercise(actor, (type) => sendAndAwait(actor, { type }));
+              })
+            )
+          );
+        }
+      }
+    );
 
     it('cleans up the invoked child before starting its replacement', async () => {
       const lifecycle: string[] = [];
