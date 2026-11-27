@@ -17,6 +17,26 @@ describe('Effect Schema adapter', () => {
     ).toBe(true);
   });
 
+  it('fails when a refinement rejects every generated value', () => {
+    const schema = Schema.String.check(Schema.makeFilter(() => false));
+    const arbitrary = fromEffectSchema(schema);
+    expect(() => fc.sample(arbitrary, { seed: 0, numRuns: 1 })).toThrow(
+      'after 1000 attempts'
+    );
+  });
+
+  it('honors simultaneous code point and UTF-16 length bounds', () => {
+    const schema = Schema.String.check(
+      Schema.isMinLength(64),
+      Schema.isMaxCodePoints(32)
+    );
+    const values = fc.sample(fromEffectSchema(schema), { seed: 1, numRuns: 3 });
+    for (const value of values) {
+      expect(value.length).toBe(64);
+      expect(Array.from(value)).toHaveLength(32);
+    }
+  });
+
   it('converts keyed payload schemas', () => {
     const events = fromEffectSchemas({
       INC: Schema.Struct({ value: Schema.Int }),

@@ -175,7 +175,7 @@ function difference(before, after, path = '') {
   return [{ op: 'replace', path, before, after }];
 }
 
-function run(command, rawArgs) {
+async function run(command, rawArgs) {
   const args = rawArgs.filter((arg) => arg !== '--json');
   if (command === 'docs') {
     return {
@@ -253,9 +253,22 @@ function run(command, rawArgs) {
     ) {
       fail('INVALID_LIMIT', 'limit must be a positive safe integer.');
     }
+    const generated =
+      options.generate === undefined
+        ? undefined
+        : await require('./schema-cases.js')(
+            machine,
+            definition.schemas,
+            options,
+            fail
+          );
+    const { events, input } = generated ?? options;
     const paths = graph.getShortestPaths(machine, {
-      events: options.events,
-      input: options.input,
+      events,
+      input,
+      ...(generated && {
+        filterEvents: (_snapshot, event) => !event.type.includes('*')
+      }),
       limit: options.limit ?? 10000
     });
     const visited = paths.map((path) => path.state);
@@ -277,7 +290,7 @@ function run(command, rawArgs) {
           xstateVersion: version,
           machineHash: hash,
           events: path.steps.slice(1).map((step) => step.event),
-          input: options.input,
+          input,
           never: options.never
         };
         fail('PROPERTY_VIOLATION', 'A forbidden stable state was reached.', {
@@ -300,10 +313,9 @@ function run(command, rawArgs) {
       scope: 'stableSnapshots',
       effectsExecuted: false,
       proof: false,
-      representativeEvents: options.events ?? null,
-      eventMode: Array.isArray(options.events)
-        ? 'replaceDefaults'
-        : 'augmentDefaults',
+      representativeEvents: events ?? null,
+      ...(generated && { generation: generated.generation, input }),
+      eventMode: Array.isArray(events) ? 'replaceDefaults' : 'augmentDefaults',
       limit: options.limit ?? 10000,
       paths: paths.length,
       states: visited.map(view)
@@ -316,9 +328,9 @@ function omitSnapshots({ trace }) {
   return { trace };
 }
 
-module.exports = (command, args) => {
+module.exports = async (command, args) => {
   try {
-    const result = run(command, args);
+    const result = await run(command, args);
     console.log(
       JSON.stringify({
         schemaVersion: 1,

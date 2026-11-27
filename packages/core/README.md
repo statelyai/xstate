@@ -11,7 +11,8 @@ installed package version.
 For coding agents, start with `docs/agents.md`. Run `npx xstate docs` to locate
 the installed documentation and read its machine-readable stability manifest.
 The data-only CLI also supports `inspect`, `validate`, `simulate`, `test`,
-`replay` and `diff`; see the agent guide for their contracts and limits.
+`replay` and `diff`. See the agent guide for their contracts, including how to
+generate event examples from JSON Schemas with `xstate test`.
 
 Online, start with the [quick start](https://github.com/statelyai/xstate/blob/next/docs/quick-start.md)
 or the [v5 to v6 migration guide](https://github.com/statelyai/xstate/blob/next/docs/xstate-v5-to-v6.md).

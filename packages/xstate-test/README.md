@@ -602,11 +602,14 @@ await propertyTest(counterMachine, {
 });
 ```
 
+The [XState CLI](https://github.com/statelyai/xstate/blob/next/docs/agents.md#generate-examples-from-schemas) uses these generators for JSON machine definitions.
+
 The Effect Schema conversion generates the schema's type (decoded) side. It
 supports literals, enums, unions, primitives, arrays, tuples (with optional and
 rest elements), structs (with optional properties), records with string keys,
 and refinements such as `isInt`, `isBetween`, `isMinLength`, and `isPattern`.
-Every check also filters the generated values. Other AST nodes, such as
+Every check also filters the generated values. Generation fails if a check
+rejects 1,000 consecutive attempts. Other AST nodes, such as
 `Schema.Date` or recursive schemas, throw an error naming the node. Pass
 `override` to supply an arbitrary for them:
 
