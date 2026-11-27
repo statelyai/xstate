@@ -937,14 +937,19 @@ class FunctionBuilder {
       return br.push(`enq(args.actions${ref.access}, ${br.argsObj()}${p});`);
     }
     if (def.kind === 'assign') {
+      // v6 named actions take params only and cannot read `context` or
+      // `event`, so an assign that does has to be inlined at the call site.
+      const fn = lowerAssignDefinition(def);
+      if (fn === undefined) {
+        return skip(`assign action '${name}' could not be inlined`);
+      }
       const argsText = mentionsSpawn(def.assignArg!)
         ? spawnArgs(br)
         : br.argsObj();
       const p = params ? `, ${this.dynamic(params, br, argsText)}` : '';
       this.ctx.assignDefs.add(def);
-      return br.pushPatch({
-        expr: `args.actions${ref.access}(${argsText}${p})`
-      });
+      this.inlinedDefs.add(def);
+      return br.pushPatch({ expr: `(${fn})(${argsText}${p})` });
     }
     return skip(`action '${name}' is not a plain function or assign`);
   }
