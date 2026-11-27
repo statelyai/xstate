@@ -23,6 +23,7 @@
     "backend-workflows",
     "durable-execution",
     "persist-and-restore-actors",
+    "webmcp",
     "testing",
     "model-based-testing",
     "inspect-actor-systems",

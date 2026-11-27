@@ -2657,6 +2657,58 @@ importers:
         specifier: ^7.3.1
         version: 7.3.6(@types/node@25.2.1)(jiti@2.7.0)(lightningcss@1.33.0)(sass@1.97.3)(terser@5.49.0)(tsx@4.23.13)(yaml@2.9.0)
 
+  examples/todomvc-webmcp-react:
+    dependencies:
+      '@statelyai/sdk':
+        specifier: ^0.20.1
+        version: 0.20.3(zod@4.4.3)
+      '@xstate/react':
+        specifier: workspace:*
+        version: link:../../packages/xstate-react
+      '@xstate/webmcp':
+        specifier: workspace:*
+        version: link:../../packages/xstate-webmcp
+      classnames:
+        specifier: ^2.5.1
+        version: 2.5.1
+      react:
+        specifier: ^19.2.4
+        version: 19.2.8
+      react-dom:
+        specifier: ^19.2.4
+        version: 19.2.8(react@19.2.8)
+      todomvc-app-css:
+        specifier: ^2.4.3
+        version: 2.4.3
+      todomvc-common:
+        specifier: ^1.0.5
+        version: 1.0.5
+      xstate:
+        specifier: workspace:*
+        version: link:../../packages/core
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
+    devDependencies:
+      '@types/react':
+        specifier: ^19.2.7
+        version: 19.2.18
+      '@types/react-dom':
+        specifier: ^19.2.4
+        version: 19.2.4(@types/react@19.2.18)
+      '@vitejs/plugin-react':
+        specifier: ^5.1.1
+        version: 5.2.0(vite@7.3.6(@types/node@25.2.1)(jiti@2.7.0)(lightningcss@1.33.0)(sass@1.97.3)(terser@5.49.0)(tsx@4.23.13)(yaml@2.9.0))
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vite:
+        specifier: ^7.3.1
+        version: 7.3.6(@types/node@25.2.1)(jiti@2.7.0)(lightningcss@1.33.0)(sass@1.97.3)(terser@5.49.0)(tsx@4.23.13)(yaml@2.9.0)
+      vitest:
+        specifier: ^3.2.7
+        version: 3.2.7(@types/debug@4.1.13)(@types/node@25.2.1)(happy-dom@20.14.5)(jiti@2.7.0)(jsdom@26.1.0)(lightningcss@1.33.0)(sass@1.97.3)(supports-color@5.5.0)(terser@5.49.0)(tsx@4.23.13)(yaml@2.9.0)
+
   examples/toggle:
     dependencies:
       '@statelyai/sdk':
@@ -3399,6 +3451,18 @@ importers:
       xstate:
         specifier: workspace:^
         version: link:../core
+
+  packages/xstate-webmcp:
+    devDependencies:
+      '@xstate/store':
+        specifier: workspace:^
+        version: link:../xstate-store
+      xstate:
+        specifier: workspace:^
+        version: link:../core
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
 
 packages:
 

@@ -1,0 +1,40 @@
+{
+  "name": "@xstate/webmcp",
+  "version": "0.0.0",
+  "description": "Expose XState actors and @xstate/store stores as WebMCP tools",
+  "keywords": [
+    "xstate",
+    "store",
+    "webmcp",
+    "mcp",
+    "ai",
+    "agent",
+    "tools"
+  ],
+  "author": "David Khourshid <davidkpiano@gmail.com>",
+  "homepage": "https://github.com/statelyai/xstate/tree/main/packages/xstate-webmcp#readme",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./dist/xstate-webmcp.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/statelyai/xstate.git"
+  },
+  "bugs": {
+    "url": "https://github.com/statelyai/xstate/issues"
+  },
+  "devDependencies": {
+    "@xstate/store": "workspace:^",
+    "xstate": "workspace:^",
+    "zod": "^4.4.3"
+  }
+}

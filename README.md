@@ -41,10 +41,11 @@ It uses event-driven programming, state machines, statecharts, and the actor mod
 
 Pick based on what you need:
 
-<!-- package choices from packages/core/src/index.ts, packages/core/src/fsm/index.ts, packages/xstate-store/src/index.ts, and packages/xstate-effect/src/index.ts -->
+<!-- package choices from packages/core/src/index.ts, packages/core/src/fsm/index.ts, packages/xstate-store/src/index.ts, packages/xstate-effect/src/index.ts, and packages/xstate-webmcp/src/index.ts -->
 
 - **[`@xstate/store`](#xstate-store)**: simple event-based state management and reactive atoms, with great TypeScript inference, similar in spirit to Redux/Zustand. Start here if you just need a store.
 - **[`@xstate/effect`](https://github.com/statelyai/xstate/tree/main/packages/xstate-effect)**: Effect 4 integration for XState v6 actors, schemas, typed requirements/errors, streams, and Effect actions.
+- **[`@xstate/webmcp`](https://github.com/statelyai/xstate/tree/main/packages/xstate-webmcp)**: expose XState actors and `@xstate/store` stores as WebMCP tools for browser agents.
 - **[`xstate/fsm`](docs/fsm.md)**: tiny pure flat finite state machines with context and TypeScript support.
 - **[`xstate`](#super-quick-start)**: state machines, statecharts, actors, effects, and orchestration for complex app logic.
 
@@ -265,6 +266,7 @@ Read [📽 the slides](http://slides.com/davidkpiano/finite-state-machines) ([�
 | 🤖 `xstate`                                                                                 | Core finite state machine and statecharts library + interpreter, including graph traversal and model-based testing utilities |
 | [🏪 `@xstate/store`](https://github.com/statelyai/xstate/tree/main/packages/xstate-store)   | Simple event-based state management and reactive atoms — standalone, works with or without `xstate`                                      |
 | [✨ `@xstate/effect`](https://github.com/statelyai/xstate/tree/main/packages/xstate-effect)  | Effect 4 integration for XState v6 actors, schemas, typed requirements/errors, streams, and Effect actions                   |
+| [🧰 `@xstate/webmcp`](https://github.com/statelyai/xstate/tree/main/packages/xstate-webmcp)  | Expose XState actors and `@xstate/store` stores as WebMCP tools for browser agents                                           |
 | [⚛️ `@xstate/react`](https://github.com/statelyai/xstate/tree/main/packages/xstate-react)   | React hooks and utilities for using XState in React applications                                                             |
 | [💚 `@xstate/vue`](https://github.com/statelyai/xstate/tree/main/packages/xstate-vue)       | Vue composition functions and utilities for using XState in Vue applications                                                 |
 | [🎷 `@xstate/svelte`](https://github.com/statelyai/xstate/tree/main/packages/xstate-svelte) | Svelte utilities for using XState in Svelte applications                                                                     |
