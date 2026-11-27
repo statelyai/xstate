@@ -929,13 +929,11 @@ type SetupStateTransitionChildSchemas<TStateSchema extends SetupStateSchema> =
     ? TChildStateSchemas
     : {};
 
-type SetupStateTransitionSchemas<
+type SetupStateTransitionSchemasBase<
   TSiblingStateSchemas extends Record<string, SetupStateSchema>,
   TStateSchema extends SetupStateSchema
-> = SetupStateAncestorContextMarker<
-  SetupStateAncestorContext<TSiblingStateSchemas>
-> &
-  (IsParallelSetupStateParent<TSiblingStateSchemas> extends true
+> =
+  IsParallelSetupStateParent<TSiblingStateSchemas> extends true
     ? StrictSetupStateSchemas<
         {},
         SetupStateTransitionChildSchemas<TStateSchema>,
@@ -960,7 +958,22 @@ type SetupStateTransitionSchemas<
               {},
               RootSetupStateSchemas<TSiblingStateSchemas>,
               SetupStateSelfSchema<TStateSchema>
-            >);
+            >;
+
+type SetupStateContextKeys<TContext> = TContext extends unknown
+  ? keyof TContext
+  : never;
+
+type SetupStateTransitionSchemas<
+  TSiblingStateSchemas extends Record<string, SetupStateSchema>,
+  TStateSchema extends SetupStateSchema,
+  TAncestorContext = SetupStateAncestorContext<TSiblingStateSchemas>
+> = [keyof TAncestorContext | SetupStateContextKeys<TAncestorContext>] extends [
+  never
+]
+  ? SetupStateTransitionSchemasBase<TSiblingStateSchemas, TStateSchema>
+  : SetupStateAncestorContextMarker<TAncestorContext> &
+      SetupStateTransitionSchemasBase<TSiblingStateSchemas, TStateSchema>;
 
 type SetupStateChildSchemas<TStateSchema extends SetupStateSchema> =
   TStateSchema['states'] extends Record<string, SetupStateSchema>

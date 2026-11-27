@@ -117,6 +117,33 @@ it('retains enclosing context for sibling-relative descendant targets', () => {
   });
 });
 
+it('retains disjoint ancestor context keys in sibling-target patches', () => {
+  const s = setup({
+    schemas: {
+      context: types<{ email: string | null } | { phone: string | null }>(),
+      events: { EMAIL: types<{}>(), PHONE: types<{}>(), INVALID: types<{}>() }
+    },
+    states: {
+      outer: {
+        schemas: { context: types<{ email: string } | { phone: string }>() },
+        states: { source: {}, branch: { states: { leaf: {} } } }
+      }
+    }
+  });
+
+  s.createStateConfig('outer.source', {
+    on: {
+      EMAIL: () => ({ target: 'branch.leaf', context: { email: 'a@b.test' } }),
+      PHONE: () => ({ target: 'branch.leaf', context: { phone: '555-0100' } }),
+      // @ts-expect-error the patched context must satisfy an ancestor variant
+      INVALID: () => ({
+        target: 'branch.leaf',
+        context: { email: null, phone: null }
+      })
+    }
+  });
+});
+
 it('checks refinements for array targets', () => {
   const s = setup({
     schemas: {
