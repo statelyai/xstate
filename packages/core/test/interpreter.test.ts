@@ -440,7 +440,10 @@ describe('interpreter', () => {
           delays: {
             someDelay: ({ context }) => context.delay + 50,
             delayA: ({ context }) => context.delay,
-            delayD: ({ context, event }) => context.delay + event.value
+            delayD: ({ context, event }) => {
+              assertEvent(event, 'FIRE_DELAY');
+              return context.delay + event.value;
+            }
           },
           id: 'letter',
           context: {

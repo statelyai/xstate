@@ -187,6 +187,7 @@ export type {
   Next_RegularStateNodeConfig as RegularStateNodeConfig,
   Next_InvokeConfig as InvokeConfig,
   InvokeInputArgs,
+  MachineCallbackEvent,
   Next_TransitionConfigOrTarget as TransitionConfigOrTarget,
   Sources,
   InferEvents,

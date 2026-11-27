@@ -62,6 +62,26 @@ import { MachineContext, Mapper } from './types';
 import type { LowInfer } from './typeUtils.ts';
 import { DoneStateEvent } from './types';
 
+/**
+ * @public Events seen by callbacks that are not tied to an event descriptor.
+ * Keep declared child completion payloads when they are available. Other
+ * runtime event payloads remain unknown until narrowed by a lifecycle handler.
+ */
+export type MachineCallbackEvent<TEvent extends EventObject> =
+  EventObject extends TEvent
+    ? TEvent
+    :
+        | TEvent
+        | Exclude<ReservedMachineEvent, DoneActorEvent | ErrorActorEvent>
+        | ([Extract<TEvent, DoneActorEvent>] extends [never]
+            ? DoneActorEvent
+            : never)
+        | ([Extract<TEvent, ErrorActorEvent>] extends [never]
+            ? ErrorActorEvent
+            : never)
+        | { type: 'xstate.init'; input: unknown }
+        | { type: 'xstate.route'; to: string };
+
 export type InferOutput<T extends StandardSchemaV1, U> = Compute<
   StandardSchemaV1.InferOutput<T> extends U
     ? StandardSchemaV1.InferOutput<T>
@@ -238,7 +258,14 @@ type OutputMapper<
   TEmitted extends EventObject = EventObject
 > = (
   args: Parameters<
-    Mapper<TContext, TEvent, TResult, TEvent, TContext, TEmitted>
+    Mapper<
+      TContext,
+      MachineCallbackEvent<TEvent>,
+      TResult,
+      TEvent,
+      TContext,
+      TEmitted
+    >
   >[0] & {
     input: TInput;
   }
@@ -494,7 +521,7 @@ export type Next_MachineConfig<
           stateNode
         }: {
           context: TContext;
-          event: TEvent;
+          event: MachineCallbackEvent<TEvent>;
           stateNode: AnyStateNode;
         }) => number);
   };
@@ -552,7 +579,7 @@ type InvokeSrcArgs<
 > = {
   actors: TActorMap;
   context: TContext;
-  event: TEvent;
+  event: MachineCallbackEvent<TEvent>;
   self: AnyActorRef;
 };
 
@@ -565,7 +592,7 @@ export type InvokeInputArgs<
   TInput = undefined
 > = {
   context: TContext;
-  event: TEvent;
+  event: MachineCallbackEvent<TEvent>;
   input: TInput;
   self: ActorSelf<
     MachineSnapshot<
@@ -1049,7 +1076,12 @@ export interface Next_InvokeConfigBase<
    * When the timeout expires, the `onTimeout` transition is taken. If the
    * invoke completes first, the timeout is cancelled.
    */
-  timeout?: number | ((args: { context: TContext; event: TEvent }) => number);
+  timeout?:
+    | number
+    | ((args: {
+        context: TContext;
+        event: MachineCallbackEvent<TEvent>;
+      }) => number);
   /**
    * Transition taken when the invoke-level `timeout` expires. Required when
    * `timeout` is set on an invoke.
@@ -1100,8 +1132,9 @@ type StateAction<
         never
       >
     >[0],
-    'params'
+    'params' | 'event'
   > & {
+    event: MachineCallbackEvent<TEvent>;
     input: TInput;
     /** The state node being entered (`entry`) or exited (`exit`). */
     stateNode: AnyStateNode;
@@ -1195,7 +1228,7 @@ type Next_RouteConfig<
   | ((
       args: Next_ChoiceArgs<
         TContext,
-        TEvent,
+        { type: 'xstate.route'; to: string },
         TEvent,
         TEmitted,
         TActionMap,
@@ -1312,7 +1345,7 @@ export interface Next_ChoiceStateNodeConfig<
   /** Function that resolves this choice state to a target. */
   choice: Next_ChoiceConfigFunction<
     TContext,
-    TEvent,
+    MachineCallbackEvent<TEvent>,
     TEvent,
     TEmitted,
     TActionMap,
@@ -1388,7 +1421,7 @@ export interface Next_RegularStateNodeConfig<
           | Record<string, unknown>
           | ((args: {
               context: TContext;
-              event: TEvent;
+              event: MachineCallbackEvent<TEvent>;
             }) => Record<string, unknown>);
       }
     | undefined;
@@ -1457,7 +1490,10 @@ export interface Next_RegularStateNodeConfig<
   on?: {
     [K in EventDescriptor<TEvent>]?: Next_TransitionConfigOrTarget<
       TContext,
-      ExtractEvent<TEvent, K>,
+      ExtractEvent<
+        MachineCallbackEvent<TEvent>,
+        K & EventDescriptor<MachineCallbackEvent<TEvent>>
+      >,
       TEvent,
       TEmitted,
       TActionMap,
@@ -1616,7 +1652,7 @@ export interface Next_RegularStateNodeConfig<
     | NoInfer<TDelays>
     | ((args: {
         context: TContext;
-        event: TEvent;
+        event: MachineCallbackEvent<TEvent>;
         stateNode: AnyStateNode;
         input: TInput;
       }) => number);
@@ -1642,7 +1678,7 @@ export interface Next_RegularStateNodeConfig<
    */
   always?: Next_TransitionConfigOrTarget<
     TContext,
-    TEvent,
+    MachineCallbackEvent<TEvent>,
     TEvent,
     TEmitted,
     TActionMap,
@@ -1847,7 +1883,7 @@ export type DelaySourceMap<
   | number
   | ((args: {
       context: _TCtx;
-      event: TEvent;
+      event: MachineCallbackEvent<TEvent>;
       stateNode: AnyStateNode;
     }) => number)
 >;

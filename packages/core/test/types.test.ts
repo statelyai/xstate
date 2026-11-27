@@ -1241,6 +1241,7 @@ describe('events', () => {
         // }
         '*': ({ event }) => {
           ((_accept: 'EVENT_WITH_FLAG' | 'EVENT_WITHOUT_FLAG') => {})(
+            // @ts-expect-error Wildcards also receive internal events.
             event.type
           );
           // @ts-expect-error

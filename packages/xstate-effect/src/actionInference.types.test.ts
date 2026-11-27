@@ -137,7 +137,11 @@ it('uses merged extension schemas and their replacements for all source maps', (
     delays: {
       retry: ({ context, event }) => {
         false satisfies IsAny<typeof context>;
+        // @ts-expect-error Delays also receive runtime events.
         event.type satisfies 'ADD' | 'RESET' | 'tick';
+        if (event.type === 'ADD') {
+          event.amount satisfies number;
+        }
         return context.count;
       }
     }
