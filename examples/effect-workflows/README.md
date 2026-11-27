@@ -49,8 +49,37 @@ INSPECT=1 pnpm --filter @xstate/example-effect-workflows exec tsx src/custom-act
 - `clock.ts`, `retry.ts`, `supervision.ts`, `errors.ts` and `failure-cause.ts`: deadlines, retries, typed failures and Cause inspection.
 - `boundaries.ts`: decode external input and events before synchronous validation.
 - `persistence.ts` and `persistence-codec.ts`: causal event receipts and schema-backed snapshots with rich values.
+- `cluster.ts`: a checkpoint-backed workflow hosted by an Effect Cluster entity.
 
 Run individual `.ts` examples with `pnpm --filter @xstate/example-effect-workflows exec tsx src/clock.ts`. The React components are exercised by the React tests.
+
+## Effect Cluster workflow
+
+`ClusterWorkflow` exposes `Start(requestId)` and `Get()`. Each entity runs
+one job, invokes an Effect, and waits one second before completing. The
+entity uses `xstate/durable` for transitions, checkpoints, and restored timer
+delays.
+
+Supply a `WorkflowStore` that commits the checkpoint and accepted request ID
+in one compare-and-swap write. The entity saves the active invocation before
+starting its Effect. The same start request returns the current state
+without applying another transition. A different request ID is rejected.
+
+After a runner restart, the first request to the entity restores the job.
+An interrupted Effect can run again. The Effect receives the same job ID
+on every attempt, so an external service can use it as an idempotency key.
+Restoring a waiting job uses the original timer deadline. An overdue timer
+fires after the entity is reactivated. This example uses runner-local
+timers and requires a request to reactivate a job after a restart.
+
+The integration test uses Effect Cluster's in-process `TestRunner` and a
+temporary file for workflow checkpoints. It replaces the runner during an
+invocation and again while a timer is pending. Run it from the repository
+root.
+
+```bash
+pnpm exec vitest run examples/effect-workflows/test/cluster.test.ts
+```
 
 ## Update an example
 

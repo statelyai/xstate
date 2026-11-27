@@ -550,6 +550,11 @@ messaging and child actors. Approximations break subtle semantics: for
 example, awaiting a sleep inline cannot implement a cancelable timer while
 also receiving intervening events.
 
+The [Effect Cluster workflow example](https://github.com/statelyai/xstate/tree/next/examples/effect-workflows#effect-cluster-workflow)
+hosts one machine in a Cluster entity. It commits the request ID together
+with the checkpoint, restarts an interrupted invocation on reactivation, and
+restores the remaining time on a pending timer.
+
 ## What next?
 
 - [Run backend workflows](backend-workflows.md) when your application owns
