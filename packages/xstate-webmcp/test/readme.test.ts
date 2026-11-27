@@ -2,7 +2,11 @@
 import { createStore } from '@xstate/store';
 import { createActor, createMachine } from 'xstate';
 import { z } from 'zod';
-import { createMockModelContext, createWebMCP } from '../src/index.ts';
+import {
+  createMockModelContext,
+  createWebMCP,
+  toToolName
+} from '../src/index.ts';
 
 const todoStore = createStore({
   schemas: {
@@ -80,6 +84,22 @@ describe('README examples', () => {
     await modelContext.executeTool('todo_remove', { id: 2 });
     expect(todoStore.getSnapshot().context.todos).toEqual([
       { id: 1, title: 'Walk dog' }
+    ]);
+  });
+
+  it('tool names from schemas', () => {
+    const webMCP = createWebMCP(todoStore, {
+      events: ['todo.*'],
+      toolName: (eventType, schema) =>
+        schema === todoStore.schemas?.events?.['todo.add']
+          ? 'add_todo'
+          : toToolName(eventType)
+    });
+
+    expect(webMCP.tools.map((tool) => tool.name)).toEqual([
+      'add_todo',
+      'todo_remove',
+      'get_state'
     ]);
   });
 
