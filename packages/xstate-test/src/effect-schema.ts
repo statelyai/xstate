@@ -35,6 +35,8 @@ interface ArbitraryConstraints {
   exclusiveMaximum?: boolean;
   minLength?: number;
   maxLength?: number;
+  minCodePoints?: number;
+  maxCodePoints?: number;
   patterns?: Array<{ source: string; flags: string }>;
 }
 
@@ -81,6 +83,18 @@ function collectConstraints(
       into.maxLength = Math.min(
         into.maxLength ?? Number.POSITIVE_INFINITY,
         constraint.maxLength
+      );
+    }
+    if (constraint.minCodePoints !== undefined) {
+      into.minCodePoints = Math.max(
+        into.minCodePoints ?? 0,
+        constraint.minCodePoints
+      );
+    }
+    if (constraint.maxCodePoints !== undefined) {
+      into.maxCodePoints = Math.min(
+        into.maxCodePoints ?? Infinity,
+        constraint.maxCodePoints
       );
     }
     if (constraint.patterns) {
@@ -138,11 +152,57 @@ function stringArbitrary(c: ArbitraryConstraints): fc.Arbitrary<string> {
     const [first] = c.patterns;
     return fc.stringMatching(new RegExp(first.source, first.flags));
   }
+  if (c.minCodePoints !== undefined || c.maxCodePoints !== undefined) {
+    return codePointString(c);
+  }
   return fc.string({
     ...(c.minLength !== undefined && { minLength: c.minLength }),
     ...(c.maxLength !== undefined &&
       Number.isFinite(c.maxLength) && { maxLength: c.maxLength })
   });
+}
+
+function codePointString(c: ArbitraryConstraints): fc.Arbitrary<string> {
+  const minUnits = c.minLength ?? 0;
+  const maxUnits = c.maxLength ?? Infinity;
+  const maxLength = Math.min(c.maxCodePoints ?? Infinity, maxUnits);
+  const length = {
+    minLength: Math.max(c.minCodePoints ?? 0, Math.ceil(minUnits / 2)),
+    ...(Number.isFinite(maxLength) && { maxLength })
+  };
+  if (c.minLength === undefined && c.maxLength === undefined) {
+    return fc.string({ unit: 'binary', ...length });
+  }
+
+  const bmp = fc
+    .oneof(
+      fc.integer({ min: 0, max: 0xd7ff }),
+      fc.integer({ min: 0xe000, max: 0xffff })
+    )
+    .map((point) => String.fromCodePoint(point));
+  const supplementary = fc
+    .integer({ min: 0x10000, max: 0x10ffff })
+    .map((point) => String.fromCodePoint(point));
+  // A supplementary code point occupies two UTF-16 code units.
+  return fc.array(fc.constant(null), length).chain(({ length: count }) =>
+    fc
+      .integer({
+        min: Math.max(0, minUnits - count),
+        max: Math.min(count, maxUnits - count)
+      })
+      .chain((wide) =>
+        fc
+          .tuple(
+            fc.string({
+              unit: bmp,
+              minLength: count - wide,
+              maxLength: count - wide
+            }),
+            fc.string({ unit: supplementary, minLength: wide, maxLength: wide })
+          )
+          .map(([narrow, wide]) => narrow + wide)
+      )
+  );
 }
 
 function unsupportedNode(ast: SchemaAST.AST, path: string): never {

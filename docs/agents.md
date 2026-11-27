@@ -151,7 +151,8 @@ Save these checks and run `xstate test machine.json checks.json`.
 
 Event generation reads `schemas.events`. A wildcard schema supplies cases for
 matching concrete event types in the machine. The graph also keeps its default
-cases for types without generated or explicit cases. Use an `events` map to
+cases for concrete types without generated or explicit cases. To exercise a
+wildcard transition, provide a matching concrete event type. Use an `events` map to
 replace examples for individual types. To supply an explicit event array,
 omit `generate`.
 

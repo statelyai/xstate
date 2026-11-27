@@ -40,6 +40,7 @@ function fixture(run, { generators = false } = {}) {
       [cli, command, ...args, '--json'],
       { cwd: directory, encoding: 'utf8', timeout: 10000 }
     );
+    if (result.error) throw result.error;
     assert.equal(result.stderr, '');
     return { status: result.status, ...JSON.parse(result.stdout) };
   };
@@ -192,9 +193,11 @@ test('schema generation supplies seeded event examples and a replayable input', 
           input: { const: 'account' },
           events: {
             APPROVE: {
-              type: 'object',
-              required: ['level'],
-              properties: { level: { const: 2 } }
+              required: ['level', 'token'],
+              properties: {
+                level: { const: 2 },
+                token: { type: 'string', minLength: 32 }
+              }
             },
             REJECT: { type: 'object', additionalProperties: false }
           }
@@ -225,7 +228,7 @@ test('schema generation supplies seeded event examples and a replayable input', 
       });
       assert.ok(
         result.result.representativeEvents.APPROVE.every(
-          ({ level }) => level === 2
+          ({ level, token }) => level === 2 && Array.from(token).length >= 32
         )
       );
       assert.deepEqual(invoke('test', file, checks), result);
@@ -262,10 +265,18 @@ test('explicit cases override generated cases and wildcard schemas fill concrete
           events: {
             APPROVE: { type: 'string', pattern: 'unsupported' },
             'review.*': {
-              $schema: 'https://json-schema.org/draft/2020-12/schema',
+              $schema: 'https://json-schema.org/draft/2020-12/schema#',
               type: 'object',
-              properties: { level: { const: 2 } },
-              required: ['level'],
+              properties: {
+                level: { const: 2 },
+                pair: {
+                  type: 'array',
+                  prefixItems: [{ const: 'a' }, { const: 'b' }],
+                  minItems: 2,
+                  items: false
+                }
+              },
+              required: ['level', 'pair'],
               additionalProperties: false
             }
           }
@@ -275,9 +286,11 @@ test('explicit cases override generated cases and wildcard schemas fill concrete
           pending: {
             on: {
               APPROVE: { matches: { level: 1 }, target: 'approved' },
-              'review.reject': { matches: { level: 2 }, target: 'rejected' }
+              'review.reject': { matches: { level: 2 }, target: 'rejected' },
+              'review.*': { target: 'bypassed' }
             }
-          }
+          },
+          bypassed: { type: 'final' }
         }
       });
       const result = invoke(
@@ -287,14 +300,15 @@ test('explicit cases override generated cases and wildcard schemas fill concrete
           generate: {},
           input: 'fixed',
           events: { APPROVE: [{ level: 1 }] },
-          reachable: ['#review.approved', '#review.rejected']
+          reachable: ['#review.approved', '#review.rejected'],
+          never: ['#review.bypassed']
         })
       );
       assert.equal(result.ok, true, JSON.stringify(result));
       assert.equal(result.result.input, 'fixed');
       assert.deepEqual(result.result.generation.eventTypes, ['review.reject']);
       assert.deepEqual(result.result.representativeEvents, {
-        'review.reject': [{ level: 2 }],
+        'review.reject': [{ level: 2, pair: ['a', 'b'] }],
         APPROVE: [{ level: 1 }]
       });
     },
@@ -308,7 +322,8 @@ test('schema generation reports invalid options and missing project dependencies
       { generate: null },
       { generate: { samplesPerEvent: 101 } },
       { generate: { seed: 2147483648 } },
-      { generate: {}, events: [] }
+      { generate: {}, events: [] },
+      { generate: {}, events: { 'review.*': [{}] } }
     ]) {
       const checks = write('checks', {
         ...options,

@@ -46,6 +46,13 @@ async function generateCases(machine, schemas, options, fail) {
     );
   }
 
+  if (Object.keys(manual).some((type) => type.includes('*'))) {
+    fail(
+      'INVALID_GENERATION',
+      'Event case keys must name concrete event types.'
+    );
+  }
+
   if (schemas?.events !== undefined && !isRecord(schemas.events)) {
     fail('SCHEMA_GENERATION_FAILED', 'Expected an event schema map.', {
       path: 'schemas.events'
@@ -81,17 +88,29 @@ async function generateCases(machine, schemas, options, fail) {
     }
   };
 
-  function schemaArbitrary(schema, path) {
+  function schemaArbitrary(schema, path, { payload = false } = {}) {
     if (!isRecord(schema)) {
       fail('SCHEMA_GENERATION_FAILED', 'Expected a JSON Schema object.', {
         path
       });
     }
     try {
-      const document = schema.$schema?.endsWith('2020-12/schema')
+      const dialect = schema.$schema?.replace(/#$/, '');
+      const document = dialect?.endsWith('2020-12/schema')
         ? JsonSchema.fromSchemaDraft2020_12(schema)
         : JsonSchema.fromSchemaDraft07(schema);
-      const runtimeSchema = Representation.fromJsonSchemaDocument(document);
+      // Restrict event payloads without changing the schema reference scope.
+      const runtimeSchema = Representation.fromJsonSchemaDocument(
+        payload
+          ? {
+              ...document,
+              schema: {
+                ...document.schema,
+                allOf: [...(document.schema.allOf ?? []), { type: 'object' }]
+              }
+            }
+          : document
+      );
       const isValid = Schema.is(runtimeSchema);
       return generators
         .fromEffectSchema(runtimeSchema, { override })
@@ -139,7 +158,7 @@ async function generateCases(machine, schemas, options, fail) {
       fallback: (schema, type) =>
         isRecord(schema) && Object.keys(schema).length === 0
           ? constant({})
-          : schemaArbitrary(schema, `schemas.events.${type}`)
+          : schemaArbitrary(schema, `schemas.events.${type}`, { payload: true })
     }
   );
   const generated = Object.fromEntries(

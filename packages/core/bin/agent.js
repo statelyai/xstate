@@ -266,6 +266,9 @@ async function run(command, rawArgs) {
     const paths = graph.getShortestPaths(machine, {
       events,
       input,
+      ...(generated && {
+        filterEvents: (_snapshot, event) => !event.type.includes('*')
+      }),
       limit: options.limit ?? 10000
     });
     const visited = paths.map((path) => path.state);
