@@ -668,6 +668,52 @@ assert.equal((await replayTest(machine, fixture, { expect: 'pass' })).finalSnaps
     );
     run(process.execPath, ['test-paths.mjs'], consumer);
   });
+  step(
+    'packed agent CLI generates schema cases with local dependencies',
+    () => {
+      linkDependency('effect', join(root, 'packages/xstate-test'));
+      linkDependency('fast-check', join(root, 'packages/xstate-test'));
+      const machine = join(consumer, 'agent-schema-machine.json');
+      const checks = join(consumer, 'agent-schema-checks.json');
+      writeFileSync(
+        machine,
+        JSON.stringify({
+          id: 'verify',
+          initial: 'idle',
+          schemas: {
+            events: {
+              GO: {
+                type: 'object',
+                properties: { allowed: { const: true } },
+                required: ['allowed'],
+                additionalProperties: false
+              }
+            }
+          },
+          states: {
+            idle: {
+              on: { GO: { matches: { allowed: true }, target: 'done' } }
+            },
+            done: { type: 'final' }
+          }
+        })
+      );
+      writeFileSync(
+        checks,
+        JSON.stringify({ generate: {}, reachable: ['#verify.done'] })
+      );
+      const response = JSON.parse(
+        run(
+          process.execPath,
+          [join(nodeModules, 'xstate/bin/xstate.js'), 'test', machine, checks],
+          consumer
+        )
+      );
+      if (!response.result.representativeEvents.GO[0].allowed) {
+        throw new Error('Packed CLI did not generate the required payload.');
+      }
+    }
+  );
   step('README quick start runs with the packed package', () => {
     const source = `${readmeExample}
 if (toggleActor.getSnapshot().value !== 'inactive' || toggleActor.getSnapshot().context.count !== 1) {

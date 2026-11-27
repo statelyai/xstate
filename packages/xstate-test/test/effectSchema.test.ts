@@ -17,6 +17,14 @@ describe('Effect Schema adapter', () => {
     ).toBe(true);
   });
 
+  it('fails when a refinement rejects every generated value', () => {
+    const schema = Schema.String.check(Schema.makeFilter(() => false));
+    const arbitrary = fromEffectSchema(schema);
+    expect(() => fc.sample(arbitrary, { seed: 0, numRuns: 1 })).toThrow(
+      'after 1000 attempts'
+    );
+  });
+
   it('converts keyed payload schemas', () => {
     const events = fromEffectSchemas({
       INC: Schema.Struct({ value: Schema.Int }),

@@ -2,6 +2,7 @@ import * as Schema from 'effect/Schema';
 import * as SchemaAST from 'effect/SchemaAST';
 import * as fc from 'fast-check';
 import type { AnyStateMachine } from 'xstate';
+import { BoundedFilterArbitrary } from './boundedFilter.ts';
 import {
   eventsFromSchemas as baseEventsFromSchemas,
   type EventsFromSchemasOptions,
@@ -164,7 +165,12 @@ function fromAST(
   const base = fromNode(ast, path, constraints, options);
   const checks = ast.checks;
   return checks
-    ? base.filter((value) => passesChecks(checks, value, ast))
+    ? new BoundedFilterArbitrary(
+        base,
+        (value) => passesChecks(checks, value, ast),
+        'the Effect Schema checks',
+        path || '(root)'
+      )
     : base;
 }
 

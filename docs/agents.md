@@ -62,7 +62,7 @@ a module fails to load or run, and 1 on a usage error. See
 | `xstate inspect machine.json` | Inspect a data-only definition and static graph completeness. |
 | `xstate validate machine.json` | Check definition structure. This does not validate runtime event payloads. |
 | `xstate simulate machine.json events.json` | Calculate stable snapshots and describe effects without executing them. |
-| `xstate test machine.json checks.json` | Explore supplied event representatives and check stable-state safety and reachability assertions. |
+| `xstate test machine.json checks.json` | Explore supplied or schema-generated event representatives and check stable-state safety and reachability assertions. |
 | `xstate replay machine.json fixture.json` | Replay a counterexample against the same definition and XState version. |
 | `xstate diff before.json after.json` | Report structural JSON changes. Compatibility is explicitly `notChecked`. |
 
@@ -114,8 +114,67 @@ The default traversal limit is 10,000. Exceeding a bound fails instead of report
 success. A reachability failure means no supplied representative witnessed the
 state, not that the state is proven unreachable.
 
+### Generate examples from schemas
+
+Add `generate` to the checks file to sample the JSON Schemas in
+`machine.json`. The CLI uses `@xstate/test/effect-schema` to generate the
+examples. If your export omitted runtime schemas, add their JSON Schema
+forms to the definition. Install the matching `@xstate/test` beta, Effect 4, and fast-check 4
+in the project where you run the CLI. The other modes need no generator
+packages.
+
+For example, add this event schema to the `review` definition.
+
+```json
+{
+  "schemas": {
+    "events": {
+      "APPROVE": {
+        "type": "object",
+        "properties": { "level": { "type": "integer", "minimum": 1, "maximum": 3 } },
+        "required": ["level"],
+        "additionalProperties": false
+      }
+    }
+  }
+}
+```
+
+Save these checks and run `xstate test machine.json checks.json`.
+
+```json
+{
+  "generate": { "seed": 42, "samplesPerEvent": 5 },
+  "reachable": ["#review.approved"]
+}
+```
+
+Event generation reads `schemas.events`. A wildcard schema supplies cases for
+matching concrete event types in the machine. The graph also keeps its default
+cases for types without generated or explicit cases. Use an `events` map to
+replace examples for individual types. To supply an explicit event array,
+omit `generate`.
+
+If `schemas.input` exists, the CLI samples one startup input. Set `input`
+in the checks file to use a specific input instead. A successful result
+includes `generation`, `representativeEvents`, and the input if present.
+The seed defaults to 0 and must be a signed 32-bit integer.
+`samplesPerEvent` defaults to 3 and accepts 1 through 100. Duplicate cases
+are removed. The results cover the sampled examples and remain bounded by
+the traversal limit.
+
+The generator supports the JSON Schema constraints that Effect's importer
+and the Effect Schema generator can translate, including common object,
+array, literal, and numeric range schemas. The CLI uses Draft 7 by default
+and recognizes a Draft 2020-12 `$schema`. It reports unsupported constraints
+such as regular expression patterns. Supply explicit examples for those
+event types. Type-only schemas cannot supply payload examples.
+
+### Replay a failure
+
 A forbidden-state failure contains `error.details.fixture`. Save that object and
-pass it to `replay`. Its definition hash and XState version prevent accidental
+pass it to `replay`. It includes the concrete events and input, so replay needs
+no schema generator. Its definition hash and XState version prevent accidental
 replay against another model. Replay reports a property violation again while the
 same assertion still fails. These CLI fixtures are separate from `@xstate/test`
 fixtures. Use [model-based testing](model-based-testing.md) for PBT, payload
