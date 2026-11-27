@@ -1,5 +1,11 @@
 # @xstate/effect
 
+## 1.0.0-beta.4
+
+### Patch Changes
+
+- 7ff5654: Build no inspection events while nothing is subscribed through `actor.inspect()`.
+
 ## 1.0.0-beta.3
 
 ### Patch Changes
