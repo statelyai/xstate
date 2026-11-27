@@ -3,7 +3,7 @@
 <!-- CLI commands and transforms from src/cli.ts and src/transforms/index.ts -->
 Run `xstate-codemod migrate [globs...] --dry` to review a v5-to-v6 migration. Omit `--dry` to save changes. The default scan includes TypeScript and JavaScript files, excluding `node_modules` and `dist`.
 
-The transforms rename imports, wrap string targets, convert inline `types` declarations to schemas, report APIs requiring manual migration, and report `#id.path` targets that v6 no longer resolves. `--transform name,name` selects transforms.
+The transforms rename imports, wrap string targets, convert inline `types` declarations to schemas, report APIs requiring manual migration, report `#id.path` targets that v6 no longer resolves, and report in-place writes to actor logic `input`. `--transform name,name` selects transforms.
 
 `--json` prints a single JSON report to stdout, including a `manualSites` list with the file, line, column, API and hint for each manual migration step. The command exits with `0` when no manual migration is needed, `1` on a usage error or invalid migration output, and `2` when manual migration is needed.
 

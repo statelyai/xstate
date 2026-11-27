@@ -9,6 +9,7 @@ import { suffixedLifecycleEvents } from './suffixed-lifecycle-events.ts';
 import { reportActionShapes } from './report-action-shapes.ts';
 import { reportImplementations } from './report-implementations.ts';
 import { reportInspectionEvents } from './report-inspection-events.ts';
+import { reportInputMutations } from './report-input-mutations.ts';
 
 /** All transforms, in recommended application order. */
 export const transforms: Transform[] = [
@@ -21,7 +22,8 @@ export const transforms: Transform[] = [
   suffixedLifecycleEvents,
   reportActionShapes,
   reportImplementations,
-  reportInspectionEvents
+  reportInspectionEvents,
+  reportInputMutations
 ];
 
 export const transformsByName: Record<string, Transform> = Object.fromEntries(
