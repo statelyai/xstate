@@ -1,7 +1,7 @@
 import { createStore } from '@xstate/store';
 import { createActor, createMachine } from 'xstate';
 import { z } from 'zod';
-import { createWebMCP } from '../src/index.ts';
+import { createWebMCP, type StandardSchemaV1 } from '../src/index.ts';
 
 const store = createStore({
   schemas: {
@@ -77,8 +77,9 @@ describe('createWebMCP types', () => {
   it('types the toolName mapper', () => {
     createWebMCP(store, {
       events: '*',
-      toolName: (eventType) => {
+      toolName: (eventType, schema) => {
         expectTypeOf(eventType).toEqualTypeOf<'todo.add' | 'todo.remove'>();
+        expectTypeOf(schema).toEqualTypeOf<StandardSchemaV1>();
         return eventType.replace('.', '_');
       }
     });

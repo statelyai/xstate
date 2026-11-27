@@ -208,6 +208,31 @@ describe('store tools', () => {
     ]);
   });
 
+  it('passes the event schema to the toolName mapper', () => {
+    const addSchema = z.object({}).describe('Add a todo.');
+    const clearSchema = z.object({}).describe('Clear todos.');
+    const store = createStore({
+      schemas: { events: { 'todo.add': addSchema, 'todo.clear': clearSchema } },
+      context: {},
+      on: {
+        'todo.add': (context) => context,
+        'todo.clear': (context) => context
+      }
+    });
+
+    const webMCP = createWebMCP(store, {
+      events: '*',
+      toolName: (eventType, schema) =>
+        schema === addSchema ? 'add_todo' : toToolName(eventType)
+    });
+
+    expect(webMCP.tools.map((tool) => tool.name)).toEqual([
+      'add_todo',
+      'todo_clear',
+      'get_state'
+    ]);
+  });
+
   it('throws when two event types map to the same tool name', () => {
     const store = createStore({
       schemas: {

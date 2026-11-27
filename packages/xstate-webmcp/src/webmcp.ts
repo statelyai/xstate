@@ -174,10 +174,13 @@ export interface WebMCPOptions<TTarget extends WebMCPTarget> {
     | EventDescriptor<WebMCPEventType<TTarget>>
     | readonly EventDescriptor<WebMCPEventType<TTarget>>[];
   /**
-   * Maps an event type to its tool name. Defaults to `toToolName`, which
-   * turns `'checkout.confirm'` into `'checkout_confirm'`.
+   * Maps an event type and its event schema to the tool name. Defaults to
+   * `toToolName`, which turns `'checkout.confirm'` into `'checkout_confirm'`.
    */
-  toolName?: (eventType: WebMCPEventType<TTarget>) => string;
+  toolName?: (
+    eventType: WebMCPEventType<TTarget>,
+    schema: StandardSchemaV1
+  ) => string;
   /** Prepended to every tool name as `${prefix}_${name}`. */
   prefix?: string;
   /** Per-event tool names, descriptions and annotations. */
@@ -490,7 +493,8 @@ export function createWebMCP<TTarget extends WebMCPTarget>(
   >;
   const names = new Map<string, string>();
   const mapToolName = (options.toolName ?? toToolName) as (
-    eventType: string
+    eventType: string,
+    schema: StandardSchemaV1
   ) => string;
   const entries: ToolEntry[] = [];
 
@@ -554,7 +558,7 @@ export function createWebMCP<TTarget extends WebMCPTarget>(
     }
 
     const name = toolName(
-      override.name ?? mapToolName(eventType),
+      override.name ?? mapToolName(eventType, schema),
       `event "${eventType}"`
     );
     const title =

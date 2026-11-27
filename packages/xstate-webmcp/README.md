@@ -84,6 +84,24 @@ createWebMCP(todoStore, {
 // Tools: send_todo_add, send_todo_remove, get_state
 ```
 
+`toolName` receives the event schema as its second argument, so a name can depend on the schema:
+
+```ts
+import { createWebMCP, toToolName, type StandardSchemaV1 } from '@xstate/webmcp';
+
+// `addTodoSchema` is the schema of the `todo.add` event
+const toolNames = new Map<StandardSchemaV1, string>([
+  [addTodoSchema, 'add_todo']
+]);
+
+createWebMCP(todoStore, {
+  events: ['todo.*'],
+  toolName: (eventType, schema) =>
+    toolNames.get(schema) ?? toToolName(eventType)
+});
+// Tools: add_todo, todo_remove, get_state
+```
+
 `createWebMCP` throws if two tools end up with the same name, for example when both `todo.add` and `todo_add` are exposed.
 
 ### Overrides
