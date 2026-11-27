@@ -1,5 +1,11 @@
 import { z } from 'zod';
-import { createAsyncLogic, createMachine, setup } from '../src/index.ts';
+import {
+  assertEvent,
+  createAsyncLogic,
+  createMachine,
+  setup,
+  type ExtractEvent
+} from '../src/index.ts';
 
 function expectType<T>(_v: T) {}
 
@@ -225,4 +231,87 @@ it('narrows bare reserved descriptors and rejects suffixed descriptors', () => {
       }
     });
   }
+});
+
+// At runtime, a partial wildcard such as `feedback.*` matches the bare
+// `feedback` event as well as its descendants (see `matchesEventDescriptor`).
+describe('partial wildcard descriptors include the bare prefix event', () => {
+  type Events =
+    | { type: 'FEEDBACK' }
+    | { type: 'FEEDBACK.GOOD'; value: number }
+    | { type: 'OTHER'; other: boolean };
+  type NestedEvents =
+    | Events
+    | { type: 'FEEDBACK.GOOD.DETAILED'; message: string };
+
+  it('keeps the prefix event when assertEvent narrows a concrete event', () => {
+    function handle(event: Events) {
+      assertEvent(event, 'FEEDBACK.*');
+      event.type satisfies 'FEEDBACK' | 'FEEDBACK.GOOD';
+      // @ts-expect-error the prefix event has no value
+      event.value;
+
+      if (event.type === 'FEEDBACK') {
+        event satisfies { type: 'FEEDBACK' };
+      }
+      if (event.type === 'FEEDBACK.GOOD') {
+        event.value satisfies number;
+      }
+      // @ts-expect-error unrelated events are excluded
+      event.other;
+    }
+
+    expect(() => handle({ type: 'FEEDBACK' })).not.toThrow();
+  });
+
+  it('keeps the prefix event when assertEvent narrows an event with a generic payload', () => {
+    function handle<TValue>(
+      event:
+        | { type: 'FEEDBACK' }
+        | { type: 'FEEDBACK.GOOD'; value: TValue }
+        | { type: 'OTHER'; other: boolean }
+    ) {
+      assertEvent(event, 'FEEDBACK.*');
+      event.type satisfies 'FEEDBACK' | 'FEEDBACK.GOOD';
+      // @ts-expect-error the prefix event has no value
+      event.value;
+
+      if (event.type === 'FEEDBACK') {
+        event satisfies { type: 'FEEDBACK' };
+      }
+      if (event.type === 'FEEDBACK.GOOD') {
+        event.value satisfies TValue;
+      }
+      // @ts-expect-error unrelated events are excluded
+      event.other;
+    }
+
+    expect(() => handle({ type: 'FEEDBACK' })).not.toThrow();
+  });
+
+  it('keeps nested prefixes in descriptor arrays', () => {
+    function handle(event: NestedEvents) {
+      assertEvent(event, ['FEEDBACK.GOOD.*', 'OTHER']);
+      event.type satisfies 'FEEDBACK.GOOD' | 'FEEDBACK.GOOD.DETAILED' | 'OTHER';
+
+      if (event.type === 'FEEDBACK.GOOD') {
+        event.value satisfies number;
+      }
+      // @ts-expect-error only the detailed event has a message
+      event.message;
+    }
+
+    expect(() => handle({ type: 'FEEDBACK.GOOD', value: 1 })).not.toThrow();
+  });
+
+  it('includes bare and nested prefixes in ExtractEvent', () => {
+    const prefix: ExtractEvent<Events, 'FEEDBACK.*'> = { type: 'FEEDBACK' };
+    const nestedPrefix: ExtractEvent<NestedEvents, 'FEEDBACK.GOOD.*'> = {
+      type: 'FEEDBACK.GOOD',
+      value: 42
+    };
+
+    prefix.type satisfies 'FEEDBACK';
+    nestedPrefix.value satisfies number;
+  });
 });
