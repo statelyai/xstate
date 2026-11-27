@@ -21,17 +21,17 @@ import type {
  * @experimental
  */
 export interface PlaywrightPage {
-  readonly waitForLoadState?: (state?: any, options?: any) => Promise<void>;
+  readonly waitForLoadState?: (state?: any, options?: any) => Promise<unknown>;
   readonly screenshot?: (options?: any) => Promise<any>;
   readonly route?: (url: any, handler: any, options?: any) => Promise<unknown>;
-  readonly unroute?: (url: any, handler?: any) => Promise<void>;
+  readonly unroute?: (url: any, handler?: any) => Promise<unknown>;
   readonly clock?: {
-    readonly runFor?: (ticks: any) => Promise<void>;
+    readonly runFor?: (ticks: any) => Promise<unknown>;
   };
   readonly context?: () => {
     readonly tracing?: {
-      readonly start?: (options?: any) => Promise<void>;
-      readonly stop?: (options?: any) => Promise<void>;
+      readonly start?: (options?: any) => Promise<unknown>;
+      readonly stop?: (options?: any) => Promise<unknown>;
     };
   };
   readonly on?: (event: any, listener: any) => unknown;

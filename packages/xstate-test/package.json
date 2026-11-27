@@ -31,7 +31,7 @@
     "zod": "^3.25.0 || ^4.0.0"
   },
   "devDependencies": {
-    "@playwright/test": "^1.40.0",
+    "@playwright/test": "^1.65.1",
     "effect": "4.0.6",
     "fast-check": "^4.9.0",
     "vitest": "^3.2.7",
