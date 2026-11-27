@@ -1122,6 +1122,7 @@ These exports have been added:
 - Setup state contract types: `SetupStateSchema`, `SetupStateSchemas`, `SetupStateType`
 - Typed inline invoke types: `CreatedInvoke`, `CreateInvokeConfig`, `CreateAsyncInvokeConfig`, `InvokeInputArgs`
 - `createStateConfig`
+- `ActorSimulation`
 - `createEmptyActor`, `createStepLogic`, `createAsyncLogic`, `createCallbackLogic`, `createObservableLogic`, `createEventObservableLogic`, `createListenerLogic`, `createSubscriptionLogic`
 - `TimeoutError`
 - Serialization surface (see §21): `machineFromJSON`, `machineConfigToJSON`, and the `MachineJSON`/`StateNodeJSON`/`TransitionJSON`/`ActionJSON`/`GuardJSON`/`InvokeJSON` types; machines serialize via `machineToJSON(machine)`
