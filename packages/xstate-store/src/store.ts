@@ -242,7 +242,9 @@ function createStoreCore<
 ): Store<TContext, TEventPayloadMap, TEmitted> {
   type StoreEvent = ExtractEvents<TEventPayloadMap>;
   let listeners: Map<TEmitted['type'], Set<any>> | undefined;
-  let inspectionObservers: Set<Observer<StoreInspectionEvent>> | undefined;
+  let inspectionObservers:
+    | Map<Observer<StoreInspectionEvent>, { initialized: boolean }>
+    | undefined;
   const initialSnapshot = logic.getInitialSnapshot();
   let currentSnapshot: TSnapshot = initialSnapshot;
   const atom = createAtom<StoreSnapshot<TContext>>(currentSnapshot);
@@ -261,7 +263,7 @@ function createStoreCore<
     event: EventObject,
     snapshot: StoreSnapshot<TContext>
   ) => {
-    inspectionObservers?.forEach((observer) => {
+    inspectionObservers?.forEach((_, observer) => {
       observer.next?.({
         type: '@xstate.transition',
         event,
@@ -392,15 +394,34 @@ function createStoreCore<
         typeof observerOrFn === 'function'
           ? { next: observerOrFn }
           : observerOrFn;
-      (inspectionObservers ??= new Set()).add(observer);
+      const observers = (inspectionObservers ??= new Map());
+      const existing = observers.get(observer);
+      const registration = existing ?? { initialized: false };
+      if (!existing) {
+        observers.set(observer, registration);
+      }
 
-      observer.next?.({
-        type: '@xstate.transition',
-        event: { type: 'xstate.init' },
-        snapshot: currentSnapshot,
-        actorRef: store,
-        rootId: store.sessionId
-      });
+      try {
+        observer.next?.({
+          type: '@xstate.transition',
+          event: { type: 'xstate.init' },
+          snapshot: currentSnapshot,
+          actorRef: store,
+          rootId: store.sessionId
+        });
+        registration.initialized = true;
+      } catch (error) {
+        // Only the insertion can roll back, and reentrant inspection may
+        // already have initialized or replaced its registration.
+        if (
+          !existing &&
+          !registration.initialized &&
+          observers.get(observer) === registration
+        ) {
+          observers.delete(observer);
+        }
+        throw error;
+      }
 
       return {
         unsubscribe() {
